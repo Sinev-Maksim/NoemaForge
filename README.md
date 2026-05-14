@@ -38,9 +38,7 @@ AI OS is an attempt to create a system that:
 
 This is not a finished product.
 
-It is currently a:
-
-> Minimum Working Pattern (MWP)
+It is currently a: **MVP**
 
 ---
 
