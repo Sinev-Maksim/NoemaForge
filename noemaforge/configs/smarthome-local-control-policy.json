@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.smarthome/v1",
+  "kind": "SmartHomeLocalControlPolicy",
+  "version": "0.31.13.alpha",
+  "principle": "Value your privacy: local-first telemetry and device control through the NoemaForge home server.",
+  "devices": [
+    "smart_plug",
+    "smart_switch",
+    "vacuum",
+    "camera",
+    "sensor",
+    "thermostat",
+    "light",
+    "relay"
+  ],
+  "rules": [
+    "no cloud upload by default",
+    "no hidden camera or microphone capture",
+    "human override always wins",
+    "auditable actions",
+    "trusted/simulated/unverified source labels"
+  ],
+  "status": "candidate_backlog_pack"
+}

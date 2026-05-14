@@ -1,0 +1,42 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: firstboot.staffing
+title: First-boot staffing and model staffing
+purpose: Turn discovered models into a first working epoch for all declared operational
+  roles.
+why_it_exists: NoemaForge needs a queue-first, visible, policy-safe way to choose minimally
+  acceptable models before normal runtime begins.
+source_of_truth:
+- src/firstboot_orchestrator.py
+- src/firstboot_eval.py
+- configs/firstboot-policy.yaml
+- configs/role-eval-datasets.yaml
+raw_inputs:
+- Vault models
+- role eval datasets
+- current contracts
+compiled_artifacts:
+- scorecards
+- prestart request
+- first epoch patches
+- firstboot status/events
+workflows:
+  ingest:
+  - scan vault
+  - stage candidates
+  - evaluate per role
+  query:
+  - show staffing progress
+  - show chosen candidates per role
+  lint:
+  - verify every declared role has eval coverage or explicit N/A handling
+boundaries:
+- May auto-apply only allowlisted first-epoch changes.
+- Must never bypass epoch discipline.
+success_signals:
+- all declared roles are staffed or marked N/A
+- reboot enters an applied first epoch
+owner_roles:
+- surgeon
+- ssr
+- administrator

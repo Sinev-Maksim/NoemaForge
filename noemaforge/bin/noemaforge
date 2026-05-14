@@ -1,0 +1,1363 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: bin/noemaforge
+# Zone: operator/cli
+# Purpose: Human-friendly NoemaForge operator CLI with first-start, model-safe discovery, readable report repair and recovery/diagnostic ops.
+# Callers: /usr/local/bin/noemaforge, sudo noemaforge <command>, legacy wrappers.
+# Inputs: subcommands prepare-gui, first-start, status, models, logs, headless, llm-stop, health, safe-mode, gui-status, gui-rescue, start-llm-safe, llm-memory-override, nvidia-preflight, chatgpt-light.
+# Outputs: command output, reports under /var/lib/noemaforge/bootstrap, transient systemd jobs for long/disruptive ops.
+# Safety notes:
+#   - `sudo noemaforge first-start` rehomes work into systemd when launched from a graphical session.
+#   - Long/disruptive commands use systemd-run by default, so they keep running if the terminal/GUI closes.
+#   - Legacy command names are installed as wrappers that dispatch back into this CLI.
+# === End NoemaForge File Header ===
+set -euo pipefail
+
+# Resolve NoemaForge root in this order:
+# 1. explicit NOEMAFORGE_ROOT;
+# 2. installed path /opt/noemaforge;
+# 3. source-tree path when running from an unpacked release.
+if [[ -n "${NOEMAFORGE_ROOT:-}" ]]; then
+  ROOT="$NOEMAFORGE_ROOT"
+elif [[ -d /opt/noemaforge/src && -d /opt/noemaforge/tools ]]; then
+  ROOT="/opt/noemaforge"
+else
+  _SELF_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  ROOT="$(cd "$_SELF_DIR/.." && pwd)"
+fi
+FIRST_LAUNCH="$ROOT/tools/prep/noemaforge-first-launch.sh"
+GUI_PREP="$ROOT/tools/prep/noemaforge-gui-prepare.sh"
+HEADLESS="$ROOT/tools/prep/noemaforge-headless.sh"
+OP_DIR="$ROOT/tools/ops"
+UNIT="noemaforge-first-start.service"
+
+# Canonical self used by systemd-run. Never route long-running commands
+# through /usr/local/bin or /usr/local/sbin wrappers; doing so caused hidden
+# wrapper recursion during GUI/startup debugging.
+NOEMAFORGE_SELF_CANDIDATE="$ROOT/bin/noemaforge"
+if [[ -x "$NOEMAFORGE_SELF_CANDIDATE" ]]; then
+  NOEMAFORGE_SELF="$NOEMAFORGE_SELF_CANDIDATE"
+else
+  NOEMAFORGE_SELF="$(readlink -f "$0" 2>/dev/null || printf '%s' "$0")"
+fi
+NOEMAFORGE_SELF_RESOLVED="$(readlink -f "$NOEMAFORGE_SELF" 2>/dev/null || printf '%s' "$NOEMAFORGE_SELF")"
+case "$NOEMAFORGE_SELF_RESOLVED" in
+  /usr/local/bin/noemaforge|/usr/local/sbin/noemaforge|/usr/bin/noemaforge|/bin/noemaforge)
+    printf '[noemaforge][ERROR] canonical NoemaForge CLI resolved to public wrapper path: %s
+' "$NOEMAFORGE_SELF_RESOLVED" >&2
+    exit 70
+    ;;
+esac
+
+usage() {
+  cat <<'EOF'
+Usage:
+  noemaforge <command> [options]
+  sudo noemaforge <command> [options]
+
+Fast operator help:
+  noemaforge help                           Show this complete command list.
+  noemaforge ?                              Alias for complete help; old dispatcher-safe.
+  noemaforge guide                          Show recommended launch/recovery method.
+  noemaforge version                        Print NoemaForge version.
+  noemaforge next                           Suggest next action from current state.
+  noemaforge first-run-wizard                 Print guided MVP/MWP launch sequence.
+  noemaforge commands                       Same as help.
+  ./setup.sh --mode vm --dry-run          Validate release package without installing.
+
+Recommended safe launch path right now:
+  sudo noemaforge safe-start --wait --llm-profile=runtime_only
+                                        Start gateway + ToolProxy only; no LLM.
+  sudo noemaforge safe-start --wait --llm-profile=bootstrap_cpu_llm
+                                        Start CPU bootstrap LLM when explicitly allowed.
+  sudo systemctl start noemaforge-llama@main.service
+                                        Explicit/manual heavy backend start only.
+  noemaforge smoke                           Health/chat smoke through backend and gateway.
+  sudo noemaforge manager reconcile --plan    Preview single-active-model reconcile actions.
+  sudo noemaforge manager reconcile           Reconcile with runtime_desired_count=1.
+  noemaforge smoke                            Re-check after reconcile.
+  sudo noemaforge manager enable              Enable manager/modelscan timers in conservative mode.
+
+First installation / Vault path:
+  sudo noemaforge prepare-gui [options]       GUI-safe packages, mount/Vault, llama-server, inventory/discovery.
+  noemaforge inventory                        Show model inventory summary.
+  noemaforge roles                            Show role catalog and top-K-per-role rule.
+  sudo noemaforge vault plan                  Build dry-run reorg plan.
+  noemaforge vault show-plan                  Print reorg plan.
+  noemaforge vault audit                      Audit reorg plan; safe_to_apply must be true before apply.
+  sudo noemaforge vault apply --yes           Apply reviewed reorg plan; duplicates are quarantined, not deleted.
+
+UX / operator interface:
+  noemaforge chat [--role admin|dev|sr|surgeon|music]   Interactive local chat through gateway.
+  noemaforge chat --once "message"                       One-shot chat without curl/json wrappers.
+  noemaforge interpret "command/task"                    Return safe JSON interpretation, no execution.
+  noemaforge monitor [--watch 5|--json]                  Monitor services, timers, resources and tasks.
+  noemaforge tasks create|list|get|update|log            Administrator task registry.
+  noemaforge admin route|message|pipelines|modify-pipeline  Admin control-plane: route, launch and edit pipelines.
+  noemaforge dev-team run|replace|write-file|set-version  Dev Team code-improvement runner; direct file writes require explicit --apply.
+  noemaforge model-evolution run|list|show           Measured model-evolution cycle with baseline, mutation plan, scorecard and rollback gate.
+  noemaforge model-selection plan|apply              Chat/GUI model optimization plan; maps fast/normal/full/full_composite to first-start commands.
+  noemaforge pipeline catalog|run|approve|advance|pause|resume|fail|cancel|artifact|worktree|doctor|gate|repair|readiness|template-import|template-append|context-lint|compact|queue|metrics|schema-validate|event-log|lease|executor-step|member|policy|export|list|show|snapshot|dashboard-state|patterns|validate
+  noemaforge qa code team|run|list|show             Legacy code QA wrapper.
+  noemaforge member team|run|analyze-code|validate|list|show
+                                                    Pipeline member cells: standalone or sequential multi-model; proposal/consensus/unique artifacts and code visualizer.
+  noemaforge selftest catalog|run|compare|metrics|wiki-patch   Test cases, resource telemetry, baseline diff and wiki patch export.
+  noemaforge wiki-patch create --report REPORT                  Alias for selftest wiki-patch create.
+                                                    Switchable-LLM pipeline runner, typed context, LLM leases, gates, repair/readiness and pattern catalog.
+  noemaforge testbench catalog|run|report|baseline|metrics
+                                                    Self-improvement test matrix with CPU/memory/disk/GPU/ECC telemetry and baseline comparison.
+  noemaforge wiki-patch create|apply|list
+                                                    Incremental wiki patch bundles with functional and metric deltas; no automatic git push.
+  noemaforge schema validate [--run-id RUN]           Validate P1 NoemaForge-native config/context schemas.
+  noemaforge persona list|active|show|activate|evolve|validate|doctor     Role codenames, activation packets and evolving portraits.
+  noemaforge dashboard path|state|serve|start|stop|status  Local Admin GUI dashboard/API; no LLM/media autostart.
+  noemaforge gui console|dashboard|admin              Start/status local Admin GUI console without starting LLM.
+  noemaforge schema validate [--run-id RUN]              Validate NoemaForge pipeline/persona/pattern schemas and typed context sidecars.
+  noemaforge boot-mode show|status                     Human-readable conditional autostart status.
+  sudo noemaforge boot-mode set manual|gui|wogui        GUI=after GUI, woGUI=instead of GUI.
+  sudo noemaforge boot-mode set-profile gui runtime_only|bootstrap_cpu_llm
+  noemaforge profiles recommend                       Recommend safe model profile by RAM/VRAM.
+  noemaforge normalize-models [PATH...]               Reject non-head shards; print runtime-safe candidates.
+  noemaforge eval run --role dev.work/dev                Small role smoke tests.
+  noemaforge trixie-preflight [--json]                  Read-only Trixie launcher preflight.
+  sudo noemaforge forensics [--dry-run]                 Collect safe support bundle, no model/Vault data.
+  sudo noemaforge firstboot-archive                     Archive accepted firstboot baseline artifacts.
+  sudo noemaforge forensic-bundle [OUT_DIR]              Create no-weights support bundle.
+  noemaforge mvp-smoke [--json]                          Validate public MVP/MWP surface without running LLM.
+  noemaforge toolproxy diag [--test-llm]                 Diagnose ToolProxy policy/token/socket path.
+
+Runtime safety:
+  sudo noemaforge runtime-safety check        Check ModelStore for non-head shard hazards.
+  sudo noemaforge runtime-safety repair       Quarantine unsafe runtime dirs and repair main if needed.
+  noemaforge runtime-safety smoke-main        Smoke-test main backend if running.
+
+Safe runtime commands:
+  sudo noemaforge safe-start [--wait|--direct] --llm-profile=runtime_only|bootstrap_cpu_llm|heavy_manual
+                                                    Start safe core with explicit LLM profile.
+  sudo noemaforge autostart-safe --mode gui|wogui      Run gated safe-start according to boot mode/profile.
+  noemaforge smoke                                    Backend + gateway health/chat smoke test.
+  sudo noemaforge pause [--wait|--direct]             Pause NoemaForge runtime before GUI recovery; alias: stop.
+  sudo noemaforge stop [--wait|--direct]              Stop NoemaForge runtime; does NOT close Firefox/Nautilus.
+  sudo noemaforge stop --close-gui-heavy              Explicitly close Firefox/Nautilus too.
+  sudo noemaforge service-stop [--wait|--direct]      Legacy alias for runtime stop.
+  sudo noemaforge llm-stop [--wait|--direct]          Alias for service-stop.
+  sudo noemaforge manager status|disable|reconcile|enable
+    Manager invariant: runtime_desired_count=1 by default; one active model only.
+  sudo noemaforge start-llm-safe [--wait|--direct]    Legacy alias; prefer safe-start.
+  sudo noemaforge safe-mode [--wait|--direct]         Stop LLM + heavy Firefox, reset failed units.
+  sudo noemaforge llm-memory-override                 Add RAM-based MemoryHigh/MemoryMax override.
+  noemaforge recommend-model [--json]                 Recommend model size/quantization for this machine.
+  noemaforge quant-advisor [--json]                   Alias for recommend-model.
+
+GUI/NVIDIA commands:
+  noemaforge gui                            Show GUI command group help.
+  sudo noemaforge gui start [--wait|--restart|--dry-run]
+                                           Start Debian GUI through GDM/display-manager; does not start LLM.
+  sudo noemaforge gui_start [--wait|--restart|--dry-run]
+  sudo noemaforge gui-start [--wait|--restart|--dry-run]
+                                           Aliases for GUI start action.
+  sudo noemaforge gui-status                GUI/NVIDIA status without changing anything.
+  noemaforge gui-diagnose [--json]          Diagnose GDM/NVIDIA/Secure Boot/MOK/ToolProxy readiness before reboot.
+  sudo noemaforge gui-rescue [--wait|--direct]
+                                           Recovery path: restart display manager after NVIDIA preflight; preserves LLM by default.
+  sudo noemaforge gui-rescue --stop-llm     Explicitly stop LLM before GUI rescue.
+  sudo noemaforge nvidia-preflight install|status|restart|remove
+
+Inventory / role-aware evaluation:
+  sudo noemaforge inventory scan
+  sudo noemaforge datasets scan
+  sudo noemaforge eval-packs build
+  sudo noemaforge tournament eligibility
+  sudo noemaforge tournament run --all-roles   Role-specific 10-task tournament; top 8 per role, not global.
+  noemaforge tournament results
+  noemaforge models
+
+Diagnostics:
+  noemaforge first-run [--summary|--failed|--full|--json] [--reboot-ready]
+                                           One-command first-run audit with internal RUN directory, storage scan and recursion checks.
+  noemaforge multimodal scan|status|prepare|image-metadata|mask-plan|persona-gui
+                                           Discover non-GGUF/media models in Vault and prepare explicit multimodal pipelines.
+  noemaforge media scan|status               Alias for multimodal discovery.
+  noemaforge persona gui-status              Verify persona portraits/dashboard GUI readiness.
+  noemaforge version-audit [--json|--verbose] Validate active release metadata consistency.
+  noemaforge consistency-audit [--json]      Validate release consistency, policies, wiki/TODO and multimodal surfaces.
+  noemaforge av-readiness [--json]            Report honest audio/video readiness; read-only.
+  noemaforge status [--json|--strict|--legacy]
+  noemaforge vault-path
+  noemaforge vault-status
+  sudo noemaforge vault-mount-ro
+  noemaforge logs [unit]
+  sudo noemaforge health
+  sudo noemaforge fix-perms
+  sudo noemaforge doctor [--json|--strict|--legacy]
+
+High-risk commands, avoid until the safe-start/smoke/manager path is clean:
+  sudo noemaforge first-start --normal         Full first-start orchestration with measured model selection.
+  sudo noemaforge first-start --fast           First valid candidate per role; no composite testing.
+  sudo noemaforge first-start --full           Evaluate all runnable models; no composite testing.
+  sudo noemaforge first-start --full_composite 3   Evaluate all and build top-3 composition plan.
+  sudo noemaforge first-start abort              Stop active first-start, stop model backends and restore Debian GUI.
+  sudo noemaforge first-start diagnostics [OUT]  Collect pre-launch/recovery diagnostics bundle.
+  noemaforge first-start summary [--latest|--all|--json]  Grouped color first-start summary.
+  sudo noemaforge emergency-recover              Minimal no-block Debian GUI recovery; display-manager before GDM.
+  sudo noemaforge service-stop                 Stops active llama backend.
+
+Legacy wrappers routed through noemaforge CLI:
+  noemaforge-service-stop, noemaforge-llm-stop, noemaforge-health, noemaforge-safe-mode,
+  gui-status, gui-rescue, noemaforge-start-llm-safe, noemaforge-llm-memory-override, chatgpt-light
+EOF
+}
+log(){ printf '[noemaforge] %s\n' "$*"; }
+fail(){ printf '[noemaforge][ERROR] %s\n' "$*" >&2; exit 1; }
+require_root(){ [[ $EUID -eq 0 ]] || fail "Run with sudo."; }
+require_op(){ [[ -x "$OP_DIR/$1" ]] || fail "Missing operation script: $OP_DIR/$1"; }
+
+cmd_fix_perms() {
+  require_root
+  local group="noemaforge"
+  getent group "$group" >/dev/null 2>&1 || group="root"
+
+  echo "[noemaforge-fix-perms] repairing report/modelstore-readable state for group: $group"
+  install -d -o root -g "$group" -m 0750 /var/lib/noemaforge /var/lib/noemaforge/bootstrap
+  install -d -o root -g "$group" -m 0750 /workspace/outbox /workspace/outbox/bootreports 2>/dev/null || true
+  chgrp "$group" /var/lib/noemaforge /var/lib/noemaforge/bootstrap 2>/dev/null || true
+  chmod 0750 /var/lib/noemaforge /var/lib/noemaforge/bootstrap 2>/dev/null || true
+
+  # Reports/logs are safe to expose to noemaforge operators; they contain paths and
+  # discovery metadata, not model weights.
+  find /var/lib/noemaforge/bootstrap -maxdepth 1     \( -name '*.json' -o -name '*.log' -o -name '*.txt' -o -name '*.done' \)     -exec chown root:"$group" {} + -exec chmod 0640 {} + 2>/dev/null || true
+
+  # Keep modelstore traversable for NoemaForge services and operator diagnostics.
+  if [[ -d /var/lib/modelstore ]]; then
+    chgrp -R "$group" /var/lib/modelstore 2>/dev/null || true
+    find /var/lib/modelstore -type d -exec chmod g+rx {} + 2>/dev/null || true
+    find /var/lib/modelstore -type f -exec chmod g+r {} + 2>/dev/null || true
+  fi
+
+  echo "[noemaforge-fix-perms] state:"
+  namei -l /var/lib/noemaforge/bootstrap/model-candidates.safe.json 2>/dev/null || true
+  ls -lah /var/lib/noemaforge/bootstrap 2>/dev/null | sed -n '1,80p' || true
+}
+
+is_graphical_session() {
+  [[ -n "${DISPLAY:-}" || -n "${WAYLAND_DISPLAY:-}" ]] && return 0
+  [[ "${XDG_SESSION_TYPE:-}" == "x11" || "${XDG_SESSION_TYPE:-}" == "wayland" ]] && return 0
+  [[ -n "${XDG_CURRENT_DESKTOP:-}" ]] && return 0
+  return 1
+}
+
+have_systemd_run() {
+  command -v systemd-run >/dev/null 2>&1 && systemctl is-system-running >/dev/null 2>&1 || command -v systemd-run >/dev/null 2>&1
+}
+
+make_unit_name() {
+  local base="$1" ts
+  ts="$(date +%Y%m%d-%H%M%S)"
+  printf '%s-%s' "$base" "$ts"
+}
+
+run_transient() {
+  require_root
+  local internal_cmd="$1" unit_base="$2" desc="$3" mode="$4"
+  shift 4
+  local unit
+  unit="$(make_unit_name "$unit_base")"
+
+  if ! have_systemd_run; then
+    log "systemd-run is unavailable; running directly."
+    exec "$NOEMAFORGE_SELF" "$internal_cmd" "$@"
+  fi
+
+  case "$mode" in
+    wait)
+      log "Starting transient systemd job and waiting: ${unit}.service"
+      systemd-run \
+        --unit="$unit" \
+        --description="$desc" \
+        --collect \
+        --wait \
+        --setenv=NOEMAFORGE_SYSTEMD_JOB=1 \
+        --property=WorkingDirectory=/ \
+        "$NOEMAFORGE_SELF" "$internal_cmd" "$@"
+      ;;
+    async)
+      log "Starting transient systemd job: ${unit}.service"
+      systemd-run \
+        --unit="$unit" \
+        --description="$desc" \
+        --collect \
+        --setenv=NOEMAFORGE_SYSTEMD_JOB=1 \
+        --property=WorkingDirectory=/ \
+        "$NOEMAFORGE_SELF" "$internal_cmd" "$@"
+      log "Follow progress: sudo journalctl -fu ${unit}.service"
+      ;;
+    *) fail "invalid transient mode: $mode" ;;
+  esac
+}
+
+split_mode_args() {
+  # Prints mode then remaining arguments, one per line. Default is async.
+  #
+  # patched7: mode parsing is order-insensitive and --direct is sticky.
+  # Operators sometimes type both:
+  #   sudo noemaforge safe-start --direct --wait ...
+  # In that case direct must win, because the whole point is to avoid
+  # transient systemd-run while debugging.
+  local mode="async"
+  local saw_direct=0 saw_wait=0 saw_async=0
+  local passthrough=()
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --direct) saw_direct=1; shift ;;
+      --wait) saw_wait=1; shift ;;
+      --async) saw_async=1; shift ;;
+      --) shift; passthrough+=("$@"); break ;;
+      *) passthrough+=("$1"); shift ;;
+    esac
+  done
+  if [[ "$saw_direct" == 1 ]]; then
+    mode="direct"
+  elif [[ "$saw_wait" == 1 ]]; then
+    mode="wait"
+  elif [[ "$saw_async" == 1 ]]; then
+    mode="async"
+  fi
+  printf '%s\n' "$mode"
+  if [[ ${#passthrough[@]} -gt 0 ]]; then
+    printf '%s\n' "${passthrough[@]}"
+  fi
+}
+
+cmd_prepare_gui() { require_root; exec "$GUI_PREP" "$@"; }
+
+cmd_first_start_abort() {
+  require_root
+  log "Aborting NoemaForge first-start and restoring Debian GUI via minimal recovery."
+  systemctl stop noemaforge-first-start.service 2>/dev/null || true
+  pkill -TERM -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
+  sleep 5
+  pkill -KILL -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
+  systemctl list-units --type=service --all 'noemaforge-llama@*.service' --no-legend 2>/dev/null | awk '{print $1}' | xargs -r systemctl stop 2>/dev/null || true
+  # patched10: do not use `headless off` first in emergency/degraded states.
+  if [[ -x "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" ]]; then
+    "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" --reason first-start-abort 2>/dev/null || true
+  else
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl reset-failed 2>/dev/null || true
+    systemctl set-default graphical.target 2>/dev/null || true
+    systemctl start --no-block systemd-user-sessions.service 2>/dev/null || true
+    rm -f /run/nologin 2>/dev/null || true
+    systemctl start --no-block display-manager.service 2>/dev/null || true
+    systemctl start --no-block gdm.service 2>/dev/null || true
+    systemctl start --no-block gdm3.service 2>/dev/null || true
+    systemctl isolate --no-block graphical.target 2>/dev/null || true
+  fi
+  systemctl reset-failed noemaforge-first-start.service noemaforge-autostart-gui.service 2>/dev/null || true
+  echo "NoemaForge first-start abort requested. Default target: $(systemctl get-default 2>/dev/null || true)"
+  systemctl status display-manager.service gdm.service gdm3.service --no-pager -l 2>/dev/null || true
+}
+
+cmd_first_start_diagnostics() {
+  require_root
+  local ts out bundle
+  ts="$(date +%Y%m%d-%H%M%S)"
+  out="${1:-$HOME/noemaforge-first-start-diagnostics-$ts}"
+  mkdir -p "$out"
+  {
+    echo "date=$(date -Is 2>/dev/null || date)"
+    echo "version=$(cat /opt/noemaforge/VERSION 2>/dev/null || true)"
+    echo "default_target=$(systemctl get-default 2>/dev/null || true)"
+    echo "system_running=$(systemctl is-system-running 2>/dev/null || true)"
+  } > "$out/summary.txt"
+  systemctl status noemaforge-first-start.service --no-pager -l > "$out/noemaforge-first-start-status.txt" 2>&1 || true
+  systemctl status display-manager.service gdm.service gdm3.service --no-pager -l > "$out/display-manager-status.txt" 2>&1 || true
+  systemctl --failed --no-pager > "$out/systemctl-failed.txt" 2>&1 || true
+  systemctl list-jobs --no-pager > "$out/systemctl-jobs.txt" 2>&1 || true
+  journalctl --no-pager -u noemaforge-first-start.service -n 1500 > "$out/noemaforge-first-start-journal.txt" 2>&1 || true
+  journalctl -xb --no-pager -p err > "$out/journal-boot-errors.txt" 2>&1 || true
+  cp -a /etc/fstab "$out/fstab.current" 2>/dev/null || true
+  findmnt --verify --verbose > "$out/findmnt-verify.txt" 2>&1 || true
+  findmnt /mnt/brainos-share > "$out/findmnt-brainos-share.txt" 2>&1 || true
+  findmnt /mnt/noemaforge-share > "$out/findmnt-noemaforge-share.txt" 2>&1 || true
+  pgrep -af 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' > "$out/active-first-start-processes.txt" 2>&1 || true
+  cp -a /var/lib/noemaforge/bootstrap "$out/bootstrap-copy" 2>/dev/null || true
+  bundle="$out.tar.gz"
+  tar -czf "$bundle" -C "$(dirname "$out")" "$(basename "$out")"
+  echo "$bundle"
+}
+
+cmd_first_start() {
+  [[ -x "$FIRST_LAUNCH" ]] || fail "Missing $FIRST_LAUNCH"
+
+  case "${1:-}" in
+    abort|cancel|stop|rescue) shift || true; cmd_first_start_abort "$@"; return 0 ;;
+    diagnostics|diagnose|diag|support-bundle) shift || true; cmd_first_start_diagnostics "$@"; return 0 ;;
+    summary|summarize|report) shift || true; exec /usr/bin/python3 "$ROOT/src/first_start_summary.py" "$@" ;;
+  esac
+
+  local dry_run=0
+  local help_req=0
+  local arg
+  for arg in "$@"; do
+    [[ "$arg" == "--dry-run" ]] && dry_run=1
+    [[ "$arg" == "--help" || "$arg" == "-h" ]] && help_req=1
+  done
+
+  if [[ "$help_req" == "1" ]]; then
+    exec "$FIRST_LAUNCH" --help
+  fi
+
+  require_root
+
+  if [[ "$dry_run" == "1" ]]; then
+    log "first-start dry-run requested; running direct selection-only path; no rehome or headless toggle."
+    exec "$FIRST_LAUNCH" --allow-graphical --from-noemaforge-cli "$@"
+  fi
+
+  if is_graphical_session && [[ "${NOEMAFORGE_FIRST_START_SYSTEMD:-0}" != "1" ]]; then
+    cat <<'EOF'
+[noemaforge]
+First start was invoked from a graphical session.
+NoemaForge will now continue as a systemd job so it is not killed when GNOME stops.
+The GUI will be softly disabled only after package checks and safe model discovery pass.
+Nothing is uninstalled; restore later with:
+  sudo noemaforge first-start abort
+
+Follow progress from a TTY/SSH with:
+  sudo journalctl -fu noemaforge-first-start.service
+
+Abort/recovery from another TTY or SSH:
+  sudo noemaforge first-start abort
+EOF
+    sleep "${NOEMAFORGE_FIRST_START_COUNTDOWN:-8}"
+    systemd-run --unit=noemaforge-first-start --description="NoemaForge first start" --collect \
+      --setenv=NOEMAFORGE_FIRST_START_SYSTEMD=1 \
+      --setenv=NOEMAFORGE_RESTORE_GUI_AFTER_FIRST_START="${NOEMAFORGE_RESTORE_GUI_AFTER_FIRST_START:-1}" \
+      --setenv=NOEMAFORGE_FIRST_START_TTY_STATUS="${NOEMAFORGE_FIRST_START_TTY_STATUS:-1}" \
+      --setenv=NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL="${NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL:-20}" \
+      --setenv=NOEMAFORGE_TOURNAMENT_INCLUDE_UNVERIFIED="${NOEMAFORGE_TOURNAMENT_INCLUDE_UNVERIFIED:-0}" \
+      --setenv=NOEMAFORGE_TOURNAMENT_PER_MODEL_TIMEOUT="${NOEMAFORGE_TOURNAMENT_PER_MODEL_TIMEOUT:-}" \
+      --setenv=NOEMAFORGE_TOURNAMENT_TOTAL_TIMEOUT="${NOEMAFORGE_TOURNAMENT_TOTAL_TIMEOUT:-}" \
+      --property=WorkingDirectory=/ \
+      --property=StandardOutput=journal+console \
+      --property=StandardError=journal+console \
+      "$FIRST_LAUNCH" --soft-headless --from-noemaforge-cli "$@"
+    log "Started $UNIT. Current terminal may close when display-manager stops."
+    return 0
+  fi
+  exec "$FIRST_LAUNCH" --soft-headless --from-noemaforge-cli "$@"
+}
+
+cmd_status() {
+  if [[ "${1:-}" == "--legacy" ]]; then
+    shift || true
+    echo "=== headless ==="; "$HEADLESS" status 2>/dev/null || true; echo
+    echo "=== failed units ==="; systemctl --failed --no-pager || true; echo
+    echo "=== core services ==="; systemctl status noemaforge-llm-gateway noemaforge-toolproxy noemaforge-llama@main --no-pager || true; echo
+    echo "=== timers ==="; systemctl list-timers 'noemaforge-*' --no-pager || true; echo
+    echo "=== reports ==="
+    for f in /var/lib/noemaforge/bootstrap/gui-prepare.json /var/lib/noemaforge/bootstrap/model-candidates.safe.json /var/lib/noemaforge/bootstrap/modelstore-validation.safe.json /var/lib/noemaforge/bootstrap/firstboot-status.json /workspace/outbox/bootreports/first-launch-summary.txt; do
+      [[ -e "$f" ]] && ls -lh "$f"
+    done
+    return 0
+  fi
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_status.py" "$@"
+}
+
+cmd_models_diagnose() {
+  local share="/mnt/noemaforge-share"
+  echo "=== model report files ==="
+  ls -lah /var/lib/noemaforge/bootstrap/model-candidates.safe.json /var/lib/noemaforge/bootstrap/model-discovery.log /var/lib/noemaforge/bootstrap/model-discovery.stderr.log 2>&1 || true
+  echo
+  echo "=== report path permissions ==="
+  namei -l /var/lib/noemaforge/bootstrap/model-candidates.safe.json 2>&1 || true
+  echo
+  echo "=== share mount ==="
+  findmnt "$share" 2>/dev/null || true
+  echo
+  echo "=== likely Vault roots ==="
+  for d in "$share/Vault" "$share/noemaforge-lab/data/Vault"; do
+    [[ -d "$d" ]] && echo "$d" && find "$d" -maxdepth 3 -type d 2>/dev/null | sed -n '1,80p'
+  done
+  echo
+  echo "=== largest GGUF files on share, first 30 ==="
+  find "$share" -type f -iname '*.gguf' -printf '%s %p\n' 2>/dev/null | sort -nr | head -n 30 || true
+  echo
+  echo "=== discovery stderr tail ==="
+  tail -n 120 /var/lib/noemaforge/bootstrap/model-discovery.stderr.log 2>/dev/null || true
+}
+
+cmd_models() {
+  local action="${1:-show}"
+  case "$action" in
+    rescan|discover|refresh)
+      require_root
+      shift || true
+      exec "$GUI_PREP" --skip-packages "$@"
+      ;;
+    diagnose|doctor)
+      shift || true
+      cmd_models_diagnose "$@"
+      return 0
+      ;;
+    show|list)
+      shift || true
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  noemaforge models                 Show accepted/rejected GGUF model discovery report.
+  noemaforge models diagnose        Show model discovery paths/logs and largest GGUF files.
+  sudo noemaforge models rescan     Re-run model discovery without apt package block.
+  sudo noemaforge fix-perms         Repair report/log permissions.
+EOF
+      return 0
+      ;;
+  esac
+
+  local report="/var/lib/noemaforge/bootstrap/model-candidates.safe.json"
+  if [[ ! -f "$report" ]]; then
+    echo "[noemaforge][ERROR] Model report missing or not readable: $report" >&2
+    if [[ $EUID -ne 0 ]] && command -v sudo >/dev/null 2>&1 && sudo -n test -f "$report" 2>/dev/null; then
+      echo "[noemaforge][HINT] The report exists for root, but this user cannot traverse/read it." >&2
+      echo "[noemaforge][HINT] Fix once with: sudo noemaforge fix-perms" >&2
+    else
+      echo "Run: sudo noemaforge prepare-gui" >&2
+      echo "Or diagnose: noemaforge models diagnose" >&2
+    fi
+    return 1
+  fi
+  if command -v jq >/dev/null 2>&1; then
+    echo "=== discovery summary ==="
+    jq '{ok, error, status, candidate_count, rejected_count, vault_root, share_root, full_share_scan_used, roots, shortlist, logs}' "$report"
+    echo
+    echo "=== accepted GGUF candidates ==="
+    if [[ "$(jq -r '.candidate_count // 0' "$report")" -gt 0 ]]; then
+      jq -r '.candidates[]? | "[OK] id=\(.model_id_hint) sharded=\(.sharded) shards=\(.shard_count) size=\(.effective_size_bytes) path=\(.path)"' "$report"
+    else
+      echo "No accepted GGUF candidates."
+    fi
+    echo; echo "=== rejected GGUF files ==="
+    if [[ "$(jq -r '.rejected_count // 0' "$report")" -gt 0 ]]; then
+      jq -r '.rejected[]? | "[REJECT] reason=\(.reason) shard=\(.shard_index // "")/\(.shard_count // "") path=\(.path)"' "$report"
+    else
+      echo "No rejected GGUF records in report."
+    fi
+  else
+    cat "$report"
+  fi
+}
+
+cmd_logs() {
+  local unit="${1:-noemaforge-first-start.service}"
+  if [[ "$unit" != *.service && "$unit" != *.timer && "$unit" != *.slice ]]; then unit="$unit.service"; fi
+  exec journalctl -fu "$unit"
+}
+
+cmd_headless() {
+  [[ $# -ge 1 ]] || { "$HEADLESS" status; return 0; }
+  case "$1" in on|off) require_root ;; esac
+  exec "$HEADLESS" "$@"
+}
+
+cmd_doctor() {
+  if [[ "${1:-}" == "--legacy" ]]; then
+    shift || true
+    local out="/workspace/outbox/bootreports/noemaforge-cli-preflight.json"
+    if [[ -f "$ROOT/bootstrap/noemaforge-host-preflight.py" ]]; then
+      python3 "$ROOT/bootstrap/noemaforge-host-preflight.py" --seed "$ROOT" --out "$out" || true
+      cat "$out" 2>/dev/null || true
+    else
+      cmd_status --legacy
+    fi
+    return 0
+  fi
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_status.py" "$@"
+}
+
+cmd_first_run_wizard() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/first_run_wizard.py" "$@"
+}
+
+cmd_llm_stop() {
+  require_root
+  local parsed mode args=()
+  mapfile -t parsed < <(split_mode_args "$@")
+  mode="${parsed[0]}"; args=("${parsed[@]:1}")
+  require_op noemaforge-op-llm-stop.sh
+  case "$mode" in
+    direct) exec "$OP_DIR/noemaforge-op-llm-stop.sh" "${args[@]}" ;;
+    wait) run_transient __llm-stop noemaforge-llm-stop "NoemaForge LLM stop" wait "${args[@]}" ;;
+    async) run_transient __llm-stop noemaforge-llm-stop "NoemaForge LLM stop" async "${args[@]}" ;;
+  esac
+}
+
+
+cmd_guide() {
+  cat <<'EOF'
+NoemaForge launch method
+=====================
+
+Current target: make NoemaForge fully operational without repeating destructive first-start.
+
+0. Keep unsafe auto-managers disabled until runtime-safety is clean:
+   sudo noemaforge manager disable
+
+1. Start the safe core:
+   sudo noemaforge safe-start --wait
+
+2. Verify local LLM path:
+   noemaforge smoke
+
+3. Preview and test the automatic backend manager once, guarded by runtime-safety
+   and the runtime_desired_count=1 invariant:
+   sudo noemaforge manager reconcile --plan
+   sudo noemaforge manager reconcile
+   noemaforge smoke
+
+4. Only if reconcile + smoke are clean, enable timers in conservative mode:
+   sudo noemaforge manager enable
+
+5. Continue role-aware evaluation later:
+   sudo noemaforge tournament run --all-roles
+   noemaforge tournament results
+
+Rules:
+  - gui-rescue preserves LLM by default; use --stop-llm only when you really need to free GPU/RAM.
+  - service-stop/llm-stop are emergency stop commands and are lock-protected.
+  - top_k=8 is per role, not global.
+  - sharded GGUF may launch only from 00001-of-N; 00002+ are blocked by runtime-safety.
+  - runtime_desired_count defaults to 1: one active LLM backend at a time.
+  - TODO: parallel model runtime requires explicit scheduler/RAM/VRAM guards.
+
+Useful commands:
+  noemaforge next
+  noemaforge status [--json|--strict|--legacy]
+  noemaforge vault-path
+  noemaforge vault-status
+  sudo noemaforge vault-mount-ro
+  noemaforge smoke
+  sudo noemaforge runtime-safety check
+  sudo noemaforge manager status
+
+UX layer:
+  noemaforge chat --role admin
+  noemaforge interpret "sudo noemaforge manager status; systemctl --failed --no-pager"
+  noemaforge monitor
+  noemaforge tasks list
+  noemaforge eval run --role system.guard/sr
+  noemaforge toolproxy diag --test-llm
+EOF
+}
+
+cmd_next() {
+  echo "=== NoemaForge next-step advisor ==="
+  local failed_count
+  failed_count="$(systemctl --failed --no-legend 2>/dev/null | wc -l | tr -d ' ')"
+  if [[ "$failed_count" != "0" ]]; then
+    echo "Failed units detected. Next: systemctl --failed --no-pager"
+    systemctl --failed --no-pager || true
+    return 0
+  fi
+
+  if [[ ! -S /run/noemaforge/llm/backends/main.sock ]]; then
+    echo "Main backend socket is missing. Next: sudo noemaforge safe-start --wait"
+    echo "Then: noemaforge smoke"
+    return 0
+  fi
+
+  if [[ ! -S /run/noemaforge/llm/gateway.sock ]]; then
+    echo "Gateway socket is missing. Next: sudo systemctl start noemaforge-llm-gateway.service"
+    echo "Then: noemaforge smoke"
+    return 0
+  fi
+
+  if noemaforge smoke --json >/tmp/noemaforge-next-smoke.json 2>/tmp/noemaforge-next-smoke.err; then
+    echo "Safe core smoke passed."
+    echo "Next: sudo noemaforge manager reconcile"
+    echo "Then: noemaforge smoke"
+    echo "If still clean: sudo noemaforge manager enable"
+    return 0
+  fi
+
+  echo "Sockets exist but smoke failed. Next: noemaforge smoke"
+  echo "Smoke stderr:"
+  cat /tmp/noemaforge-next-smoke.err 2>/dev/null || true
+}
+
+cmd_safe_start() {
+  require_root
+  local parsed mode args=()
+  mapfile -t parsed < <(split_mode_args "$@")
+  mode="${parsed[0]}"; args=("${parsed[@]:1}")
+  require_op noemaforge-op-safe-start.sh
+  case "$mode" in
+    direct) exec "$OP_DIR/noemaforge-op-safe-start.sh" "${args[@]}" ;;
+    wait) run_transient __safe-start noemaforge-safe-start "NoemaForge safe start" wait "${args[@]}" ;;
+    async) run_transient __safe-start noemaforge-safe-start "NoemaForge safe start" async "${args[@]}" ;;
+  esac
+}
+
+cmd_smoke() {
+  require_op noemaforge-op-smoke.sh
+  exec "$OP_DIR/noemaforge-op-smoke.sh" "$@"
+}
+
+cmd_manager() {
+  require_root
+  require_op noemaforge-op-manager.sh
+  exec "$OP_DIR/noemaforge-op-manager.sh" "$@"
+}
+
+cmd_start_llm_safe() {
+  # Legacy command. Use the newer safe-start implementation, preserving args/mode semantics.
+  cmd_safe_start "$@"
+}
+
+cmd_safe_mode() {
+  require_root
+  local parsed mode args=()
+  mapfile -t parsed < <(split_mode_args "$@")
+  mode="${parsed[0]}"; args=("${parsed[@]:1}")
+  require_op noemaforge-op-safe-mode.sh
+  case "$mode" in
+    direct) exec "$OP_DIR/noemaforge-op-safe-mode.sh" "${args[@]}" ;;
+    wait) run_transient __safe-mode noemaforge-safe-mode "NoemaForge safe mode" wait "${args[@]}" ;;
+    async) run_transient __safe-mode noemaforge-safe-mode "NoemaForge safe mode" async "${args[@]}" ;;
+  esac
+}
+
+cmd_gui_rescue() {
+  case "${1:-}" in
+    -h|--help|help|"?")
+      require_op noemaforge-op-gui-rescue.sh
+      exec "$OP_DIR/noemaforge-op-gui-rescue.sh" --help
+      ;;
+  esac
+  require_root
+  local parsed mode args=()
+  mapfile -t parsed < <(split_mode_args "$@")
+  mode="${parsed[0]}"; args=("${parsed[@]:1}")
+  require_op noemaforge-op-gui-rescue.sh
+  if is_graphical_session && [[ "$mode" != "direct" ]]; then
+    cat <<'EOF'
+[noemaforge]
+GUI rescue can stop/restart the display manager.
+The operation will be moved into a systemd job so it is not killed with the GUI terminal.
+EOF
+    sleep "${NOEMAFORGE_GUI_RESCUE_COUNTDOWN:-3}"
+  fi
+  case "$mode" in
+    direct) exec "$OP_DIR/noemaforge-op-gui-rescue.sh" "${args[@]}" ;;
+    wait) run_transient __gui-rescue noemaforge-gui-rescue "NoemaForge GUI rescue" wait "${args[@]}" ;;
+    async) run_transient __gui-rescue noemaforge-gui-rescue "NoemaForge GUI rescue" async "${args[@]}" ;;
+  esac
+}
+
+cmd_health() { require_op noemaforge-op-health.sh; exec "$OP_DIR/noemaforge-op-health.sh" "$@"; }
+cmd_gui_status() { require_op noemaforge-op-gui-status.sh; exec "$OP_DIR/noemaforge-op-gui-status.sh" "$@"; }
+cmd_llm_memory_override() { require_root; require_op noemaforge-op-llm-memory-override.sh; exec "$OP_DIR/noemaforge-op-llm-memory-override.sh" "$@"; }
+cmd_nvidia_preflight() { require_root; require_op noemaforge-op-nvidia-preflight.sh; exec "$OP_DIR/noemaforge-op-nvidia-preflight.sh" "$@"; }
+cmd_chatgpt_light() { require_op noemaforge-op-chatgpt-light.sh; exec "$OP_DIR/noemaforge-op-chatgpt-light.sh" "$@"; }
+
+cmd_inventory() {
+  local action="${1:-show}"
+  case "$action" in
+    scan|refresh)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_inventory.py" scan "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    show|list|summary)
+      local report="/var/lib/noemaforge/bootstrap/model-inventory.json"
+      [[ -r "$report" ]] || fail "Model inventory missing. Run: sudo noemaforge inventory scan"
+      if command -v jq >/dev/null 2>&1; then
+        echo "=== model inventory summary ==="
+        jq '.summary + {vault_root, legacy_vault_root, updated_at}' "$report"
+        echo
+        echo "=== by capability ==="
+        jq -r '.summary.by_capability // {} | to_entries[] | "\(.key): \(.value)"' "$report" | sort || true
+      else
+        cat "$report"
+      fi
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  sudo noemaforge inventory scan [--share-root PATH] [--vault-root PATH]
+  noemaforge inventory
+EOF
+      ;;
+    *) fail "unknown inventory action: $action" ;;
+  esac
+}
+
+cmd_vault() {
+  local action="${1:-status}"
+  case "$action" in
+    scan|status)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_inventory.py" scan "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    plan)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_reorg.py" plan "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    show-plan|show)
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_reorg.py" show-plan "$@"
+      ;;
+    audit|check-plan)
+      shift || true
+      if [[ $EUID -eq 0 ]]; then
+        NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_reorg.py" audit "$@"
+        cmd_fix_perms >/dev/null 2>&1 || true
+      else
+        # Read-only operator audit: do not require write access to /var/lib/noemaforge/bootstrap.
+        # vault_reorg.py will still print the audit to stdout; write it to a temp file if
+        # the default report path is not writable by the current user.
+        NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_reorg.py" audit --json-out "${TMPDIR:-/tmp}/noemaforge-vault-reorg-audit-${USER:-operator}.json" "$@"
+      fi
+      ;;
+    apply)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/vault_reorg.py" apply "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  sudo noemaforge vault scan
+  sudo noemaforge vault plan
+  noemaforge vault show-plan
+  noemaforge vault audit
+  sudo noemaforge vault apply --yes
+EOF
+      ;;
+    *) fail "unknown vault action: $action" ;;
+  esac
+}
+
+cmd_datasets() {
+  local action="${1:-show}"
+  case "$action" in
+    scan|refresh)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/dataset_inventory.py" scan "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    show|list|summary)
+      local report="/var/lib/noemaforge/bootstrap/dataset-inventory.json"
+      [[ -r "$report" ]] || fail "Dataset inventory missing. Run: sudo noemaforge datasets scan"
+      if command -v jq >/dev/null 2>&1; then
+        jq '.summary + {vault_root, updated_at}' "$report"
+      else
+        cat "$report"
+      fi
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  sudo noemaforge datasets scan
+  noemaforge datasets
+EOF
+      ;;
+    *) fail "unknown datasets action: $action" ;;
+  esac
+}
+
+cmd_eval_packs() {
+  local action="${1:-build}"
+  case "$action" in
+    build|build-packs)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/dataset_inventory.py" build-packs "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    *) fail "unknown eval-packs action: $action" ;;
+  esac
+}
+
+cmd_roles() {
+  local catalog="$ROOT/configs/role-catalog.yaml"
+  [[ -r "$catalog" ]] || fail "Role catalog missing: $catalog"
+  echo "=== NoemaForge role catalog ==="
+  echo "Rule: top_k is per role, not global. Default top_k_per_role=8."
+  /usr/bin/python3 - "$catalog" <<'PYROLES'
+import sys, yaml
+obj=yaml.safe_load(open(sys.argv[1], encoding='utf-8')) or {}
+roles=obj.get('roles') or {}
+print(f"roles: {len(roles)}")
+for k,v in sorted(roles.items()):
+    print(f"- {k}: top_k={v.get('top_k', (obj.get('selection') or {}).get('top_k_per_role', 8))} eval_pack={v.get('eval_pack','auto')} required={','.join(v.get('required_capabilities') or [])}")
+PYROLES
+  local matrix="/var/lib/noemaforge/bootstrap/role-eligibility-matrix.json"
+  if [[ -r "$matrix" ]] && command -v jq >/dev/null 2>&1; then
+    echo
+    echo "=== role eligibility summary ==="
+    jq -r '.roles | to_entries[] | "\(.key): eligible=\(.value.eligible) runnable_now=\(.value.runnable_now) runtime_missing=\(.value.runtime_missing) runner_not_implemented=\(.value.runner_not_implemented)"' "$matrix" | sort
+  fi
+}
+
+
+cmd_runtime_safety() {
+  local action="${1:-check}"
+  case "$action" in
+    check|scan)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/runtime_safety.py" check "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    repair|guard|fix)
+      require_root
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/runtime_safety.py" repair "$@"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    smoke-main|smoke)
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/runtime_safety.py" smoke-main "$@"
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  sudo noemaforge runtime-safety check
+  sudo noemaforge runtime-safety repair
+  noemaforge runtime-safety smoke-main
+
+Purpose:
+  Block/repair ModelStore runtime hazards such as noemaforge-llama@...00005-of-00005.
+  Sharded GGUF models may only be launched through 00001-of-N or a logical modelstore dir.
+EOF
+      ;;
+    *) fail "unknown runtime-safety action: $action" ;;
+  esac
+}
+
+cmd_tournament() {
+  local action="${1:-results}"
+  case "$action" in
+    run)
+      require_root
+      shift || true
+      local args=(run --runtime-mode run)
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --all-roles) shift ;;
+          --role) args+=(--role "$2"); shift 2 ;;
+          --probe) args=(run --runtime-mode probe); shift ;;
+          *) args+=("$1"); shift ;;
+        esac
+      done
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/role_tournament.py" "${args[@]}"
+      cmd_fix_perms >/dev/null 2>&1 || true
+      ;;
+    eligibility)
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/role_tournament.py" eligibility "$@"
+      ;;
+    results|show)
+      local report="/var/lib/noemaforge/bootstrap/role-tournament-results.json"
+      [[ -r "$report" ]] || fail "Tournament results missing. Run: sudo noemaforge tournament run --all-roles"
+      if command -v jq >/dev/null 2>&1; then
+        jq '{updated_at, principle, inventory_summary, roles: (.roles | with_entries(.value={selected_count:.value.selected_count, top_k:.value.top_k, selected:[.value.selected[]? | {model_id, score, pass_rate, json_parse_rate, avg_latency_ms}]}))}' "$report"
+      else
+        cat "$report"
+      fi
+      ;;
+    -h|--help|help)
+      cat <<'EOF'
+Usage:
+  sudo noemaforge tournament run --all-roles
+  sudo noemaforge tournament run --role dev.work/dev
+  sudo noemaforge tournament run --probe
+  noemaforge tournament results
+EOF
+      ;;
+    *) fail "unknown tournament action: $action" ;;
+  esac
+}
+
+
+
+cmd_chat() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_chat.py" "$@"
+}
+
+cmd_interpret() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_interpret.py" "$@"
+}
+
+cmd_monitor() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_monitor.py" "$@"
+}
+
+cmd_pipeline() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/pipeline_runtime.py" "$@"
+}
+
+cmd_admin() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/admin_runtime.py" "$@"
+}
+
+cmd_dev_team() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/dev_team_runtime.py" "$@"
+}
+
+cmd_model_evolution() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/model_evolution_runtime.py" "$@"
+}
+
+cmd_model_selection() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/model_selection_runtime.py" "$@"
+}
+
+cmd_schema() {
+  local action="${1:-validate}"
+  case "$action" in
+    validate|check) shift || true; NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/pipeline_runtime.py" schema-validate "$@" ;;
+    *) fail "unknown schema action: $action" ;;
+  esac
+}
+
+cmd_persona() {
+  case "${1:-}" in
+    gui-status|gui_status|portraits|portrait-status) shift || true; cmd_persona_gui_status "$@" ;;
+    *) NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/persona_runtime.py" "$@" ;;
+  esac
+}
+
+cmd_selftest() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/selftest_runtime.py" "$@"
+}
+
+cmd_wiki_patch() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/selftest_runtime.py" wiki-patch "$@"
+}
+
+cmd_profiles() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/model_profiles.py" "$@"
+}
+
+cmd_normalize_models() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/model_inventory_normalize.py" "$@"
+}
+
+cmd_tasks() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_tasks.py" "$@"
+}
+
+cmd_eval() {
+  local action="${1:-run}"
+  case "$action" in
+    run|list|show)
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_eval.py" "$@"
+      ;;
+    *) NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_eval.py" "$@" ;;
+  esac
+}
+
+
+cmd_version() {
+  if [[ -f "$ROOT/VERSION" ]]; then
+    cat "$ROOT/VERSION"
+  elif [[ -f "$ROOT/../VERSION" ]]; then
+    cat "$ROOT/../VERSION"
+  else
+    echo "0.31.13.alpha"
+  fi
+}
+
+cmd_member() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/team_member_runtime.py" "$@"
+}
+
+cmd_qa() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/code_qa_runtime.py" "$@"
+}
+
+cmd_toolproxy_diag() {
+  local action="${1:-diag}"
+  case "$action" in
+    diag|diagnose|status)
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" "$@"
+      ;;
+    test|test-llm)
+      shift || true
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" --test-llm "$@"
+      ;;
+    *) NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" "$@" ;;
+  esac
+}
+
+
+cmd_gui_diagnose() {
+  NOEMAFORGE_ROOT="$ROOT" exec "$ROOT/tools/prep/noemaforge-gui-diagnose.sh" "$@"
+}
+
+cmd_gui_start() {
+  NOEMAFORGE_ROOT="$ROOT" exec "$ROOT/tools/prep/noemaforge-gui-start.sh" "$@"
+}
+
+cmd_gui_group() {
+  local action="${1:-help}"
+  case "$action" in
+    start|gui-start|gui_start) shift || true; cmd_gui_start "$@" ;;
+    status|gui-status) shift || true; cmd_gui_status "$@" ;;
+    diagnose|diagnosis|diag) shift || true; cmd_gui_diagnose "$@" ;;
+    rescue|gui-rescue|gui_rescue|rescue-gui|rescue_gui) shift || true; cmd_gui_rescue "$@" ;;
+    -h|--help|help|"?")
+      cat <<'EOF'
+Usage:
+  noemaforge gui start [--wait] [--restart] [--dry-run]
+  noemaforge gui status
+  noemaforge gui diagnose [--json]
+  noemaforge gui rescue [--wait|--direct] [--stop-llm]
+  noemaforge gui console [start|status|stop|serve]
+  noemaforge gui admin [start|status|stop|serve]
+
+GUI start starts Debian GUI through GDM/display-manager and never starts NoemaForge LLM.
+GUI console/admin starts only the local Admin GUI dashboard/API and never starts NoemaForge LLM.
+GUI rescue is a recovery action and may restart display-manager after NVIDIA preflight.
+EOF
+      ;;
+    console|dashboard|admin|admin-console)
+      shift || true
+      if [[ $# -eq 0 ]]; then
+        cmd_dashboard start
+      else
+        cmd_dashboard "$@"
+      fi
+      ;;
+    *) printf '[noemaforge][ERROR] unknown gui action: %s\n' "$action" >&2; exit 2 ;;
+  esac
+}
+
+cmd_consistency_audit() {
+  exec "$ROOT/tools/prep/noemaforge-consistency-audit.sh" --root "$ROOT" "$@"
+}
+
+cmd_version_audit() {
+  exec "$ROOT/tools/prep/noemaforge-version-audit.sh" --root "$ROOT" "$@"
+}
+
+cmd_av_readiness() {
+  exec "$ROOT/tools/prep/noemaforge-av-readiness.sh" --root "$ROOT" "$@"
+}
+
+cmd_first_run_audit() {
+  exec "$ROOT/tools/prep/noemaforge-first-run-audit.sh" --root "$ROOT" "$@"
+}
+
+
+cmd_multimodal() {
+  NOEMAFORGE_ROOT="$ROOT" exec "$ROOT/tools/prep/noemaforge-multimodal.sh" "$@"
+}
+
+cmd_persona_gui_status() {
+  NOEMAFORGE_ROOT="$ROOT" exec "$ROOT/tools/prep/noemaforge-persona-gui.sh" "$@"
+}
+
+cmd_trixie_preflight() {
+  NOEMAFORGE_ROOT="$ROOT" exec "$ROOT/tools/prep/noemaforge-trixie-preflight.sh" "$@"
+}
+
+cmd_firstboot_archive() {
+  require_root
+  exec "$ROOT/tools/prep/archive-firstboot-baseline.sh" "$@"
+}
+
+cmd_forensics() {
+  require_root
+  exec "$ROOT/tools/prep/noemaforge-forensics-bundle.sh" "$@"
+}
+
+cmd_forensic_bundle() {
+  require_root
+  exec "$ROOT/tools/prep/noemaforge-forensic-bundle.sh" "$@"
+}
+
+cmd_mvp_smoke() {
+  exec "$ROOT/tools/prep/noemaforge-mvp-smoke.sh" --root "$ROOT" "$@"
+}
+
+
+cmd_boot_mode() {
+  case "${1:-show}" in
+    show|status|-h|--help|help|"?")
+      exec "$ROOT/tools/prep/noemaforge-boot-mode.sh" "$@" ;;
+    *)
+      require_root
+      exec "$ROOT/tools/prep/noemaforge-boot-mode.sh" "$@" ;;
+  esac
+}
+
+cmd_autostart_safe() {
+  require_root
+  exec "$ROOT/tools/prep/noemaforge-autostart-safe.sh" "$@"
+}
+
+cmd_dashboard() {
+  if [[ $# -eq 0 ]]; then
+    exec "$ROOT/tools/prep/noemaforge-dashboard.sh" path --root "$ROOT"
+  fi
+  exec "$ROOT/tools/prep/noemaforge-dashboard.sh" "$@" --root "$ROOT"
+}
+
+
+_exec_helper() {
+  local helper="$1"; shift
+  if [[ -x "/usr/local/sbin/$helper" ]]; then
+    exec "/usr/local/sbin/$helper" "$@"
+  fi
+  if [[ -x "$ROOT/../helpers/$helper" ]]; then
+    exec "$ROOT/../helpers/$helper" "$@"
+  fi
+  if [[ -x "$ROOT/helpers/$helper" ]]; then
+    exec "$ROOT/helpers/$helper" "$@"
+  fi
+  fail "Missing helper: $helper. Try installed mode or run: ./setup.sh --mode docker-dev --dry-run"
+}
+
+cmd_stop() {
+  require_root
+  _exec_helper noemaforge-stop "$@"
+}
+
+cmd_reboot_safe() {
+  require_root
+  _exec_helper noemaforge-reboot-safe "$@"
+}
+
+cmd_shutdown_safe() {
+  require_root
+  _exec_helper noemaforge-reboot-safe --shutdown "$@"
+}
+
+cmd_vault_path() {
+  printf '/mnt/noemaforge-share/noemaforge-lab/data/Vault\n'
+}
+
+cmd_vault_status_simple() {
+  echo "=== NOEMAFORGE_SHARE mount ==="
+  findmnt /mnt/noemaforge-share || true
+  echo
+  echo "=== Vault ==="
+  ls -lah /mnt/noemaforge-share/noemaforge-lab/data/Vault 2>/dev/null | sed -n '1,80p' || true
+  echo
+  echo "=== dmesg NTFS/errors, filtered ==="
+  dmesg -T 2>/dev/null | grep -Eiv 'Modules linked in' | grep -Ei 'sda6|ntfs|dirty|MFT|I/O error|Buffer I/O|remount|read-only' | tail -80 || true
+}
+
+cmd_vault_mount_ro() {
+  require_root
+  exec /usr/local/sbin/noemaforge-vault-mount-ro "$@"
+}
+
+cmd_model_advisor() {
+  _exec_helper noemaforge-model-advisor "$@"
+}
+
+cmd="${1:-}"
+[[ -n "$cmd" ]] || { usage; exit 2; }
+shift || true
+case "$cmd" in
+  prepare-gui|prepare|gui-prepare) cmd_prepare_gui "$@" ;;
+  first-start|firststart|start-first) cmd_first_start "$@" ;;
+  emergency-recover|recover-gui|gui-recover) require_root; "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" --reason manual-emergency-recover ;;
+  status) cmd_status "$@" ;;
+  version|--version) cmd_version "$@" ;;
+  guide|method|manual) cmd_guide "$@" ;;
+  help|-h|--help|commands|\?) usage ;;
+  next|what-next) cmd_next "$@" ;;
+  chat|talk) cmd_chat "$@" ;;
+  interpret|cmd-interpret|command|commands-interpret) cmd_interpret "$@" ;;
+  monitor|mon|watch) cmd_monitor "$@" ;;
+  tasks|task) cmd_tasks "$@" ;;
+  admin|administrator|operator-admin) cmd_admin "$@" ;;
+  dev-team|devteam|development-team) cmd_dev_team "$@" ;;
+  model-evolution|evolve-model|model-evolve|evolution-model) cmd_model_evolution "$@" ;;
+  model-selection|select-model|model-select|optimize-model|model-optimization) cmd_model_selection "$@" ;;
+  member|team-member|member-cell|cell) cmd_member "$@" ;;
+  qa|code-qa|quality|review-code) cmd_qa "$@" ;;
+  pipeline|pipelines) cmd_pipeline "$@" ;;
+  schema|schemas) cmd_schema "$@" ;;
+  persona|personas|roles-persona) cmd_persona "$@" ;;
+  selftest|self-test|tests|telemetry-tests|testbench) cmd_selftest "$@" ;;
+  wiki-patch|wikipatch|wiki_patch|wiki-delta) cmd_wiki_patch "$@" ;;
+  profiles|model-profiles|profile) cmd_profiles "$@" ;;
+  normalize-models|model-normalize|canonical-models) cmd_normalize_models "$@" ;;
+  eval|role-eval|evaluate) cmd_eval "$@" ;;
+  toolproxy) cmd_toolproxy_diag "$@" ;;
+  trixie-preflight|launcher-preflight) cmd_trixie_preflight "$@" ;;
+  forensics|support-bundle|diagnostic-bundle) cmd_forensics "$@" ;;
+  firstboot-archive|archive-firstboot-baseline) cmd_firstboot_archive "$@" ;;
+  forensic-bundle|forensics|support-bundle) cmd_forensic_bundle "$@" ;;
+  mvp-smoke|public-smoke|mwp-smoke) cmd_mvp_smoke "$@" ;;
+  first-run|firstrun|first-run-audit|first-run-check|run-first-run) cmd_first_run_audit "$@" ;;
+  version-audit|release-audit|metadata-audit) cmd_version_audit "$@" ;;
+  consistency-audit|release-consistency|policy-audit|wiki-todo-audit) cmd_consistency_audit "$@" ;;
+  av-readiness|av-diagnose|media-readiness|audio-video-readiness) cmd_av_readiness "$@" ;;
+  multimodal|media|media-models|mm) cmd_multimodal "$@" ;;
+  persona-gui|personas-gui|gui-personas) cmd_persona_gui_status "$@" ;;
+  dashboard|console|pipeline-dashboard) cmd_dashboard "$@" ;;
+  schema|schemas) cmd_schema "$@" ;;
+  boot-mode|bootmode|autostart-mode) cmd_boot_mode "$@" ;;
+  autostart-safe|safe-autostart) cmd_autostart_safe "$@" ;;
+  models|model-list) cmd_models "$@" ;;
+  inventory|model-inventory) cmd_inventory "$@" ;;
+  vault) cmd_vault "$@" ;;
+  datasets|dataset) cmd_datasets "$@" ;;
+  eval-packs|eval-pack) cmd_eval_packs "$@" ;;
+  roles|role-catalog) cmd_roles "$@" ;;
+  tournament|role-tournament) cmd_tournament "$@" ;;
+  runtime-safety|runtime|safety) cmd_runtime_safety "$@" ;;
+  logs|log) cmd_logs "$@" ;;
+  headless) cmd_headless "$@" ;;
+  doctor|preflight) cmd_doctor "$@" ;;
+  first-run-wizard|wizard|guided-start|mvp-wizard) cmd_first_run_wizard "$@" ;;
+  fix-perms|repair-perms|permissions) cmd_fix_perms "$@" ;;
+
+  stop|pause) cmd_stop "$@" ;;
+  reboot-safe) cmd_reboot_safe "$@" ;;
+  shutdown-safe) cmd_shutdown_safe "$@" ;;
+  vault-path) cmd_vault_path "$@" ;;
+  vault-status) cmd_vault_status_simple "$@" ;;
+  vault-mount-ro) cmd_vault_mount_ro "$@" ;;
+  recommend-model|quant-advisor|model-advice|quantization-advisor) cmd_model_advisor "$@" ;;
+
+  safe-start|safe-startup|start-safe|start|up) cmd_safe_start "$@" ;;
+  smoke|smoke-test|test) cmd_smoke "$@" ;;
+  manager|backend-manager) cmd_manager "$@" ;;
+  llm-stop|stop-llm|service-stop|services-stop|noemaforge-service-stop) cmd_stop "$@" ;;
+  start-llm-safe|llm-start-safe|start-llm) cmd_start_llm_safe "$@" ;;
+  safe-mode|safemode) cmd_safe_mode "$@" ;;
+  health) cmd_health "$@" ;;
+  gui|gui-command) cmd_gui_group "$@" ;;
+  gui-status|status-gui) cmd_gui_status "$@" ;;
+  gui-diagnose|gui-diagnosis|diagnose-gui) cmd_gui_diagnose "$@" ;;
+  gui_start|gui-start|start-gui) cmd_gui_start "$@" ;;
+  gui-rescue|gui_rescue|rescue-gui|rescue_gui) cmd_gui_rescue "$@" ;;
+  llm-memory-override|memory-override) cmd_llm_memory_override "$@" ;;
+  nvidia-preflight|nvidia-gui-preflight) cmd_nvidia_preflight "$@" ;;
+  chatgpt-light) cmd_chatgpt_light "$@" ;;
+
+  __safe-start) require_root; require_op noemaforge-op-safe-start.sh; exec "$OP_DIR/noemaforge-op-safe-start.sh" "$@" ;;
+  __llm-stop) require_root; require_op noemaforge-op-llm-stop.sh; exec "$OP_DIR/noemaforge-op-llm-stop.sh" "$@" ;;
+  __start-llm-safe) require_root; require_op noemaforge-op-start-llm-safe.sh; exec "$OP_DIR/noemaforge-op-start-llm-safe.sh" "$@" ;;
+  __safe-mode) require_root; require_op noemaforge-op-safe-mode.sh; exec "$OP_DIR/noemaforge-op-safe-mode.sh" "$@" ;;
+  __gui-rescue) require_root; require_op noemaforge-op-gui-rescue.sh; exec "$OP_DIR/noemaforge-op-gui-rescue.sh" "$@" ;;
+
+  -h|--help|help) usage ;;
+  *) printf "[noemaforge][ERROR] unknown command: %s\n\n" "$cmd" >&2; usage >&2; exit 2 ;;
+esac

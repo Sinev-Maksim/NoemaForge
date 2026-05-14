@@ -1,0 +1,44 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: spinal.safety
+title: Spinal safety core
+purpose: Enforce ToolProxy, WebGW, quarantine, epoch, and supply-chain invariants
+  across the whole system.
+why_it_exists: Without an explicit spinal zone, the rest of NoemaForge becomes an un-auditable
+  agent bundle.
+source_of_truth:
+- src/toolproxy.py
+- src/webgateway.py
+- src/quarantine.py
+- src/prestart.py
+- configs/tool-policy.yaml
+- configs/tool-registry.yaml
+raw_inputs:
+- tool requests
+- external content
+- prestart requests
+- security events
+compiled_artifacts:
+- audit events
+- quarantine incidents
+- epoch manifests
+- sealed summaries
+workflows:
+  ingest:
+  - validate tokens and policies
+  - route external content through quarantine
+  query:
+  - show security and prestart status
+  lint:
+  - check policy-registry alignment
+  - verify epoch immutability and supply-chain gates
+boundaries:
+- The spinal zone owns execution safety, not user-facing UX.
+- No direct tool execution outside ToolProxy.
+success_signals:
+- unsafe direct paths are absent
+- epoch changes are always explicit and auditable
+owner_roles:
+- scary
+- surgeon
+- guard

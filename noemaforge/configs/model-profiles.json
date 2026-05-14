@@ -1,0 +1,47 @@
+{
+  "minimal": {
+    "description": "CPU-safe / low-risk onboarding. Prefer small instruct models and no heavy autostart.",
+    "max_active_llms": 1,
+    "default_runtime": "manual",
+    "ram_gib_min": 8,
+    "vram_gib_min": 0,
+    "model_hints": ["qwen2.5-3b", "phi-3-mini", "llama-3.2-3b", "gemma-2-2b"],
+    "roles": ["administrator", "surgeon", "writer", "solution_architect"]
+  },
+  "balanced": {
+    "description": "Default enthusiast profile. One switchable LLM, moderate latency, better quality.",
+    "max_active_llms": 1,
+    "default_runtime": "manual_or_policy_gated",
+    "ram_gib_min": 16,
+    "vram_gib_min": 8,
+    "model_hints": ["qwen2.5-7b", "mistral-7b", "llama-3.1-8b"],
+    "roles": ["administrator", "developer", "tester", "writer", "knowledge_architect"]
+  },
+  "writer": {
+    "description": "Long-form writing/profile. Bias toward context quality; still single-active runtime.",
+    "max_active_llms": 1,
+    "default_runtime": "manual_or_policy_gated",
+    "ram_gib_min": 16,
+    "vram_gib_min": 8,
+    "model_hints": ["qwen2.5-7b", "llama-3.1-8b", "gemma-2-9b"],
+    "roles": ["editor_in_chief", "writer", "fact_checker", "archivist"]
+  },
+  "research": {
+    "description": "Research/KG profile. Bias toward retrieval, citation discipline and fact-check stages.",
+    "max_active_llms": 1,
+    "default_runtime": "manual_or_policy_gated",
+    "ram_gib_min": 24,
+    "vram_gib_min": 10,
+    "model_hints": ["qwen2.5-14b", "deepseek", "llama-3.1-8b"],
+    "roles": ["researcher", "knowledge_architect", "entity_mapper", "provenance_reviewer"]
+  },
+  "gpu-heavy": {
+    "description": "Explicit GPU-on-demand profile for high-quality tasks. Never always-on by default.",
+    "max_active_llms": 1,
+    "default_runtime": "explicit_gpu_on_demand",
+    "ram_gib_min": 32,
+    "vram_gib_min": 12,
+    "model_hints": ["qwen2.5-14b", "mixtral", "llama-3.1-70b-quant"],
+    "roles": ["administrator", "developer", "researcher", "writer", "optimizer"]
+  }
+}

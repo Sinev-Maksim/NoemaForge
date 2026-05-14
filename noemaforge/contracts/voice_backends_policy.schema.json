@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VoiceBackendsPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled", "microphone", "stt", "assistant"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.voicebackends/v1"},
+    "kind": {"const": "VoiceBackendsPolicy"},
+    "enabled": {"type": "boolean"},
+    "microphone": {
+      "type": "object",
+      "required": ["enabled", "backend_order"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "backend_order": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["sounddevice", "arecord", "ffmpeg", "command"]}
+        },
+        "sample_rate_hz": {"type": "integer", "minimum": 8000},
+        "channels": {"type": "integer", "minimum": 1},
+        "max_seconds": {"type": "number", "minimum": 1},
+        "device": {"type": "string"},
+        "ffmpeg_input_args": {"type": "array", "items": {"type": "string"}},
+        "command": {
+          "type": "object",
+          "properties": {
+            "argv": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "stt": {
+      "type": "object",
+      "required": ["enabled", "backend_order"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "backend_order": {
+          "type": "array",
+          "items": {"type": "string", "enum": ["faster_whisper", "whisper", "whisper_cli", "command"]}
+        },
+        "default_language": {"type": "string"},
+        "device": {"type": "string"},
+        "model": {"type": "string"},
+        "model_path": {"type": "string"},
+        "compute_type": {"type": "string"},
+        "beam_size": {"type": "integer", "minimum": 1},
+        "vad_filter": {"type": "boolean"},
+        "whisper_cli": {
+          "type": "object",
+          "properties": {
+            "executable": {"type": "string"},
+            "argv": {"type": "array", "items": {"type": "string"}}
+          }
+        },
+        "command": {
+          "type": "object",
+          "properties": {
+            "argv": {"type": "array", "items": {"type": "string"}},
+            "result_mode": {"type": "string", "enum": ["stdout_text", "stdout_json", "text_file", "json_file"]}
+          }
+        }
+      }
+    },
+    "assistant": {
+      "type": "object",
+      "required": ["default_alias", "history_root", "max_turn_history"],
+      "properties": {
+        "default_alias": {"type": "string"},
+        "history_root": {"type": "string"},
+        "max_turn_history": {"type": "integer", "minimum": 1}
+      }
+    },
+    "assistant_targets": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["stream_id", "role"],
+        "properties": {
+          "title": {"type": "string"},
+          "stream_id": {"type": "string"},
+          "role": {"type": "string"},
+          "system_preamble": {"type": "string"},
+          "history_root": {"type": "string"},
+          "max_turn_history": {"type": "integer", "minimum": 1}
+        }
+      }
+    }
+  }
+}

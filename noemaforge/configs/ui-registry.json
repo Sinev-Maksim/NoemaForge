@@ -1,0 +1,318 @@
+{
+  "actions": [
+    {
+      "id": "action.queue_task",
+      "payload_schema": {
+        "properties": {
+          "priority": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "title": "Queue task"
+    },
+    {
+      "id": "action.approve_prestart",
+      "payload_schema": {
+        "properties": {
+          "request_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "type": "object"
+      },
+      "title": "Approve pre-start change request"
+    },
+    {
+      "id": "action.issue_invite",
+      "payload_schema": {
+        "properties": {
+          "invite_kind": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "invite_kind"
+        ],
+        "type": "object"
+      },
+      "title": "Issue invite token"
+    },
+    {
+      "id": "action.profile_toggle",
+      "title": "Toggle runtime profile",
+      "payload_schema": {
+        "type": "object",
+        "required": [
+          "profile_id",
+          "enabled"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "id": "action.voice_roundtrip",
+      "title": "Administrator voice roundtrip",
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "assistant_alias": {
+            "type": "string"
+          },
+          "max_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ],
+  "apiVersion": "noemaforge.ui_registry/v1",
+  "kind": "UIRegistry",
+  "meta": {
+    "derived_from": "head-gateway.json"
+  },
+  "screens": [
+    {
+      "id": "home",
+      "title": "Home",
+      "widgets": [
+        {
+          "source": "system.status",
+          "type": "cards"
+        },
+        {
+          "source": "taskqueue.summary",
+          "type": "queue"
+        }
+      ]
+    },
+    {
+      "id": "inbox",
+      "title": "Inbox",
+      "widgets": [
+        {
+          "source": "inbox.summary",
+          "type": "cards"
+        },
+        {
+          "source": "inbox.items",
+          "type": "table"
+        },
+        {
+          "source": "inbox.activity",
+          "type": "timeline"
+        }
+      ]
+    },
+    {
+      "id": "orchestration",
+      "title": "Orchestration",
+      "widgets": [
+        {
+          "source": "system.orch_snapshot",
+          "type": "dashboard"
+        },
+        {
+          "source": "flows.active",
+          "type": "graph"
+        },
+        {
+          "source": "sel.recent",
+          "type": "timeline"
+        },
+        {
+          "source": "taskqueue.next",
+          "type": "table"
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "title": "Projects",
+      "widgets": [
+        {
+          "source": "projects.list",
+          "type": "table"
+        },
+        {
+          "source": "projects.selected",
+          "type": "detail"
+        }
+      ]
+    },
+    {
+      "id": "daily",
+      "title": "Daily",
+      "widgets": [
+        {
+          "source": "daily.tasks",
+          "type": "table"
+        },
+        {
+          "source": "daily.history",
+          "type": "timeline"
+        }
+      ]
+    },
+    {
+      "id": "incidents",
+      "title": "Incidents",
+      "widgets": [
+        {
+          "source": "incidents.open",
+          "type": "table"
+        },
+        {
+          "source": "incidents.selected",
+          "type": "detail"
+        }
+      ]
+    },
+    {
+      "id": "prestart",
+      "title": "Pre-start",
+      "widgets": [
+        {
+          "source": "prestart.requests",
+          "type": "table"
+        },
+        {
+          "source": "prestart.selected",
+          "type": "diff"
+        }
+      ]
+    },
+    {
+      "id": "library",
+      "title": "Library",
+      "widgets": [
+        {
+          "source": "library.search",
+          "type": "search"
+        },
+        {
+          "source": "library.catalog",
+          "type": "table"
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "title": "Vault",
+      "widgets": [
+        {
+          "source": "vault.inventory",
+          "type": "table"
+        },
+        {
+          "source": "vault.selected",
+          "type": "detail"
+        }
+      ]
+    },
+    {
+      "id": "tasks",
+      "title": "Tasks",
+      "widgets": [
+        {
+          "source": "user_tasks.list",
+          "type": "table"
+        },
+        {
+          "source": "taskqueue.summary",
+          "type": "queue"
+        }
+      ]
+    },
+    {
+      "id": "memory",
+      "title": "Memory",
+      "widgets": [
+        {
+          "source": "memory.session",
+          "type": "detail"
+        },
+        {
+          "source": "memory.dream",
+          "type": "timeline"
+        }
+      ]
+    },
+    {
+      "id": "worktrees",
+      "title": "Worktrees",
+      "widgets": [
+        {
+          "source": "worktrees.list",
+          "type": "table"
+        }
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "Notifications",
+      "widgets": [
+        {
+          "source": "notifications.list",
+          "type": "timeline"
+        }
+      ]
+    },
+    {
+      "id": "skills",
+      "title": "Skills",
+      "widgets": [
+        {
+          "source": "skills.list",
+          "type": "table"
+        }
+      ]
+    },
+    {
+      "id": "operator",
+      "title": "Operator",
+      "widgets": [
+        {
+          "type": "cards",
+          "source": "operator.status"
+        },
+        {
+          "type": "table",
+          "source": "operator.profiles"
+        },
+        {
+          "type": "detail",
+          "source": "operator.av_voice"
+        },
+        {
+          "source": "firstboot",
+          "type": "timeline"
+        },
+        {
+          "source": "administrator",
+          "type": "detail"
+        }
+      ]
+    }
+  ]
+}

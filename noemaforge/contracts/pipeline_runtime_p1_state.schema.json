@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "noemaforge.pipeline.runtime.p1_state.v1",
+  "title": "NoemaForge P1 runtime state model",
+  "type": "object",
+  "required": ["runs", "events", "stage_states", "task_contexts", "artifacts", "llm_leases", "approvals"],
+  "properties": {
+    "runs": {"type": "array"},
+    "events": {"type": "array"},
+    "stage_states": {"type": "array"},
+    "task_contexts": {"type": "array"},
+    "artifacts": {"type": "array"},
+    "llm_leases": {"type": "array"},
+    "approvals": {"type": "array"}
+  }
+}

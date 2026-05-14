@@ -1,0 +1,72 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "policies": {
+      "type": "object",
+      "properties": {
+        "finance.transaction_category": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "ask_window_days": {
+              "type": "integer"
+            },
+            "on_expire": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "diary.photo_episode_label": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "ask_window_hours": {
+              "type": "integer"
+            },
+            "on_expire": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "retention": {
+      "type": "object",
+      "properties": {
+        "raw_data": {
+          "type": "string"
+        },
+        "inquiries": {
+          "type": "object",
+          "properties": {
+            "keep_closed_days": {
+              "type": "integer"
+            },
+            "keep_expired_days": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/clarifications.schema.json",
+  "title": "Clarifications"
+}

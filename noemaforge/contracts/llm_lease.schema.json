@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "noemaforge.llm.lease.v1",
+  "title": "NoemaForge single-active-LLM lease",
+  "type": "object",
+  "required": ["lease_id", "owner", "task_id", "priority", "state", "acquired_at", "expires_at"],
+  "properties": {
+    "lease_id": {"type": "string"},
+    "owner": {"type": "string"},
+    "task_id": {"type": "string"},
+    "priority": {"type": "integer"},
+    "state": {"enum": ["active", "released", "expired", "preempted"]},
+    "acquired_at": {"type": "string"},
+    "expires_at": {"type": "string"},
+    "metadata": {"type": "object"}
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/selftest_report.schema.json",
+  "title": "NoemaForge Self-Test Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "run_id", "suite", "started_at", "results", "summary"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "SelfTestReport"},
+    "version": {"type": "string"},
+    "run_id": {"type": "string"},
+    "suite": {"type": "string"},
+    "started_at": {"type": "string"},
+    "finished_at": {"type": ["string", "null"]},
+    "summary": {"type": "object"},
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "status", "metrics"],
+        "properties": {
+          "case_id": {"type": "string"},
+          "module": {"type": "string"},
+          "tier": {"type": "string"},
+          "status": {"enum": ["pass", "fail"]},
+          "metrics": {"type": "object"}
+        }
+      }
+    }
+  }
+}

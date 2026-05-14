@@ -1,0 +1,153 @@
+apiVersion: noemaforge.canary/v1
+kind: CanaryPolicy
+first_run:
+  force_full: true
+  state_path: /var/lib/noemaforge/.sys/canary-first-run.json
+runtime:
+  canary_allowed: false
+  break_glass_override:
+    enabled: true
+    requires_flags:
+    - --override-runtime
+    - --i-mean-it
+suites:
+  smoke:
+    description: 'Fast safety smoke-test: integrity + static consistency.'
+    tests:
+    - manifest_integrity
+    - static_consistency
+  full:
+    description: 'Full regression for contract changes: smoke + fixtures + supply-chain
+      + privilege diff.'
+    tests:
+    - manifest_integrity
+    - static_consistency
+    - storage_policy_sanity
+    - supply_chain_attestation
+    - security_fixtures_monotonicity
+    - security_fixtures_sample_refs
+    - security_fixtures_change_coverage
+    - security_fixtures_policy
+    - policy_privilege_diff
+coverage:
+  enabled: true
+  rules:
+  - id: tool_policy_surface
+    files:
+    - tool-policy.yaml
+    - sandbox-policy.yaml
+    require_fixture_categories_any:
+    - privilege
+    - tool_misuse
+    - allowlist_sanity
+    severity: fail
+  - id: supply_chain_surface
+    files:
+    - supplychain-policy.yaml
+    - tool-registry.yaml
+    - bundle-policy.yaml
+    - installer-policy.yaml
+    require_fixture_categories_any:
+    - supply_chain
+    severity: fail
+  - id: web_gateway_surface
+    files:
+    - web-gateway-policy.yaml
+    require_fixture_categories_any:
+    - egress
+    - indirect_prompt_injection
+    severity: fail
+  - id: local_gateway_surface
+    files:
+    - local-gateway-policy.yaml
+    require_fixture_categories_any:
+    - egress
+    severity: warn
+  - id: quarantine_surface
+    files:
+    - quarantine-policy.yaml
+    require_fixture_categories_any:
+    - indirect_prompt_injection
+    - quarantine
+    severity: warn
+  - id: storage_policy_surface
+    files:
+    - storage-policy.yaml
+    require_fixture_categories_any:
+    - allowlist_sanity
+    - privilege
+    severity: warn
+change_unit_rules:
+  enabled: true
+  rules:
+  - id: critical_policy_surfaces_full
+    match_change_keys_any:
+    - tool_policy_patch
+    - sandbox_policy_patch
+    - supplychain_policy_patch
+    - bundle_policy_patch
+    - canary_policy_patch
+    - security_fixtures_patch
+    - quarantine_policy_patch
+    - web_gateway_policy_patch
+    - local_gateway_policy_patch
+    min_suite: full
+    extra_suites: []
+minimum_suite_rules:
+  tracks:
+    system:
+      min_suite: smoke
+      full_if_files_changed:
+      - tool-registry.yaml
+      - streams.yaml
+      - patterns.yaml
+      - verifiers.yaml
+      - vstore.yaml
+      - sandbox-policy.yaml
+    policy:
+      min_suite: smoke
+      full_if_files_changed:
+      - tool-policy.yaml
+      - supplychain-policy.yaml
+      - quarantine-policy.yaml
+      - role-affirmations.yaml
+      - canary-policy.yaml
+      - security-fixtures.yaml
+      - bundle-policy.yaml
+      - web-gateway-policy.yaml
+      - local-gateway-policy.yaml
+    user:
+      min_suite: smoke
+      full_if_files_changed: []
+  full_if_files_changed:
+  - tool-registry.yaml
+  - tool-policy.yaml
+  - supplychain-policy.yaml
+  - quarantine-policy.yaml
+  - role-affirmations.yaml
+  - canary-policy.yaml
+  - security-fixtures.yaml
+  - sandbox-policy.yaml
+  - bundle-policy.yaml
+  - web-gateway-policy.yaml
+  - local-gateway-policy.yaml
+  full_if_risk_levels:
+  - high
+  - critical
+quota_profiles:
+  smoke:
+    cpu_time_sec: 30
+    mem_max_mib: 1024
+    pids_max: 128
+    file_max_mib: 256
+    timeout_sec: 180
+  full:
+    cpu_time_sec: 300
+    mem_max_mib: 8192
+    pids_max: 512
+    file_max_mib: 2048
+    timeout_sec: 3600
+notes:
+- Canary execution is pre-start only; runtime must not auto-run canaries.
+- bundle-policy, web-gateway-policy, local-gateway-policy are policy surfaces; any
+  change there is treated as FULL-canary worthy by default.

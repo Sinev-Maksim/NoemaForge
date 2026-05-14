@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/intent_router.schema.json",
+  "title": "IntentRouter",
+  "type": "object",
+  "required": ["apiVersion", "kind", "routes"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.intent_router/v1"},
+    "kind": {"type": "string", "const": "IntentRouter"},
+    "routes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["intent_id", "target"],
+        "properties": {
+          "intent_id": {"type": "string"},
+          "target": {"type": "string", "description": "e.g. stream:daily, stream:knowledge, prestart, query"},
+          "default_priority": {"type": "string", "enum": ["urgent", "high", "normal", "background"], "default": "normal"},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

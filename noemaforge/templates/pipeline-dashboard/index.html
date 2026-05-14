@@ -1,0 +1,122 @@
+<!doctype html>
+<!--
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/index.html
+Zone: gui/shell
+Version: 0.31.13.alpha
+Created: 2026-05-10
+Modified: 2026-05-14
+Purpose: Stateful Admin GUI shell: persona portrait, chat, epoch panel, telemetry,
+  task queue, pipeline dock, artifacts, SR/SSR-ready conversation history.
+Inputs: JSON APIs served by src/admin_gui_server.py.
+Outputs: Local browser UI; no hidden model/media/autostart side effects.
+Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
+=== End NoemaForge File Header ===
+-->
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NoemaForge Admin Chat</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app" aria-label="NoemaForge Admin Chat">
+    <header class="topbar card">
+      <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
+      <div class="title-block">
+        <p class="eyebrow" id="version-line">NoemaForge / 0.31.13.alpha</p>
+        <h1 id="app-title">NoemaForge Admin Chat</h1>
+        <p class="muted" id="persona-line"><span id="persona-active-label">Активная персона</span>: <strong id="active-persona">Admin</strong></p>
+      </div>
+      <div class="toolbar">
+        <select id="locale-select" title="Locale"></select>
+        <label class="check"><input id="admin-execute" type="checkbox" checked /> <span id="label-execute">выполнить</span></label>
+        <label class="check"><input id="admin-prepare-media" type="checkbox" checked /> <span id="label-media-plan">медиа-план</span></label>
+        <label class="device-policy">Device <select id="device-policy"><option value="auto">auto</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></label>
+        <button id="gui-shutdown" class="ghost">Выключить GUI</button>
+      </div>
+    </header>
+
+    <section class="epoch card" aria-label="Epoch status">
+      <div class="section-title"><h2 id="epoch-title">Epoch / model selection</h2><span id="epoch-status-pill" class="pill">loading</span></div>
+      <div class="epoch-grid">
+        <div><span class="muted">Current main</span><strong id="epoch-current-model">—</strong></div>
+        <div><span class="muted">Staffing</span><strong id="epoch-staffing">—</strong></div>
+        <div><span class="muted">Progress</span><strong id="epoch-progress">—</strong></div>
+        <div><span class="muted">Latest plan</span><strong id="epoch-latest-plan">—</strong></div>
+      </div>
+      <div class="epoch-actions">
+        <button id="epoch-refresh" class="ghost small">Refresh epoch</button>
+        <button id="epoch-apply" class="small">Switch to new epoch</button>
+        <button id="selection-continue" class="small">Continue model selection</button>
+        <button id="vault-reinventory" class="ghost small">Re-inventory Vault</button>
+      </div>
+    </section>
+
+    <section class="metrics-row">
+      <section class="card compact-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre></section>
+      <section class="card compact-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><pre id="runtime-metrics">loading…</pre></section>
+      <section class="card compact-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
+    </section>
+
+    <section class="layout">
+      <section class="chat card" aria-label="Main chat with user">
+        <div class="section-title"><h2 id="main-chat-title">Основной чат</h2><span id="chat-status">готово</span></div>
+        <div id="chat-log" class="chat-log"></div>
+        <div class="composer">
+          <textarea id="admin-message" rows="2" placeholder="Напиши Админу задачу"></textarea>
+          <button id="admin-send">Отправить</button>
+        </div>
+        <div class="depth-controls" aria-label="Improvement depth controls">
+          <label>Steps <input id="depth-steps" type="number" min="0" value="0" /></label>
+          <label>Minutes <input id="depth-minutes" type="number" min="0" value="0" /></label>
+          <label class="check"><input id="depth-until-stop" type="checkbox" /> until stop</label>
+          <button id="workflow-stop" class="ghost small">Stop loop</button>
+        </div>
+        <div id="pipeline-dock" class="pipeline-dock">
+          <div class="pipeline-dock-head"><strong>Pipeline Dock</strong><input id="pipeline-search" placeholder="Search pipeline…" /><button id="pipeline-new" class="new-pipeline">+ New pipeline</button></div>
+          <div id="pipeline-groups" class="pipeline-groups"></div>
+          <div id="pipeline-list" class="pipeline-list"></div>
+        </div>
+      </section>
+
+      <aside class="side">
+        <section class="card">
+          <div class="section-title"><h2>Tasks</h2><span id="task-summary">—</span></div>
+          <div class="task-controls"><button id="task-add" class="small">Add task</button><button id="tasks-refresh" class="ghost small">Refresh</button></div>
+          <div id="tasks" class="tasks"><p class="muted">Loading…</p></div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2 id="artifacts-title">Артефакты</h2><span id="artifacts-hint">files / plans / patches</span></div>
+          <div id="artifacts" class="artifacts"><p class="muted">No artifacts yet.</p></div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2>Jobs</h2><span id="job-summary">—</span></div>
+          <div id="jobs" class="jobs"><p class="muted">No jobs.</p></div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2>Inactivity</h2><span id="inactivity-status">—</span></div>
+          <div id="inactivity" class="internal-event">loading…</div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2 id="usecases-title">Usecase help</h2><span>?</span></div>
+          <div id="usecases" class="usecases"><p class="muted">Loading…</p></div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2 id="internal-title">Between models / SR-SSR</h2><span id="internal-hint">handoffs</span></div>
+          <div id="internal-chat" class="internal-chat"><p class="muted">No internal handoffs yet.</p></div>
+        </section>
+        <section class="card raw-card">
+          <div class="section-title"><h2 id="raw-title">Details / raw</h2><span id="raw-hint">hidden by default</span></div>
+          <details><summary id="raw-summary">Show latest JSON</summary><pre id="raw-json">{}</pre></details>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <div id="context-menu" class="context-menu hidden"></div>
+  <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><pre id="modal-body"></pre></div></div>
+  <script src="app.js"></script>
+</body>
+</html>

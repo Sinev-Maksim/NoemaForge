@@ -1,0 +1,133 @@
+apiVersion: noemaforge.roles/v1
+kind: RoleCatalog
+version: 0.28.5
+selection:
+  top_k_per_role: 8
+  tasks_per_role: 10
+  global_limit: null
+  principle: "Select candidates per role after role-specific light tests; never use a global top-8."
+defaults:
+  top_k: 8
+  tasks_per_model: 10
+  required_capabilities:
+    - chat
+    - instruction_following
+  optional_capabilities:
+    - json_output
+    - reasoning
+  thresholds:
+    pass_rate: 0.4
+    json_parse_rate: 0.2
+    quality_score: 0.35
+roles:
+  operator.admin/administrator:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, admin_ops]
+    optional_capabilities: [json_output, reasoning, safety_review, planning]
+    eval_pack: admin_ops_light_10
+    score_weights: {pass_rate: 0.45, json_parse_rate: 0.2, quality_score: 0.2, latency: 0.1, stability: 0.05}
+  system.guard/surgeon:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, safety_review]
+    optional_capabilities: [json_output, reasoning, admin_ops]
+    eval_pack: admin_ops_light_10
+  system.guard/ssr:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, safety_review]
+    optional_capabilities: [json_output, reasoning]
+    eval_pack: admin_ops_light_10
+  system.guard/sr:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, safety_review]
+    optional_capabilities: [json_output, reasoning]
+    eval_pack: admin_ops_light_10
+  dev.work/solution_architect:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, planning]
+    optional_capabilities: [code, reasoning, json_output]
+    eval_pack: dev_code_light_10
+  dev.work/dev:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, code]
+    optional_capabilities: [debugging, json_output, reasoning]
+    eval_pack: dev_code_light_10
+  dev.work/python_dev:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, code]
+    optional_capabilities: [debugging, json_output]
+    eval_pack: dev_code_light_10
+  dev.work/qa:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [code, debugging, json_output]
+    eval_pack: dev_code_light_10
+  writing.story/writer:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [writing, summarization, reasoning]
+    eval_pack: writing_light_10
+  writing.story/editor.literary:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [writing, summarization, reasoning]
+    eval_pack: writing_light_10
+  writing.story/fact_checker:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, reasoning]
+    optional_capabilities: [summarization, json_output]
+    eval_pack: factcheck_light_10
+  writing.story/formatter:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [json_output, summarization]
+    eval_pack: writing_light_10
+  writing.story/world_keeper:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, summarization]
+    optional_capabilities: [reasoning, json_output]
+    eval_pack: writing_light_10
+  tg.channel/fact_checker:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, reasoning]
+    optional_capabilities: [json_output, summarization]
+    eval_pack: factcheck_light_10
+  tg.channel/writer:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [writing, summarization]
+    eval_pack: writing_light_10
+  browser.readinglist/researcher:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [retrieval, embedding, summarization, reasoning]
+    eval_pack: factcheck_light_10
+  knowledge.vault/researcher:
+    top_k: 8
+    required_capabilities: [retrieval]
+    optional_capabilities: [embedding, reranking, chat, summarization]
+    eval_pack: retrieval_light_10
+  voice.transcriber:
+    top_k: 8
+    required_capabilities: [asr]
+    optional_capabilities: [audio_transcription]
+    eval_pack: asr_light_10
+  voice.speaker:
+    top_k: 8
+    required_capabilities: [tts]
+    optional_capabilities: [voice_clone]
+    eval_pack: tts_light_10
+  vision.segmenter:
+    top_k: 8
+    required_capabilities: [vision, segmentation]
+    optional_capabilities: []
+    eval_pack: vision_light_10
+  video.generator:
+    top_k: 8
+    required_capabilities: [video_generation]
+    optional_capabilities: [image_to_video]
+    eval_pack: video_light_10
+  selfdev.learning/coach:
+    top_k: 8
+    required_capabilities: [chat, instruction_following]
+    optional_capabilities: [reasoning, summarization, planning]
+    eval_pack: admin_ops_light_10

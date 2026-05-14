@@ -1,0 +1,5 @@
+version: 0.27.3
+notes:
+- Added a root TODO and ASAP execution plan directly into the release tree.
+- Split the near-term roadmap into two workstreams: setup simplification and knowledge hypergraph.
+- Clarified that the hypergraph remains canonical while wiki/markdown views are projections.

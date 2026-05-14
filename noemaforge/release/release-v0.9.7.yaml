@@ -1,0 +1,36 @@
+version: 0.9.7
+codename: SupplyChain-HostFallbackQuarantine
+high_level:
+  - "Host fallback для sandbox exec теперь по умолчанию = QUARANTINE: если нет bwrap/podman, exec.run НЕ выполняется и ToolProxy создаёт quarantine-инцидент."
+  - "Добавлен SupplyChainPolicy контракт + канареечная проверка attestation для tool/plugin системы (internal/system/bundle)."
+  - "Canary FULL теперь включает supply_chain_attestation и валит epoch switch при включении рискованных инструментов без attestation."
+changes:
+  configs:
+    added:
+      - supplychain-policy.yaml
+    updated:
+      - sandbox-policy.yaml
+      - canary-policy.yaml
+      - tool-registry.yaml
+      - quarantine-policy.yaml
+  contracts:
+    added:
+      - supplychain_policy.schema.json
+    updated:
+      - sandbox_policy.schema.json
+      - prestart_change_request.schema.json
+      - epoch_manifest.schema.json
+  src:
+    updated:
+      - sandbox.py
+      - toolproxy.py
+      - prestart.py
+  docs:
+    added:
+      - SUPPLY_CHAIN.md
+    updated:
+      - SANDBOX.md
+      - TOOL_ONBOARDING.md
+notes:
+  - "'User override' для host fallback предполагается как явное pre-start изменение sandbox-policy.yaml (epoch switch с ручным комментарием)."
+  - "SupplyChainPolicy берётся из law epoch (base epoch) и не может быть ослаблен кандидатом во время сборки новой эпохи."

@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "AutostartLlmPolicy",
+  "version": "0.31.13.alpha",
+  "invariant": {
+    "max_active_llms": 1,
+    "mode": "switchable"
+  },
+  "modes": {
+    "manual": {
+      "runtime": "manual",
+      "toolproxy": "manual",
+      "cpu_bootstrap_llm": "manual",
+      "heavy_llm": "manual_only"
+    },
+    "gui": {
+      "runtime": "allowed",
+      "dashboard": "allowed",
+      "toolproxy": "allowed",
+      "cpu_bootstrap_llm": "optional",
+      "default_llm_profile": "runtime_only",
+      "heavy_llm": "manual_only"
+    },
+    "wogui": {
+      "runtime": "allowed",
+      "dashboard": "not_applicable",
+      "toolproxy": "allowed",
+      "cpu_bootstrap_llm": "allowed",
+      "default_llm_profile": "bootstrap_cpu_llm",
+      "heavy_llm": "manual_only"
+    }
+  },
+  "profiles": {
+    "runtime_only": {
+      "starts_gateway": true,
+      "starts_toolproxy": true,
+      "starts_llm": false,
+      "description": "GUI-safe runtime/toolproxy only; no LLM backend is started."
+    },
+    "bootstrap_cpu_llm": {
+      "starts_gateway": true,
+      "starts_toolproxy": true,
+      "starts_llm": true,
+      "cpu_only": true,
+      "blocks_heavy_models": true,
+      "description": "Starts only CPU-safe bootstrap LLM; heavy models require explicit manual override."
+    },
+    "heavy_manual": {
+      "starts_gateway": true,
+      "starts_toolproxy": true,
+      "starts_llm": true,
+      "requires_explicit_flag": true,
+      "description": "Manual-only profile for heavy models; never used by boot autostart."
+    }
+  }
+}

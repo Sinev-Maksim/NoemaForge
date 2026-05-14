@@ -1,0 +1,32 @@
+apiVersion: noemaforge.memsentinel/v1
+kind: MemSentinelPolicy
+
+# Levels: M1 warn, M2 near-oom, M3 critical
+thresholds:
+  m1:
+    free_mem_mib_below: 1500
+    psi_some_avg10_above: 0.20
+  m2:
+    free_mem_mib_below: 800
+    psi_full_avg10_above: 0.05
+  m3:
+    free_mem_mib_below: 400
+    psi_full_avg10_above: 0.10
+
+actions:
+  m1:
+    - "pause_background"
+    - "log_event"
+  m2:
+    - "force_checkpoint"
+    - "spill_context"
+    - "log_event"
+  m3:
+    - "force_checkpoint"
+    - "kill_low_priority"
+    - "log_event"
+
+# How to request checkpointing for long tasks:
+checkpoint_signal:
+  method: "flagfile"
+  path: "/var/lib/noemaforge/.sys/memergency.checkpoint"

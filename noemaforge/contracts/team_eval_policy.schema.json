@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TeamEvalPolicy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "defaults"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "TeamEvalPolicy"
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "suite": {
+          "type": "string"
+        },
+        "eval_per_run": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "planner_mode": {
+          "type": "string",
+          "enum": [
+            "coordinate",
+            "cartesian"
+          ]
+        },
+        "auto_expand_k": {
+          "type": "boolean"
+        },
+        "k_start": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "k_max": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "adaptive_k_step": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "per_role_top_k": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_team_configs": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "judge_model": {
+          "type": "string"
+        },
+        "allow_missing_role_scorecards": {
+          "type": "boolean"
+        },
+        "quality_floor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "json_floor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stability_floor": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "variance_ceiling": {
+          "type": "number",
+          "minimum": 0
+        },
+        "hallucination_penalty": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "flows": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "suite": {
+            "type": "string"
+          },
+          "eval_per_run": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "planner_mode": {
+            "type": "string",
+            "enum": [
+              "coordinate",
+              "cartesian"
+            ]
+          },
+          "auto_expand_k": {
+            "type": "boolean"
+          },
+          "k_start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "k_max": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "adaptive_k_step": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "per_role_top_k": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "max_team_configs": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "judge_model": {
+            "type": "string"
+          },
+          "allow_missing_role_scorecards": {
+            "type": "boolean"
+          },
+          "quality_floor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "json_floor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "stability_floor": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "variance_ceiling": {
+            "type": "number",
+            "minimum": 0
+          },
+          "hallucination_penalty": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        }
+      }
+    }
+  }
+}

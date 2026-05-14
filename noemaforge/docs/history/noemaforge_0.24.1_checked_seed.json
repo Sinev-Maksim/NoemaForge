@@ -1,0 +1,142 @@
+{
+  "apiVersion": "noemaforge.checked/v1",
+  "kind": "SeedChecked",
+  "created_at": "20260328T205504Z",
+  "seed": {
+    "root": "/mnt/data/noemaforge241",
+    "noemaforge_version": "0.24.1",
+    "version": "0.24.1",
+    "codename": "Stage N+2: Checked release (attestation + first-run sanity)",
+    "manifest_sha256": "e5aa9c874f4fdcb979764e75c308c023fd2fa4fd03da55e1b1a94ce0dbd35ee0",
+    "sha256sums_sha256": "e79b25c0dfe9558cccf7727a97297a11c780400ea8e25db629927fe18d457a7c",
+    "sha256sums_entries": 317
+  },
+  "artifacts": {
+    "seed_zip": {
+      "path": "/mnt/data/noemaforge-flat-v0.24.0.zip",
+      "sha256": "16a97b76367729754afd47a2bdcbc5cdf3b547d042f7a84547e8fff7875b8174",
+      "size": 619493
+    }
+  },
+  "checks": {
+    "checker": "tools/checker/noemaforge_check.py --deep",
+    "summary": {
+      "fails": 0,
+      "warns": 0
+    },
+    "report": {
+      "apiVersion": "noemaforge.checker/v1",
+      "brain_root": "/mnt/data/noemaforge241",
+      "created_at": "20260328T205503Z",
+      "kind": "SeedCheckReport",
+      "steps": [
+        {
+          "data": {},
+          "id": "00",
+          "message": "OK",
+          "status": "PASS",
+          "title": "Basic structure"
+        },
+        {
+          "data": {
+            "fail": 0,
+            "mismatch": [],
+            "missing": [],
+            "ok": 317
+          },
+          "id": "10",
+          "message": "OK=317 FAIL=0",
+          "status": "PASS",
+          "title": "SHA256SUMS integrity"
+        },
+        {
+          "data": {},
+          "id": "11",
+          "message": "Clean",
+          "status": "PASS",
+          "title": "Forbidden artifacts"
+        },
+        {
+          "data": {},
+          "id": "12",
+          "message": "OK (57 files)",
+          "status": "PASS",
+          "title": "JSON parse"
+        },
+        {
+          "data": {},
+          "id": "13",
+          "message": "OK (48 files)",
+          "status": "PASS",
+          "title": "YAML parse (configs + contracts)"
+        },
+        {
+          "data": {},
+          "id": "14",
+          "message": "OK (102 files)",
+          "status": "PASS",
+          "title": "Python syntax compile (src + tools)"
+        },
+        {
+          "data": {},
+          "id": "15",
+          "message": "OK (39 epoch files)",
+          "status": "PASS",
+          "title": "Epoch contract files referenced by prestart"
+        },
+        {
+          "data": {
+            "cryptography": {
+              "ok": true,
+              "why": "ok"
+            },
+            "jsonschema": {
+              "ok": true,
+              "why": "ok"
+            },
+            "yaml": {
+              "ok": true,
+              "why": "ok"
+            }
+          },
+          "id": "16",
+          "message": "All present",
+          "status": "PASS",
+          "title": "Python dependencies (import probes)"
+        },
+        {
+          "data": {},
+          "id": "17",
+          "message": "Clean",
+          "status": "PASS",
+          "title": "Odd characters scan (warn-only)"
+        },
+        {
+          "data": {
+            "fail": [],
+            "warn": []
+          },
+          "id": "18",
+          "message": "FAIL=0 WARN=0",
+          "status": "PASS",
+          "title": "Roles/prompts cross-file consistency"
+        }
+      ],
+      "summary": {
+        "fails": 0,
+        "step_count": 10,
+        "warns": 0
+      },
+      "_checker_exit": 0,
+      "_checker_report_path": "/tmp/noemaforge_check_zvfohw4x.json"
+    }
+  },
+  "environment": {
+    "python": "3.13.5 (main, Jun 25 2025, 18:55:22) [GCC 14.2.0]",
+    "platform": "Linux-4.4.0-x86_64-with-glibc2.41"
+  },
+  "notes": [
+    "This file is an offline attestation. Re-run noemaforge_check on the target machine to confirm.",
+    "If the ZIP sha256 is present above, you can verify the downloaded archive before unpacking."
+  ]
+}

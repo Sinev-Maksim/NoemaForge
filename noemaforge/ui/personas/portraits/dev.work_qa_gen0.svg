@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="NoemaForge persona Аргус generation 0">
+  <defs><radialGradient id="g" cx="35%" cy="25%" r="80%"><stop offset="0" stop-color="#27aa40"/><stop offset="0.72" stop-color="#6b5bde"/><stop offset="1" stop-color="#05070b"/></radialGradient><filter id="glow"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="512" height="512" rx="48" fill="#05070b"/><circle cx="256" cy="220" r="172" fill="url(#g)" opacity="0.92"/>
+  <path d="M116 382c34-72 82-108 140-108s106 36 140 108" fill="none" stroke="#607a14" stroke-width="22" stroke-linecap="round" opacity="0.82"/>
+  <path d="M166 178c42-54 110-70 174-32" fill="none" stroke="#e8eef7" stroke-opacity="0.42" stroke-width="14" stroke-linecap="round"/>
+  <circle cx="204" cy="224" r="18" fill="#e8eef7" opacity="0.86"/><circle cx="312" cy="224" r="18" fill="#e8eef7" opacity="0.86"/>
+  <path d="M212 298c38 28 76 28 114 0" fill="none" stroke="#e8eef7" stroke-opacity="0.55" stroke-width="12" stroke-linecap="round"/>
+  <text x="256" y="456" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="42" font-weight="700" fill="#e8eef7" filter="url(#glow)">А</text><text x="256" y="492" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="18" fill="#9aa8bb">gen 0</text>
+</svg>

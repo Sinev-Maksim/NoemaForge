@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/role_model_policy.schema.json",
+  "title": "RoleModelPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "defaults", "roles"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "RoleModelPolicy"},
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "selector": {"type": "object"},
+        "llm": {"$ref": "#/definitions/capPolicy"},
+        "embed": {"$ref": "#/definitions/capPolicy"}
+      },
+      "additionalProperties": true
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "llm": {"$ref": "#/definitions/capOverride"},
+          "embed": {"$ref": "#/definitions/capOverride"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "capPolicy": {
+      "type": "object",
+      "properties": {
+        "fallback_model": {"type": "string"},
+        "min_trust": {"type": "string"},
+        "require_scorecard": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "capOverride": {
+      "type": "object",
+      "properties": {
+        "candidates": {"type": "array", "items": {"type": "string"}},
+        "min_trust": {"type": "string"},
+        "require_scorecard": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    }
+  }
+}

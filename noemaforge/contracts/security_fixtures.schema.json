@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/security_fixtures.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "fixtures"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"type": "string", "enum": ["SecurityFixtures"]},
+    "fixtures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "request", "expected"],
+        "properties": {
+          "id": {"type": "string"},
+          "category": {"type": "string"},
+          "description": {"type": "string"},
+          "injection_payload": {"type": "string"},
+          "request": {
+            "type": "object",
+            "required": ["stream_id", "role", "action"],
+            "properties": {
+              "stream_id": {"type": "string"},
+              "role": {"type": "string"},
+              "action": {"type": "string"},
+              "params": {"type": "object"}
+            },
+            "additionalProperties": true
+          },
+          "expected": {
+            "type": "object",
+            "required": ["decision"],
+            "properties": {
+              "decision": {
+                "type": "string",
+                "enum": ["allow", "deny", "quarantine"]
+              },
+              "allow_if_reason_contains_any": {
+                "type": "array",
+                "items": {"type": "string"}
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

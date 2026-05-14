@@ -1,0 +1,125 @@
+seed_format: 1
+noemaforge_version: 0.29.11
+codename: 'Public MWP Full: single-active runtime + recovery UX + model advisor'
+arch:
+- amd64
+contents:
+  bootstrap: true
+  configs: true
+  contracts: true
+  source_code: true
+  binaries_optional:
+  - noemaforge-llm-gateway
+  - llama-server
+  models_optional:
+  - main
+  offline_apt_optional: true
+  driver_vault_optional: true
+  bundles_optional:
+  - toolvault/plugins/lsp.bundle
+  - toolvault/plugins/mcp.bundle
+  - toolvault/plugins/voice.bundle
+notes:
+
+- 'v0.29.11-docs-sync: Synchronized context, roadmap, TODO, debug handoff, and bundled deep-research notes with the full NoemaForge recovery discussion. This is a docs/context refresh over the 0.29.11 runtime package.'
+
+- 'v0.29.06: Consolidated public MWP full candidate with idempotent stop/reboot/vault/SEL helpers, shutdown stop hook, ToolProxy SEL repair, llama socket permissions, runtime_desired_count=1 invariants, model size/quantization advisor, context.md transfer document, updated policies and package checksums.'
+- 'v0.29.05: Corrected stop semantics so Firefox/Nautilus are never closed by default; explicit --close-gui-heavy is required.'
+- 'v0.29.01-v0.29.04: Added recovery stop/reboot/vault helpers, CLI path repair, symlink-loop repair, SEL and shutdown hook hardening.'
+- 'v0.29.0: Added public operator UX commands: chat, interpret, monitor, tasks/eval surface and ToolProxy diagnostics.'
+- 'v0.28.0: Fixed grounded human-address citations, normalized missing role inventory
+  and same-stream staffing coverage, aligned firstboot role surface with the role-eval
+  catalog, merged default+role-specific model-eval cases for deeper model selection,
+  captured extractor over-generation in the error loop, and added Wiki-LLM-inspired
+  manifests for each major functional branch.'
+- 'v0.27.11: Added grounded Administrator runtime over kg/prep stores, synthetic two-chapter
+  book fixtures with gold claims and queries, error-learning runtime adapter, extraction
+  evaluation against synthetic gold, heuristic conflict detection, and administrator-focused
+  model-selection test cases.'
+- 'v0.27.10: Implemented passage/claim extraction runtime on top of the durable prep-store:
+  stable Source publication, leaf-chunk passages, deterministic claim extraction,
+  claim/passage provenance, evidence objects, lineage links, heuristic auto-concepts,
+  and `brainctl kg extract-book|extract-next|claim-origin`.'
+- 'v0.27.9: Implemented the long-form prep pipeline runtime: normalization artifact
+  persistence, sentence splitting, heuristic topic labeling, topic-adjacency groups,
+  split-tree planning, in-memory leaf chunk bodies, and `brainctl kg prep-analyze|prep-run-next|prep-leaves`.'
+- 'v0.27.8: Implemented runtime durable prep-store adapter, prep queue handling, JSONL
+  export/import, CLI commands, and smoke tests.'
+- 'v0.27.7: Added concrete B-track implementation artifacts: durable prep-store SQLite
+  DDL, error-learning loop SQLite DDL, trace levels, provenance contracts, and an
+  executable B backlog.'
+- 'v0.27.6: Clarified hypergraph execution order: book checksum and queue position
+  are assigned at enqueue time, chunk plans are derived before extraction, and chunk
+  bodies are processed in-memory only.'
+- 'v0.27.5: Added durable prep-store reuse rules with book/raw and normalized-text
+  checksums.'
+- 'v0.27.4: Updated the in-tree TODO and ASAP plan to make topic-adjacency chunking
+  and memory-safe bounded split part of the canonical hypergraph ingest design.'
+- 'v0.27.3: Added an in-tree ASAP TODO and execution plan, separating setup simplification
+  from hypergraph work and clarifying that wiki-style views are projections over the
+  canonical knowledge substrate.'
+- 'v0.27.2: Added first-class administrator role, role-eval dataset bindings, firstboot
+  orchestrator with status/progress, auto-apply+reboot first-epoch path, writing.story/operator.admin
+  stream alignment, and final pre-install cleanup.'
+- 'v0.27.1: Corrected the pre-install audit base release, added Windows Vault metadata
+  helpers, share-based first-boot staging/eval wrappers, and updated the flattened-layout
+  Trixie install docs.'
+- 'v0.27.0: Closed the roadmap-to-0.27.0 overlay gap with TTS roundtrip, operator
+  profiles, honeykeys, email/RSS/Telegram airlocks, workflow modules, ICS/selfdev
+  runtime, bootstrap preflight, and release verification hardening.'
+- 'v0.26.6: Added a ToolProxy-mediated Discord desktop bridge with prompt-driven background/mask
+  assets, local delayed media sessions, and policy-gated session lifecycle actions.'
+- 'v0.26.5: Added live microphone capture, offline/local STT backends, and administrator
+  voice chat turns routed through ToolProxy and llm.chat.'
+- 'v0.26.4: Closed the rollout-by-config gap for WebGW/LocalGW/LSP/MCP/Voice by shipping
+  honest local facades, policy alignment, and supported connector cleanup.'
+- 'v0.26.3: Removed remaining high-confidence runtime placeholders, implemented the
+  verifier runtime, aligned file I/O tool activation, and expanded dataset-driven
+  model selection coverage.'
+features:
+
+- public MWP recovery commands: stop, pause, reboot-safe, shutdown-safe, vault-status, vault-mount-ro
+- machine-aware model size and quantization advisor
+- stop policy that never closes Firefox/Nautilus by default
+- shutdown/reboot stop hook for NoemaForge runtime
+- single-active-model runtime invariant with runtime_desired_count=1
+- context.md for chat-to-chat context transfer
+- plan mode + approval gate for complex work
+- user-facing tasks with artifacts/dependencies on top of TaskQueue
+- session memory markdown + dream-cycle consolidation artifacts
+- isolated worktree management for dev.work
+- skills registry + coordinator fanout + notifications
+- offline-first LSP/MCP/Voice facades with optional bundle overrides
+- live microphone capture + local STT + administrator voice chat turns via ToolProxy
+- discord desktop bridge with prompt-driven assets and delayed local media pipelines
+- local TTS backchannel + administrator voice roundtrip through ToolProxy
+- operator status/profile controls for voice/tts/AV/WebGW/LocalGW rollout
+- RSS/email/Telegram live intake airlocks and downstream workflow modules
+- selfdev learning tracker + ICS import + reading/Telegram curation pipelines
+- bootstrap host preflight + offline APT validation + gateway auto-build support
+- Windows Vault metadata export + compare helpers
+- share-based first-boot staging/eval wrapper with explicit administrator-path scorecards
+- optional honeykeys attribution path for llm runs and leak detection
+- first-class administrator role with operator-admin routing and capability policy
+- firstboot orchestrator with per-role staffing, dataset binding resolution, visible
+  progress, auto-apply of first model epoch, and safe reboot
+- role-eval dataset binding catalog with external dataset requirements and explicit
+  N/A reporting
+- writing.story and operator.admin stream catalog alignment
+- pre-install cleanup of __pycache__ and stale top-level release artifacts
+- in-tree ASAP TODO + execution plan for setup simplification and hypergraph work
+- runtime long-form prep pipeline with normalized artifact files, sentence topic maps,
+  adjacency-group chunk planning, split-tree persistence, and in-memory leaf chunk
+  iteration
+- topic-adjacency chunking design note with memory-safe bounded split rules for hypergraph
+  ingest
+- runtime passage/claim extraction with durable provenance, evidence objects, lineage
+  links, and optional heuristic auto-concepts on top of prep leaf chunks
+- functional branch manifests registry with purpose/inputs/artifacts/workflows/success
+  signals for major NoemaForge subsystems
+- merged default plus role-specific eval cases for deeper per-role model selection
+  coverage
+- role inventory normalization across affirmations, tool-policy, role-eval datasets,
+  and administrator delegation
+- grounded administrator citations now surface human-readable provenance addresses
+- error-learning loop records extractor over-generation extras as first-class events

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-interpret
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+set -euo pipefail
+PROMPT="$*"; [[ -z "$PROMPT" ]] && PROMPT="$(cat)"
+/usr/local/sbin/noemaforge-chat --system 'You are NoemaForge command interpreter. Return ONLY valid compact JSON. Do not execute commands. Classify Linux commands into read_only, read_only_privileged, safe_action, needs_confirmation, dangerous. Required keys: intent, classification, commands, risks, next_step.' --once "$PROMPT" | sed -E 's/^```json//;s/^```//;s/```$//'

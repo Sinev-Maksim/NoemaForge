@@ -1,0 +1,42 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: administrator.frontdoor
+title: Administrator front door
+purpose: Interpret user requests, select the right role or role combination, and answer
+  from grounded knowledge when available.
+why_it_exists: Users should not need to understand internal streams or tool contracts
+  to get useful work done.
+source_of_truth:
+- src/administrator.py
+- src/knowledge/grounded_administrator.py
+- configs/administrator-policy.yaml
+- configs/intent-router.json
+raw_inputs:
+- text queries
+- audio transcripts
+- task intents
+- knowledge graph results
+compiled_artifacts:
+- grounded answers
+- delegation decisions
+- task mutations
+- capability explanations
+workflows:
+  ingest:
+  - interpret request
+  - classify domain and confidence
+  - delegate or answer
+  query:
+  - return grounded answer with citations
+  - explain system capabilities
+  lint:
+  - ask for boundaries on low confidence
+  - record knowledge gaps instead of improvising
+boundaries:
+- Must not fabricate provenance or hidden capabilities.
+- Delegation targets must be operationally staffed.
+success_signals:
+- users can ask in plain language and get routed safely
+- answers include provenance or explicit uncertainty
+owner_roles:
+- administrator

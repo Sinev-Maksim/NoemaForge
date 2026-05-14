@@ -1,0 +1,18 @@
+version: 0.27.0
+date_utc: '2026-04-11'
+title: Trixie-ready Operator Launch + Talking Avatar + Workflow Connectors
+highlights:
+- Added local TTS runtime and ToolProxy-mediated voice.chat_roundtrip for Administrator
+  full-duplex calls.
+- Added operator profile/status runtime, bootstrap host preflight, and offline APT
+  validation helpers.
+- Added RSS/email/Telegram live intake modules plus downstream Telegram/reading/selfdev/ICS
+  workflows.
+- Added optional honeykeys issuance/detection support for llm runs and incident attribution.
+- Expanded model-eval coverage for python_dev and sql_dev and refreshed release verification
+  coverage.
+notes:
+- Host-dependent items still require actual Trixie hardware/browser/virtual-device
+  smoke tests; the seed now ships the overlay/runtime pieces and test coverage.
+- Direct app-specific media sender remains intentionally out of scope; virtual devices
+  stay the transport strategy.

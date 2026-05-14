@@ -1,0 +1,20 @@
+# NoemaForge SELinux module (skeleton)
+#
+# This is NOT a complete policy. It is a starting point.
+# You will need to generate allow rules from audit logs (ausearch/audit2allow)
+# and then tighten them.
+
+policy_module(noemaforge, 0.1.0)
+
+require {
+  type init_t;
+  class process { transition sigchld }; 
+}
+
+# Example types (you may prefer one type per service)
+# type noemaforge_toolproxy_t;
+# type noemaforge_webgateway_t;
+# type noemaforge_localgateway_t;
+
+# Example: allow init to transition (placeholder)
+# allow init_t noemaforge_toolproxy_t:process transition;

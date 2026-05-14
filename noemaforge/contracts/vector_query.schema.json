@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/vector_query.schema.json",
+  "type": "object",
+  "required": [
+    "layer",
+    "dims",
+    "model_id",
+    "vector",
+    "top_k"
+  ],
+  "properties": {
+    "layer": {
+      "type": "string"
+    },
+    "dims": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "vector": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "top_k": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 200
+    },
+    "filters": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "time_range": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

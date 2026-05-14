@@ -1,0 +1,25 @@
+version: 0.11.4
+kind: patch
+summary:
+  - Add maintenance tick (idle > 5 min → SR-lite → packets → recovery → domain dispatch)
+  - Add daily SLA guard (deadline - mean - sigma) with per-task duration stats
+  - Add shared runtime_state.json for multi-process coordination
+notes:
+  - SR-lite is deterministic/offline by design in this patch (no LLM calls)
+  - No canaries are executed at runtime; canaries remain pre-start/user-triggered only
+files:
+  added:
+    - src/maintenance.py
+    - src/runtime_state.py
+    - src/daily_stats.py
+    - src/sr_lite.py
+    - src/resource_recovery.py
+    - src/surgeon_auto.py
+    - src/scary_sweep.py
+    - src/planned_sweep.py
+    - configs/maintenance-policy.yaml
+  changed:
+    - src/noemaforge_core.py
+    - src/brainctl.py
+    - src/prestart.py
+    - manifest.yaml

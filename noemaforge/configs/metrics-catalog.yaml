@@ -1,0 +1,69 @@
+apiVersion: noemaforge.metrics/v1
+kind: MetricsCatalog
+
+# Immutable contract epoch file.
+#
+# This is a "zoo" of metrics inspired by the deep-research report.
+# It is NOT directly exposed to executors.
+#
+# Notes
+# -----
+# - Metrics are split into domains to avoid "one dashboard to rule them all".
+# - SR/SSR should use this as a checklist when generating roadmap improvements.
+
+domains:
+  llm:
+    title: LLM / SLM inference
+    golden:
+      - id: llm.calls
+        description: "Total number of LLM calls (chat + embed)"
+      - id: llm.error_rate
+        description: "Errors / calls (gateway failures, timeouts, parse errors)"
+      - id: llm.latency_ms.p50
+        description: "Median latency"
+      - id: llm.latency_ms.p95
+        description: "95th percentile latency"
+      - id: llm.tokens.in
+        description: "Prompt tokens (if available), else estimated"
+      - id: llm.tokens.out
+        description: "Completion tokens (if available), else estimated"
+      - id: llm.cache_hit_rate
+        description: "Optional: retrieval / solution-cache hit rate"
+    safety:
+      - id: llm.policy_denies
+        description: "ToolProxy denies/quarantines due to policy"
+      - id: llm.prompt_injection_signals
+        description: "Counts of injection-like patterns detected by Scary/fixtures"
+
+  flow:
+    title: Work / delivery flow
+    golden:
+      - id: flow.throughput
+        description: "Tasks completed per day/week"
+      - id: flow.cycle_time_sec.p50
+        description: "Median time from task creation to DONE"
+      - id: flow.cycle_time_sec.p95
+        description: "95th percentile time from task creation to DONE"
+      - id: flow.wip
+        description: "Tasks IN_PROGRESS"
+      - id: flow.backlog
+        description: "Tasks TODO"
+    quality:
+      - id: flow.deadletters
+        description: "DEADLETTER tasks (exceeded retries)"
+      - id: flow.retries
+        description: "Attempts per task"
+
+  security:
+    title: Security posture
+    golden:
+      - id: sec.incidents.open
+        description: "Open incidents"
+      - id: sec.incidents.mtta_hours
+        description: "Mean time to acknowledge"
+      - id: sec.incidents.mttr_hours
+        description: "Mean time to close"
+      - id: sec.quarantine.rate
+        description: "Quarantine events / tool invocations"
+      - id: sec.supplychain.blocks
+        description: "Supply-chain blocks (manifest/signature failures)"

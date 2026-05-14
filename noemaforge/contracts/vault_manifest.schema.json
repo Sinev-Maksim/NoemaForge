@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/vault_manifest.schema.json",
+  "title": "VaultArtifactManifest",
+  "type": "object",
+  "required": ["apiVersion", "kind", "artifact_id", "artifact_kind", "rel_path"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.vault/v1"},
+    "kind": {"type": "string", "const": "VaultArtifactManifest"},
+    "artifact_id": {"type": "string", "minLength": 3},
+    "artifact_kind": {
+      "type": "string",
+      "enum": ["llm", "slm", "embedder", "vision", "adapter", "bundle", "other"]
+    },
+    "model_family": {"type": "string"},
+    "format": {"type": "string"},
+    "rel_path": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "trust": {"type": "string", "enum": ["unknown", "local", "imported", "verified"], "default": "unknown"},
+    "intended_roles": {"type": "array", "items": {"type": "string"}, "default": []},
+    "capabilities": {"type": "object", "additionalProperties": true},
+    "meta": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

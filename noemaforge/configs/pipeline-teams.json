@@ -1,0 +1,277 @@
+{
+  "public_onboarding_team": {
+    "coordinator": "operator_guide",
+    "roles": [
+      "status_checker",
+      "safe_runtime_helper",
+      "chat_guide",
+      "support_archivist"
+    ],
+    "handoff": "single active LLM; guided read-mostly MVP/MWP onboarding path"
+  },
+  "development_evolution_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "architect",
+      "developer",
+      "tester",
+      "integration_tester",
+      "optimizer",
+      "reviewer",
+      "archivist"
+    ],
+    "handoff": "single active LLM; each role receives the previous context packet and writes a new artifact"
+  },
+  "book_team": {
+    "coordinator": "editor_in_chief",
+    "roles": [
+      "researcher",
+      "outline_architect",
+      "writer",
+      "editor",
+      "fact_checker",
+      "archivist"
+    ],
+    "handoff": "single active LLM; source notes and chapter drafts move through markdown packets"
+  },
+  "knowledge_graph_team": {
+    "coordinator": "knowledge_architect",
+    "roles": [
+      "source_curator",
+      "entity_mapper",
+      "relation_mapper",
+      "provenance_reviewer",
+      "graph_validator"
+    ],
+    "handoff": "single active LLM; graph patches must include provenance before publish_plan"
+  },
+  "release_team": {
+    "coordinator": "release_manager",
+    "roles": [
+      "inventory_checker",
+      "merge_analyst",
+      "smoke_tester",
+      "docs_writer",
+      "reviewer"
+    ],
+    "handoff": "single active LLM; every release stage produces an auditable artifact"
+  },
+  "agent_life_team": {
+    "coordinator": "life_architect",
+    "roles": [
+      "drive_modeler",
+      "genome_curator",
+      "memory_ecologist",
+      "persona_artist",
+      "evaluator",
+      "archivist"
+    ],
+    "handoff": "single active LLM; agent-life state is serialized as context packets, not shared live memory"
+  },
+  "automation_patterns_team": {
+    "coordinator": "workflow_architect",
+    "roles": [
+      "trigger_designer",
+      "node_mapper",
+      "error_handler",
+      "security_reviewer",
+      "operator_writer"
+    ],
+    "handoff": "single active LLM; n8n-like node graphs are converted to NoemaForge stage packets"
+  },
+  "security_ops_team": {
+    "coordinator": "garmr",
+    "roles": [
+      "threat_mapper",
+      "policy_reviewer",
+      "fixture_author",
+      "incident_scribe",
+      "surgeon_handoff"
+    ],
+    "handoff": "single active LLM; scary/garmr produces fixtures and surgeon/bekhterev receives repair packets"
+  },
+  "marketing_growth_team": {
+    "coordinator": "growth_editor",
+    "roles": [
+      "audience_researcher",
+      "positioning_writer",
+      "asset_generator",
+      "feedback_triage",
+      "launch_operator"
+    ],
+    "handoff": "single active LLM; market artifacts move through reviewable markdown outputs"
+  },
+  "operator_polish_team": {
+    "coordinator": "operator_guide",
+    "roles": [
+      "cli_simplifier",
+      "docs_indexer",
+      "dashboard_minimalist",
+      "smoke_tester"
+    ],
+    "handoff": "single active LLM; each low-hanging-fruit change is tiny, reversible and testable"
+  },
+  "workflow_reliability_team": {
+    "coordinator": "workflow_doctor",
+    "roles": [
+      "packet_linter",
+      "artifact_checker",
+      "retry_planner",
+      "state_archivist",
+      "dashboard_checker"
+    ],
+    "handoff": "single active LLM; reliability checks run read-only before any write/apply step"
+  },
+  "community_support_team": {
+    "coordinator": "support_archivist",
+    "roles": [
+      "issue_triage",
+      "faq_writer",
+      "support_bundle_reviewer",
+      "release_notifier"
+    ],
+    "handoff": "single active LLM; all support artifacts exclude model weights and private Vault data"
+  },
+  "data_ops_team": {
+    "coordinator": "data_cartographer",
+    "roles": [
+      "extractor",
+      "normalizer",
+      "deduper",
+      "provenance_reviewer",
+      "sync_operator"
+    ],
+    "handoff": "single active LLM; each ETL step writes source, transform and provenance notes"
+  },
+  "support_reliability_team": {
+    "coordinator": "support_operator",
+    "roles": [
+      "evidence_collector",
+      "preflight_reader",
+      "reliability_reviewer",
+      "operator_reply_writer"
+    ],
+    "handoff": "single active LLM; support evidence is summarized as markdown before next step"
+  },
+  "security_audit_team": {
+    "coordinator": "security_reviewer",
+    "roles": [
+      "policy_reader",
+      "risk_mapper",
+      "sandbox_planner",
+      "approval_gate"
+    ],
+    "handoff": "single active LLM; security review writes risk and approval notes"
+  },
+  "self_improvement_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "test_architect",
+      "telemetry_engineer",
+      "performance_reviewer",
+      "resource_safety_guard",
+      "optimizer",
+      "rollback_reviewer",
+      "archivist"
+    ],
+    "handoff": "single active LLM; test reports and metric deltas are passed as typed artifacts before any optimization is accepted"
+  },
+  "wiki_patch_team": {
+    "coordinator": "knowledge_archivist",
+    "roles": [
+      "delta_summarizer",
+      "metrics_reporter",
+      "wiki_editor",
+      "provenance_checker",
+      "admin_reviewer"
+    ],
+    "handoff": "single active LLM; wiki patch manifests carry user/task summary, metric deltas and functional deltas"
+  },
+  "code_qa_team": {
+    "coordinator": "qa_architect",
+    "roles": [
+      "producer_context_reader",
+      "reviewer_model_a",
+      "reviewer_model_b",
+      "consensus_merger",
+      "test_author",
+      "handoff_archivist"
+    ],
+    "handoff": "single active LLM by default; reviewer_model_a and reviewer_model_b must differ from the code producer model; every unique/consensus finding is logged before tester handoff"
+  },
+  "operator_recovery_team": {
+    "coordinator": "operator_recovery_lead",
+    "roles": [
+      "tty_rescue_operator",
+      "nvidia_preflight_checker",
+      "display_manager_checker",
+      "legacy_wrapper_checker",
+      "help_surface_checker"
+    ],
+    "handoff": "read-only checks first; mutating rescue steps require sudo and operator confirmation on target machine"
+  },
+  "development_member_cell_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "architect",
+      "developer",
+      "code_analyser_visualiser",
+      "qa",
+      "integration_tester",
+      "optimizer",
+      "reviewer",
+      "archivist"
+    ],
+    "handoff": "each role may be standalone or a sequential multi-model cell; every handoff has proposal log, consensus artifacts, unique artifacts, consistency gate and typed next-participant packet",
+    "member_cell_policy": "noemaforge/configs/team-member-policy.json"
+  },
+  "first_start_ui_test_team": {
+    "coordinator": "operator_guide",
+    "roles": [
+      "tty_operator",
+      "installer",
+      "gui_recovery_helper",
+      "dashboard_tester",
+      "runtime_safety_checker",
+      "llm_smoke_operator",
+      "archivist"
+    ],
+    "handoff": "full first-start validation through UI/dashboard with conditional GUI/woGUI autostart and explicit LLM approval gate"
+  },
+  "admin_console_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "route_inferencer",
+      "operator_guard",
+      "pipeline_launcher",
+      "gui_state_reporter",
+      "artifact_archivist"
+    ],
+    "handoff": "local GUI/API control plane; every operator-visible action maps to a concrete pipeline or runtime command; no hidden LLM/media autostart"
+  },
+  "media_generation_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "vault_capability_scanner",
+      "backend_planner",
+      "prompt_spec_author",
+      "artifact_reviewer",
+      "privacy_guard",
+      "operator_handoff_archivist"
+    ],
+    "handoff": "single active text LLM; media backends remain explicit-only and manual/profile gated; no microphone/camera capture without operator command"
+  },
+  "model_evolution_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "baseline_recorder",
+      "mutation_planner",
+      "selftest_runner",
+      "resource_reviewer",
+      "scorecard_author",
+      "rollback_reviewer",
+      "candidate_profile_archivist"
+    ],
+    "handoff": "measured control cycle; candidate profiles and rollback plans are artifacts before any admin-approved apply"
+  }
+}

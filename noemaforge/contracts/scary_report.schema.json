@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/scary_report.schema.json",
+  "title": "NoemaForge ScaryReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "report_id",
+    "created_at",
+    "base_epoch_id",
+    "candidate_epoch_id",
+    "suite",
+    "decision",
+    "overall_ok",
+    "tests",
+    "changed_files",
+    "problems",
+    "warnings"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["v1"]},
+    "report_id": {"type": "string", "minLength": 8},
+    "created_at": {"type": "string", "minLength": 10},
+
+    "base_epoch_id": {"type": "string"},
+    "candidate_epoch_id": {"type": "string"},
+    "law_epoch_id": {"type": "string"},
+
+    "suite": {"type": "string", "enum": ["smoke", "full"]},
+    "decision": {"type": "string", "enum": ["pass", "fail"]},
+    "overall_ok": {"type": "boolean"},
+
+    "changed_files": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+
+    "tests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "ok"],
+        "properties": {
+          "id": {"type": "string"},
+          "ok": {"type": "boolean"},
+          "severity": {"type": "string", "enum": ["info", "warn", "fail"], "default": "info"},
+          "details": {
+            "type": "array",
+            "items": {"type": "string"},
+            "default": []
+          },
+          "summary": {"type": "string"}
+        }
+      }
+    },
+
+    "fixtures": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "total": {"type": "integer", "minimum": 0},
+        "failed": {"type": "integer", "minimum": 0},
+        "mismatches": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fixture_id", "got", "want", "stream_id", "role", "action"],
+            "properties": {
+              "fixture_id": {"type": "string"},
+              "got": {"type": "string"},
+              "want": {"type": "string"},
+              "stream_id": {"type": "string"},
+              "role": {"type": "string"},
+              "action": {"type": "string"}
+            }
+          },
+          "default": []
+        }
+      }
+    },
+
+    "privilege_diff": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["stream_id", "role", "added_actions"],
+        "properties": {
+          "stream_id": {"type": "string"},
+          "role": {"type": "string"},
+          "added_actions": {
+            "type": "array",
+            "items": {"type": "string"},
+            "default": []
+          }
+        }
+      },
+      "default": []
+    },
+
+    "problems": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+
+    "warnings": {
+      "type": "array",
+      "items": {"type": "string"},
+      "default": []
+    },
+
+    "sel_refs": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "start_evt_id": {"type": "string"},
+        "start_sel_hash": {"type": "string"},
+        "result_evt_id": {"type": "string"},
+        "result_sel_hash": {"type": "string"},
+        "saved_evt_id": {"type": "string"},
+        "saved_sel_hash": {"type": "string"}
+      }
+    },
+
+    "quotas_applied": {"type": "object"},
+
+    "resource_usage": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "ru_maxrss": {"type": "number"},
+        "ru_utime": {"type": "number"},
+        "ru_stime": {"type": "number"},
+        "wall_time_sec": {"type": "number"}
+      }
+    }
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/stream_spec.schema.json",
+  "type": "object",
+  "required": [
+    "spec_version",
+    "stream_id",
+    "version",
+    "title",
+    "pipeline"
+  ],
+  "properties": {
+    "spec_version": {
+      "type": "string",
+      "enum": [
+        "v1"
+      ]
+    },
+    "stream_id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "options": {
+      "type": "object",
+      "description": "Stream option definitions (selectable at runtime by LLM).",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "type",
+          "default"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "string",
+              "number",
+              "integer",
+              "boolean",
+              "enum"
+            ]
+          },
+          "default": {},
+          "enum": {
+            "type": "array",
+            "items": {}
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "requires": {
+      "type": "object",
+      "properties": {
+        "bundles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verifiers": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "io_zones": {
+      "type": "object",
+      "properties": {
+        "read_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "write_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dbs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "default_resources": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ram_mib": {
+          "type": "integer",
+          "minimum": 128
+        },
+        "gpu": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": [
+                "never",
+                "prefer",
+                "hard"
+              ]
+            },
+            "vram_mib_min": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "pipeline": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "pattern_id",
+          "pattern_version"
+        ],
+        "properties": {
+          "pattern_id": {
+            "type": "string"
+          },
+          "pattern_version": {
+            "type": "string"
+          },
+          "config_overrides": {
+            "type": "object",
+            "additionalProperties": true
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "memory_routing": {
+      "type": "object",
+      "properties": {
+        "vstore_layer_write": {
+          "type": "string"
+        },
+        "vstore_layers_read": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "created_by": {
+          "type": "string"
+        },
+        "source_ref": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

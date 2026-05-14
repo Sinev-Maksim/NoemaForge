@@ -1,0 +1,8 @@
+{
+  "kind": "ToolVaultBundleManifest",
+  "bundle_id": "voice.bundle",
+  "version": "0.27.2",
+  "title": "Voice STT bundle",
+  "entrypoint": "disabled-by-default",
+  "enabled": false
+}

@@ -1,0 +1,42 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: voice.av
+title: Voice and AV bridge
+purpose: Provide live audio/video interaction through ToolProxy and system virtual
+  devices.
+why_it_exists: Administrator must be reachable via voice while preserving the same
+  security and routing invariants as text.
+source_of_truth:
+- src/voice_ingest.py
+- src/tts_runtime.py
+- src/discord_bridge.py
+- configs/voice-backends-policy.yaml
+- configs/discord-bridge-policy.yaml
+raw_inputs:
+- microphone audio
+- camera frames
+- transcripts
+- operator profiles
+compiled_artifacts:
+- voice turns
+- tts backchannel audio
+- virtual camera/mic bridge state
+workflows:
+  ingest:
+  - capture audio/video
+  - transcribe or synthesize speech
+  query:
+  - route live turns to administrator
+  - report bridge status
+  lint:
+  - verify policy gating and backend readiness
+  - detect degraded live paths
+boundaries:
+- No bypass around ToolProxy.
+- Bridge remains local-device based, not direct remote media injection.
+success_signals:
+- voice roundtrip works under policy
+- desktop apps can consume the virtual devices
+owner_roles:
+- administrator
+- solution_architect

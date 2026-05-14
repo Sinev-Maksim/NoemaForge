@@ -1,0 +1,17 @@
+version: 0.18.0
+codename: 'Stage D+: Gate-aware retrieval + KG embeddings (passage/claim/concept)'
+date_utc: 2026-03-04
+highlights:
+  - 'Gatekeeper now scans Concepts (in addition to Passages/Claims/Conflicts) and writes gate_reports.'
+  - 'Knowledge retrieval is gate-aware: default policy hides objects still in review or quarantine.'
+  - 'Embedding worker now indexes Passages + Claims + Concepts into VStore layers (CPU-friendly hashing by default).'
+  - 'Knowledge Maintainer planned stream now runs: ingest -> gatekeeper -> embeddings(passages/claims/concepts).'
+changes:
+  - area: knowledge
+    items:
+      - 'Added concept invariant checks + gate reports.'
+      - 'Gate-aware keyword search and Trail execution with min_decision floor.'
+      - 'Extended embeddings-policy.yaml with kg_claims/kg_concepts layers.'
+      - 'brainctl kg: added --min-decision and --include-gate for search/trail-exec.'
+notes:
+  - 'Missing gate reports are treated as review (safe default). Run knowledge_maintainer to populate reports.'

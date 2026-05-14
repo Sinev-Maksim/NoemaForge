@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SessionSummary",
+  "type": "object",
+  "required": [
+    "project_id",
+    "generated_at",
+    "facts"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "facts": {
+      "type": "object"
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "open_items": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

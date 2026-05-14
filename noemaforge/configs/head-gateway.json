@@ -1,0 +1,303 @@
+{
+  "apiVersion": "noemaforge.headgw/v1",
+  "kind": "HeadGatewayRegistry",
+  "meta": {
+    "generated": false,
+    "notes": "Head Gateway is the source-of-truth for intents + screens + actions. UI and intent router can be derived from this file."
+  },
+  "intents": [
+    {
+      "id": "user.ask",
+      "title": "Question / Clarification",
+      "description": "Ask a question (no side effects).",
+      "route_hint": "query"
+    },
+    {
+      "id": "user.task",
+      "title": "Task",
+      "description": "Request a task to be planned/executed.",
+      "route_hint": "stream:auto"
+    },
+    {
+      "id": "user.daily",
+      "title": "Daily task",
+      "description": "Daily recurring tasks (budget, photo diary, etc).",
+      "route_hint": "stream:daily"
+    },
+    {
+      "id": "user.review_prestart",
+      "title": "Review pre-start changes",
+      "description": "Review and approve changes for the next epoch.",
+      "route_hint": "prestart"
+    },
+    {
+      "id": "user.invite",
+      "title": "Issue or activate a live invite",
+      "description": "Grant a time-bound capability token (e.g., surgeon_live, localgw_live).",
+      "route_hint": "capability"
+    },
+    {
+      "id": "user.library",
+      "title": "Library operations",
+      "description": "Ingest/search/curate library sources.",
+      "route_hint": "stream:knowledge"
+    },
+    {
+      "id": "user.vault",
+      "title": "Vault operations",
+      "description": "Manage LLM/SLM vault inventory (models, adapters, bundles).",
+      "route_hint": "vault"
+    },
+    {
+      "id": "user.capture",
+      "title": "Capture / Inbox",
+      "description": "Send/queue something into the system inbox (to be processed by streams).",
+      "route_hint": "stream:auto"
+    }
+  ],
+  "actions": [
+    {
+      "id": "action.queue_task",
+      "title": "Queue task",
+      "payload_schema": {
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "id": "action.approve_prestart",
+      "title": "Approve pre-start change request",
+      "payload_schema": {
+        "type": "object",
+        "required": [
+          "request_id"
+        ],
+        "properties": {
+          "request_id": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "id": "action.issue_invite",
+      "title": "Issue invite token",
+      "payload_schema": {
+        "type": "object",
+        "required": [
+          "invite_kind"
+        ],
+        "properties": {
+          "invite_kind": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    {
+      "id": "action.profile_toggle",
+      "title": "Toggle runtime profile",
+      "payload_schema": {
+        "type": "object",
+        "required": [
+          "profile_id",
+          "enabled"
+        ],
+        "properties": {
+          "profile_id": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    {
+      "id": "action.voice_roundtrip",
+      "title": "Administrator voice roundtrip",
+      "payload_schema": {
+        "type": "object",
+        "properties": {
+          "assistant_alias": {
+            "type": "string"
+          },
+          "max_seconds": {
+            "type": "integer"
+          }
+        }
+      }
+    }
+  ],
+  "screens": [
+    {
+      "id": "home",
+      "title": "Home",
+      "widgets": [
+        {
+          "type": "cards",
+          "source": "system.status"
+        },
+        {
+          "type": "queue",
+          "source": "taskqueue.summary"
+        }
+      ]
+    },
+    {
+      "id": "inbox",
+      "title": "Inbox",
+      "widgets": [
+        {
+          "type": "cards",
+          "source": "inbox.summary"
+        },
+        {
+          "type": "table",
+          "source": "inbox.items"
+        },
+        {
+          "type": "timeline",
+          "source": "inbox.activity"
+        }
+      ]
+    },
+    {
+      "id": "orchestration",
+      "title": "Orchestration",
+      "widgets": [
+        {
+          "type": "dashboard",
+          "source": "system.orch_snapshot"
+        },
+        {
+          "type": "graph",
+          "source": "flows.active"
+        },
+        {
+          "type": "timeline",
+          "source": "sel.recent"
+        },
+        {
+          "type": "table",
+          "source": "taskqueue.next"
+        }
+      ]
+    },
+    {
+      "id": "projects",
+      "title": "Projects",
+      "widgets": [
+        {
+          "type": "table",
+          "source": "projects.list"
+        },
+        {
+          "type": "detail",
+          "source": "projects.selected"
+        }
+      ]
+    },
+    {
+      "id": "daily",
+      "title": "Daily",
+      "widgets": [
+        {
+          "type": "table",
+          "source": "daily.tasks"
+        },
+        {
+          "type": "timeline",
+          "source": "daily.history"
+        }
+      ]
+    },
+    {
+      "id": "incidents",
+      "title": "Incidents",
+      "widgets": [
+        {
+          "type": "table",
+          "source": "incidents.open"
+        },
+        {
+          "type": "detail",
+          "source": "incidents.selected"
+        }
+      ]
+    },
+    {
+      "id": "prestart",
+      "title": "Pre-start",
+      "widgets": [
+        {
+          "type": "table",
+          "source": "prestart.requests"
+        },
+        {
+          "type": "diff",
+          "source": "prestart.selected"
+        }
+      ]
+    },
+    {
+      "id": "library",
+      "title": "Library",
+      "widgets": [
+        {
+          "type": "search",
+          "source": "library.search"
+        },
+        {
+          "type": "table",
+          "source": "library.catalog"
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "title": "Vault",
+      "widgets": [
+        {
+          "type": "table",
+          "source": "vault.inventory"
+        },
+        {
+          "type": "detail",
+          "source": "vault.selected"
+        }
+      ]
+    },
+    {
+      "id": "operator",
+      "title": "Operator",
+      "widgets": [
+        {
+          "type": "cards",
+          "source": "operator.status"
+        },
+        {
+          "type": "table",
+          "source": "operator.profiles"
+        },
+        {
+          "type": "detail",
+          "source": "operator.av_voice"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "apiVersion": "noemaforge.sim/v1",
+  "kind": "PrestartSimulationReport",
+  "timestamp": "20260331T221436Z",
+  "brain_root": "C:\\Users\\sinev\\!Projects\\noemaforge",
+  "python": "C:\\ProgramData\\anaconda3\\python.exe",
+  "steps": [
+    {
+      "name": "scan_library",
+      "cmd": [
+        "C:\\ProgramData\\anaconda3\\python.exe",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\tools\\prep\\scan_library.py",
+        "--library-root",
+        "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Library",
+        "--auto-manifest"
+      ],
+      "cwd": "C:\\Users\\sinev\\!Projects\\noemaforge",
+      "ok": true,
+      "returncode": 0,
+      "stdout": "OK\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Library\\library_index.sqlite\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Library\\library_catalog.seed.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "scan_vault",
+      "cmd": [
+        "C:\\ProgramData\\anaconda3\\python.exe",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\tools\\prep\\scan_vault.py",
+        "--vault-root",
+        "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Vault",
+        "--auto-manifest"
+      ],
+      "cwd": "C:\\Users\\sinev\\!Projects\\noemaforge",
+      "ok": true,
+      "returncode": 0,
+      "stdout": "OK\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Vault\\vault_index.sqlite\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Vault\\model_registry.seed.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "scan_tabs",
+      "cmd": [
+        "C:\\ProgramData\\anaconda3\\python.exe",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\tools\\prep\\scan_tabs.py",
+        "--lab-root",
+        "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab"
+      ],
+      "cwd": "C:\\Users\\sinev\\!Projects\\noemaforge",
+      "ok": true,
+      "returncode": 0,
+      "stdout": "OK\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Indexes\\tabs_index.sqlite\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Workspace\\outbox\\tabs\\tabs_ingest.seed.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "scan_tg",
+      "cmd": [
+        "C:\\ProgramData\\anaconda3\\python.exe",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\tools\\prep\\scan_tg.py",
+        "--lab-root",
+        "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab"
+      ],
+      "cwd": "C:\\Users\\sinev\\!Projects\\noemaforge",
+      "ok": true,
+      "returncode": 0,
+      "stdout": "OK\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Indexes\\tg_index.sqlite\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Workspace\\outbox\\tg\\tg_ingest.seed.json\n",
+      "stderr": ""
+    },
+    {
+      "name": "generate_head_gateway_assets",
+      "cmd": [
+        "C:\\ProgramData\\anaconda3\\python.exe",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\tools\\prep\\generate_head_gateway_assets.py",
+        "--head",
+        "C:\\Users\\sinev\\!Projects\\noemaforge\\configs\\head-gateway.json",
+        "--out-dir",
+        "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Workspace\\outbox\\headgw"
+      ],
+      "cwd": "C:\\Users\\sinev\\!Projects\\noemaforge",
+      "ok": true,
+      "returncode": 0,
+      "stdout": "OK\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Workspace\\outbox\\headgw\\intent-router.generated.json\nC:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab\\data\\Workspace\\outbox\\headgw\\ui-registry.generated.json\n",
+      "stderr": ""
+    }
+  ],
+  "ok": true,
+  "failures": 0,
+  "lab_root": "C:\\Users\\sinev\\AppData\\Local\\Temp\\noemaforge_lab_sim_obnqh98l\\noemaforge-lab"
+}

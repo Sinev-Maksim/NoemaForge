@@ -1,0 +1,41 @@
+apiVersion: noemaforge.bundles/v1
+kind: BundlePolicy
+
+enabled: true
+
+tool_vault:
+  root: /var/lib/noemaforge/toolvault
+  manifests_dir: /var/lib/noemaforge/toolvault/manifests
+  artifacts_dir: /var/lib/noemaforge/toolvault/artifacts
+  installed_dir: /var/lib/noemaforge/toolvault/installed
+
+installer:
+  # Hard rule: bundle install/import is PRE-START ONLY.
+  prestart_only: true
+
+  # If true, every bundle request must include explicit lock values.
+  # (bundle_id + manifest_sha256 + artifact_sha256)
+  require_lock: true
+
+  # Allowed manifest kinds to be installed.
+  # ToolPlugin bundles are executed via handler=plugin.
+  allowed_manifest_kinds:
+    - ToolPlugin
+    - AptRepoBundle
+
+  # Optional: allow system package install from offline repo bundles.
+  # Default is OFF to keep the spinal zone minimal.
+  system_package_installs:
+    enabled: false
+    require_repo_under_toolvault: true
+
+  staging_dir: /var/lib/noemaforge/toolvault/staging
+  inventory_path: /var/lib/noemaforge/toolvault/installed/_inventory.json
+
+rollback:
+  enabled: true
+  mode: best_effort
+
+notes:
+  - "Bundle operations are audited to SEL/WORM."
+  - "If system_package_installs is enabled, treat it as critical risk: require FULL canary + human approval." 

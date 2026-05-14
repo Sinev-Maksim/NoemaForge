@@ -1,0 +1,17 @@
+version: 0.26.5
+date: 2026-04-10
+title: "Live voice runtime + offline STT + administrator voice chat"
+changes:
+  - area: runtime
+    detail: "Extended src/voice_ingest.py with live microphone capture, local STT backends, and ToolProxy-mediated voice chat session artifacts."
+  - area: toolproxy
+    detail: "Added voice.chat_turn execution path that routes transcripts to a configured assistant role through the existing llm.chat model-selection and affirmation pipeline."
+  - area: contracts
+    detail: "Added configs/voice-backends-policy.yaml and contracts/voice_backends_policy.schema.json for microphone/STT/assistant-target rollout control."
+  - area: policy
+    detail: "Registry, policy, and skills now expose voice.capture_live, voice.transcribe_live, and voice.chat_turn as rollout-gated actions."
+  - area: tests
+    detail: "Added command-backend tests for live capture/STT and a ToolProxy unit test for administrator voice chat turns."
+notes:
+  - "The runtime stays offline-first: microphone and STT backends are local only and remain disabled until voice-backends-policy.yaml is enabled."
+  - "Administrator routing defaults to dev.work/solution_architect and can be remapped by contract without changing ToolProxy code."

@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-llm-stop
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# NoemaForge 0.29.10 stop helper. Single source of truth for runtime stop.
+# Idempotent. Default behavior MUST NOT close Firefox/Nautilus or other GUI user apps.
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+VERSION="0.29.10"
+CLOSE_GUI=0; DRY_RUN=0; SHUTDOWN_HOOK=0; RESET_FAILED=1; KILL_ANY_LLAMA=0; KILL_GUI_AFTER_TERM=0
+LOCK_FILE="/run/noemaforge/noemaforge-stop.lock"; LOCK_MODE="wait"; LOCK_WAIT_SECONDS="30"
+for arg in "$@"; do
+  case "$arg" in
+    --close-gui-heavy) CLOSE_GUI=1 ;;
+    --kill-gui-heavy) CLOSE_GUI=1; KILL_GUI_AFTER_TERM=1 ;;
+    --dry-run|--plan) DRY_RUN=1 ;;
+    --shutdown-hook) SHUTDOWN_HOOK=1 ;;
+    --no-reset-failed) RESET_FAILED=0 ;;
+    --kill-any-llama|--force-any-llama) KILL_ANY_LLAMA=1 ;;
+    --skip-if-running) LOCK_MODE="skip" ;;
+    --lock-fail|--fail-if-running) LOCK_MODE="fail" ;;
+    --lock-wait|--wait-lock|--wait|--direct|--async) : ;;
+    -h|--help)
+      cat <<'HELP'
+Usage:
+  sudo noemaforge stop [--dry-run]
+  sudo noemaforge stop --close-gui-heavy
+  sudo noemaforge pause
+
+Default: stop NoemaForge timers/orchestrators/LLM runtime only.
+It does NOT close Firefox/Nautilus/Files by default.
+It kills only NoemaForge-owned llama-server processes by default.
+
+Explicit cleanup:
+  --close-gui-heavy   TERM only GUI-heavy processes currently holding NOEMAFORGE_SHARE.
+  --kill-gui-heavy    TERM, then KILL only GUI-heavy processes holding NOEMAFORGE_SHARE.
+  --kill-any-llama    Kill any llama-server process, not only NOEMAFORGE_USER-owned ones.
+HELP
+      exit 0 ;;
+    *) printf '[noemaforge-stop][WARN] unknown option ignored: %s\n' "$arg" >&2 ;;
+  esac
+done
+noemaforge_require_root
+mkdir -p /run/noemaforge 2>/dev/null || true
+exec 9>"$LOCK_FILE" || true
+if command -v flock >/dev/null 2>&1; then
+  case "$LOCK_MODE" in
+    skip) flock -n 9 || { echo "[noemaforge-stop] another stop is running; skip"; exit 0; } ;;
+    fail) flock -n 9 || { echo "[noemaforge-stop][ERROR] another stop is running" >&2; exit 66; } ;;
+    *) flock -w "$LOCK_WAIT_SECONDS" 9 || { echo "[noemaforge-stop][ERROR] lock wait timeout" >&2; exit 66; } ;;
+  esac
+fi
+printf '=== NoemaForge STOP %s ===\n' "$VERSION"
+printf 'close_gui_heavy=%s\n' "$CLOSE_GUI"
+printf 'shutdown_hook=%s\n' "$SHUTDOWN_HOOK"
+printf 'kill_any_llama=%s\n' "$KILL_ANY_LLAMA"
+printf 'policy=default stop never closes Firefox/Nautilus; use --close-gui-heavy explicitly\n'
+noemaforge_print_runtime_policy
+printf '\n=== pause NoemaForge timers ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] disable/stop timers: %s\n' "$NOEMAFORGE_RUNTIME_TIMERS"; else systemctl disable --now $NOEMAFORGE_RUNTIME_TIMERS 2>/dev/null || true; fi
+printf '\n=== stop NoemaForge orchestrators/core ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] systemctl --no-block stop %s\n' "$NOEMAFORGE_CORE_UNITS"; else systemctl --no-block stop $NOEMAFORGE_CORE_UNITS 2>/dev/null || true; fi
+printf '\n=== stop llama units ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] stop all noemaforge-llama@*.service units\n'; else mapfile -t LLAMA_UNITS < <(noemaforge_all_llama_units); [[ ${#LLAMA_UNITS[@]} -gt 0 ]] && systemctl --no-block stop "${LLAMA_UNITS[@]}" 2>/dev/null || true; fi
+[[ "$DRY_RUN" == "1" ]] || sleep 3
+printf '\n=== kill stuck NoemaForge llama-server if any ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then
+  printf '[noemaforge-stop][dry-run] pkill -u %s -TERM/-KILL llama-server\n' "$NOEMAFORGE_USER"
+  [[ "$KILL_ANY_LLAMA" == "1" ]] && printf '[noemaforge-stop][dry-run] explicit any-llama cleanup requested\n'
+else
+  if id "$NOEMAFORGE_USER" >/dev/null 2>&1; then pkill -u "$NOEMAFORGE_USER" -TERM -f '[l]lama-server' 2>/dev/null || true; sleep 2; pkill -u "$NOEMAFORGE_USER" -KILL -f '[l]lama-server' 2>/dev/null || true; fi
+  if [[ "$KILL_ANY_LLAMA" == "1" ]]; then pkill -TERM -f '[l]lama-server' 2>/dev/null || true; sleep 2; pkill -KILL -f '[l]lama-server' 2>/dev/null || true; fi
+fi
+printf '\n=== remove stale NoemaForge sockets ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] rm -f /run/noemaforge/llm/backends/*.sock /run/noemaforge/toolproxy.sock\n'; else rm -f /run/noemaforge/llm/backends/*.sock /run/noemaforge/toolproxy.sock 2>/dev/null || true; fi
+if [[ "$CLOSE_GUI" == "1" ]]; then
+  printf '\n=== explicit GUI-heavy cleanup requested ===\n'
+  printf 'Scope: only Firefox/Nautilus/Files processes currently holding %s\n' "$NOEMAFORGE_SHARE_MOUNT"
+  mapfile -t GUI_PIDS < <(noemaforge_fuser_pids "$NOEMAFORGE_SHARE_MOUNT" | while read -r pid; do noemaforge_gui_pid_holds_share "$pid" && echo "$pid" || true; done)
+  if [[ ${#GUI_PIDS[@]} -eq 0 ]]; then echo 'No GUI-heavy Vault holders found.'; elif [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] would TERM GUI-heavy Vault holders: %s\n' "${GUI_PIDS[*]}"; else printf 'TERM GUI-heavy Vault holders: %s\n' "${GUI_PIDS[*]}"; kill -TERM "${GUI_PIDS[@]}" 2>/dev/null || true; [[ "$KILL_GUI_AFTER_TERM" == "1" ]] && { sleep 2; kill -KILL "${GUI_PIDS[@]}" 2>/dev/null || true; }; fi
+else
+  printf '\n=== GUI-heavy cleanup skipped ===\n'
+  printf 'Firefox/Nautilus are left untouched. Use --close-gui-heavy explicitly if needed.\n'
+fi
+if [[ "$RESET_FAILED" == "1" && "$DRY_RUN" != "1" ]]; then printf '\n=== reset failed NoemaForge runtime states ===\n'; systemctl reset-failed $NOEMAFORGE_CORE_UNITS 2>/dev/null || true; mapfile -t LLAMA_UNITS2 < <(noemaforge_all_llama_units); [[ ${#LLAMA_UNITS2[@]} -gt 0 ]] && systemctl reset-failed "${LLAMA_UNITS2[@]}" 2>/dev/null || true; fi
+printf '\n=== sync ===\n'; [[ "$DRY_RUN" == "1" ]] && printf '[noemaforge-stop][dry-run] sync\n' || sync || true
+printf '\n=== active llama processes ===\n'; [[ "$DRY_RUN" == "1" ]] && printf '[noemaforge-stop][dry-run] pgrep -a -f [l]lama-server\n' || { pgrep -a -f '[l]lama-server' || echo 'no llama-server'; }
+printf '\n=== active llama units ===\n'; systemctl list-units --all 'noemaforge-llama@*.service' --no-pager 2>/dev/null || true
+printf '\n=== failed units ===\n'; systemctl --failed --no-pager 2>/dev/null || true
+printf '\n=== memory ===\n'; free -h || true
+printf '\n=== root space ===\n'; df -hT / || true

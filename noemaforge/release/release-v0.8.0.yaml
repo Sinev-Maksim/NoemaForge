@@ -1,0 +1,31 @@
+apiVersion: noemaforge.release/v1
+kind: Release
+metadata:
+  name: noemaforge
+  version: "0.8.0"
+  codename: "BCA-SerialTeam-RoleRunner-ToolProxy-DailySLA-MemSentinel"
+  status: "spec"
+
+defaults:
+  compute: "cpu-first"
+  network: "deny-by-default"
+  llm_entrypoint: "unix:///run/noemaforge/llm/gateway.sock"
+  toolproxy_socket: "unix:///run/noemaforge/toolproxy.sock"
+  team_execution: "serial"
+  recurring_priority: "daily_sla"
+
+services:
+  - noemaforge-llm-gateway
+  - noemaforge-llama@main
+  - noemaforge-toolproxy
+  - noemaforge-memsentinel
+  - noemaforge-dailyplan
+  - noemaforge-auditor
+  - noemaforge-recurring
+  - noemaforge-teamworker
+
+notes:
+  - "RoleRunner executes roles in an ephemeral sandbox (podman if available, host fallback) and enforces no-network by default."
+  - "ToolProxy is the single LLM/tool entrypoint; roles request actions using short-lived capability tokens."
+  - "Daily SLA tasks outrank regular work except urgent/critical."
+  - "Memory pressure treated as critical; M2/M3 raise checkpoint flag; TeamWorker pauses new role starts."

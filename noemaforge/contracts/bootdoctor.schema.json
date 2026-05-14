@@ -1,0 +1,147 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "report": {
+      "type": "object",
+      "properties": {
+        "reports_dir": {
+          "type": "string"
+        },
+        "onfailure_dir": {
+          "type": "string"
+        },
+        "outbox_reports_dir": {
+          "type": "string"
+        },
+        "outbox_support_dir": {
+          "type": "string"
+        },
+        "keep_reports": {
+          "type": "integer"
+        },
+        "keep_support_bundles": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "collection": {
+      "type": "object",
+      "properties": {
+        "level": {
+          "type": "string"
+        },
+        "journal_lines_boot": {
+          "type": "integer"
+        },
+        "journal_lines_per_unit": {
+          "type": "integer"
+        },
+        "dmesg_lines": {
+          "type": "integer"
+        },
+        "include_systemd_analyze": {
+          "type": "boolean"
+        },
+        "include_lsblk": {
+          "type": "boolean"
+        },
+        "include_mounts": {
+          "type": "boolean"
+        },
+        "include_df": {
+          "type": "boolean"
+        },
+        "include_free": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "failure_policy": {
+      "type": "object",
+      "properties": {
+        "watch_units": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bundle_on_failed_units": {
+          "type": "boolean"
+        },
+        "onfailure_collect_unit_journal_lines": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "first_run": {
+      "type": "object",
+      "properties": {
+        "force_full": {
+          "type": "boolean"
+        },
+        "state_file": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "hardware": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "include_inventory": {
+          "type": "string"
+        },
+        "state_file": {
+          "type": "string"
+        },
+        "emit_installer_plan": {
+          "type": "object",
+          "properties": {
+            "on_first_seen": {
+              "type": "boolean"
+            },
+            "on_hardware_change": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "redaction": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "patterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/bootdoctor.schema.json",
+  "title": "Bootdoctor"
+}

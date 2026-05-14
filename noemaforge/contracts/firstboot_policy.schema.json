@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/firstboot_policy.schema.json",
+  "title": "FirstbootPolicy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "vault_root_candidates",
+    "modelstore_root",
+    "scorecards_dir",
+    "requests_dir",
+    "status_path",
+    "events_path"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "FirstbootPolicy"
+    },
+    "share_root_default": {
+      "type": "string"
+    },
+    "vault_root_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "modelstore_root": {
+      "type": "string"
+    },
+    "scorecards_dir": {
+      "type": "string"
+    },
+    "requests_dir": {
+      "type": "string"
+    },
+    "status_path": {
+      "type": "string"
+    },
+    "events_path": {
+      "type": "string"
+    },
+    "candidate_limit": {
+      "type": "integer"
+    },
+    "top_k": {
+      "type": "integer"
+    },
+    "auto_apply_first_epoch": {
+      "type": "boolean"
+    },
+    "auto_reboot_after_apply": {
+      "type": "boolean"
+    },
+    "minimal_thresholds": {
+      "type": "object"
+    },
+    "roles_order": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "top_k_per_role": {
+      "type": "integer"
+    },
+    "tasks_per_model_per_role": {
+      "type": "integer"
+    },
+    "mandatory_core_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Core roles that must have at least degraded_selected staffing before epoch apply/reboot."
+    }
+  },
+  "additionalProperties": true
+}

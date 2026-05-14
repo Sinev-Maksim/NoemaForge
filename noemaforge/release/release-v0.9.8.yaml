@@ -1,0 +1,25 @@
+version: 0.9.8
+date: 2026-02-28
+title: Offline APT + WORM/SEL anchors + ToolVault plugins
+
+highlights:
+  - Offline-first bootstrap: local APT repo support (file:) to install baseline packages without network.
+  - WORM/SEL uplift: daily segment hash-chains, optional seal files, cross-day anchors chain, best-effort chattr hardening.
+  - ToolVault plugin runtime: handler=plugin with strict bundle attestation; pre-start apply prepares (extracts) enabled plugins.
+
+changes:
+  bootstrap:
+    - noemaforge-bootstrap.sh now detects offline apt repo via --offline-apt, seed/offline-apt/aptrepo, or /var/lib/noemaforge/toolvault/aptrepo.
+    - creates /var/lib/noemaforge/toolvault directories by default.
+  security:
+    - SEL now supports anchors.chain + seal operation (brainctl sel seal / verify-anchors).
+    - plugin failures that indicate supply-chain or sandbox degradation quarantine by default.
+  tool_system:
+    - new ToolProxy handler dispatch for handler=plugin.
+    - plugins run in sandbox with no network; require bundle attestation.
+    - prestart apply prepares plugin bundles for the epoch.
+
+docs:
+  - docs/OFFLINE_APT.md
+  - docs/WORM_SEL.md
+  - docs/PLUGINS.md

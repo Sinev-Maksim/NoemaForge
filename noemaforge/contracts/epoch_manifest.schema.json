@@ -1,0 +1,194 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/epoch_manifest.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "epoch_id",
+    "created_at",
+    "status",
+    "bundle",
+    "overall_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "v1"
+      ]
+    },
+    "epoch_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "current",
+        "retired"
+      ]
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "base_epoch_id": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "object",
+      "required": [
+        "actor_type"
+      ],
+      "properties": {
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "surgeon",
+            "scary",
+            "system"
+          ]
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "description": {
+      "type": "string"
+    },
+    "bundle": {
+      "type": "object",
+      "required": [
+        "streams_sha256",
+        "patterns_sha256",
+        "tool_registry_sha256",
+        "tool_policy_sha256",
+        "sandbox_policy_sha256",
+        "supplychain_policy_sha256",
+        "web_gateway_policy_sha256",
+        "local_gateway_policy_sha256",
+        "bootdoctor_policy_sha256",
+        "installer_policy_sha256",
+        "bundle_policy_sha256",
+        "verifiers_sha256",
+        "clarifications_sha256",
+        "vstore_config_sha256",
+        "canary_policy_sha256",
+        "security_fixtures_sha256",
+        "quarantine_policy_sha256",
+        "role_affirmations_sha256",
+        "role_roadmaps_sha256",
+        "llm_backends_policy_sha256"
+      ],
+      "properties": {
+        "streams_sha256": {
+          "type": "string"
+        },
+        "patterns_sha256": {
+          "type": "string"
+        },
+        "tool_registry_sha256": {
+          "type": "string"
+        },
+        "tool_policy_sha256": {
+          "type": "string"
+        },
+        "sandbox_policy_sha256": {
+          "type": "string"
+        },
+        "supplychain_policy_sha256": {
+          "type": "string"
+        },
+        "verifiers_sha256": {
+          "type": "string"
+        },
+        "clarifications_sha256": {
+          "type": "string"
+        },
+        "vstore_config_sha256": {
+          "type": "string"
+        },
+        "canary_policy_sha256": {
+          "type": "string"
+        },
+        "security_fixtures_sha256": {
+          "type": "string"
+        },
+        "quarantine_policy_sha256": {
+          "type": "string"
+        },
+        "role_affirmations_sha256": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "role_roadmaps_sha256": {
+          "type": "string"
+        },
+        "bundle_policy_sha256": {
+          "type": "string"
+        },
+        "web_gateway_policy_sha256": {
+          "type": "string"
+        },
+        "local_gateway_policy_sha256": {
+          "type": "string"
+        },
+        "bootdoctor_policy_sha256": {
+          "type": "string"
+        },
+        "installer_policy_sha256": {
+          "type": "string"
+        },
+        "role_model_policy_sha256": {
+          "type": "string"
+        },
+        "model_eval_suite_sha256": {
+          "type": "string"
+        },
+        "llm_backends_policy_sha256": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "overall_sha256": {
+      "type": "string"
+    },
+    "signatures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "sig_type",
+          "sig_value"
+        ],
+        "properties": {
+          "sig_type": {
+            "type": "string"
+          },
+          "sig_value": {
+            "type": "string"
+          },
+          "sig_by": {
+            "type": "string"
+          },
+          "sig_at": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

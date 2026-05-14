@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-vault-mount-ro
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# Mount NOEMAFORGE_SHARE read-only after NTFS dirty-state events.
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+noemaforge_require_root
+
+SRC="$(noemaforge_share_source)"
+
+systemctl stop 'mnt-noemaforge\x2dshare.automount' 'mnt-noemaforge\x2dshare.mount' 2>/dev/null || true
+systemctl reset-failed 'mnt-noemaforge\x2dshare.automount' 'mnt-noemaforge\x2dshare.mount' 2>/dev/null || true
+umount "$NOEMAFORGE_SHARE_MOUNT" 2>/dev/null || true
+install -d -m 0755 "$NOEMAFORGE_SHARE_MOUNT"
+mount -t ntfs3 -o "ro,force,uid=${NOEMAFORGE_SHARE_UID},gid=${NOEMAFORGE_SHARE_GID},umask=002,windows_names" "$SRC" "$NOEMAFORGE_SHARE_MOUNT"
+findmnt "$NOEMAFORGE_SHARE_MOUNT"
+ls -lah "$NOEMAFORGE_SHARE_MOUNT" | sed -n '1,80p'

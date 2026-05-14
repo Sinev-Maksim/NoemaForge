@@ -1,0 +1,19 @@
+version: 0.26.2
+date: 2026-04-09
+title: MCP/Voice facades + richer model selection + stronger SR/SSR
+changes:
+  - area: modules
+    detail: "Restored src/mcp_router.py and src/voice_ingest.py as functional ToolProxy-safe facades instead of dormant placeholders."
+  - area: datasets
+    detail: "Expanded role-scoped JSONL datasets for dev.work, writing.story, and system.guard with schema/regex/numeric checks."
+  - area: selection
+    detail: "Strengthened team_search with failed-pair memory, coverage-aware picking, adaptive k growth, and quality-metric aware pruning."
+  - area: scoring
+    detail: "Added quality_metrics to team scorecards, including stability_score, score_variance, step_success_rate, and hallucination risk markers."
+  - area: reflection
+    detail: "SR and SSR reports now record epoch_before/epoch_after, immutability verification, and reflection quality summaries."
+  - area: tests
+    detail: "Added unit tests for restored modules, team-search heuristics, team quality metrics, and SR/SSR report invariants."
+notes:
+  - "MCP and Voice actions remain disabled by default in tool-registry; enabling them still requires policy changes."
+  - "ToolProxy remains the only execution path. The restored modules only validate/stage requests and never perform direct network or live audio capture."

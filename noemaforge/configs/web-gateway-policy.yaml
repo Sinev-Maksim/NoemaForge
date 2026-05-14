@@ -1,0 +1,175 @@
+apiVersion: noemaforge.webgateway/v1
+kind: WebGatewayPolicy
+
+# WebGateway is a strict intake valve.
+# Default: disabled.
+# Content ALWAYS lands in quarantine.
+# Only scary (via ToolPolicy) is allowed to call webgw.fetch.
+
+version: 2
+enabled: false
+
+# Default mode (can be overridden per-channel).
+mode:
+  # If true, deny in runtime unless runtime_allowed is also true.
+  prestart_only: true
+  runtime_allowed: false
+
+# Global network gates (defaults).
+network:
+  allow_schemes: ["https"]
+  # Empty allowlist => deny all.
+  allow_domains: []
+  deny_ip_literals: true
+  deny_private_ranges: true
+
+# Global download gates (defaults).
+downloads:
+  quarantine_root: /var/lib/noemaforge/quarantine/incidents
+  incoming_subdir: incoming
+  max_bytes: 200000000
+  max_redirects: 3
+  # Allowed by default: safe-ish document formats. HTML is not a "document" here.
+  allowed_mime_prefixes:
+    - application/pdf
+    - application/json
+    - application/xml
+    - application/rss+xml
+    - text/plain
+    - text/markdown
+    - text/xml
+  denied_mime_prefixes:
+    - text/html
+    - application/javascript
+
+# Moderation gates (defaults).
+moderation:
+  # If true: require glove_report.json before promote.
+  require_glove_review: true
+  # If true: require webgw_approval.json before promote.
+  require_human_approval: true
+  glove_profile: generic
+
+# Import/promotion defaults.
+imports:
+  artifacts_dir: /var/lib/noemaforge/toolvault/artifacts
+  manifests_dir: /var/lib/noemaforge/toolvault/manifests
+
+# Channelized policy.
+# The channel name is provided by the caller (webgw.fetch args.channel) and stored in webgw_meta.json.
+channels:
+  packages:
+    enabled: true
+    mode:
+      prestart_only: true
+      runtime_allowed: false
+    network:
+      # Set this during pre-start via a policy epoch update.
+      allow_domains: []
+    downloads:
+      max_bytes: 800000000
+      allowed_mime_prefixes:
+        - application/
+        - application/x-debian-package
+        - application/octet-stream
+      denied_mime_prefixes:
+        - text/html
+        - application/javascript
+    moderation:
+      glove_profile: package_inspect
+      require_glove_review: true
+      require_human_approval: true
+    promote:
+      default_target: toolvault.artifact
+      allow_targets: ["toolvault.artifact"]
+
+  rss:
+    enabled: true
+    mode:
+      prestart_only: false
+      runtime_allowed: true
+    network:
+      allow_domains: []
+    downloads:
+      max_bytes: 20000000
+      allowed_mime_prefixes:
+        - application/rss+xml
+        - application/xml
+        - text/xml
+        - text/plain
+        - application/json
+      denied_mime_prefixes:
+        - text/html
+        - application/javascript
+    moderation:
+      glove_profile: rss_sanitize
+      require_glove_review: true
+      require_human_approval: false
+    promote:
+      default_target: docsvault.rss_item
+      allow_targets: ["docsvault.rss_item"]
+      docs_root: /var/lib/noemaforge/docs
+
+  # Human-readable web pages / articles.
+  # Strict: allowlist domains + quarantine + glove extraction (deterministic) + PI scrub.
+  pages:
+    enabled: true
+    mode:
+      prestart_only: false
+      runtime_allowed: true
+    network:
+      # Default starter allowlist (edit in pre-start epoch policy update).
+      allow_domains:
+        - wikipedia.org
+        - wikimedia.org
+        - arxiv.org
+        - ncbi.nlm.nih.gov
+        - doi.org
+        - nature.com
+        - science.org
+        - biorxiv.org
+        - medrxiv.org
+    downloads:
+      max_bytes: 30000000
+      allowed_mime_prefixes:
+        - text/html
+        - application/xhtml+xml
+        - text/plain
+        - text/markdown
+        - application/pdf
+      denied_mime_prefixes:
+        - application/javascript
+    moderation:
+      glove_profile: article_extract
+      require_glove_review: true
+      require_human_approval: false
+    promote:
+      default_target: docsvault.page
+      allow_targets: ["docsvault.page"]
+      docs_root: /var/lib/noemaforge/docs
+
+  git:
+    enabled: true
+    mode:
+      prestart_only: false
+      runtime_allowed: true
+    network:
+      allow_domains: []
+    downloads:
+      max_bytes: 1000000000
+      allowed_mime_prefixes:
+        - application/
+        - application/x-gzip
+        - application/gzip
+        - application/octet-stream
+      denied_mime_prefixes:
+        - text/html
+        - application/javascript
+    moderation:
+      glove_profile: git_scan
+      require_glove_review: true
+      require_human_approval: true
+    promote:
+      default_target: codevault.snapshot
+      allow_targets: ["codevault.snapshot", "toolvault.artifact"]
+      code_root: /var/lib/noemaforge/codevault

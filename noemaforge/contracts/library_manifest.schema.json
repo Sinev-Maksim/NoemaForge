@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/library_manifest.schema.json",
+  "title": "LibraryManifest",
+  "type": "object",
+  "required": ["apiVersion", "kind", "source_id", "rel_path"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.library/v1"},
+    "kind": {"type": "string", "const": "LibraryManifest"},
+    "source_id": {"type": "string", "minLength": 3},
+    "title": {"type": "string"},
+    "source_kind": {
+      "type": "string",
+      "enum": ["book", "article", "paper", "note", "pdf", "md", "web", "dataset", "other"]
+    },
+    "language": {"type": "string"},
+    "rel_path": {"type": "string", "minLength": 1},
+    "sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"},
+    "tags": {"type": "array", "items": {"type": "string"}, "default": []},
+    "trust": {"type": "string", "enum": ["unknown", "local", "imported", "verified"], "default": "unknown"},
+    "ingest": {
+      "type": "object",
+      "properties": {
+        "status": {"type": "string", "enum": ["new", "queued", "ingested", "failed", "skipped"], "default": "new"},
+        "last_ingested_at": {"type": "string"},
+        "last_ingested_sha256": {"type": "string", "pattern": "^[a-fA-F0-9]{64}$"}
+      },
+      "additionalProperties": true
+    },
+    "meta": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

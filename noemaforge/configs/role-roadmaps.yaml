@@ -1,0 +1,179 @@
+apiVersion: noemaforge.roadmaps/v1
+kind: RoleRoadmaps
+
+# Immutable contract epoch file.
+# Contains role-specific development roadmaps that Surgeon/SR/SSR/Scary can use
+# to plan system evolution. Executors should not see internal security protocol details.
+
+defaults:
+  cadence:
+    review: weekly
+    update: monthly
+  priority_model:
+    # Used by roadmap aggregation (e.g., Solution Architect queue):
+    # score = base + repeat_weight*total_events + unique_source_weight*unique_sources
+    base: 0
+    repeat_weight: 1
+    unique_source_weight: 5
+
+roles:
+  surgeon:
+    title: "Хирург"
+    scope:
+      - "Изменения контрактов/политик только через pre-start"
+      - "Планирование и проведение экспериментов (только с явным подтверждением человека)"
+      - "Анализ инцидентов/карантина через стерильные перчатки"
+    principles:
+      - "Стабильность и обратимость важнее скорости."
+      - "Любое изменение должно иметь критерии готовности и канареечные тесты."
+      - "Никаких скрытых расширений полномочий."
+      - "Если есть сомнения — эскалируй человеку и фиксируй доказательства."
+    hygiene:
+      gloves:
+        intent: "Поддержание стерильности анализа"
+        description: |
+          Любой анализ потенциально опасного контента (письма/вложения/страницы/логи/дампы)
+          выполняется через «перчатку»: одноразовую амнезийную SLM/агент в изолированной среде.
+          Перчатка получает только минимальный набор данных (снэпшот/выдержки), не имеет доступа
+          к долгосрочной памяти и не может модифицировать контракты/политики.
+        design_goals:
+          - "Одноразовость: каждый запуск в отдельной песочнице/VM."
+          - "Амнезия: временная память только в RAM; уничтожается после отчёта."
+          - "Минимальные права: read-only к инциденту + вывод отчёта в quarantine/SEL."
+          - "Дедупликация: одинаковые инциденты → похожие выводы (casebase)."
+        work_items:
+          - id: surgeon.glove_profiles.v1
+            title: "Набор профилей перчаток (SLM) для разных типов анализа"
+            priority: high
+            acceptance:
+              - "Есть минимум 3 профиля: mail_injection, tool_misuse, supply_chain."
+              - "Каждый профиль запускается в sandbox без сети и без доступа к secrets."
+          - id: surgeon.glove_pipeline.v1
+            title: "Конвейер: инцидент → перчатка → отчёт → индексация"
+            priority: high
+            acceptance:
+              - "Отчёт перчатки сохраняется рядом с incident.json"
+              - "Отчёт индексируется в vstore.security (только через system.guard)."
+    attentive_gaze:
+      intent: "Внимательный взгляд (максимально подробное изучение)"
+      protocol:
+        - "Сначала восстанови картину событий по логам/дампам/артефактам."
+        - "Смоделируй поведение в альтернативных сценариях (что если X было подменено?)."
+        - "Сверь выводы с реальным опытом (casebase) и фикстурами."
+        - "После рассуждения на одном языке — сделай вторую итерацию на нескольких других языках и сравни различия выводов."
+        - "Любые расхождения фиксируй как гипотезы/риски и добавляй в план эксперимента."
+      work_items:
+        - id: surgeon.multilingual_check.v1
+          title: "Многоязычная проверка выводов для критических решений"
+          priority: medium
+          acceptance:
+            - "Для решений уровня policy/epoch в отчёте есть раздел 'alt_language_notes'."
+    roadmap:
+      - id: surgeon.prestart_discipline.v1
+        title: "Жёсткая дисциплина pre-start: патчи → канарейки → отчёты → switch"
+        priority: high
+        acceptance:
+          - "Каждое изменение имеет per-change canary runs и rollback при FAIL."
+          - "Epoch switch невозможен без scary_report + build_report."
+      - id: surgeon.audit_trail.v1
+        title: "Аудит следов: SEL/WORM целостность + отчёты + карантин"
+        priority: medium
+        acceptance:
+          - "Есть команда/процедура проверки цепочки SEL."
+          - "Любая попытка удаления/подмены вызывает инцидент."
+
+  scary:
+    title: "Страшный"
+    scope:
+      - "Паранойя: заранее сигнализировать о рисках"
+      - "Мания: постоянно мониторить процессы/артефакты/дампы"
+      - "Создание канареечных тестов и security fixtures (только pre-start)"
+      - "Оффлайн-информированность: CVE/адвайзори снепшоты"
+    roadmap:
+      - id: scary.fixtures.v1
+        title: "Расширяемая библиотека security fixtures (indirect injection, tool misuse)"
+        priority: high
+        acceptance:
+          - "fixtures.yaml покрывает: indirect prompt injection, tool misuse, supply-chain metadata."
+      - id: scary.cve_ingest.v1
+        title: "Импорт оффлайн-фидов уязвимостей + проверка версий пакетов"
+        priority: medium
+        acceptance:
+          - "Есть формат snapshot-фида и отчёт о совпадениях/рисках."
+
+      - id: scary.gateways.v1
+        title: "Gateways (webgw/localgw) как airlock: quarantine → glove → approve"
+        priority: high
+        acceptance:
+          - "webgw и localgw доступны только в system.guard и под ролью scary."
+          - "Любой сетевой intake идёт в карантин; исполнители не видят сырой контент."
+          - "localgw имеет обязательный arming/preflight и пишет SEL события."
+
+      - id: scary.gloves.web_and_lan.v1
+        title: "Две специализированные перчатки (SLM): web_sanitize и net_inspect"
+        priority: high
+        acceptance:
+          - "Есть отдельные тулзы glove.web_sanitize и glove.net_inspect."
+          - "Каждая перчатка амнезийна, без сети, пишет отчёт в quarantine/SEL."
+
+  sr:
+    title: "SR (Self-Reflection)"
+    scope:
+      - "Оценка эффективности потоков и план улучшений"
+      - "Работа с метриками (время до результата, качество, ошибки)"
+      - "Формирование Roadmap отчётов (без изменения контрактов)"
+    roadmap:
+      - id: sr.metrics.v1
+        title: "Метрики эффективности по потокам и ролям"
+        priority: medium
+        acceptance:
+          - "Сбор: latency, success_rate, verifier_pass_rate, quarantine_rate."
+      - id: sr.roadmap_reports.v1
+        title: "Генерация периодических SR roadmap reports для хирурга"
+        priority: high
+        acceptance:
+          - "Отчёты сохраняются в /var/lib/noemaforge/roadmaps/exports/"
+
+  ssr:
+    title: "SSR (System/Safety Self-Reflection)"
+    scope:
+      - "Гоняет тесты, анализирует security incidents"
+      - "Может предлагать эволюцию хирурга/правил только через pre-start"
+    roadmap:
+      - id: ssr.regression.v1
+        title: "Регрессия безопасности: полный прогон fixtures на каждое risky изменение"
+        priority: high
+        acceptance:
+          - "FULL suite обязателен для новых инструментов/расширения прав."
+      - id: ssr.surgeon_evolution.v1
+        title: "Предложения по эволюции хирурга после канареек"
+        priority: medium
+        acceptance:
+          - "Любое предложение оформляется как PreStartChangeRequest и проходит canary."
+
+  solution_architect:
+    title: "Solution Architect"
+    scope:
+      - "Проектирование решений, контрактов, данных и тестов"
+      - "Приоритизация архитектурных запросов"
+    priority_rules:
+      - "Повторение одного и того же запроса из разных потоков/процессов повышает его приоритет."
+      - "Если поток 1 запросил A, а потоки 2 и 3 запросили B — B приоритетнее."
+    roadmap:
+      - id: arch.queue.v1
+        title: "Очередь архитектурных запросов с приоритетом по повторяемости"
+        priority: high
+        acceptance:
+          - "Есть агрегатор запросов: unique_sources + total_events."
+          - "Есть экспорт топ-N задач для хирурга и PM."
+
+  pm:
+    title: "ИИ‑ПМ"
+    scope:
+      - "Оркестрация: дробление задач, baton-передача, первичная приемка"
+    roadmap:
+      - id: pm.baton.v1
+        title: "Baton/hand-off дисциплина: один активный исполнитель"
+        priority: medium
+        acceptance:
+          - "В одном потоке одновременно активна только 1 роль."

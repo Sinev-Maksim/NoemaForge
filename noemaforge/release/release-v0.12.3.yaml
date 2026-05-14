@@ -1,0 +1,16 @@
+version: 0.12.3
+date: '2026-03-02'
+codename: Incidents Everywhere + Incident→Roadmap Signals
+changes:
+  - "ToolProxy deny events are promoted to first-class incidents (dedupe/repeat tracking)."
+  - "Quarantine snapshots now also open/update lifecycle incidents (incidents.py) with linkage."
+  - "Repeated incidents can emit thresholded roadmap signals (epoch-scoped incident-policy.yaml)."
+  - "webgateway quarantine intake now uses the unified quarantine.create_incident API and emits webgateway_quarantine incidents."
+files:
+  - seed/noemaforge/src/incidents.py
+  - seed/noemaforge/src/quarantine.py
+  - seed/noemaforge/src/toolproxy.py
+  - seed/noemaforge/src/webgateway.py
+  - seed/noemaforge/src/prestart.py
+  - seed/noemaforge/configs/incident-policy.yaml
+  - seed/noemaforge/contracts/incident_policy.schema.json

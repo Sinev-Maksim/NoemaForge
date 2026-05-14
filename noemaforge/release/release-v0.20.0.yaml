@@ -1,0 +1,16 @@
+version: 0.20.0
+date: 2026-03-05
+title: "Windows Preparation Pack (incremental Library/Vault inventory + HeadGW-derived UI/router)"
+
+highlights:
+  - "Added Windows lab workspace scaffolding: tools/windows/prepare_workspace.ps1"
+  - "Added one-command lab runner: tools/windows/noemaforge_lab.ps1 (prepare + scan + derive)"
+  - "Added incremental Library scanner: tools/prep/scan_library.py (sqlite index + snapshot json)"
+  - "Added incremental Vault scanner: tools/prep/scan_vault.py (sqlite index + model registry snapshot)"
+  - "Added Head Gateway registry: configs/head-gateway.json"
+  - "Added derivation tool: tools/prep/generate_head_gateway_assets.py -> configs/intent-router.json + configs/ui-registry.json"
+  - "Added JSON Schemas for manifests and HeadGW/Router/UI contracts"
+
+risk_notes:
+  - "These tools are prep-only; they do not change runtime NoemaForge behaviour unless you later mount/use the produced catalogs and indexes."
+  - "Manifests are JSON-only for now to avoid extra Python deps on Windows."

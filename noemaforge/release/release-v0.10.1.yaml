@@ -1,0 +1,14 @@
+version: 0.10.1
+date: 2026-02-28
+title: "Routines + Casebase (PhotoDiary & Budget MVP)"
+
+highlights:
+  - "Recurring tasks now dispatch real deterministic pipelines instead of placeholder artifacts."
+  - "photos.diary: metadata-based episode grouping + diary template + manifest fingerprint."
+  - "finance.budget: ingest bank exports into sqlite ledger + monthly report + per-day report snapshot."
+  - "Solution Cache / Casebase: sqlite registry + vstore index using deterministic hash embedding (hash256-v1)."
+  - "Bootstrap now creates /workspace inbox/outbox/role-runs and fixes ownership (noemaforge user can write)."
+
+notes:
+  - "This release stays offline-first: no webgw/localgw required for routines."
+  - "Photo content understanding (vision) and inquiry answering UI are deferred to brain-zone expansions."

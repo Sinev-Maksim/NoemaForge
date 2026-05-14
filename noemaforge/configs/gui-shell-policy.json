@@ -1,0 +1,17 @@
+{
+  "apiVersion": "noemaforge.gui/v1",
+  "kind": "GuiShellPolicy",
+  "version": "0.31.13.alpha",
+  "stateful": true,
+  "conversation_store": "/var/lib/noemaforge/gui/conversation-current.json",
+  "sr_ssr_review_inbox": {
+    "sr": "/var/lib/noemaforge/review/sr/inbox",
+    "ssr": "/var/lib/noemaforge/review/ssr/inbox"
+  },
+  "gui_rules": [
+    "no hidden privileged action",
+    "persist messages",
+    "restore state after refresh",
+    "plan-first for epoch/system changes"
+  ]
+}

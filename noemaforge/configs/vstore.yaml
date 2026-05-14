@@ -1,0 +1,35 @@
+apiVersion: noemaforge.vstore/v1
+kind: VStoreConfig
+backend: flat
+metric: cosine
+base_dir: /var/lib/noemaforge/vstore
+max_items_per_segment: 50000
+layers:
+  working_set:
+    location: ram
+    note: Ephemeral; optional future /dev/shm
+  casebase:
+    location: disk
+    note: Solution cache / cases / artifacts summary vectors
+  vault:
+    location: disk
+    note: Document/knowledge embeddings (large)
+  events:
+    location: disk
+    note: Semsearch over logs/observations; pair with OLAP/graph later
+  kg_passages:
+    location: disk
+    note: Hypergraph passages semantic index
+  kg_claims:
+    location: disk
+    note: Hypergraph claims semantic index
+  kg_concepts:
+    location: disk
+    note: Hypergraph concepts semantic index
+compaction:
+  policy: idle_window
+  trigger_after_minutes_idle: 5
+  max_cpu_percent: 25
+notes:
+- A and ¬A can be close in embedding space; use contradiction classification downstream.
+- Segments are append-only; tombstones + periodic compaction.

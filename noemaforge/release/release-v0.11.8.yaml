@@ -1,0 +1,28 @@
+version: 0.11.8
+codename: "AutoCycle + Default Task Cooldowns"
+date_utc: "2026-03-02"
+
+summary:
+  - "Add AUTO_CYCLE mode: after idle trigger fires, maintenance keeps dispatching one queued task per tick (no extra idle wait)."
+  - "Prevent infinite background loops: default TaskQueue tasks can define cooldown_sec; successful runs write a cooldown stamp."
+
+changes:
+  added: []
+  modified:
+    - seed/noemaforge/src/maintenance.py
+    - seed/noemaforge/src/runtime_state.py
+    - seed/noemaforge/src/taskqueue.py
+    - seed/noemaforge/configs/maintenance-policy.yaml
+    - seed/noemaforge/configs/taskqueue-policy.yaml
+    - seed/noemaforge/manifest.yaml
+
+contracts:
+  runtime_immutable:
+    - "maintenance-policy.yaml and taskqueue-policy.yaml are epoch-scoped; runtime must not mutate them."
+  behavior:
+    - "When idle_trigger_sec fires: SR -> SSR -> recovery -> enqueue signal-tasks -> claim+run one TaskQueue task, then enter AUTO_CYCLE."
+    - "While AUTO_CYCLE: each maintenance tick claims+runs one TaskQueue task until the queue is empty or work becomes busy."
+    - "Default tasks are only re-inserted after cooldown_sec (cooldown stamps live under /var/lib/noemaforge/taskqueue/stamps)."
+
+notes:
+  - "SR cadence during AUTO_CYCLE is optional and disabled by default (auto_cycle.sr_every_sec: 0)."

@@ -1,0 +1,11 @@
+version: 0.27.9
+notes:
+- Added the runtime long-form prep pipeline on top of the durable prep-store.
+- Persisted normalized text artifacts on disk while keeping leaf chunk bodies in memory
+  only.
+- Added heuristic sentence splitting, topic labeling, adjacency-group planning, and
+  split-tree generation.
+- 'Added CLI commands: `brainctl kg prep-analyze`, `brainctl kg prep-run-next`, and
+  `brainctl kg prep-leaves`.'
+- Extended the prep-store schema with artifact paths, paragraph numbers, and char-span
+  split nodes.

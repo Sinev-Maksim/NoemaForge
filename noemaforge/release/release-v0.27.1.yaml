@@ -1,0 +1,11 @@
+version: 0.27.1
+date_utc: '2026-04-12'
+title: Corrected Pre-Install Bundle + Share-Based First-Boot Prep
+highlights:
+  - Rebased the pre-install archive on top of the actual 0.27.0 release instead of the earlier 26.1 audit input.
+  - Added Windows Vault metadata export / compare helpers for real-vs-lab inventory verification.
+  - Added share-based first-boot staging and smoke-check helpers for Trixie.
+  - Refreshed install documentation for the flattened archive layout.
+notes:
+  - This release improves audit correctness and install workflow readiness.
+  - The full administrator-role and firstboot-staffing blueprint remains documented as a planned runtime patch, not a claimed completed implementation.

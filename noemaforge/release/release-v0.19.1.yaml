@@ -1,0 +1,13 @@
+version: 0.19.1
+date: 2026-03-04
+title: "Seed checker + Windows verifier fix + baseline deps"
+
+highlights:
+  - "Fixed verify_seed.ps1 path resolution (Windows)"
+  - "Added noemaforge_check.ps1: multi-step checker that continues after failures"
+  - "Added tools/checker/noemaforge_check.py: Python deep checker (YAML/JSON/compile/epoch files)"
+  - "Added FIRST_RUN_CHECKLIST.md"
+  - "Installer baseline now includes python3-cryptography, python3-jsonschema, nftables, iproute2"
+
+risk_notes:
+  - "No runtime behaviour changes; this is a preflight/packaging hardening release."

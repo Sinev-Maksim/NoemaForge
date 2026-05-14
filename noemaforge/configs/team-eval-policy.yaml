@@ -1,0 +1,49 @@
+apiVersion: noemaforge.teameval/v1
+kind: TeamEvalPolicy
+
+# Contract Epoch: team-level model search policy.
+#
+# Notes:
+# - This is measurement, not a runtime canary.
+# - Team scorecards may run during runtime, but policy application remains PRE-START only.
+# - Surgeon should explore a small number of team configurations per run.
+# - Coordinate mode keeps coverage balanced and avoids combinatorial explosions.
+
+defaults:
+  enabled: true
+  suite: smoke
+  eval_per_run: 1
+  planner_mode: coordinate
+  auto_expand_k: true
+  k_start: 3
+  k_max: 2048
+  adaptive_k_step: 2
+  per_role_top_k: 3
+  max_team_configs: 16
+  judge_model: main
+  allow_missing_role_scorecards: true
+  quality_floor: 0.34
+  json_floor: 0.34
+  stability_floor: 0.45
+  variance_ceiling: 0.2
+  hallucination_penalty: 0.1
+
+flows:
+  dev.work:
+    enabled: true
+    suite: smoke
+    per_role_top_k: 3
+    max_team_configs: 16
+    judge_model: main
+  writing.story:
+    enabled: true
+    suite: smoke
+    per_role_top_k: 3
+    max_team_configs: 16
+    judge_model: main
+  system.guard:
+    enabled: true
+    suite: smoke
+    per_role_top_k: 3
+    max_team_configs: 16
+    judge_model: main

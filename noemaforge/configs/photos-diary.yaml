@@ -1,0 +1,19 @@
+apiVersion: noemaforge.pipeline/v1
+kind: PhotosDiaryConfig
+
+# Break an episode when gap between photos exceeds this.
+event_gap_minutes: 45
+
+# Path-based tagging (cheap hints).
+# This MVP does NOT do image understanding.
+tag_rules:
+  - tag: "собака"
+    keywords: ["dog", "собак", "пёс", "пес"]
+  - tag: "кот"
+    keywords: ["cat", "кот", "кошка"]
+  - tag: "прогулка"
+    keywords: ["walk", "прогул", "park", "парк"]
+  - tag: "работа"
+    keywords: ["work", "job", "офис", "company"]
+  - tag: "дом"
+    keywords: ["home", "дом", "квартира"]

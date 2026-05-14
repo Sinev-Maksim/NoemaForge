@@ -1,0 +1,81 @@
+<!doctype html>
+<!--
+=== NoemaForge File Header ===
+File: noemaforge/templates/ui-dashboard/index.html
+Zone: release/package
+Version: 0.31.13.alpha
+Created: 2026-05-14
+Modified: 2026-05-14
+Purpose: Provide NoemaForge release functionality for the packaged local runtime.
+Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+Outputs: Structured command output, files, service state or UI state as documented by the caller.
+Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+=== End NoemaForge File Header ===
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NoemaForge Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="title">NoemaForge Dashboard</div>
+      <div class="meta">
+        <span id="statusDot" class="dot"></span>
+        <span id="statusText">connecting…</span>
+        <span class="sep">•</span>
+        <span id="ts">–</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <section class="card" id="nowCard">
+        <h2>Now</h2>
+        <div class="kv" id="nowKv"></div>
+      </section>
+
+      <section class="card" id="tasksCard">
+        <h2>TaskQueue</h2>
+        <div class="sub" id="tqSummary"></div>
+        <h3>Current</h3>
+        <div class="mono" id="tqCurrent">–</div>
+        <h3>Next</h3>
+        <div class="table" id="tqNext">–</div>
+      </section>
+
+
+      <section class="card" id="inboxCard">
+        <h2>Inbox</h2>
+        <div class="sub" id="inboxSummary"></div>
+        <div id="inboxBlocks">–</div>
+      </section>
+
+      <section class="card" id="projectsCard">
+        <h2>Projects</h2>
+        <div id="projectsList">–</div>
+      </section>
+
+      <section class="card" id="eventsCard">
+        <h2>Recent events</h2>
+        <div class="table" id="eventsTable">–</div>
+      </section>
+
+      <section class="card" id="telemetryCard">
+        <h2>Telemetry</h2>
+        <div class="table" id="telemetryTable">–</div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <span class="mono">/api/snapshot</span>
+      <span class="sep">•</span>
+      <span class="muted">Safe-by-default: no raw prompts are shown.</span>
+    </footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,113 @@
+apiVersion: noemaforge.knowledge/v1
+kind: KnowledgePolicy
+
+# Stage D (v0.16.0): Hypergraph Knowledge Base (offline-first)
+#
+# This policy defines where the canonical store lives and how it interacts
+# with vstore (semantic index). It is part of the Contract Epoch.
+
+enabled: true
+base_dir: /var/lib/noemaforge/kg
+
+store:
+  db_path: /var/lib/noemaforge/kg/kg.sqlite
+  text_store_dir: /var/lib/noemaforge/kg/sources
+  # If false, passages store only anchors + references, not full text.
+  store_full_text: true
+
+# Optional offline ingestion queue. Files placed here (md/txt) are ingested by
+# the Knowledge Maintainer planned stream.
+
+prep_store:
+  db_path: /var/lib/noemaforge/kg/prep_index.sqlite
+  export_dir: /var/lib/noemaforge/kg/prep_exports
+  artifact_dir: /var/lib/noemaforge/kg/prep_artifacts
+
+error_learning:
+  db_path: /var/lib/noemaforge/kg/error_learning.sqlite
+  export_dir: /var/lib/noemaforge/kg/error_exports
+
+prep_processing:
+  normalization_version: norm-v1
+  sentence_token_chars_per_token: 4
+  max_tokens_per_leaf: 350
+  target_tokens_per_leaf: 220
+  min_sentences_per_leaf: 1
+  paragraph_split_preference: true
+  clause_split_enabled: true
+  clause_delimiters: [',', ';', ':', '—', '–']
+
+ingest:
+  queue_dir: /workspace/inbox/library/_queue
+  state_path: /var/lib/noemaforge/kg/maintainer_state.json
+
+
+extraction:
+  default_realm: science
+  passage_profile_id: passage_builder_v1
+  claim_profile_id: claim_sentence_v1
+  min_claim_chars: 24
+  min_claim_words: 4
+  create_evidence_objects: true
+  create_lineage_links: true
+  auto_concepts_enabled: true
+  max_auto_concepts_per_claim: 3
+  concept_min_token_len: 4
+  quote_fingerprint_alg: sha256
+
+# Gatekeeper scanning budget (most recent objects each run).
+gatekeeper:
+  limit_each: 500
+
+# Embedding/indexing budgets.
+embeddings:
+  passage_limit: 500
+  claim_limit: 500
+  concept_limit: 500
+
+# Retrieval defaults (gate-aware).
+# By default we do not return objects that are quarantined or still in review.
+retrieval:
+  default_min_decision: auto_publish
+  include_gate_in_results: true
+
+grounded_administrator:
+  top_claim_limit: 5
+  max_citations: 4
+  prefer_graph_for_questions: true
+  emit_claim_ids: true
+
+
+realms:
+  # Minimal starter taxonomy. Expand in later epochs.
+  modalities: [empirical, theoretical, normative, fictional, speculative]
+  scales: [quantum, molecular, organism, human, social, planetary]
+  domains:
+    - science
+    - engineering
+    - economics
+    - history
+    - fiction
+
+conflicts:
+  allowed_statuses: [A_true, B_true, Unresolved]
+
+trails:
+  levels: [micro, normal, macro, complete]
+
+vector_index:
+  # VStore layer names used as semantic indices (append-only segments).
+  layers:
+    passages: kg_passages
+    claims: kg_claims
+    concepts: kg_concepts
+  # Default embedding model IDs (can be overridden per stream/role).
+  default_model_id: hash384-v1
+
+publication_gates:
+  auto_publish_min_confidence: 0.85
+  quarantine_on_invariant_violation: true
+
+notes:
+  - "Vector similarity is topical, not logical agreement. Contradictions are modeled explicitly (Conflict)."
+  - "Incremental growth: VStore segments append; store keeps provenance + versions."

@@ -1,0 +1,192 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "socket_path": {
+      "type": "string"
+    },
+    "tokens_dir": {
+      "type": "string"
+    },
+    "streams_config_path": {
+      "type": "string"
+    },
+    "tool_registry_path": {
+      "type": "string"
+    },
+    "tool_policy_path": {
+      "type": "string"
+    },
+    "sandbox_policy_path": {
+      "type": "string"
+    },
+    "quarantine_policy_path": {
+      "type": "string"
+    },
+    "role_affirmations_path": {
+      "type": "string"
+    },
+    "role_model_policy_path": {
+      "type": "string"
+    },
+    "team_model_policy_path": {
+      "type": "string"
+    },
+    "model_registry_path": {
+      "type": "string"
+    },
+    "model_scorecards_dir": {
+      "type": "string"
+    },
+    "enforcement": {
+      "type": "object",
+      "properties": {
+        "require_stream_id": {
+          "type": "boolean"
+        },
+        "enforce_issued_to_match_meta": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "llm_gateway": {
+      "type": "object",
+      "properties": {
+        "unix_socket": {
+          "type": "string"
+        },
+        "chat_endpoint": {
+          "type": "string"
+        },
+        "embed_endpoint": {
+          "type": "string"
+        },
+        "max_body_bytes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_request_bytes": {
+          "type": "integer"
+        },
+        "max_response_bytes": {
+          "type": "integer"
+        },
+        "default_ttl_sec": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "sel_enabled": {
+          "type": "boolean"
+        },
+        "log_requests": {
+          "type": "boolean"
+        },
+        "log_denies": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "epoch": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "contracts_root": {
+      "type": "string"
+    },
+    "vstore": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "type": "string"
+        },
+        "metric": {
+          "type": "string"
+        },
+        "base_dir": {
+          "type": "string"
+        },
+        "max_items_per_segment": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "vstore_config_path": {
+      "type": "string"
+    },
+    "fs": {
+      "type": "object",
+      "properties": {
+        "max_read_bytes": {
+          "type": "integer"
+        },
+        "max_write_bytes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "exec": {
+      "type": "object",
+      "properties": {
+        "allow_bins": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "timeout_sec": {
+          "type": "integer"
+        },
+        "max_stdout_bytes": {
+          "type": "integer"
+        },
+        "max_stderr_bytes": {
+          "type": "integer"
+        },
+        "rlimit_cpu_sec": {
+          "type": "integer"
+        },
+        "rlimit_fsize_bytes": {
+          "type": "integer"
+        },
+        "rlimit_as_bytes": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "voice_backends_policy_path": {
+      "type": "string"
+    },
+    "discord_bridge_policy_path": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/toolproxy.schema.json",
+  "title": "Toolproxy"
+}

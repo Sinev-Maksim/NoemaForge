@@ -1,0 +1,42 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "store": {
+      "type": "object",
+      "properties": {
+        "jsonl_path": {
+          "type": "string"
+        },
+        "acks_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "severity": {
+          "type": "string"
+        },
+        "max_message_chars": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/notifications_policy.schema.json",
+  "title": "NotificationsPolicy"
+}

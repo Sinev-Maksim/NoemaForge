@@ -1,0 +1,13 @@
+{
+  "version": "0.31.13.alpha",
+  "apiVersion": "noemaforge/v1",
+  "kind": "TestMatrix",
+  "module_matrix": "module-test-matrix.json",
+  "summary": {
+    "module_count": 155,
+    "policy": "compile baseline for every Python module"
+  },
+  "notes": [
+    "0.31.13.alpha includes code-dev QA sub-team and GUI recovery compatibility checks"
+  ]
+}

@@ -1,0 +1,11 @@
+version: 0.26.1
+date: 2026-04-09
+changes:
+  - area: audit
+    detail: "Refreshed Python/PowerShell/shell/Go autodoc headers with explicit input/output summaries."
+  - area: contracts
+    detail: "Added missing config schemas and aligned model_eval_suite.schema.json with role-scoped case maps."
+  - area: cleanup
+    detail: "Removed dormant local stubs src/mcp_router.py and src/voice_ingest.py because MCP/Voice remain bundle-backed and disabled by default."
+  - area: checker
+    detail: "Added config/schema validation, dormant Python module scan, and autodoc coverage checks."

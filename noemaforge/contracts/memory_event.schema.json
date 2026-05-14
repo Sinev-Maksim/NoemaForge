@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/memory_event.schema.json",
+  "type": "object",
+  "required": [
+    "evt_id",
+    "ts",
+    "level",
+    "free_mem_mib",
+    "psi_some_avg10",
+    "psi_full_avg10",
+    "actions"
+  ],
+  "properties": {
+    "evt_id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "M1",
+        "M2",
+        "M3",
+        "OOM"
+      ]
+    },
+    "free_mem_mib": {
+      "type": "number"
+    },
+    "psi_some_avg10": {
+      "type": "number"
+    },
+    "psi_full_avg10": {
+      "type": "number"
+    },
+    "actions": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

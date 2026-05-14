@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-safe-start
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+noemaforge_require_root
+RESTART=0; WAIT=0
+for arg in "$@"; do case "$arg" in --restart) RESTART=1 ;; --wait) WAIT=1 ;; -h|--help) echo 'usage: sudo noemaforge safe-start [--wait] [--restart]'; exit 0 ;; esac; done
+echo '=== NoemaForge safe-start 0.29.10 ==='; noemaforge_print_runtime_policy
+systemctl disable --now $NOEMAFORGE_RUNTIME_TIMERS 2>/dev/null || true
+install -d -o "$NOEMAFORGE_USER" -g "$(noemaforge_group)" -m 0750 /run/noemaforge /run/noemaforge/llm "${NOEMAFORGE_BACKEND_SOCKET_DIR:-/run/noemaforge/llm/backends}" 2>/dev/null || true
+/usr/local/sbin/noemaforge-sel-fix 2>/dev/null || true
+[[ "$RESTART" == 1 ]] && { systemctl stop noemaforge-llama@main.service 2>/dev/null || true; rm -f "${NOEMAFORGE_BACKEND_SOCKET_DIR:-/run/noemaforge/llm/backends}/main.sock" 2>/dev/null || true; }
+[[ -e "${NOEMAFORGE_MAIN_MODEL_DIR:-/var/lib/modelstore/models/main}/model.gguf" ]] || { echo "ERROR: missing main model alias" >&2; exit 1; }
+systemctl reset-failed noemaforge-llama@main.service noemaforge-llm-gateway.service noemaforge-toolproxy.service 2>/dev/null || true
+systemctl start noemaforge-llm-gateway.service 2>/dev/null || true
+systemctl start noemaforge-toolproxy.service 2>/dev/null || true
+systemctl start noemaforge-llama@main.service
+if [[ "$WAIT" == 1 ]]; then noemaforge_wait_unix_health "${NOEMAFORGE_BACKEND_SOCKET_DIR:-/run/noemaforge/llm/backends}/main.sock" 'http://localhost:8080/health' 120 "$NOEMAFORGE_USER" && echo 'main backend health OK' || exit 1; fi

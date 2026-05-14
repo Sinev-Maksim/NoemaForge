@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "SelfTestTelemetryPolicy",
+  "version": "0.31.13.alpha",
+  "thresholds": {
+    "duration_warn_pct": 0.25,
+    "duration_fail_pct": 0.5,
+    "max_rss_warn_pct": 0.3,
+    "max_rss_fail_pct": 0.6,
+    "disk_write_warn_bytes": 52428800,
+    "memory_leak_warn_pct": 0.1,
+    "ecc_delta_fail": 1
+  },
+  "retention": {
+    "keep_reports_days": 60,
+    "keep_metric_samples_days": 120
+  },
+  "auto_rollback_policy": {
+    "enabled_by_default": false,
+    "block_apply_on_failed_cases": true,
+    "block_apply_on_resource_regression": true,
+    "requires_admin_approval": true
+  }
+}

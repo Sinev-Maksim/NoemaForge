@@ -1,0 +1,22 @@
+apiVersion: noemaforge.audit/v1
+kind: DailyCompliance
+timezone: "Europe/Lisbon"
+
+# Auditor ensures all tasks in DailyPlan are done by their deadlines.
+checks:
+  - id: morning_window_check
+    schedule_oncalendar: "*-*-* 11:05:00"
+    scope: "today"
+    on_missing:
+      - action: "create_remediation_tasks"
+      - action: "notify_user"
+
+  - id: end_of_day_closeout
+    schedule_oncalendar: "*-*-* 23:55:00"
+    scope: "today"
+    on_missing:
+      - action: "open_incident"
+      - action: "notify_user"
+
+artifacts:
+  report_path: "/var/lib/noemaforge/routines/audit/%Y-%m-%d/daily_report.md"

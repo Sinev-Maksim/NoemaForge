@@ -1,0 +1,12 @@
+version: 0.20.2
+date: 2026-03-07
+title: "Lab runner reliability hotfix (stepwise report + explicit root aliases)"
+
+highlights:
+  - "tools/windows/noemaforge_lab.ps1: added stepwise execution with pass/fail capture, continues after failures and writes JSON report"
+  - "tools/windows/noemaforge_lab.ps1: SeedRoot param now accepts aliases -Root and -BrainRoot"
+  - "tools/windows/noemaforge_lab.ps1: improved debug output (ScriptDir/BrainRoot) and non-zero exit code on failures"
+  - "manifest.yaml: bump to 0.20.2"
+
+notes:
+  - "No functional changes to Linux boot/runtime; Windows-only prep tooling improvements."

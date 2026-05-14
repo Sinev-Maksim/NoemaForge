@@ -1,0 +1,5 @@
+version: 0.27.7
+notes:
+- Added implementation-grade SQLite DDL for the durable prep-store and error-learning loop.
+- Added trace levels, provenance contracts, and an executable B backlog.
+- This is a planning/spec release on top of 0.27.6; runtime behavior is unchanged.

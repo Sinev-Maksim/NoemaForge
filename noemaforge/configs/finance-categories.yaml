@@ -1,0 +1,56 @@
+apiVersion: noemaforge.finance/v1
+kind: FinanceCategoryRules
+
+# Rules are applied top-down; best score wins.
+# keywords: substring matches on lowercase description.
+# regex: optional, case-insensitive regexes.
+
+rules:
+  - category: "income.salary"
+    weight: 3
+    keywords: ["salary", "payroll", "зарплат", "зп", "wage"]
+
+  - category: "housing.rent"
+    weight: 3
+    keywords: ["rent", "аренд", "mortgage", "ипотек"]
+
+  - category: "food.groceries"
+    weight: 2
+    keywords:
+      - "supermarket"
+      - "grocery"
+      - "lidl"
+      - "auchan"
+      - "pingo doce"
+      - "continente"
+      - "mercadona"
+      - "перекрест"
+      - "магнит"
+
+  - category: "food.cafe"
+    weight: 2
+    keywords: ["cafe", "coffee", "restaurant", "bar", "кафе", "ресторан"]
+
+  - category: "transport.ride"
+    weight: 2
+    keywords: ["uber", "bolt", "taxi", "такси"]
+
+  - category: "transport.public"
+    weight: 2
+    keywords: ["metro", "bus", "train", "метро", "автобус", "пригород"]
+
+  - category: "utilities"
+    weight: 2
+    keywords: ["electric", "water", "gas", "internet", "telecom", "электр", "вода", "газ", "интернет"]
+
+  - category: "health"
+    weight: 2
+    keywords: ["pharmacy", "hospital", "clinic", "аптека", "больниц", "клиник"]
+
+  - category: "entertainment.subscriptions"
+    weight: 2
+    keywords: ["netflix", "spotify", "youtube", "prime", "subscription", "подписк"]
+
+  - category: "shopping.misc"
+    weight: 1
+    keywords: ["amazon", "aliexpress", "store", "магазин"]

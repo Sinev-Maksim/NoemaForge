@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: noemaforge/bin/llama-server
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide NoemaForge release functionality for the packaged local runtime.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+set -euo pipefail
+
+MODE="${NOEMAFORGE_LLM_MODE:-auto}"
+REAL_CUDA="${NOEMAFORGE_LLAMA_SERVER_CUDA:-/opt/noemaforge/bin/llama-server-cuda}"
+REAL_CPU="${NOEMAFORGE_LLAMA_SERVER_CPU:-/opt/noemaforge/bin/llama-server-cpu}"
+
+args=("$@")
+
+case "$MODE" in
+  cpu)
+    if [ -x "$REAL_CPU" ]; then exec "$REAL_CPU" "${args[@]}"; fi
+    echo "NoemaForge llama-server CPU backend missing: $REAL_CPU" >&2
+    exit 71
+    ;;
+  rtx|cuda|gpu)
+    if [ -x "$REAL_CUDA" ]; then exec "$REAL_CUDA" "${args[@]}"; fi
+    echo "NoemaForge llama-server CUDA backend missing: $REAL_CUDA" >&2
+    exit 71
+    ;;
+  auto)
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1 && [ -x "$REAL_CUDA" ]; then
+      exec "$REAL_CUDA" "${args[@]}"
+    elif [ -x "$REAL_CPU" ]; then
+      exec "$REAL_CPU" "${args[@]}"
+    elif [ -x "$REAL_CUDA" ]; then
+      exec "$REAL_CUDA" "${args[@]}"
+    fi
+    echo "No usable NoemaForge llama-server backend found" >&2
+    exit 71
+    ;;
+  *)
+    echo "Unknown NOEMAFORGE_LLM_MODE=$MODE; expected auto|cpu|rtx|cuda|gpu" >&2
+    exit 64
+    ;;
+esac

@@ -1,0 +1,22 @@
+apiVersion: noemaforge.clarify/v1
+kind: ClarificationPolicy
+
+# TTL applies to *questions to the user*, not to raw data.
+# Raw data and unprocessed facts remain stored for statistics/anomaly search.
+
+policies:
+  finance.transaction_category:
+    description: "Уточнение категории транзакции"
+    ask_window_days: 30
+    on_expire: "mark_inferred"   # inferred|unknown
+
+  diary.photo_episode_label:
+    description: "Уточнение подписи/эпизода в дневнике"
+    ask_window_hours: 48
+    on_expire: "mark_unknown"
+
+retention:
+  raw_data: "keep"
+  inquiries:
+    keep_closed_days: 365
+    keep_expired_days: 365

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MCPAdapter",
+  "type": "object",
+  "required": [
+    "id",
+    "bundle_id"
+  ],
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "bundle_id": {
+      "type": "string"
+    },
+    "allowlist_profile": {
+      "type": "string"
+    }
+  }
+}

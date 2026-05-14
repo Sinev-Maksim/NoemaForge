@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-sel-fix
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# Repair NoemaForge SEL append-only files and permissions.
+# 0.31.02 live-fix: repair current-day segment ownership/mode without
+# recursively mutating sealed historical logs.
+set -euo pipefail
+
+if [[ -r /usr/local/lib/noemaforge-common.sh ]]; then
+  # shellcheck disable=SC1091
+  . /usr/local/lib/noemaforge-common.sh
+fi
+
+NOEMAFORGE_USER="${NOEMAFORGE_USER:-noemaforge}"
+NOEMAFORGE_GROUP="${NOEMAFORGE_GROUP:-noemaforge}"
+
+noemaforge_require_root(){
+  if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
+    echo "[noemaforge][ERROR] Run with sudo/root." >&2
+    exit 1
+  fi
+}
+noemaforge_group(){ printf '%s\n' "${NOEMAFORGE_GROUP:-noemaforge}"; }
+
+noemaforge_require_root
+
+SMOKE=0
+for arg in "$@"; do
+  case "$arg" in
+    --smoke|--test) SMOKE=1 ;;
+    -h|--help|help|"?")
+      cat <<'HELP'
+Usage: sudo noemaforge-sel-fix [--smoke]
+
+Repairs NoemaForge security event log directories and current-day segment files.
+It avoids recursive mutation of historical sealed logs.
+HELP
+      exit 0 ;;
+  esac
+done
+
+GROUP="$(noemaforge_group)"
+SEL_DIR="/var/lib/noemaforge/sel"
+SEG_DIR="$SEL_DIR/segments"
+ANCHOR_DIR="$SEL_DIR/anchors"
+TMP_DIR="$SEL_DIR/tmp"
+TODAY="$(date -I)"
+JSONL="$SEG_DIR/${TODAY}.jsonl"
+CHAIN="$SEG_DIR/${TODAY}.chain"
+
+getent group "$GROUP" >/dev/null || groupadd --system "$GROUP"
+if ! id "$NOEMAFORGE_USER" >/dev/null 2>&1; then
+  useradd --system --home-dir /var/lib/noemaforge --shell /usr/sbin/nologin --gid "$GROUP" "$NOEMAFORGE_USER"
+fi
+
+install -d -o root -g "$GROUP" -m 2775 /var/lib/noemaforge
+install -d -o "$NOEMAFORGE_USER" -g "$GROUP" -m 2770 "$SEL_DIR" "$SEG_DIR" "$ANCHOR_DIR" "$TMP_DIR"
+
+for f in "$JSONL" "$CHAIN"; do
+  if [[ ! -e "$f" ]]; then
+    install -o "$NOEMAFORGE_USER" -g "$GROUP" -m 0660 /dev/null "$f" 2>/dev/null \
+      || install -o root -g "$GROUP" -m 0660 /dev/null "$f"
+  fi
+
+  if command -v chattr >/dev/null 2>&1; then
+    chattr -i -a "$f" 2>/dev/null || true
+  fi
+
+  chgrp "$GROUP" "$f" 2>/dev/null || true
+  chmod g+rw,o-rwx "$f" 2>/dev/null || true
+  chmod 0660 "$f" 2>/dev/null || true
+  chown "$NOEMAFORGE_USER:$GROUP" "$f" 2>/dev/null || chown root:"$GROUP" "$f" 2>/dev/null || true
+
+  if command -v chattr >/dev/null 2>&1; then
+    chattr +a "$f" 2>/dev/null || true
+  fi
+done
+
+if [[ "$SMOKE" == "1" ]]; then
+  runuser -u "$NOEMAFORGE_USER" -- python3 - <<PY
+from pathlib import Path
+for raw in ["$JSONL", "$CHAIN"]:
+    p = Path(raw)
+    with p.open("a", encoding="utf-8"):
+        pass
+print("sel_append_open_ok")
+PY
+fi
+
+echo "[noemaforge-sel-fix] ok user=$NOEMAFORGE_USER group=$GROUP today=$TODAY"

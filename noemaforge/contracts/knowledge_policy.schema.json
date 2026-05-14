@@ -1,0 +1,291 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "base_dir": {
+      "type": "string"
+    },
+    "store": {
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "type": "string"
+        },
+        "text_store_dir": {
+          "type": "string"
+        },
+        "store_full_text": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ingest": {
+      "type": "object",
+      "properties": {
+        "queue_dir": {
+          "type": "string"
+        },
+        "state_path": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "gatekeeper": {
+      "type": "object",
+      "properties": {
+        "limit_each": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "embeddings": {
+      "type": "object",
+      "properties": {
+        "passage_limit": {
+          "type": "integer"
+        },
+        "claim_limit": {
+          "type": "integer"
+        },
+        "concept_limit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "retrieval": {
+      "type": "object",
+      "properties": {
+        "default_min_decision": {
+          "type": "string"
+        },
+        "include_gate_in_results": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "realms": {
+      "type": "object",
+      "properties": {
+        "modalities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scales": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "conflicts": {
+      "type": "object",
+      "properties": {
+        "allowed_statuses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "trails": {
+      "type": "object",
+      "properties": {
+        "levels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "vector_index": {
+      "type": "object",
+      "properties": {
+        "layers": {
+          "type": "object",
+          "properties": {
+            "passages": {
+              "type": "string"
+            },
+            "claims": {
+              "type": "string"
+            },
+            "concepts": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "default_model_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "publication_gates": {
+      "type": "object",
+      "properties": {
+        "auto_publish_min_confidence": {
+          "type": "number"
+        },
+        "quarantine_on_invariant_violation": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "prep_store": {
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "type": "string"
+        },
+        "export_dir": {
+          "type": "string"
+        },
+        "artifact_dir": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "error_learning": {
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "type": "string"
+        },
+        "export_dir": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "prep_processing": {
+      "type": "object",
+      "properties": {
+        "normalization_version": {
+          "type": "string"
+        },
+        "sentence_token_chars_per_token": {
+          "type": "integer"
+        },
+        "max_tokens_per_leaf": {
+          "type": "integer"
+        },
+        "target_tokens_per_leaf": {
+          "type": "integer"
+        },
+        "min_sentences_per_leaf": {
+          "type": "integer"
+        },
+        "paragraph_split_preference": {
+          "type": "boolean"
+        },
+        "clause_split_enabled": {
+          "type": "boolean"
+        },
+        "clause_delimiters": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "extraction": {
+      "type": "object",
+      "properties": {
+        "default_realm": {
+          "type": "string"
+        },
+        "passage_profile_id": {
+          "type": "string"
+        },
+        "claim_profile_id": {
+          "type": "string"
+        },
+        "min_claim_chars": {
+          "type": "integer"
+        },
+        "min_claim_words": {
+          "type": "integer"
+        },
+        "create_evidence_objects": {
+          "type": "boolean"
+        },
+        "create_lineage_links": {
+          "type": "boolean"
+        },
+        "auto_concepts_enabled": {
+          "type": "boolean"
+        },
+        "max_auto_concepts_per_claim": {
+          "type": "integer"
+        },
+        "concept_min_token_len": {
+          "type": "integer"
+        },
+        "quote_fingerprint_alg": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "grounded_administrator": {
+      "type": "object",
+      "properties": {
+        "top_claim_limit": {
+          "type": "integer"
+        },
+        "max_citations": {
+          "type": "integer"
+        },
+        "prefer_graph_for_questions": {
+          "type": "boolean"
+        },
+        "emit_claim_ids": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/knowledge_policy.schema.json",
+  "title": "KnowledgePolicy"
+}

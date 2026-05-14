@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/tg_bot_policy.schema.json",
+  "title": "TelegramBotPolicy",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "base_url": {
+      "type": "string"
+    },
+    "token": {
+      "type": "string"
+    },
+    "timeout_sec": {
+      "type": "integer"
+    },
+    "outbox_dir": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

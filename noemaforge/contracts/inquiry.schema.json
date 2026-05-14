@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/inquiry.schema.json",
+  "type": "object",
+  "required": ["inquiry_id", "created_at", "kind", "status", "question", "deadline_at"],
+  "properties": {
+    "inquiry_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "kind": {"type": "string"},
+    "stream_id": {"type": "string"},
+    "project_id": {"type": "string"},
+    "status": {
+      "type": "string",
+      "enum": ["open", "answered", "expired", "inferred", "unknown"]
+    },
+    "question": {"type": "string"},
+    "subject": {"type": "string"},
+    "deadline_at": {"type": "string"},
+    "answer": {"type": "string"},
+    "answered_at": {"type": "string"},
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "related": {
+      "type": "array",
+      "items": {"type": "object"},
+      "default": []
+    },
+    "provenance": {"type": "object"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/role_eval_datasets.schema.json",
+  "title": "RoleEvalDatasets",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "profiles",
+    "roles"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "RoleEvalDatasets"
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "suite": {
+            "type": "string"
+          },
+          "cap": {
+            "type": "string"
+          },
+          "dataset_profile": {
+            "type": "string"
+          },
+          "minimal_thresholds": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

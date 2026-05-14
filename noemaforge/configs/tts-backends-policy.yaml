@@ -1,0 +1,40 @@
+apiVersion: noemaforge.tts/v1
+kind: TTSBackendsPolicy
+enabled: false
+artifacts_root: /workspace/outbox/tts
+sessions_root: /workspace/state/tts_sessions
+synthesis:
+  enabled: false
+  backend_order:
+  - command
+  - espeak_ng
+  - piper
+  default_voice_id: administrator
+  sample_rate_hz: 22050
+  command:
+    argv: []
+  espeak_ng:
+    executable: espeak-ng
+    voice: en
+    speed_wpm: 170
+    pitch: 45
+  piper:
+    executable: piper
+    model_path: ''
+    speaker: 0
+    noise_scale: 0.667
+backchannel:
+  enabled: false
+  backend_order:
+  - command
+  - ffmpeg
+  - file_copy
+  output_mode: pulse_sink
+  output_target: noemaforge-discord
+  output_path: ''
+  ffmpeg_executable: ffmpeg
+  command:
+    argv: []
+  retain_artifacts: true
+tts:
+  default_voice_id: administrator

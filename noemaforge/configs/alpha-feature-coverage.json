@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.release/v1",
+  "kind": "AlphaFeatureCoverage",
+  "version": "0.31.13.alpha",
+  "generated_at_utc": "2026-05-14T15:20:00Z",
+  "features": {
+    "stateful_admin_gui": "active",
+    "persona_portraits_static_head": "active",
+    "fallback_avatars_per_persona": "active_deterministic_svg",
+    "backend_conversation_store": "active_json_store",
+    "sr_ssr_message_review_inbox": "scaffold_active",
+    "epoch_visualization": "active_panel",
+    "epoch_switch_button": "audited_plan_request",
+    "model_selection_continue": "plan_job_surface",
+    "vault_reinventory": "privileged_job_or_fallback_command",
+    "hardware_runtime_product_metrics": "active_surfaces_with_host_dependent_data",
+    "cpu_gpu_switch": "staged_policy_next_switch",
+    "task_governance": "active_api_scaffold",
+    "inactivity_timer": "active_status_scaffold",
+    "pipeline_catalog_media_masks": "active_catalog_ui",
+    "pipeline_right_click_diagram_stats": "active_ui_surface",
+    "new_pipeline_plus": "draft_only",
+    "dev_seed_self_optimization": "policy_scaffold_plan_first",
+    "smart_home_local_first": "roadmap_only",
+    "edge_tinyml_ota": "roadmap_only",
+    "drag_drop_pipeline_editor": "todo_architecture_only",
+    "gpu_generated_avatars": "todo_explicit_only",
+    "privileged_gui_runner": "todo_approval_gated"
+  }
+}

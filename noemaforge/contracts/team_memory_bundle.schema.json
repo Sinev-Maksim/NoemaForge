@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TeamMemoryBundle",
+  "type": "object",
+  "required": [
+    "kind",
+    "version",
+    "project_id",
+    "generated_at",
+    "files"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  }
+}

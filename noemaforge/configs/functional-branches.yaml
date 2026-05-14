@@ -1,0 +1,19 @@
+apiVersion: noemaforge.functional/v1
+kind: FunctionalBranches
+branches:
+  setup.bootstrap:
+    manifest: manifests/functional/setup.bootstrap.yaml
+  firstboot.staffing:
+    manifest: manifests/functional/firstboot.staffing.yaml
+  knowledge.hypergraph:
+    manifest: manifests/functional/knowledge.hypergraph.yaml
+  administrator.frontdoor:
+    manifest: manifests/functional/administrator.frontdoor.yaml
+  model.selection:
+    manifest: manifests/functional/model.selection.yaml
+  voice.av:
+    manifest: manifests/functional/voice.av.yaml
+  spinal.safety:
+    manifest: manifests/functional/spinal.safety.yaml
+  workflows.curated:
+    manifest: manifests/functional/workflows.curated.yaml

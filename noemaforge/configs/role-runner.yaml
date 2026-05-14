@@ -1,0 +1,30 @@
+apiVersion: noemaforge.rolerunner/v1
+kind: RoleRunnerConfig
+
+# Preferred sandbox backend:
+# - podman: rootless container (best isolation if image is available locally)
+# - host: direct subprocess (fallback)
+backend_preference: ["podman", "host"]
+
+podman:
+  image: "python:3.11-slim"
+  network: "none"
+  pull_policy: "never"   # offline-first. set to "ifmissing" when you have network.
+  security_opts:
+    - "no-new-privileges"
+  pids_limit: 256
+
+host:
+  # Host fallback still respects serial execution + capability tokens.
+  # Isolation is weaker than containers.
+  enabled: true
+
+defaults:
+  cpu_cores: 2
+  ram_mib: 2048
+  timeout_sec: 600
+
+paths:
+  toolproxy_socket: "/run/noemaforge/toolproxy.sock"
+  # A per-run workdir (ephemeral). RoleRunner will delete it after completion.
+  work_root: "/workspace/role-runs"

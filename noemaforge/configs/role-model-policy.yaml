@@ -1,0 +1,74 @@
+apiVersion: noemaforge.rolemodel/v1
+kind: RoleModelPolicy
+defaults:
+  selector:
+    strategy: best_score_then_latency
+  llm:
+    fallback_model: main
+    min_trust: unknown
+    require_scorecard: true
+  embed:
+    fallback_model: main
+    min_trust: unknown
+    require_scorecard: false
+roles:
+  '*/*':
+    llm:
+      candidates:
+      - main
+    embed:
+      candidates:
+      - main
+  system.guard/surgeon:
+    llm:
+      candidates:
+      - main
+      require_scorecard: false
+      allow_explicit: true
+    embed:
+      candidates:
+      - main
+      allow_explicit: true
+  operator.admin/administrator:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+    embed:
+      candidates:
+      - main
+  writing.story/writer:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/editor.literary:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/fact_checker:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/formatter:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/world_keeper:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/tropemaster:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true
+  writing.story/critic:
+    llm:
+      candidates:
+      - main
+      require_scorecard: true

@@ -1,0 +1,106 @@
+apiVersion: noemaforge.installer/v1
+kind: InstallerPolicy
+
+# Offline-first, pre-start oriented.
+# This policy never installs anything by itself. It only produces
+# a deterministic "installer plan" (recommendations) based on hardware scan.
+
+version: 1
+
+defaults:
+  # Baseline (recommended) bundles for almost any machine.
+  bundles:
+    - id: driverpack-generic
+      confidence: high
+      reason: "Baseline firmware/microcode + common hardware enablement"
+
+  # Baseline apt packages expected for a minimal NoemaForge spine.
+  # (Can be satisfied via offline-apt repo; the plan only recommends.)
+  apt_baseline:
+    - python3
+    - python3-yaml
+    - python3-cryptography
+    - python3-jsonschema
+    - bubblewrap
+    - podman
+    - uidmap
+    - slirp4netns
+    - fuse-overlayfs
+    - nftables
+    - iproute2
+
+bundle_catalog:
+  driverpack-generic:
+    kind: apt-packages
+    packages:
+      - linux-firmware
+      - intel-microcode
+      - amd64-microcode
+
+  driverpack-nvidia:
+    kind: apt-packages
+    packages:
+      - nvidia-driver
+    notes:
+      - "GPU acceleration is optional. CPU-only remains the default."
+
+  driverpack-intel-wifi:
+    kind: apt-packages
+    packages:
+      - firmware-iwlwifi
+
+  driverpack-realtek-wifi:
+    kind: apt-packages
+    packages:
+      - firmware-realtek
+
+  driverpack-broadcom-wifi:
+    kind: apt-packages
+    packages:
+      - firmware-brcm80211
+
+
+hardware_rules:
+  # PCI rules use vendor IDs and class prefixes.
+  # class_prefix examples:
+  #  - 0x03 = display controller (GPU)
+  #  - 0x02 = network controller
+  pci:
+    - match:
+        class_prefix: "0x03"
+        vendor: "0x10de"
+      recommend_bundles:
+        - id: driverpack-nvidia
+          confidence: high
+          reason: "NVIDIA GPU detected (PCI vendor 0x10de, class 0x03xx)"
+
+    # Wi‑Fi (approximate; actual device may be USB or PCI)
+    - match:
+        class_prefix: "0x02"
+        vendor: "0x8086"
+      recommend_bundles:
+        - id: driverpack-intel-wifi
+          confidence: medium
+          reason: "Intel network controller detected; may include Wi‑Fi"
+
+    - match:
+        class_prefix: "0x02"
+        vendor: "0x10ec"
+      recommend_bundles:
+        - id: driverpack-realtek-wifi
+          confidence: medium
+          reason: "Realtek network controller detected; may include Wi‑Fi"
+
+    - match:
+        class_prefix: "0x02"
+        vendor: "0x14e4"
+      recommend_bundles:
+        - id: driverpack-broadcom-wifi
+          confidence: low
+          reason: "Broadcom network controller detected; Wi‑Fi firmware may be required"
+
+
+output:
+  plans_dir: /var/lib/noemaforge/installer/plans
+  outbox_dir: /workspace/outbox/installer-plan
+  keep_plans: 50

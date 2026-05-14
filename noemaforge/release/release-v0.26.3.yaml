@@ -1,0 +1,19 @@
+version: 0.26.3
+date: 2026-04-09
+title: Placeholder closure + verifier runtime + activation alignment
+changes:
+  - area: runtime
+    detail: "Converted role_entry offline fallback and the microVM wrapper into deterministic functional paths instead of text-only placeholders."
+  - area: contracts
+    detail: "Implemented src/verifiers.py and upgraded configs/verifiers.yaml from a seed stub to an operational catalog."
+  - area: policy
+    detail: "Enabled fs.read/fs.write in the registry to match existing ToolPolicy usage and marked gated gateway/plugin actions with explicit rollout metadata."
+  - area: datasets
+    detail: "Expanded JSONL model-selection datasets for dev.work, writing.story, and system.guard with anti-PI, safety, synergy, schema, regex, and numeric checks."
+  - area: checker
+    detail: "Added runtime placeholder scanning, tool activation alignment checks, and verifier coverage checks to the offline checker."
+  - area: tests
+    detail: "Added tests for offline role packets, the microVM contract validator, verifier runtime behavior, checker alignment, and runtime placeholder regression guards."
+notes:
+  - "WebGateway, LocalGateway, LSP, MCP, and Voice actions remain rollout-gated by registry metadata even though the code paths exist."
+  - "ToolProxy remains the only execution path for tool actions; no restored module bypasses it."

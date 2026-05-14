@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NoemaForge SSRReport",
+  "type": "object",
+  "required": ["schema_version", "kind", "report_id", "created_at", "epoch_id", "day", "counts"],
+  "properties": {
+    "schema_version": {"type": "string"},
+    "kind": {"const": "SSRReport"},
+    "report_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "epoch_id": {"type": "string"},
+    "epoch_dir": {"type": "string"},
+    "day": {"type": "string"},
+    "sel_ok": {"type": "boolean"},
+    "counts": {"type": "object"},
+    "latest_quarantine": {"type": "array"},
+    "roadmap_exports": {"type": "object"},
+    "signals_emitted": {"type": "array"},
+    "paranoia_notes": {"type": "array"}
+  },
+  "additionalProperties": true
+}

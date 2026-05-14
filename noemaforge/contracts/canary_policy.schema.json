@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/canary_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "suites", "quota_profiles"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"type": "string", "enum": ["CanaryPolicy"]},
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "canary_allowed": {"type": "boolean"},
+        "break_glass_override": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "requires_flags": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "suites": {
+      "type": "object",
+      "properties": {
+        "smoke": {
+          "type": "object",
+          "required": ["tests"],
+          "properties": {
+            "description": {"type": "string"},
+            "tests": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        },
+        "full": {
+          "type": "object",
+          "required": ["tests"],
+          "properties": {
+            "description": {"type": "string"},
+            "tests": {"type": "array", "items": {"type": "string"}}
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": true
+    },
+    "minimum_suite_rules": {"type": "object"},
+    "quota_profiles": {
+      "type": "object",
+      "properties": {
+        "smoke": {"$ref": "#/definitions/quota"},
+        "full": {"$ref": "#/definitions/quota"}
+      },
+      "additionalProperties": true
+    },
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "quota": {
+      "type": "object",
+      "properties": {
+        "cpu_time_sec": {"type": "integer", "minimum": 1},
+        "mem_max_mib": {"type": "integer", "minimum": 16},
+        "pids_max": {"type": "integer", "minimum": 1},
+        "file_max_mib": {"type": "integer", "minimum": 1},
+        "timeout_sec": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    }
+  }
+}

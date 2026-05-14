@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "noemaforge.pipeline.context.v1",
+  "title": "NoemaForge typed pipeline context packet",
+  "type": "object",
+  "required": ["apiVersion", "version", "task_id", "project_id", "pipeline_id", "stage", "created_at", "llm_policy", "permission_mode", "output_contract", "markdown_packet", "markdown_sha256"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.pipeline.context/v1"},
+    "version": {"type": "string"},
+    "task_id": {"type": "string", "minLength": 1},
+    "project_id": {"type": "string", "minLength": 1},
+    "pipeline_id": {"type": "string", "minLength": 1},
+    "stage": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string"},
+    "llm_policy": {
+      "type": "object",
+      "required": ["mode", "max_active_llms"],
+      "properties": {
+        "mode": {"const": "switchable"},
+        "max_active_llms": {"const": 1}
+      }
+    },
+    "permission_mode": {"type": "string"},
+    "suggested_role_or_team": {"type": "string"},
+    "request": {"type": "string"},
+    "previous_stage_summary": {"type": "string"},
+    "output_contract": {"type": "object"},
+    "markdown_packet": {"type": "string"},
+    "markdown_sha256": {"type": "string", "minLength": 64, "maxLength": 64}
+  }
+}

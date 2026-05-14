@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RoadmapSignal",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "signal_id",
+    "created_at",
+    "target_role",
+    "key",
+    "requested_by"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "v1"
+      ]
+    },
+    "signal_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "target_role": {
+      "type": "string"
+    },
+    "key": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "requested_by": {
+      "type": "object",
+      "required": [
+        "stream_id",
+        "role"
+      ],
+      "properties": {
+        "stream_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        },
+        "process_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

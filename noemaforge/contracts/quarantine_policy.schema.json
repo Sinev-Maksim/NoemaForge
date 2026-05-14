@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/quarantine_policy.schema.json",
+  "title": "QuarantinePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "QuarantinePolicy"},
+    "enabled": {"type": "boolean"},
+    "paths": {
+      "type": "object",
+      "properties": {
+        "quarantine_root": {"type": "string"},
+        "role_runs_root": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "redaction": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "debug_roles": {"type": "array", "items": {"type": "string"}},
+        "user_error_denied": {"type": "string"},
+        "user_error_quarantine": {"type": "string"},
+        "user_error_error": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "quarantine_on_denies": {"type": "array", "items": {"type": "string"}},
+    "arg_rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action", "match", "decision"],
+        "properties": {
+          "id": {"type": "string"},
+          "action": {"type": "string"},
+          "match": {"type": "object"},
+          "decision": {"enum": ["quarantine", "deny"]},
+          "reason": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "capture_request": {"type": "boolean"},
+        "capture_role_context": {"type": "boolean"},
+        "capture_file_metadata": {"type": "boolean"},
+        "max_inline_bytes": {"type": "integer"},
+        "max_file_sample_bytes": {"type": "integer"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

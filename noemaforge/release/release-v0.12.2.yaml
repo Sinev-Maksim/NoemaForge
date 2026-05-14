@@ -1,0 +1,18 @@
+version: 0.12.2
+date: '2026-03-02'
+codename: Incidents + AutoCycle End Artifacts
+changes:
+- 'NEW: incidents.py — first-class incident objects (open/dedupe/ack/close/escalate)
+  with sqlite index + SEL events.'
+- Daily audit remediation now opens incidents via incidents.py (dedupe_key per day+check).
+- Scary sweep report now includes open incident counters and a short list.
+- TaskRunner supports core.incident_update TaskQueue tasks (ack/close/escalate).
+- 'Maintenance: AUTO_CYCLE end writes JSON+MD summary artifacts and emits SEL AUTO_CYCLE_ENDED.'
+- 'RuntimeState: stores auto_cycle end reason/details and step counters.'
+- 'brainctl: added ''incidents'' subcommands (list/show/ack/close/escalate).'
+notes:
+- No runtime canaries are run; this patch only improves diagnostics and lifecycle
+  management.
+- Incidents are stored in /var/lib/noemaforge/incidents/<kind>/<id>.json; index is /var/lib/noemaforge/incidents/incidents.db
+- 'AUTO_CYCLE end summaries: JSON in /var/lib/noemaforge/routines/maintenance/auto_cycle;
+  MD in /workspace/outbox/system/auto_cycle'

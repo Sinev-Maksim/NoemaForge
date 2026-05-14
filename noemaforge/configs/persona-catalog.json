@@ -1,0 +1,379 @@
+{
+  "apiVersion": "noemaforge.ai/v0.30.09",
+  "kind": "PersonaCatalog",
+  "version": "0.31.13.alpha",
+  "invariant": {
+    "llm_mode": "switchable",
+    "activation": "one active persona/LLM context at a time"
+  },
+  "personas": {
+    "operator.admin/administrator": {
+      "role_key": "operator.admin/administrator",
+      "codename": "Атлас",
+      "description": "operator/admin coordinator",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/operator.admin_administrator_gen0.svg",
+      "activation_context_pattern": "persona_operator.admin_administrator_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "system.guard/surgeon": {
+      "role_key": "system.guard/surgeon",
+      "codename": "Бехтерев",
+      "description": "surgical repair and safety correction",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/system.guard_surgeon_gen0.svg",
+      "activation_context_pattern": "persona_system.guard_surgeon_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "system.guard/ssr": {
+      "role_key": "system.guard/ssr",
+      "codename": "Сигурд",
+      "description": "senior safety reviewer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/system.guard_ssr_gen0.svg",
+      "activation_context_pattern": "persona_system.guard_ssr_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "system.guard/sr": {
+      "role_key": "system.guard/sr",
+      "codename": "Северин",
+      "description": "safety reviewer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/system.guard_sr_gen0.svg",
+      "activation_context_pattern": "persona_system.guard_sr_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "system.guard/scary": {
+      "role_key": "system.guard/scary",
+      "codename": "Гармр",
+      "description": "threat sentinel and adversarial sweeper",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/system.guard_scary_gen0.svg",
+      "activation_context_pattern": "persona_system.guard_scary_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "dev.work/solution_architect": {
+      "role_key": "dev.work/solution_architect",
+      "codename": "Дедал",
+      "description": "architecture designer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/dev.work_solution_architect_gen0.svg",
+      "activation_context_pattern": "persona_dev.work_solution_architect_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "dev.work/dev": {
+      "role_key": "dev.work/dev",
+      "codename": "Гефест",
+      "description": "implementation engineer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/dev.work_dev_gen0.svg",
+      "activation_context_pattern": "persona_dev.work_dev_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "dev.work/python_dev": {
+      "role_key": "dev.work/python_dev",
+      "codename": "Пифон",
+      "description": "python implementer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/dev.work_python_dev_gen0.svg",
+      "activation_context_pattern": "persona_dev.work_python_dev_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "dev.work/qa": {
+      "role_key": "dev.work/qa",
+      "codename": "Аргус",
+      "description": "test and verification",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/dev.work_qa_gen0.svg",
+      "activation_context_pattern": "persona_dev.work_qa_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "writing.story/writer": {
+      "role_key": "writing.story/writer",
+      "codename": "Сирин",
+      "description": "writer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/writing.story_writer_gen0.svg",
+      "activation_context_pattern": "persona_writing.story_writer_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "writing.story/editor.literary": {
+      "role_key": "writing.story/editor.literary",
+      "codename": "Ариадна",
+      "description": "editor",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/writing.story_editor.literary_gen0.svg",
+      "activation_context_pattern": "persona_writing.story_editor.literary_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "writing.story/fact_checker": {
+      "role_key": "writing.story/fact_checker",
+      "codename": "Сова",
+      "description": "fact checker",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/writing.story_fact_checker_gen0.svg",
+      "activation_context_pattern": "persona_writing.story_fact_checker_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "writing.story/formatter": {
+      "role_key": "writing.story/formatter",
+      "codename": "Верстальщик",
+      "description": "formatter",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/writing.story_formatter_gen0.svg",
+      "activation_context_pattern": "persona_writing.story_formatter_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "writing.story/world_keeper": {
+      "role_key": "writing.story/world_keeper",
+      "codename": "Мнемос",
+      "description": "world keeper",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/writing.story_world_keeper_gen0.svg",
+      "activation_context_pattern": "persona_writing.story_world_keeper_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "tg.channel/fact_checker": {
+      "role_key": "tg.channel/fact_checker",
+      "codename": "Филин",
+      "description": "channel fact checker",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/tg.channel_fact_checker_gen0.svg",
+      "activation_context_pattern": "persona_tg.channel_fact_checker_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "tg.channel/writer": {
+      "role_key": "tg.channel/writer",
+      "codename": "Гамаюн",
+      "description": "channel writer",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/tg.channel_writer_gen0.svg",
+      "activation_context_pattern": "persona_tg.channel_writer_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "browser.readinglist/researcher": {
+      "role_key": "browser.readinglist/researcher",
+      "codename": "Следопыт",
+      "description": "web/source researcher",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/browser.readinglist_researcher_gen0.svg",
+      "activation_context_pattern": "persona_browser.readinglist_researcher_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "knowledge.vault/researcher": {
+      "role_key": "knowledge.vault/researcher",
+      "codename": "Мнемозина",
+      "description": "vault researcher",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/knowledge.vault_researcher_gen0.svg",
+      "activation_context_pattern": "persona_knowledge.vault_researcher_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "voice.transcriber": {
+      "role_key": "voice.transcriber",
+      "codename": "Эхо",
+      "description": "transcriber",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/voice.transcriber_gen0.svg",
+      "activation_context_pattern": "persona_voice.transcriber_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "voice.speaker": {
+      "role_key": "voice.speaker",
+      "codename": "Орфей",
+      "description": "speaker",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/voice.speaker_gen0.svg",
+      "activation_context_pattern": "persona_voice.speaker_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "vision.segmenter": {
+      "role_key": "vision.segmenter",
+      "codename": "Линза",
+      "description": "vision segmenter",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/vision.segmenter_gen0.svg",
+      "activation_context_pattern": "persona_vision.segmenter_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "video.generator": {
+      "role_key": "video.generator",
+      "codename": "Кадр",
+      "description": "video generator",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/video.generator_gen0.svg",
+      "activation_context_pattern": "persona_video.generator_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    },
+    "selfdev.learning/coach": {
+      "role_key": "selfdev.learning/coach",
+      "codename": "Наставник",
+      "description": "learning coach",
+      "default_generation": 0,
+      "portrait": "ui/personas/portraits/selfdev.learning_coach_gen0.svg",
+      "activation_context_pattern": "persona_selfdev.learning_coach_activation_context.md",
+      "evolution": {
+        "portrait_changes_each_generation": true,
+        "stateful_runtime_generations": true
+      },
+      "safety": {
+        "max_active_llms": 1,
+        "requires_context_packet": true
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "book_title": "Synthetic Book of Directed Claims",
+  "chapters": 2,
+  "sections_per_chapter": 10,
+  "book_checksum": "baec19dead8fd46868e188ba1fd45ecb73cad466ba955c56135b68c6056cde59",
+  "book_checksum_alg": "sha256",
+  "page_word_target": 260,
+  "pages_per_chapter_approx": 10,
+  "sections": 20
+}

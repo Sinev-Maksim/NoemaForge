@@ -1,0 +1,12 @@
+version: 0.20.1
+date: 2026-03-07
+title: "Windows prep hotfix (robust root auto-detection for tools)"
+
+highlights:
+  - "Fixed Windows root auto-detection in tools/windows/verify_seed.ps1"
+  - "Fixed Windows root auto-detection in tools/windows/noemaforge_check.ps1"
+  - "Fixed Windows root auto-detection in tools/windows/noemaforge_lab.ps1"
+  - "verify_seed.ps1 now accepts -Root for explicit brain root override"
+
+risk_notes:
+  - "This is a tooling-only fix (prep/verification). No runtime behaviour changes."

@@ -1,0 +1,37 @@
+version: 0.9.6
+codename: SandboxPolicy-Gloves-ExecIsolation
+high_level:
+  - "Добавлен контракт sandbox-policy.yaml (часть contract epoch): политика изоляции для exec.run и gloves."
+  - "exec.run переведён на SandboxPolicy backends: bwrap -> podman -> host (host fallback = деградированная изоляция)."
+  - "Добавлен glove.analyze: одноразовый амнезийный анализ quarantine-инцидентов в изоляции (incident RO + output RW)."
+  - "Протокол: evidence (incident dir) не модифицируется изнутри glove; отчёт складывается в glove_out + стабильная копия glove_report.json."
+changes:
+  configs:
+    added:
+      - sandbox-policy.yaml
+    updated:
+      - toolproxy.yaml
+      - tool-registry.yaml
+      - tool-policy.yaml
+      - canary-policy.yaml
+  contracts:
+    added:
+      - sandbox_policy.schema.json
+    updated:
+      - epoch_manifest.schema.json
+  src:
+    added:
+      - sandbox.py
+      - glove_agent.py
+      - glove_runner.py
+    updated:
+      - toolproxy.py
+      - prestart.py
+  docs:
+    added:
+      - SANDBOX.md
+      - GLOVES.md
+notes:
+  - "В seed kit microVM (firecracker) пока не включён: интерфейс под него заложен через SandboxPolicy backend chain."
+  - "Если bwrap/podman отсутствуют на целевой машине, ToolProxy может уйти в host fallback (если не запрещено policy)."
+  - "glove.analyze должен быть доступен только ролям system.guard через ToolPolicy." 

@@ -1,0 +1,92 @@
+apiVersion: noemaforge.recurring/v1
+kind: RecurringTaskSet
+timezone: "Europe/Lisbon"
+
+# Priority order (enforced by scheduler):
+# critical > urgent > daily_sla > high > normal > background
+
+# IMPORTANT (MVP 0.10.1):
+# These tasks are executed by noemaforge_core.run_recurring(), which dispatches
+# deterministic pipelines (no network, no LLM required).
+
+tasks:
+  - id: daily_budget_reconcile
+    title: "Домашний бюджет: ingest выписок + обновить месячный отчёт"
+    schedule_oncalendar: "*-*-* 09:00:00"
+    priority_class: daily_sla
+    deadline_local: "11:00"
+    must_run: true
+    chunking:
+      supports_checkpoint: true
+      checkpoint_interval_sec: 120
+    resources:
+      cpu_cores: 2
+      ram_mib: 2048
+      gpu:
+        mode: never
+    work:
+      role: "executor"
+      route: "pipeline"
+      tools_allow:
+        - "fs.read:/workspace/inbox/bank/**"
+        - "fs.write:/var/lib/noemaforge/routines/finance/**"
+    artifacts:
+      - id: report_day
+        type: report_md
+        path: "/var/lib/noemaforge/routines/finance/%Y-%m-%d/report.md"
+        required: true
+      - id: report_month
+        type: report_md
+        path: "/var/lib/noemaforge/routines/finance/%Y-%m/report.md"
+        required: false
+      - id: summary_month
+        type: json
+        path: "/var/lib/noemaforge/routines/finance/%Y-%m/summary.json"
+        required: false
+    verify:
+      role: "qa"
+      route: "pipeline"
+      tools_allow:
+        - "fs.read:/var/lib/noemaforge/routines/finance/**"
+      checks:
+        - "exists:report_day"
+        - "min_lines:10"
+
+  - id: daily_photo_pipeline
+    title: "Фото → дневник (метаданные, без vision)"
+    schedule_oncalendar: "*-*-* 02:30:00"
+    priority_class: daily_sla
+    deadline_local: "06:00"
+    must_run: true
+    chunking:
+      supports_checkpoint: true
+      checkpoint_interval_sec: 300
+    resources:
+      cpu_cores: 4
+      ram_mib: 2048
+      gpu:
+        mode: never
+    work:
+      role: "executor"
+      route: "pipeline"
+      tools_allow:
+        - "fs.read:/workspace/inbox/photos/**"
+        - "fs.write:/var/lib/noemaforge/routines/diary/**"
+    artifacts:
+      - id: diary
+        type: report_md
+        path: "/var/lib/noemaforge/routines/diary/%Y-%m-%d/diary.md"
+        required: true
+      - id: manifest
+        type: json
+        path: "/var/lib/noemaforge/routines/diary/%Y-%m-%d/manifest.json"
+        required: true
+    verify:
+      role: "qa"
+      route: "pipeline"
+      tools_allow:
+        - "fs.read:/var/lib/noemaforge/routines/diary/**"
+      checks:
+        - "exists:diary"
+        - "exists:manifest"
+        - "min_lines:10"

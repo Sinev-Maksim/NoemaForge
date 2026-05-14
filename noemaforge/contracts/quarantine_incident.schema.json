@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/quarantine_incident.schema.json",
+  "title": "QuarantineIncident",
+  "type": "object",
+  "required": ["incident_id", "ts", "trace_id", "decision", "actor", "action"],
+  "properties": {
+    "incident_id": {"type": "string"},
+    "ts": {"type": "string"},
+    "trace_id": {"type": "string"},
+    "decision": {"enum": ["quarantine"]},
+    "action": {"type": "string"},
+    "reason": {"type": "string"},
+    "actor": {"type": "object"},
+    "request": {"type": "object"},
+    "response": {"type": "object"},
+    "artifacts": {
+      "type": "array",
+      "items": {"type": "object"},
+      "default": []
+    }
+  },
+  "additionalProperties": true
+}

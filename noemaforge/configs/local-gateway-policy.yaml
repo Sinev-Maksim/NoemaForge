@@ -1,0 +1,70 @@
+apiVersion: noemaforge.localgateway/v1
+kind: LocalGatewayPolicy
+enabled: false
+arming:
+  preflight_required: true
+  first_run_force_full: true
+  token_ttl_sec: 900
+  require_nids_preflight: true
+identity:
+  uid_prefix: 'lan:'
+  uid_algorithm: sha256
+  prefer_fields:
+  - tls_pubkey_sha256
+  - device_cert_sha256
+  - serial
+  - dhcp_client_id
+  - mac
+  mac_normalization: lower
+network:
+  allowed_interfaces: []
+  allowed_subnets: []
+  default_egress: deny
+devices:
+  allowlist_uids: []
+  allowlist: []
+  allowlist_mode: required
+  quarantine_unknown_devices: true
+  remember_seen_devices: true
+  state_db_path: /var/lib/noemaforge/localgw/devices.sqlite
+connectors:
+  enabled: false
+  allow_connectors:
+  - octoprint
+  - ipp
+  deny_connectors: []
+  deny_raw_sockets: true
+  actuation:
+    requires_invite: true
+    invite_scope: localgw_live
+uplink:
+  enabled: false
+  allow_podman_fallback: true
+  max_file_mib: 200
+  require_ip_literal: true
+  netguard:
+    enabled: true
+    require: true
+    uid: 29999
+    allow_loopback: false
+rate_limits:
+  enabled: true
+  db_path: /var/lib/noemaforge/localgw/ratelimit.sqlite
+  default:
+    window_sec: 60
+    max_calls: 120
+  overrides:
+    octoprint.upload_gcode:
+      window_sec: 300
+      max_calls: 3
+    octoprint.start_print:
+      window_sec: 60
+      max_calls: 10
+    ipp.print_file:
+      window_sec: 60
+      max_calls: 10
+notes:
+- LocalGateway подчинён роли scary. Другие роли общаются с LAN только через scary-пайплайн.
+- 'Arming обязателен: пока scary не пройдёт preflight, localgw не выдаёт доступ (lan_session_token).'
+- 'Device UID — SSID-независимый: основан на fingerprint (предпочтительно TLS pubkey/serial,
+  иначе MAC).'

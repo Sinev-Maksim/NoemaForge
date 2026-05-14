@@ -1,0 +1,35 @@
+version: 0.9.3
+codename: Quarantine-RoleAffirmations-Redaction
+high_level:
+  - Added epoch-scoped QuarantinePolicy: high-signal denies / suspicious args trigger quarantine.
+  - ToolProxy now supports quarantine incidents: forensic snapshots + SEL/WORM events.
+  - Tool errors/denies are redacted by default for executor roles (debug roles opt-in via policy).
+  - Added RoleAffirmations: ToolProxy prepends per-role identity context to llm.chat system messages.
+changes:
+  configs:
+    added:
+      - quarantine-policy.yaml
+      - role-affirmations.yaml
+    updated:
+      - toolproxy.yaml (added config pointers)
+  contracts:
+    added:
+      - quarantine_policy.schema.json
+      - quarantine_incident.schema.json
+      - role_affirmations.schema.json
+    updated:
+      - epoch_manifest.schema.json (bundle includes quarantine_policy + role_affirmations hashes)
+  toolproxy:
+    - Quarantine decisions on selected denies and arg rules.
+    - Incident snapshot writer (incident.json + optional role_context.json + file_meta.json).
+    - Default redaction for executor roles (reason only visible to debug roles).
+    - Role affirmations injected into llm.chat system messages.
+  prestart:
+    - Epoch now includes quarantine-policy.yaml + role-affirmations.yaml.
+    - Epoch manifest bundle includes hashes for both files.
+    - verify_epoch_manifest() checks both files.
+  bootstrap:
+    - Creates /var/lib/noemaforge/quarantine/incidents with safe permissions.
+notes:
+  - Quarantine is a forensic channel, NOT a runtime canary system.
+  - RoleAffirmations must not disclose internal security protocol details.

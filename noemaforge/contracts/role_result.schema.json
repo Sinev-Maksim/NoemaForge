@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/role_result.schema.json",
+  "type": "object",
+  "required": ["status", "run_id", "role", "trace_id"],
+  "properties": {
+    "status": {"type": "string", "enum": ["OK", "BLOCKED", "ERROR"]},
+    "run_id": {"type": "string"},
+    "role": {"type": "string"},
+    "trace_id": {"type": "string"},
+    "freeze_summary": {"type": "string"},
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path", "content"],
+        "properties": {
+          "path": {"type": "string"},
+          "content": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "pm": {
+      "type": "object",
+      "properties": {
+        "proposed_action": {"type": "string", "enum": ["ASSIGN", "IDLE", "REQUEST_QA", "CLOSE_TASK", "NONE"]},
+        "task_id": {"type": "string"},
+        "to_role": {"type": "string"},
+        "notes": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "qa": {
+      "type": "object",
+      "properties": {
+        "task_id": {"type": "string"},
+        "ok": {"type": "boolean"},
+        "report": {"type": "string"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/tool_response.schema.json",
+  "type": "object",
+  "required": ["ok", "trace_id"],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "trace_id": {"type": "string"},
+    "result": {"type": ["object", "array", "string", "number", "boolean", "null"]},
+    "error": {"type": "string"}
+  },
+  "additionalProperties": true
+}

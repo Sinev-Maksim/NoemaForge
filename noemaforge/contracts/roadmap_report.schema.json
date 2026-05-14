@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RoadmapReport",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "report_id",
+    "created_at",
+    "generated_by",
+    "items"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "v1"
+      ]
+    },
+    "report_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "generated_by": {
+      "type": "object"
+    },
+    "summary": {
+      "type": "string"
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "target_role",
+          "key",
+          "score"
+        ],
+        "properties": {
+          "target_role": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number"
+          },
+          "unique_sources": {
+            "type": "integer"
+          },
+          "total_events": {
+            "type": "integer"
+          },
+          "last_seen": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "top_sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "role_roadmaps_included": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": true
+}

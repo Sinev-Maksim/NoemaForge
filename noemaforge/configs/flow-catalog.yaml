@@ -1,0 +1,65 @@
+apiVersion: noemaforge.flows/v1
+kind: FlowCatalog
+flows:
+  dev.work:
+    description: 'Рабочий dev-поток: PM -> Solution Architect -> Dev -> QA'
+    nodes:
+    - id: pm
+      role: pm
+    - id: sa
+      role: solution_architect
+    - id: dev
+      role: dev
+      expandable: true
+    - id: qa
+      role: qa
+  finance.budget:
+    description: 'Бюджет: ingestion -> classify -> report'
+    nodes:
+    - id: pm
+      role: pm
+    - id: dev
+      role: dev
+      expandable: true
+    - id: qa
+      role: qa
+  photos.diary:
+    description: 'Фото->дневник: ingestion -> episodes -> narrative'
+    nodes:
+    - id: pm
+      role: pm
+    - id: dev
+      role: dev
+      expandable: true
+    - id: qa
+      role: qa
+  writing.story:
+    description: 'Литературный поток: writer -> tropes -> world -> facts -> edit ->
+      critique -> format'
+    nodes:
+    - id: writer
+      role: writer
+    - id: tropes
+      role: tropemaster
+    - id: world
+      role: world_keeper
+    - id: facts
+      role: fact_checker
+    - id: editor
+      role: editor.literary
+    - id: critic
+      role: critic
+    - id: format
+      role: formatter
+  operator.admin:
+    description: 'Administrator front-door: interpret -> route/delegate -> answer/task
+      -> explain system capability'
+    nodes:
+    - id: administrator
+      role: administrator
+    - id: architect
+      role: solution_architect
+    - id: writer
+      role: writer
+    - id: coach
+      role: coach

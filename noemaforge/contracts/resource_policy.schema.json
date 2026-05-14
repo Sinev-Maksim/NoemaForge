@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResourcePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"type": "string", "const": "ResourcePolicy"},
+    "limits": {
+      "type": "object",
+      "properties": {
+        "max_cpu_pct": {"type": "integer", "minimum": 1, "maximum": 100},
+        "max_mem_pct": {"type": "integer", "minimum": 1, "maximum": 100}
+      },
+      "additionalProperties": true
+    },
+    "spine_reserved": {
+      "type": "object",
+      "properties": {
+        "cpu_pct": {"type": "integer", "minimum": 0, "maximum": 100},
+        "mem_pct": {"type": "integer", "minimum": 0, "maximum": 100}
+      },
+      "additionalProperties": true
+    },
+    "defaults": {"type": "object"},
+    "roles": {"type": "object"},
+    "enforcement": {
+      "type": "object",
+      "properties": {
+        "mode": {"type": "string", "enum": ["soft", "hard"]}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

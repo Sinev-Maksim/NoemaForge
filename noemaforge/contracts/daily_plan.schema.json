@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/daily_plan.schema.json",
+  "type": "object",
+  "required": [
+    "date",
+    "timezone",
+    "tasks"
+  ],
+  "properties": {
+    "date": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "tasks": {
+      "type": "array"
+    }
+  },
+  "additionalProperties": true
+}

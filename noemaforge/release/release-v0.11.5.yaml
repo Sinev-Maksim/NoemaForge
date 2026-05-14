@@ -1,0 +1,25 @@
+version: 0.11.5
+kind: patch
+summary:
+  - SR/SSR become explicit cycles: deterministic reports + roadmap exports + handoff packets (no runtime canaries)
+  - Surgeon auto becomes policy-driven: refresh model inventory, evaluate ONE new model per run, draft pre-start policy patches from scorecards
+  - Recovery can optionally unload extra LLM backends (stop those not enabled by current epoch policy)
+notes:
+  - SR/SSR emit roadmap signals; repetition increases priority and provides a route of evolution
+  - Any contract/policy changes remain pre-start only (draft requests are generated for human approval)
+  - Scary sweep now emits roadmap signals and exports roadmap views
+files:
+  added:
+    - src/sr_cycle.py
+    - src/ssr_cycle.py
+    - contracts/sr_report.schema.json
+    - contracts/ssr_report.schema.json
+    - release/release-v0.11.5.yaml
+  changed:
+    - src/maintenance.py
+    - src/resource_recovery.py
+    - src/surgeon_auto.py
+    - src/scary_sweep.py
+    - src/brainctl.py
+    - configs/maintenance-policy.yaml
+    - manifest.yaml

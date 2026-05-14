@@ -1,0 +1,42 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: workflows.curated
+title: Curated downstream workflows
+purpose: Turn specialized inputs into reusable routines for channels like reading
+  lists, finance, photos, Telegram, and learning.
+why_it_exists: Users need structured recurring workflows, not just isolated answers.
+source_of_truth:
+- configs/flow-catalog.yaml
+- src/readinglist_workflow.py
+- src/tg_channel_workflow.py
+- src/selfdev_learning.py
+- src/pipelines/photos_diary.py
+raw_inputs:
+- tabs
+- photos
+- bank exports
+- telegram content
+- learning materials
+compiled_artifacts:
+- curated summaries
+- task outputs
+- routine state
+- workflow artifacts
+workflows:
+  ingest:
+  - normalize domain inputs
+  - stage workflow state
+  query:
+  - surface curated results and follow-up actions
+  lint:
+  - check stream staffing and policy alignment
+boundaries:
+- Workflow output must still respect role and tool policies.
+- Per-stream staffing must match the flow catalog.
+success_signals:
+- workflow nodes are fully staffed and policy-covered
+- users can re-run domain routines without hand assembly
+owner_roles:
+- pm
+- administrator
+- qa

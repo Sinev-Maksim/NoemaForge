@@ -1,0 +1,84 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "owner": {
+                  "type": "string"
+                },
+                "priority_class": {
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "flow_id": {
+            "type": "string"
+          },
+          "bundle": {
+            "type": "object",
+            "properties": {
+              "bundle_id": {
+                "type": "string"
+              },
+              "default_action": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          },
+          "action": {
+            "type": "object",
+            "properties": {
+              "tool_action": {
+                "type": "string"
+              },
+              "default_inputs": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/skills.schema.json",
+  "title": "Skills"
+}

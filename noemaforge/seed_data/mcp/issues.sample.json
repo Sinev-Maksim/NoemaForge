@@ -1,0 +1,16 @@
+[
+  {
+    "id": "BRN-101",
+    "title": "Tighten epoch rollback validation",
+    "body": "Targeted rollback should reject cross-track mutations and preserve canary evidence.",
+    "state": "open",
+    "tags": ["epoch", "safety", "surgeon"]
+  },
+  {
+    "id": "BRN-102",
+    "title": "Document WebGW channel profiles",
+    "body": "Need clearer docs for packages, rss, git, and generic channel moderation.",
+    "state": "triaged",
+    "tags": ["docs", "webgw"]
+  }
+]

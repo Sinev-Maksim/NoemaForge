@@ -1,0 +1,114 @@
+apiVersion: noemaforge.sandbox/v1
+kind: SandboxPolicy
+backends:
+  preference:
+  - microvm
+  - bwrap
+  - podman
+  - host
+  host_fallback:
+    mode: quarantine
+    override_requires_user_comment: true
+  microvm:
+    enabled: false
+    runtime: firecracker
+    kernel_path: /var/lib/noemaforge/microvm/kernel/vmlinuz
+    rootfs_path: /var/lib/noemaforge/microvm/rootfs/base.ext4
+    work_dir: /var/lib/noemaforge/microvm/runs
+    default_vcpu: 1
+    default_mem_mib: 1024
+  bwrap:
+    enabled: true
+    unshare_net: true
+    minimal_etc: true
+    bind_system_ro:
+    - /usr
+    - /bin
+    - /lib
+    - /lib64
+    - /sbin
+  podman:
+    enabled: true
+    pull_policy: never
+    network: none
+    pids_limit: 256
+    images:
+      python3: python:3.11-slim
+      bash: debian:stable-slim
+actions:
+  exec.run:
+    default_backend: bwrap
+    allow_network: false
+    mount_stream_paths: true
+    require_microvm: false
+    backend_preference:
+    - microvm
+    - bwrap
+    - podman
+    - host
+  glove.analyze:
+    default_backend: bwrap
+    allow_network: false
+    mount_stream_paths: false
+  glove.uplink:
+    default_backend: podman
+    allow_network: true
+    mount_stream_paths: false
+    require_microvm: false
+    backend_preference:
+    - microvm
+    - bwrap
+    - podman
+  plugin.run:
+    default_backend: microvm
+    allow_network: false
+    mount_stream_paths: true
+    require_microvm: true
+    backend_preference:
+    - microvm
+    - bwrap
+    - podman
+    - host
+quota_profiles:
+  exec_smoke:
+    cpu_time_sec: 30
+    mem_max_mib: 2048
+    pids_max: 256
+    file_max_mib: 256
+    timeout_sec: 120
+  exec_full:
+    cpu_time_sec: 300
+    mem_max_mib: 8192
+    pids_max: 512
+    file_max_mib: 2048
+    timeout_sec: 1800
+  glove:
+    cpu_time_sec: 60
+    mem_max_mib: 1024
+    pids_max: 128
+    file_max_mib: 64
+    timeout_sec: 180
+  uplink:
+    cpu_time_sec: 120
+    mem_max_mib: 1024
+    pids_max: 128
+    file_max_mib: 512
+    timeout_sec: 300
+  plugin_smoke:
+    cpu_time_sec: 30
+    mem_max_mib: 2048
+    pids_max: 128
+    file_max_mib: 256
+    timeout_sec: 180
+  plugin_full:
+    cpu_time_sec: 300
+    mem_max_mib: 8192
+    pids_max: 256
+    file_max_mib: 2048
+    timeout_sec: 1800
+notes:
+- bwrap (bubblewrap) is recommended for offline local hardening without container
+  images.
+- podman backend is optional; it works best when required images are preloaded offline.
+- host fallback is degraded isolation; by default it is QUARANTINED (blocked) unless
+  explicitly allowed by policy epoch.

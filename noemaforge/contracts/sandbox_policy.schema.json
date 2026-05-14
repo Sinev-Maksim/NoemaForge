@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/sandbox_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "backends"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"type": "string", "enum": ["SandboxPolicy"]},
+    "backends": {
+      "type": "object",
+      "required": ["preference"],
+      "properties": {
+        "preference": {"type": "array", "items": {"type": "string"}},
+        "host_fallback_allowed": {"type": "boolean", "description": "(deprecated) legacy boolean; use host_fallback.mode"},
+        "host_fallback": {
+          "type": "object",
+          "properties": {
+            "mode": {"type": "string", "enum": ["allow", "deny", "quarantine"]},
+            "override_requires_user_comment": {"type": "boolean"}
+          },
+          "additionalProperties": true
+        },
+        "bwrap": {"type": "object"},
+        "podman": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "actions": {"type": "object"},
+    "quota_profiles": {"type": "object"},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

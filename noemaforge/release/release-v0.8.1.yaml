@@ -1,0 +1,18 @@
+version: 0.8.1
+release_date_utc: 2026-02-26
+name: "Streams + Tool Registry/Policy + Clarifications"
+
+highlights:
+  - "ToolProxy is now stream-aware: every tool request MUST include meta.stream_id."
+  - "Added Tool Registry (tool-registry.yaml) and Tool Policy (tool-policy.yaml). Deny-by-default for unknown/disabled tools."
+  - "Added Streams catalog (streams.yaml) to define task/data domains and growth space."
+  - "Clarification TTL is separated from data retention: old data stays, only user questions expire."
+  - "Added Inquiry contract schema (inquiry.schema.json) for clarification inbox."
+  - "Added Solution Architect role to python/sql team template."
+
+breaking_changes:
+  - "ToolRequest contract now requires meta.stream_id. Old role code must be updated accordingly (done in this release)."
+
+next:
+  - "Implement Tool Onboarding workflow as a real canary runner (stub provided)."
+  - "Enable fs/db/exec tools via onboarding and policy, starting with photos.diary + finance.budget pipelines."

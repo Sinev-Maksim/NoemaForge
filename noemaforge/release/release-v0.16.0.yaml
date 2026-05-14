@@ -1,0 +1,29 @@
+version: 0.16.0
+date: 2026-03-04
+summary: "Stage C1 + D: uplink glove for risky LAN actions + seeded hypergraph knowledge store"
+changes:
+  - area: localgw
+    type: security
+    detail: "Added LocalGW rate limiting (SQLite fixed-window counters) to reduce LAN hammering / abuse."
+  - area: localgw
+    type: feature
+    detail: "Stage C1 uplink glove runner + deterministic uplink agent (no LLM) for OctoPrint multipart uploads."
+  - area: sandbox
+    type: feature
+    detail: "Added sandbox action glove.uplink (network-enabled). Prefers microVM; falls back to podman slirp when allowed by policy."
+  - area: sel
+    type: fix
+    detail: "Restored seclog.append_event compatibility wrapper (SEL/WORM-lite logging now works in modules expecting append_event)."
+  - area: knowledge
+    type: feature
+    detail: "Stage D: added knowledge-policy.yaml + KnowledgeStore (SQLite schema) + ingestion helpers + Trail execution + optional VStore link for semantic index."
+  - area: cli
+    type: feature
+    detail: "Added brainctl kg (init/ingest-text/search/trail-exec) for early hypergraph workflows."
+  - area: streams
+    type: feature
+    detail: "Added knowledge.vault stream (offline-first) for ingestion/maintenance of the hypergraph knowledge base."
+notes:
+  - "OctoPrint upload_gcode is denied unless local-gateway-policy.uplink.enabled=true (pre-start contract)."
+  - "Uplink glove intentionally avoids bwrap when network is enabled; podman slirp is the MVP sandbox backend."
+  - "Hypergraph semantic search uses vectors as a retrieval accelerator; contradictions must be modeled explicitly as Conflict objects."

@@ -1,0 +1,226 @@
+apiVersion: noemaforge.streams/v1
+kind: StreamCatalog
+default_stream: dev.work
+streams:
+  dev.work:
+    description: Рабочие dev-проекты (python/sql/r)
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 2048
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/work/**
+    data_rw:
+    - /var/lib/noemaforge/projects/**
+    required_verifiers:
+    - qa
+  photos.diary:
+    description: Фото -> дневник
+    network: deny
+    default_resources:
+      cpu_cores: 4
+      ram_mib: 4096
+      gpu:
+        mode: prefer
+        min_vram_mib: 4096
+        fallback: cpu
+    data_ro:
+    - /workspace/inbox/photos/**
+    data_rw:
+    - /var/lib/noemaforge/routines/diary/**
+    - /var/lib/noemaforge/index/**
+    required_verifiers:
+    - manifest
+    - coverage
+  finance.budget:
+    description: Банк выгрузки -> бюджет + вопросы
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 2048
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/bank/**
+    data_rw:
+    - /var/lib/noemaforge/routines/finance/**
+    - /var/lib/noemaforge/inquiries/**
+    - /var/lib/noemaforge/index/**
+    required_verifiers:
+    - sumcheck
+    - coverage
+  video.drone:
+    description: 'Дрон-видео: стабилизация + лучшие моменты'
+    network: deny
+    default_resources:
+      cpu_cores: 4
+      ram_mib: 8192
+      gpu:
+        mode: prefer
+        min_vram_mib: 4096
+        fallback: cpu
+    data_ro:
+    - /workspace/inbox/video/**
+    data_rw:
+    - /var/lib/noemaforge/routines/video/**
+    - /var/lib/noemaforge/index/**
+    required_verifiers:
+    - manifest
+    - coverage
+  blender.cinema:
+    description: Кино в Blender (в т.ч. по DnD видео)
+    network: deny
+    default_resources:
+      cpu_cores: 6
+      ram_mib: 8192
+      gpu:
+        mode: prefer
+        min_vram_mib: 6144
+        fallback: cpu
+    data_ro:
+    - /workspace/inbox/home/**
+    - /workspace/inbox/articles/**
+    - /workspace/inbox/video/**
+    data_rw:
+    - /var/lib/noemaforge/projects/**
+    required_verifiers:
+    - manifest
+    - render_check
+  modeling.3dgen:
+    description: Генерация/реконструкция 3D по описанию/фото/видео
+    network: deny
+    default_resources:
+      cpu_cores: 6
+      ram_mib: 12288
+      gpu:
+        mode: prefer
+        min_vram_mib: 6144
+        fallback: defer
+    data_ro:
+    - /workspace/inbox/3dprint/**
+    - /workspace/inbox/photos/**
+    - /workspace/inbox/video/**
+    data_rw:
+    - /var/lib/noemaforge/projects/**
+    - /var/lib/noemaforge/routines/3d/**
+    required_verifiers:
+    - mesh_sanity
+    - manifest
+  tg.channel:
+    description: 'Telegram канал/инбокс: новости, мемы, вопросы (оффлайн экспорт)'
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 2048
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/tg/**
+    data_rw:
+    - /var/lib/noemaforge/routines/tg/**
+    - /var/lib/noemaforge/index/**
+    - /var/lib/noemaforge/inquiries/**
+    required_verifiers:
+    - qa
+  browser.readinglist:
+    description: 'Safari/Browser вкладки и чтение: статусы, дедуп, источники'
+    network: deny
+    default_resources:
+      cpu_cores: 1
+      ram_mib: 1536
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/tabs/**
+    data_rw:
+    - /var/lib/noemaforge/routines/reading/**
+    - /var/lib/noemaforge/index/**
+    required_verifiers:
+    - qa
+  selfdev.learning:
+    description: 'Саморазвитие: курсы/вкладки/трекинг активности'
+    network: deny
+    default_resources:
+      cpu_cores: 1
+      ram_mib: 2048
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/selfdev/**
+    data_rw:
+    - /var/lib/noemaforge/routines/selfdev/**
+    - /var/lib/noemaforge/index/**
+    - /var/lib/noemaforge/inquiries/**
+    required_verifiers:
+    - qa
+  system.guard:
+    description: 'Системные потоки: security, SR/SSR, surgeon'
+    network: deny
+    default_resources:
+      cpu_cores: 1
+      ram_mib: 512
+      gpu:
+        mode: never
+    data_ro:
+    - /var/lib/noemaforge/**
+    data_rw:
+    - /var/lib/noemaforge/sel/**
+    - /var/lib/noemaforge/quarantine/**
+    required_verifiers: []
+  knowledge.vault:
+    description: 'База знаний: ingest/ремонт/trails/QA (гиперграф)'
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 4096
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/library/**
+    - /workspace/inbox/articles/**
+    data_rw:
+    - /var/lib/noemaforge/kg/**
+    - /var/lib/noemaforge/vstore/**
+    - /var/lib/noemaforge/index/**
+    required_verifiers:
+    - qa
+  operator.admin:
+    description: Operator-facing administrator stream for request interpretation,
+      delegation, grounded answers, and task orchestration
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 2048
+      gpu:
+        mode: never
+    data_ro:
+    - /var/lib/noemaforge/**
+    - /workspace/inbox/**
+    data_rw:
+    - /var/lib/noemaforge/inquiries/**
+    - /var/lib/noemaforge/projects/**
+    - /var/lib/noemaforge/memory/**
+    - /var/lib/noemaforge/kg/**
+    required_verifiers:
+    - qa
+  writing.story:
+    description: Literary creation and editing stream backed by local library/knowledge
+      assets
+    network: deny
+    default_resources:
+      cpu_cores: 2
+      ram_mib: 3072
+      gpu:
+        mode: never
+    data_ro:
+    - /workspace/inbox/library/**
+    - /workspace/inbox/articles/**
+    - /var/lib/noemaforge/library/**
+    data_rw:
+    - /var/lib/noemaforge/projects/**
+    - /var/lib/noemaforge/index/**
+    - /var/lib/noemaforge/inquiries/**
+    required_verifiers:
+    - qa

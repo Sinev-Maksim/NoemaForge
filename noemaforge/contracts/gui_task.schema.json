@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NoemaForge GUI Task",
+  "type": "object",
+  "required": [
+    "task_id",
+    "title",
+    "category",
+    "priority",
+    "status"
+  ],
+  "properties": {
+    "task_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "priority": {
+      "type": "integer"
+    },
+    "status": {
+      "type": "string"
+    }
+  }
+}

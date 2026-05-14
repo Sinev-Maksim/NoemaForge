@@ -1,0 +1,18 @@
+version: 0.10.0
+date: 2026-02-28
+title: Gateways + DeviceID (Scary-controlled)
+
+highlights:
+  - Added LocalGatewayPolicy contract + localgw direction (disabled by default).
+  - localgw arming protocol: preflight mints short-lived LAN session tokens.
+  - First localgw preflight run forces FULL suite; subsequent runs allow smoke/full.
+  - Stable device UID generation independent of SSID (prefer TLS pubkey/serial; fallback MAC).
+  - Added specialized glove tool wrappers:
+      - glove.web_sanitize (RSS/Web intake)
+      - glove.net_inspect (LAN/localgw forensics)
+  - ToolPolicy tightened: webgw/localgw + glove wrappers are expected to be used by role scary.
+
+notes:
+  - MVP localgw discovery is best-effort via `ip neigh`.
+  - Typed connectors are stubbed; contract exists for future expansion.
+  - All gateway arming/fetch paths emit SEL events for forensic traceability.

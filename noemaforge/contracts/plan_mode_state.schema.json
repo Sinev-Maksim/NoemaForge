@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PlanModeState",
+  "type": "object",
+  "required": [
+    "project_id",
+    "session_id",
+    "status",
+    "entered_at"
+  ],
+  "properties": {
+    "project_id": {
+      "type": "string"
+    },
+    "session_id": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "plan",
+        "approved",
+        "inactive"
+      ]
+    },
+    "objective": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "string"
+    },
+    "checkpoints": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+version: 0.15.0
+date: 2026-03-03
+summary: "Stage C: LocalGW typed connectors + NIDS-lite for local LAN hygiene"
+changes:
+  - area: localgw
+    type: feature
+    detail: "Implemented typed connector registry (localgw_connectors) with first connectors: octoprint + ipp."
+  - area: localgw
+    type: security
+    detail: "Actuation methods can be invite-gated via LocalGatewayPolicy.connectors.actuation (scope localgw_live)."
+  - area: localgw
+    type: security
+    detail: "LocalGateway preflight can require NIDS-lite snapshot before issuing lan_session_token."
+  - area: nids
+    type: feature
+    detail: "Added nids-policy.yaml (epoch-scoped) and NIDS-lite snapshot+analysis with incident on unknown LAN devices."
+  - area: scary
+    type: feature
+    detail: "scary_sweep now runs NIDS-lite periodically (interval-gated) and emits a quarantine signal on unknown devices."
+  - area: toolproxy
+    type: feature
+    detail: "Added tool localgw.nids_snapshot (scary only, disabled by default) for manual NIDS snapshots."
+notes:
+  - "Secrets for connectors live in /var/lib/noemaforge/.sys/localgw_secrets/<id>.txt and are referenced by *_ref fields in policy."
+  - "No active network scanning is performed by default; discovery relies on neighbor tables."

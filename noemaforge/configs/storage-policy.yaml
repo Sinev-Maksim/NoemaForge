@@ -1,0 +1,11 @@
+apiVersion: noemaforge.storagepolicy/v1
+kind: StoragePolicy
+
+origin:
+  device_ptuuid: "SETUP_AUTODETECT"
+
+foreign_volumes:
+  default: "deny"
+  mount_root: "/mnt/foreign"
+  mount_options_default: "ro,noexec,nodev,nosuid"
+  allowlist: []

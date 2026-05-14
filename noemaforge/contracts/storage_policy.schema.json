@@ -1,0 +1,43 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "origin": {
+      "type": "object",
+      "properties": {
+        "device_ptuuid": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "foreign_volumes": {
+      "type": "object",
+      "properties": {
+        "default": {
+          "type": "string"
+        },
+        "mount_root": {
+          "type": "string"
+        },
+        "mount_options_default": {
+          "type": "string"
+        },
+        "allowlist": {
+          "type": "array",
+          "items": {}
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/storage_policy.schema.json",
+  "title": "StoragePolicy"
+}

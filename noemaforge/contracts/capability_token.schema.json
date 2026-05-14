@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/capability_token.schema.json",
+  "type": "object",
+  "required": [
+    "token_id",
+    "issued_to",
+    "expires_at",
+    "caps",
+    "secret_sha256",
+    "trace_id",
+    "epoch_id"
+  ],
+  "properties": {
+    "token_id": {
+      "type": "string"
+    },
+    "secret_sha256": {
+      "type": "string"
+    },
+    "issued_to": {
+      "type": "object",
+      "required": [
+        "run_id",
+        "role",
+        "project_id"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        }
+      }
+    },
+    "expires_at": {
+      "type": "string"
+    },
+    "caps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "deny": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limits": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "epoch_id": {
+      "type": "string",
+      "description": "Contract epoch id bound to this token."
+    }
+  },
+  "additionalProperties": true
+}

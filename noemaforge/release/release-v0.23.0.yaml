@@ -1,0 +1,13 @@
+version: 0.23.0
+date: 2026-03-27
+title: "Firstboot hardening (Windows + sterile lab + dashboard)"
+
+highlights:
+  - "tools/windows/run_firstboot.cmd + run_firstboot.ps1: one-shot first run (cleanup + verify + check + lab)"
+  - "tools/windows/run_lab.cmd + run_dashboard_lab.*: default LabRoot moved to sibling folder (<repo>\\..\\noemaforge-lab) to avoid repo clutter"
+  - "tools/windows/noemaforge_lab.ps1: sets PYTHONDONTWRITEBYTECODE=1 to keep the seed kit sterile (no __pycache__/pyc)"
+  - "docs: updated Windows second-attempt guide + first run checklist to match flattened layout and wrappers"
+  - "manifest.yaml: bump to 0.23.0"
+
+notes:
+  - "No new runtime features; this release focuses on reducing Windows footguns before the first real boot/run."

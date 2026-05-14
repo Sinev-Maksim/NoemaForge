@@ -1,0 +1,8 @@
+apiVersion: noemaforge.email_airlock/v1
+kind: EmailAirlockPolicy
+enabled: false
+quarantine_root: /var/lib/noemaforge/quarantine/email
+summary_root: /workspace/outbox/email_safe
+allow_input_ext:
+- .eml
+- ''

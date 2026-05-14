@@ -1,0 +1,171 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "storage": {
+      "type": "object",
+      "properties": {
+        "base_dir": {
+          "type": "string"
+        },
+        "files": {
+          "type": "object",
+          "properties": {
+            "llm_calls": {
+              "type": "string"
+            },
+            "tool_calls": {
+              "type": "string"
+            },
+            "snapshots": {
+              "type": "string"
+            },
+            "exports": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "rotation": {
+          "type": "object",
+          "properties": {
+            "max_file_mb": {
+              "type": "integer"
+            },
+            "retention_days": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "collection": {
+      "type": "object",
+      "properties": {
+        "llm_calls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "sample_rate": {
+              "type": "number"
+            },
+            "redact": {
+              "type": "object",
+              "properties": {
+                "store_prompt_text": {
+                  "type": "boolean"
+                },
+                "store_prompt_hash": {
+                  "type": "boolean"
+                },
+                "store_prompt_len": {
+                  "type": "boolean"
+                },
+                "store_messages_shape": {
+                  "type": "boolean"
+                },
+                "store_response_text": {
+                  "type": "boolean"
+                },
+                "store_response_len": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "tool_calls": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "sample_rate": {
+              "type": "number"
+            },
+            "redact": {
+              "type": "object",
+              "properties": {
+                "store_args": {
+                  "type": "boolean"
+                },
+                "store_args_hash": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "metrics": {
+      "type": "object",
+      "properties": {
+        "snapshots": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "cadence": {
+              "type": "object",
+              "properties": {
+                "window_hours": {
+                  "type": "integer"
+                }
+              },
+              "additionalProperties": true
+            },
+            "percentiles": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "alerts": {
+          "type": "object",
+          "properties": {
+            "llm_error_rate_warn": {
+              "type": "number"
+            },
+            "llm_error_rate_crit": {
+              "type": "number"
+            },
+            "llm_p95_latency_ms_warn": {
+              "type": "integer"
+            },
+            "llm_p95_latency_ms_crit": {
+              "type": "integer"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/observability_policy.schema.json",
+  "title": "ObservabilityPolicy"
+}

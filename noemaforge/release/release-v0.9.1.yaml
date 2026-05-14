@@ -1,0 +1,13 @@
+release: 0.9.1
+codename: CanaryPolicy-SecurityFixtures
+highlights:
+  - "Canary is now explicitly PRE-START ONLY. brainctl refuses runtime canary unless break-glass flags are provided."
+  - "Added canary-policy.yaml and security-fixtures.yaml as epoch-versioned inputs."
+  - "Scary Core selects minimum canary suite (smoke/full) based on change surface + risk hints."
+  - "Epoch manifest integrity verification added to canary suite."
+compat:
+  - "Offline-first; no network by default."
+  - "CPU-first: GPU optional; VRAM used only if stream/resource contracts allow it."
+notes:
+  - "Security fixtures in this seed kit validate policy/registry decisions (no tool execution)."
+  - "Contract patches are ignored if authored by runtime/llm_role (must be human/surgeon/scary/system)."

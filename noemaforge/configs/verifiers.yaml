@@ -1,0 +1,47 @@
+apiVersion: noemaforge.verifiers/v1
+kind: VerifierCatalog
+
+# Seed verifier catalog. Streams reference these IDs and the runtime
+# implementation lives in src/verifiers.py.
+
+verifiers:
+  qa:
+    description: "Generic QA checklist verifier for textual artifacts"
+    type: "checklist"
+    params:
+      min_outputs: 1
+      min_lines: 5
+      required_sections: ["Verification"]
+
+  manifest:
+    description: "Artifact manifest exists and contains the required top-level keys"
+    type: "json_schema"
+    params:
+      required_keys: ["items"]
+      allow_empty: false
+
+  coverage:
+    description: "Coverage verifier for expected versus observed inputs"
+    type: "coverage"
+    params:
+      min_ratio: 1.0
+
+  sumcheck:
+    description: "Numeric reconciliation verifier for expected and actual totals"
+    type: "sumcheck"
+    params:
+      tolerance: 0.0
+
+  render_check:
+    description: "Rendered output sanity verifier for image/video artifacts"
+    type: "render_check"
+    params:
+      min_outputs: 1
+      required_extensions: [".png", ".jpg", ".jpeg", ".webp", ".mp4"]
+
+  mesh_sanity:
+    description: "Basic mesh sanity verifier for triangle/vertex counts and watertight hints"
+    type: "mesh_sanity"
+    params:
+      min_vertices: 3
+      min_faces: 1

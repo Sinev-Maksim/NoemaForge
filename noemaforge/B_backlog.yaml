@@ -1,0 +1,86 @@
+track: B
+version: 0.27.8
+objective: Implement the hypergraph, durable prep-store, provenance, and error-learning
+  loop.
+phases:
+- id: B1
+  title: Freeze contracts
+  depends_on: []
+  deliverables:
+  - chunk_prep_store contract
+  - claim provenance contract
+  - error learning contract
+  - trace levels
+  dod:
+  - Ontology unchanged
+  - Prep-store separated from ontology
+  - Claim publication requires provenance
+- id: B2
+  title: Durable prep-store
+  depends_on:
+  - B1
+  deliverables:
+  - prep_store.sqlite.sql
+  - SQLite adapter
+  - JSONL exporter
+  dod:
+  - Book enqueue persists checksum and queue position
+  - Normalized text artifacts persisted
+  - Temporary chunk bodies deletable without trace loss
+- id: B3
+  title: Topic-adjacency chunk planning
+  depends_on:
+  - B2
+  deliverables:
+  - topic labeling profile
+  - adjacency grouping
+  - split tree builder
+  - in-memory chunk iterator
+  dod:
+  - Chunk plans built before extraction
+  - Leaf chunks processed in memory only
+  - Split lineage persisted
+- id: B4
+  title: Provenance-bearing extraction
+  depends_on:
+  - B3
+  deliverables:
+  - passage builder
+  - claim origins
+  - trace scoring
+  dod:
+  - No published claim without address
+  - Passage/claim trace back to source sentence spans
+- id: B5
+  title: Grounded Administrator
+  depends_on:
+  - B4
+  deliverables:
+  - graph retrieval path
+  - grounded response modes
+  dod:
+  - Administrator answers from graph evidence
+  - Knowledge gaps reported explicitly
+- id: B6
+  title: Error learning loop
+  depends_on:
+  - B4
+  deliverables:
+  - error_learning_loop.sqlite.sql
+  - review workflow
+  - regression export
+  dod:
+  - Reviewed errors reusable for eval/training
+  - Source defects separated from model defects
+- id: B7
+  title: Graph lint and projections
+  depends_on:
+  - B5
+  - B6
+  deliverables:
+  - lint rules
+  - operator projection
+  - wiki projection
+  dod:
+  - Missing provenance and unsupported claims detected
+  - Projections remain derivative

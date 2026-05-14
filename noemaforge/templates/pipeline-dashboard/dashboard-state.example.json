@@ -1,0 +1,86 @@
+{
+  "runtime": {
+    "active_llms": 0,
+    "max_active_llms": 1
+  },
+  "current": {
+    "pipeline_id": "evolution",
+    "status": "planned",
+    "current_stage": "architecture_clarification"
+  },
+  "metrics": {
+    "flow.wip": 1,
+    "flow.backlog": 4,
+    "llm.error_rate": 0.0,
+    "llm.latency_ms.p95": 1800,
+    "llm.policy_denies": 0,
+    "sec.incidents.open": 0,
+    "pipeline.pattern_count": 380,
+    "persona.count": 23,
+    "pipeline.catalog_count": 60
+  },
+  "pipelines": {
+    "evolution": {
+      "description": "Architecture-aware development/evolution pipeline.",
+      "stages": [
+        "intake",
+        "architecture_clarification",
+        "development",
+        "unit_testing",
+        "integration_testing",
+        "optimization",
+        "review",
+        "merge_plan"
+      ]
+    },
+    "book": {
+      "description": "Research-to-book pipeline.",
+      "stages": [
+        "intake",
+        "research",
+        "outline",
+        "drafting",
+        "editor_review",
+        "fact_check",
+        "integration_edit",
+        "export_plan"
+      ]
+    },
+    "knowledge_graph": {
+      "description": "Knowledge graph creation/update pipeline.",
+      "stages": [
+        "intake",
+        "source_inventory",
+        "entity_extraction",
+        "relation_mapping",
+        "provenance_review",
+        "graph_patch",
+        "validation",
+        "publish_plan"
+      ]
+    },
+    "release_prep": {
+      "description": "Release merge and checks pipeline.",
+      "stages": [
+        "intake",
+        "inventory",
+        "merge_analysis",
+        "smoke_tests",
+        "docs_update",
+        "changelog",
+        "archive_plan",
+        "admin_review"
+      ]
+    }
+  },
+  "persona": {
+    "role_key": "system.guard/surgeon",
+    "codename": "Бехтерев",
+    "portrait": "../../ui/personas/portraits/system.guard_surgeon_gen0.svg"
+  },
+  "next_actions": [
+    "noemaforge persona activate Бехтерев --reason console",
+    "noemaforge pipeline patterns --family n8n --limit 12",
+    "noemaforge pipeline run persona_evolution --request \"refresh active persona\""
+  ]
+}

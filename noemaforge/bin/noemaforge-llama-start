@@ -1,0 +1,104 @@
+#!/usr/bin/env python3
+# === NoemaForge File Header ===
+# File: bin/noemaforge-llama-start
+# Zone: runtime/model
+# Purpose: systemd-safe launcher for a NoemaForge llama.cpp backend; reads ModelStore manifest and validates GGUF shards before exec.
+# Callers: noemaforge-llama@.service.
+# Inputs: model_id, socket path, ModelStore manifest/model.gguf.
+# Outputs: execs /opt/noemaforge/bin/llama-server or exits early with a clear error.
+# Safety notes: refuses non-first or incomplete multi-part GGUF artifacts.
+# === End NoemaForge File Header ===
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+from typing import Any, Dict
+
+sys.path.insert(0, "/opt/noemaforge/src")
+
+try:
+    import yaml
+except Exception:  # pragma: no cover
+    yaml = None  # type: ignore
+
+try:
+    import gguf_select
+    import runtime_safety
+except Exception as e:  # pragma: no cover
+    print(f"[noemaforge-llama-start][ERROR] cannot import gguf_select: {e!r}", file=sys.stderr)
+    raise
+
+MODELSTORE = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
+LLAMA_SERVER = os.environ.get("NOEMAFORGE_LLAMA_SERVER", "/opt/noemaforge/bin/llama-server")
+
+
+def _load_manifest(path: Path) -> Dict[str, Any]:
+    if not path.is_file() or yaml is None:
+        return {}
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            obj = yaml.safe_load(f) or {}
+        return obj if isinstance(obj, dict) else {}
+    except Exception:
+        return {}
+
+
+def _artifact_for(model_id: str) -> str:
+    mdir = Path(MODELSTORE) / "models" / model_id
+    man = _load_manifest(mdir / "manifest.yaml")
+    artifact = str(man.get("artifact_path") or "").strip()
+    if artifact:
+        return artifact if artifact.startswith("/") else str(mdir / artifact)
+    return str(mdir / "model.gguf")
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 3:
+        print("usage: noemaforge-llama-start <model_id> <socket_path> [extra llama-server args...]", file=sys.stderr)
+        return 2
+    model_id = argv[1].strip()
+    sock = argv[2].strip()
+    extra = argv[3:]
+    if not model_id or "/" in model_id or model_id.startswith("."):
+        print(f"[noemaforge-llama-start][ERROR] invalid model_id={model_id!r}", file=sys.stderr)
+        return 2
+    if not runtime_safety.safe_backend_id(model_id):
+        print(f"[noemaforge-llama-start][ERROR] refusing unsafe/non-head backend id: {model_id}", file=sys.stderr)
+        return 71
+    if not os.path.exists(LLAMA_SERVER) or not os.access(LLAMA_SERVER, os.X_OK):
+        print(f"[noemaforge-llama-start][ERROR] llama-server is missing or not executable: {LLAMA_SERVER}", file=sys.stderr)
+        return 70
+    artifact = _artifact_for(model_id)
+    ok_rt, reason_rt, meta_rt = runtime_safety.validate_artifact_path(artifact)
+    if not ok_rt:
+        print(f"[noemaforge-llama-start][ERROR] runtime-safety refused artifact for {model_id}: {reason_rt}: {artifact}", file=sys.stderr)
+        if meta_rt:
+            print(f"[noemaforge-llama-start][ERROR] runtime_meta={meta_rt}", file=sys.stderr)
+        return 71
+    # patched7: runtime_safety may canonicalize legacy /mnt/brainos-share paths
+    # to /mnt/noemaforge-share. Execute the canonical realpath when available.
+    if isinstance(meta_rt, dict) and str(meta_rt.get("realpath") or "").strip():
+        artifact = str(meta_rt.get("realpath"))
+    ok, reason, meta = gguf_select.validate_artifact_path(artifact, require_complete=True)
+    if not ok:
+        print(f"[noemaforge-llama-start][ERROR] refusing invalid GGUF artifact for {model_id}: {reason}: {artifact}", file=sys.stderr)
+        if meta:
+            print(f"[noemaforge-llama-start][ERROR] shard_meta={meta}", file=sys.stderr)
+        return 71
+    Path(os.path.dirname(sock)).mkdir(parents=True, exist_ok=True)
+    cmd = [
+        LLAMA_SERVER,
+        "--model", artifact,
+        "--host", sock,
+        "--device", "none",
+        "--n-gpu-layers", "0",
+        "--no-kv-offload",
+    ] + extra
+    print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
+    os.execv(LLAMA_SERVER, cmd)
+    return 127
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv))

@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-monitor
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+echo '=== NoemaForge monitor ==='; /usr/local/sbin/noemaforge-smoke --timeout=20 >/tmp/noemaforge-monitor-smoke.out 2>/tmp/noemaforge-monitor-smoke.err && echo smoke=ok || echo smoke=fail
+echo "active_llama_count=$(noemaforge_count_active_llama)"; noemaforge_active_llama_units | sed 's/^/  /' || true; echo "main_model=$(readlink -f "${NOEMAFORGE_MAIN_MODEL_DIR:-/var/lib/modelstore/models/main}/model.gguf" 2>/dev/null || echo missing)"; echo; systemctl --failed --no-pager || true; echo; free -h || true

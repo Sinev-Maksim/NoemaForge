@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/selftest_case_catalog.schema.json",
+  "title": "NoemaForge Self-Test Case Catalog",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "suites", "cases"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "SelfTestCaseCatalog"},
+    "version": {"type": "string"},
+    "invariant": {"type": "object"},
+    "suites": {"type": "object", "additionalProperties": {"type": "array", "items": {"type": "string"}}},
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "module", "tier", "command", "expect"],
+        "properties": {
+          "id": {"type": "string"},
+          "module": {"type": "string"},
+          "tier": {"type": "string"},
+          "description": {"type": "string"},
+          "command": {"type": "array", "items": {"type": "string"}},
+          "expect": {"type": "object"},
+          "live": {"type": "boolean"},
+          "timeout_sec": {"type": "integer"}
+        }
+      }
+    }
+  }
+}

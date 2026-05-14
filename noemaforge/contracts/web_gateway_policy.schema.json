@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/web_gateway_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled", "mode", "network", "downloads", "moderation", "imports"],
+  "properties": {
+    "apiVersion": {"type": "string", "enum": ["noemaforge.webgateway/v1"]},
+    "kind": {"type": "string", "enum": ["WebGatewayPolicy"]},
+    "version": {"type": "integer"},
+    "enabled": {"type": "boolean"},
+
+    "mode": {
+      "type": "object",
+      "properties": {
+        "prestart_only": {"type": "boolean"},
+        "runtime_allowed": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "network": {
+      "type": "object",
+      "properties": {
+        "allow_schemes": {"type": "array", "items": {"type": "string"}},
+        "deny_ip_literals": {"type": "boolean"},
+        "deny_private_ranges": {"type": "boolean"},
+        "allow_domains": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+
+    "downloads": {
+      "type": "object",
+      "properties": {
+        "max_bytes": {"type": "integer"},
+        "max_redirects": {"type": "integer"},
+        "allowed_mime_prefixes": {"type": "array", "items": {"type": "string"}},
+        "denied_mime_prefixes": {"type": "array", "items": {"type": "string"}},
+        "quarantine_root": {"type": "string"},
+        "incoming_subdir": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+
+    "moderation": {
+      "type": "object",
+      "properties": {
+        "require_glove_review": {"type": "boolean"},
+        "require_human_approval": {"type": "boolean"},
+        "glove_profile": {"type": "string"},
+        "treat_html_as_attack_surface": {"type": "boolean"},
+        "redact_content_in_tool_response": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "imports": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "toolvault_root": {"type": "string"},
+        "manifests_dir": {"type": "string"},
+        "artifacts_dir": {"type": "string"},
+        "require_lock": {"type": "boolean"}
+      },
+      "additionalProperties": false
+    },
+
+    "channels": {
+      "type": "object",
+      "description": "Per-channel overrides (packages/rss/git/...).",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "mode": {"type": "object"},
+          "network": {"type": "object"},
+          "downloads": {"type": "object"},
+          "moderation": {"type": "object"},
+          "imports": {"type": "object"},
+          "promote": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

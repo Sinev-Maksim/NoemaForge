@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/baton_envelope.schema.json",
+  "type": "object",
+  "required": [
+    "baton_id",
+    "project_id",
+    "stream_id",
+    "from_role",
+    "to_role",
+    "task_id",
+    "priority_class",
+    "objective",
+    "deliverables",
+    "context_refs",
+    "constraints"
+  ],
+  "properties": {
+    "baton_id": {
+      "type": "string"
+    },
+    "project_id": {
+      "type": "string"
+    },
+    "from_role": {
+      "type": "string"
+    },
+    "to_role": {
+      "type": "string"
+    },
+    "task_id": {
+      "type": "string"
+    },
+    "priority_class": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "urgent",
+        "daily_sla",
+        "high",
+        "normal",
+        "background"
+      ]
+    },
+    "deadline": {
+      "type": "string"
+    },
+    "objective": {
+      "type": "string"
+    },
+    "deliverables": {
+      "type": "array"
+    },
+    "context_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "constraints": {
+      "type": "object"
+    },
+    "verification_plan": {
+      "type": "array"
+    },
+    "handoff_notes": {
+      "type": "string"
+    },
+    "stream_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

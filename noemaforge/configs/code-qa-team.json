@@ -1,0 +1,137 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "CodeQATeamPolicy",
+  "version": "0.31.13.alpha",
+  "invariant": {
+    "llm_mode": "switchable",
+    "max_active_llms": 1,
+    "default_mode": "sequential"
+  },
+  "reviewer_count_default": 2,
+  "selection_policy": {
+    "exclude_producer_model": true,
+    "prefer_correct_and_diverse": true,
+    "minimum_code_score": 0.7,
+    "weights": {
+      "code_score": 0.4,
+      "test_score": 0.25,
+      "diversity_from_producer": 0.2,
+      "diversity_from_selected": 0.15
+    }
+  },
+  "model_candidates": [
+    {
+      "id": "qwen25-coder-14b",
+      "family": "qwen",
+      "local": true,
+      "code_score": 0.88,
+      "test_score": 0.78,
+      "tags": [
+        "python",
+        "linux",
+        "refactor",
+        "pragmatic"
+      ]
+    },
+    {
+      "id": "deepseek-coder-v2-lite",
+      "family": "deepseek",
+      "local": false,
+      "code_score": 0.9,
+      "test_score": 0.84,
+      "tags": [
+        "algorithms",
+        "tests",
+        "static-analysis",
+        "edge-cases"
+      ]
+    },
+    {
+      "id": "codestral-22b",
+      "family": "mistral",
+      "local": false,
+      "code_score": 0.86,
+      "test_score": 0.82,
+      "tags": [
+        "typescript",
+        "python",
+        "contracts",
+        "lint"
+      ]
+    },
+    {
+      "id": "llama31-8b-instruct",
+      "family": "llama",
+      "local": true,
+      "code_score": 0.75,
+      "test_score": 0.71,
+      "tags": [
+        "explainability",
+        "docs",
+        "small-model",
+        "sanity"
+      ]
+    },
+    {
+      "id": "phi4-mini-instruct",
+      "family": "phi",
+      "local": true,
+      "code_score": 0.72,
+      "test_score": 0.76,
+      "tags": [
+        "compact",
+        "unit-tests",
+        "reasoning",
+        "sanity"
+      ]
+    },
+    {
+      "id": "gpt-5.5-pro-external",
+      "family": "openai",
+      "local": false,
+      "code_score": 0.95,
+      "test_score": 0.93,
+      "tags": [
+        "architecture",
+        "tests",
+        "security",
+        "performance"
+      ]
+    },
+    {
+      "id": "claude-sonnet-external",
+      "family": "anthropic",
+      "local": false,
+      "code_score": 0.93,
+      "test_score": 0.91,
+      "tags": [
+        "review",
+        "edge-cases",
+        "readability",
+        "integration"
+      ]
+    },
+    {
+      "id": "gemini-pro-external",
+      "family": "google",
+      "local": false,
+      "code_score": 0.91,
+      "test_score": 0.89,
+      "tags": [
+        "large-context",
+        "cross-file",
+        "api-contracts",
+        "regression"
+      ]
+    }
+  ],
+  "stages": [
+    "intake",
+    "static_scan",
+    "reviewer_a",
+    "reviewer_b",
+    "consensus_merge",
+    "test_plan",
+    "handoff"
+  ]
+}

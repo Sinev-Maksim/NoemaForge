@@ -1,0 +1,7 @@
+version: 0.27.2
+notes:
+- Introduced a first-class administrator role and operator.admin intent routing.
+- Added role-eval dataset bindings plus firstboot orchestrator with per-role staffing,
+  visible progress, safe auto-apply, and reboot-after-first-epoch.
+- Aligned writing.story/operator.admin streams, refreshed bundle manifests, removed
+  __pycache__, and tightened final pre-install hygiene.

@@ -1,0 +1,88 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "snapshot": {
+      "type": "object",
+      "properties": {
+        "interval_sec": {
+          "type": "integer"
+        },
+        "max_snapshots": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "uid_prefix": {
+          "type": "string"
+        },
+        "uid_algorithm": {
+          "type": "string"
+        },
+        "prefer_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mac_normalization": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "devices": {
+      "type": "object",
+      "properties": {
+        "allowlist_uids": {
+          "type": "array",
+          "items": {}
+        },
+        "allowlist_mode": {
+          "type": "string"
+        },
+        "on_unknown": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "capture": {
+      "type": "object",
+      "properties": {
+        "include_listeners": {
+          "type": "boolean"
+        },
+        "include_routes": {
+          "type": "boolean"
+        },
+        "include_addrs": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/nids_policy.schema.json",
+  "title": "NidsPolicy"
+}

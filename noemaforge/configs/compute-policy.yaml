@@ -1,0 +1,28 @@
+apiVersion: noemaforge.computepolicy/v1
+kind: ComputePolicy
+
+defaults:
+  prefer: cpu
+  allow_gpu: false        # default: do not touch GPU/VRAM
+  allow_hybrid: true      # hybrid allowed, but enabled only by policy/trigger
+
+gpu_trigger:
+  priorities: ["critical", "urgent"]
+  intents: ["interactive_chat", "realtime_tools"]
+
+vram_budget:
+  min_free_mib_to_enable: 2048
+  reserve_mib: 1024
+
+llama_server:
+  cpu_default:
+    args:
+      device: "none"
+      n_gpu_layers: 0
+      kv_offload: false
+  hybrid_default:
+    args:
+      n_gpu_layers: "auto"
+      fit: "on"
+      fit_target_mib: 1024
+      kv_offload: false

@@ -1,0 +1,40 @@
+apiVersion: noemaforge.lsm/v1
+kind: LSMPPolicy
+
+# LSM (Linux Security Modules) policy for NoemaForge spine.
+# This is part of the Contract Epoch.
+#
+# Goals:
+# - Allow installations to start "portable" (prefer-mode), but provide a switch to
+#   require LSM enforcement when the host supports it.
+# - Keep enforcement deterministic: ToolProxy and gateways do not decide.
+#
+# NOTE: LSM configuration is host-dependent (AppArmor vs SELinux). This policy
+# describes what NoemaForge expects; installers apply profiles out-of-band.
+
+require:
+  # mode: off | prefer | require
+  mode: prefer
+  # If require.mode=require and the host does not have an enabled LSM, services may refuse to start.
+  fail_closed: false
+
+apparmor:
+  enabled: true
+  # enforce: true means "aa-enforce" should be used when possible.
+  enforce: false
+  profiles:
+    toolproxy: noemaforge-toolproxy
+    webgateway: noemaforge-webgateway
+    localgateway: noemaforge-localgateway
+    llm_gateway: noemaforge-llm-gateway
+
+selinux:
+  enabled: true
+  # enforce: true means SELinux should be in Enforcing mode.
+  enforce: false
+  # Optional labels for future systemd integration.
+  contexts: {}
+
+notes:
+  - "Default is prefer-mode to keep the seed portable."
+  - "Switch to require-mode only after profiles are installed and verified by Canary Manager."

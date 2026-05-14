@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/prestart_build_report.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "build_id",
+    "created_at",
+    "base_epoch_id",
+    "candidate_epoch_id",
+    "trigger",
+    "changes",
+    "final_canary",
+    "overall_decision"
+  ],
+  "properties": {
+    "schema_version": {"type": "string", "enum": ["v1"]},
+    "build_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "base_epoch_id": {"type": "string"},
+    "candidate_epoch_id": {"type": "string"},
+
+    "trigger": {
+      "type": "object",
+      "required": ["system_changes", "policy_changes", "user_request"],
+      "properties": {
+        "system_changes": {"type": "boolean"},
+        "policy_changes": {"type": "boolean"},
+        "user_request": {"type": "boolean"},
+        "user_comment": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["request_id", "track", "status", "suites_run"],
+        "properties": {
+          "request_id": {"type": "string"},
+          "track": {"type": "string", "enum": ["system", "policy", "user", "unknown"]},
+          "created_by": {"type": "object"},
+          "status": {"type": "string", "enum": ["applied", "rolled_back", "skipped"]},
+          "changed_files": {"type": "array", "items": {"type": "string"}},
+          "suites_run": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["suite", "decision"],
+              "properties": {
+                "suite": {"type": "string", "enum": ["smoke", "full"]},
+                "decision": {"type": "string", "enum": ["pass", "fail"]},
+                "report_path": {"type": "string"},
+                "problems": {"type": "array", "items": {"type": "string"}}
+              },
+              "additionalProperties": false
+            }
+          },
+          "rollback_reason": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    },
+
+    "final_canary": {
+      "type": "object",
+      "required": ["suite", "decision", "report_path"],
+      "properties": {
+        "suite": {"type": "string", "enum": ["smoke", "full"]},
+        "decision": {"type": "string", "enum": ["pass", "fail"]},
+        "report_path": {"type": "string"},
+        "problems": {"type": "array", "items": {"type": "string"}}
+      },
+      "additionalProperties": false
+    },
+
+    "notifications": {"type": "array", "items": {"type": "string"}},
+
+    "overall_decision": {"type": "string", "enum": ["pass", "fail"]}
+  },
+  "additionalProperties": false
+}

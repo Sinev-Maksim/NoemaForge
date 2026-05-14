@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/bundle_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled", "tool_vault", "installer"],
+  "properties": {
+    "apiVersion": {"type": "string", "enum": ["noemaforge.bundles/v1"]},
+    "kind": {"type": "string", "enum": ["BundlePolicy"]},
+    "enabled": {"type": "boolean"},
+    "tool_vault": {
+      "type": "object",
+      "required": ["root", "manifests_dir", "artifacts_dir", "installed_dir"],
+      "properties": {
+        "root": {"type": "string"},
+        "manifests_dir": {"type": "string"},
+        "artifacts_dir": {"type": "string"},
+        "installed_dir": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "installer": {
+      "type": "object",
+      "required": ["prestart_only", "require_lock", "allowed_manifest_kinds"],
+      "properties": {
+        "prestart_only": {"type": "boolean"},
+        "require_lock": {"type": "boolean"},
+        "allowed_manifest_kinds": {"type": "array", "items": {"type": "string"}},
+        "system_package_installs": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "require_repo_under_toolvault": {"type": "boolean"}
+          },
+          "additionalProperties": false
+        },
+        "staging_dir": {"type": "string"},
+        "inventory_path": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "rollback": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "mode": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,10 @@
+# One pattern per line. NoemaForge first-boot staging will only score GGUF files
+# whose path or basename matches at least one pattern.
+#
+# Example categories for an Administrator candidate shortlist:
+qwen
+mistral
+phi
+llama
+instruct
+chat

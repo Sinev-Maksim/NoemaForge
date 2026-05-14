@@ -1,0 +1,81 @@
+apiVersion: noemaforge.security/v1
+kind: QuarantinePolicy
+
+# Quarantine is a *forensic* path for suspicious tool usage.
+# It is NOT a runtime canary system.
+#
+# Key idea:
+# - Executors should not learn the internal security protocol details.
+# - ToolProxy returns redacted errors by default.
+# - When a quarantine triggers, ToolProxy stores a snapshot under quarantine_root
+#   and emits a SEL/WORM event with trace_id + incident_id.
+
+enabled: true
+
+paths:
+  quarantine_root: /var/lib/noemaforge/quarantine/incidents
+  role_runs_root: /workspace/role-runs
+
+redaction:
+  enabled: true
+  # Roles that may receive non-redacted tool errors (operators / spine roles).
+  debug_roles: ["pm", "surgeon", "scary", "sr", "ssr", "system"]
+  user_error_denied: "denied"
+  user_error_quarantine: "quarantine"
+  user_error_error: "error"
+
+quarantine_on_denies:
+  # High-signal denies: likely abuse or mismatch.
+  - epoch_mismatch
+  - issued_to_mismatch
+  - cap_missing
+  - policy_deny
+  - unknown_stream
+  - tool_unknown
+  - tool_disabled
+  - fs:denied_path
+  - db:denied_db_path
+  - exec:bin_not_allowed
+  - exec:cwd_denied
+  - exec:degraded_sandbox
+  - plugin:degraded_sandbox
+  - plugin:attestation_failed
+  - plugin:manifest_invalid
+  - plugin:id_mismatch
+  - db:multi_statement_denied
+
+arg_rules:
+  # Exec inline command is a common injection vector.
+  - id: exec_inline
+    action: exec.run
+    match:
+      argv_contains_any: ["-c", "curl", "wget", "nc", "ncat", "socat", "ssh", "scp"]
+    decision: quarantine
+    reason: suspicious_exec_argv
+
+  # Reading SSH keys / passwd/shadow is almost never a normal task.
+  - id: fs_secretish
+    action: fs.read
+    match:
+      path_glob_any: ["*/.ssh/*", "*id_rsa*", "*shadow*", "*passwd*"]
+    decision: quarantine
+    reason: suspicious_fs_path
+
+snapshot:
+  capture_request: true
+  capture_role_context: true
+  capture_file_metadata: true
+  max_inline_bytes: 200000
+  max_file_sample_bytes: 4096
+
+gloves:
+  enabled: true
+  # Do NOT auto-run gloves at runtime by default.
+  # Operators should request analysis explicitly (surgeon/scary) to avoid
+  # surprise resource contention.
+  auto_run_on_quarantine: false
+  tool_id: glove.analyze
+  default_languages: "ru,en,de,zh"
+  notes:
+    - "Glove analysis is one-shot and amnesic: incident mounted RO; output mounted RW."
+    - "Prefer bwrap/podman isolation. Host fallback is degraded and should be treated as high-risk."

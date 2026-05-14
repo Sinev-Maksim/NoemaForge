@@ -1,0 +1,28 @@
+version: 0.9.4
+codename: AtomicChangeCanaries-EpochTriggers
+high_level:
+  - Pre-start now applies changes atomically: each approved request runs 1+ canary suites.
+  - If any canary fails, ONLY that change is rolled back; the rest of the build may proceed.
+  - Epoch switching is allowed only when triggered by: system changes, policy/affirmations changes, or an explicit user comment snapshot.
+  - prestart_build_report.json is emitted with a clear change list + per-change canary outcomes + trigger flags.
+changes:
+  configs:
+    updated:
+      - canary-policy.yaml (track-aware minimum suite rules: system/policy/user)
+  contracts:
+    added:
+      - prestart_build_report.schema.json
+    updated:
+      - prestart_change_request.schema.json (track, user_comment, canary_suites, new patch keys)
+  prestart:
+    - build_candidate_epoch now runs per-request canaries with rollback on failure.
+    - Added notifications (file-based) for scary/surgeon/requester on rolled-back changes.
+    - Added support for streams_patch/patterns_patch + quarantine_policy_patch + role_affirmations_patch.
+  canary:
+    - canary_runner supports --law (fixed policy/fixtures epoch) and --report-path (per-change reports).
+  brainctl:
+    - build-epoch supports --user-comment (manual snapshot trigger).
+    - apply-epoch verifies build artifacts (build report + scary_report) instead of re-running canary.
+notes:
+  - Law epoch is fixed during a build: candidate changes cannot weaken canary rules mid-flight.
+  - Rolled-back requests are marked status=failed with audit.canary_runs for forensic review.

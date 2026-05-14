@@ -1,0 +1,222 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "TeamMemberRuntimePolicy",
+  "version": "0.31.13.alpha",
+  "invariant": {
+    "llm_mode": "switchable",
+    "max_active_llms": 1,
+    "default_execution": "sequential"
+  },
+  "member_cells": {
+    "architect": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "architecture_clarification",
+        "risks",
+        "handoff"
+      ]
+    },
+    "developer": {
+      "mode": "standalone_or_ensemble",
+      "min_models": 1,
+      "artifact_contract": [
+        "implementation_plan",
+        "auto_tests_report",
+        "changed_files",
+        "handoff"
+      ],
+      "requires_auto_tests": true
+    },
+    "code_analyser_visualiser": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "architecture_diagrams",
+        "bottleneck_report",
+        "call_graph",
+        "helicopter_view",
+        "handoff"
+      ],
+      "requires_diagrams": true
+    },
+    "qa": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "qa_report",
+        "recommended_tests",
+        "approval_or_denial",
+        "handoff"
+      ],
+      "detect_dev_misunderstanding_loop": true
+    },
+    "tester": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "test_plan",
+        "test_results",
+        "handoff"
+      ]
+    },
+    "integration_tester": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "integration_report",
+        "risk_register",
+        "handoff"
+      ]
+    },
+    "optimizer": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "performance_note",
+        "memory_note",
+        "operation_count_note",
+        "handoff"
+      ]
+    },
+    "reviewer": {
+      "mode": "ensemble",
+      "min_models": 2,
+      "artifact_contract": [
+        "review_report",
+        "merge_recommendation",
+        "handoff"
+      ]
+    },
+    "archivist": {
+      "mode": "standalone_or_ensemble",
+      "min_models": 1,
+      "artifact_contract": [
+        "archive_manifest",
+        "wiki_patch_hint",
+        "handoff"
+      ]
+    }
+  },
+  "model_candidates": [
+    {
+      "id": "qwen25-coder-14b",
+      "family": "qwen",
+      "local": true,
+      "code_score": 0.88,
+      "test_score": 0.78,
+      "tags": [
+        "python",
+        "linux",
+        "refactor",
+        "pragmatic"
+      ]
+    },
+    {
+      "id": "deepseek-coder-v2-lite",
+      "family": "deepseek",
+      "local": false,
+      "code_score": 0.9,
+      "test_score": 0.84,
+      "tags": [
+        "algorithms",
+        "tests",
+        "static-analysis",
+        "edge-cases"
+      ]
+    },
+    {
+      "id": "codestral-22b",
+      "family": "mistral",
+      "local": false,
+      "code_score": 0.86,
+      "test_score": 0.82,
+      "tags": [
+        "typescript",
+        "python",
+        "contracts",
+        "lint"
+      ]
+    },
+    {
+      "id": "llama31-8b-instruct",
+      "family": "llama",
+      "local": true,
+      "code_score": 0.75,
+      "test_score": 0.71,
+      "tags": [
+        "explainability",
+        "docs",
+        "small-model",
+        "sanity"
+      ]
+    },
+    {
+      "id": "phi4-mini-instruct",
+      "family": "phi",
+      "local": true,
+      "code_score": 0.72,
+      "test_score": 0.76,
+      "tags": [
+        "compact",
+        "unit-tests",
+        "reasoning",
+        "sanity"
+      ]
+    },
+    {
+      "id": "gpt-5.5-pro-external",
+      "family": "openai",
+      "local": false,
+      "code_score": 0.95,
+      "test_score": 0.93,
+      "tags": [
+        "architecture",
+        "tests",
+        "security",
+        "performance"
+      ]
+    },
+    {
+      "id": "claude-sonnet-external",
+      "family": "anthropic",
+      "local": false,
+      "code_score": 0.93,
+      "test_score": 0.91,
+      "tags": [
+        "review",
+        "edge-cases",
+        "readability",
+        "integration"
+      ]
+    },
+    {
+      "id": "gemini-pro-external",
+      "family": "google",
+      "local": false,
+      "code_score": 0.91,
+      "test_score": 0.89,
+      "tags": [
+        "large-context",
+        "cross-file",
+        "api-contracts",
+        "regression"
+      ]
+    }
+  ],
+  "handoff": {
+    "markdown": true,
+    "json_sidecar": true,
+    "sha256": true
+  },
+  "consistency_gates": [
+    "member_run_json",
+    "proposal_log",
+    "consensus_artifacts",
+    "unique_artifacts",
+    "next_handoff_md_json_sha256",
+    "developer_auto_tests",
+    "qa_loop_detection",
+    "analyser_diagrams"
+  ]
+}

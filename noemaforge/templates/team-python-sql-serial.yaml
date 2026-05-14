@@ -1,0 +1,30 @@
+apiVersion: noemaforge.teamtemplate/v1
+kind: TeamTemplate
+id: python-sql-serial
+title: Python + SQL team (serial baton)
+team_execution:
+  mode: serial
+  max_active_roles: 1
+  baton_required: true
+  wake_policy:
+    require_scheduler_approval: true
+roles:
+- id: pm
+  description: 'ИИ-ПМ: декомпозиция, приемка, батон'
+  route: instruction_broker
+- id: solution_architect
+  description: 'Solution Architect: системный контракт решения, границы модулей, интерфейсы,
+    SLA'
+  route: executor
+- id: architect
+  description: 'Архитектор: границы, контракты'
+  route: executor
+- id: python_dev
+  description: Python-разработчик
+  route: executor
+- id: sql_dev
+  description: SQL/DB специалист
+  route: executor
+- id: qa
+  description: Проверки, тесты, верификация артефактов
+  route: executor

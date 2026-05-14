@@ -1,0 +1,22 @@
+{
+  "apiVersion": "noemaforge.pipeline-ui/v1",
+  "kind": "PipelineUiCatalog",
+  "version": "0.31.13.alpha",
+  "left_click": "open/explain/request_inputs/start_or_plan_by_policy",
+  "right_click": [
+    "open_diagram",
+    "show_stats",
+    "show_last_runs",
+    "show_artifacts",
+    "edit_draft_todo",
+    "clone_new_pipeline_todo"
+  ],
+  "new_pipeline": {
+    "status": "draft_only",
+    "requires_review": [
+      "Scary",
+      "Architecture",
+      "Admin"
+    ]
+  }
+}

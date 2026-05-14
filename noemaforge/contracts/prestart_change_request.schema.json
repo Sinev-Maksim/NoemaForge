@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/prestart_change_request.schema.json",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "request_id",
+    "created_at",
+    "created_by",
+    "status",
+    "requested_changes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "enum": [
+        "v1"
+      ]
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "created_by": {
+      "type": "object",
+      "required": [
+        "actor_type"
+      ],
+      "properties": {
+        "actor_type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "surgeon",
+            "scary",
+            "system",
+            "llm_role"
+          ]
+        },
+        "actor_id": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string"
+        },
+        "project_id": {
+          "type": "string"
+        },
+        "run_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "submitted",
+        "rejected",
+        "approved",
+        "applied",
+        "failed"
+      ]
+    },
+    "track": {
+      "type": "string",
+      "description": "Change track for epoch switching rules: system vs policy/affirmations vs manual user snapshot.",
+      "enum": [
+        "system",
+        "policy",
+        "user"
+      ]
+    },
+    "user_comment": {
+      "type": "string",
+      "description": "Manual comment required for user-driven epoch switch requests (track=user)."
+    },
+    "canary_suites": {
+      "type": "array",
+      "description": "Optional ordered list of canary suites to run for this single change. Scary Core may upgrade the minimum suite.",
+      "items": {
+        "type": "string",
+        "enum": [
+          "auto",
+          "smoke",
+          "full"
+        ]
+      }
+    },
+    "risk_level": {
+      "type": "string",
+      "description": "Risk hint used by Scary Core to choose minimum canary suite.",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "requires_canary": {
+      "type": "string",
+      "description": "Optional hint. Scary Core may upgrade but must not downgrade below policy minimum.",
+      "enum": [
+        "auto",
+        "smoke",
+        "full"
+      ]
+    },
+    "target": {
+      "type": "object",
+      "properties": {
+        "base_epoch_id": {
+          "type": "string"
+        },
+        "desired_epoch_id": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "rationale": {
+      "type": "string"
+    },
+    "requested_changes": {
+      "type": "object",
+      "properties": {
+        "bundles_add": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "bundle_id",
+                  "manifest_sha256",
+                  "artifact_sha256"
+                ],
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "manifest_sha256": {
+                    "type": "string"
+                  },
+                  "artifact_sha256": {
+                    "type": "string"
+                  },
+                  "manifest_path": {
+                    "type": "string"
+                  },
+                  "artifact_path": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "description": "Optional manifest kind hint (ToolPlugin/AptRepoBundle)."
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "bundles_remove": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "required": [
+                  "bundle_id"
+                ],
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "artifact_sha256": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "tool_registry_patch": {
+          "type": "object"
+        },
+        "tool_policy_patch": {
+          "type": "object"
+        },
+        "sandbox_policy_patch": {
+          "type": "object"
+        },
+        "supplychain_policy_patch": {
+          "type": "object"
+        },
+        "streams_patch": {
+          "type": "object"
+        },
+        "patterns_patch": {
+          "type": "object"
+        },
+        "streams_add": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "patterns_add": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "verifiers_patch": {
+          "type": "object"
+        },
+        "clarifications_patch": {
+          "type": "object"
+        },
+        "vstore_config_patch": {
+          "type": "object"
+        },
+        "memory_policy_patch": {
+          "type": "object",
+          "description": "Patch to memory-policy.yaml (session/longterm memory limits, vstore layers)."
+        },
+        "canary_policy_patch": {
+          "type": "object"
+        },
+        "security_fixtures_patch": {
+          "type": "object"
+        },
+        "quarantine_policy_patch": {
+          "type": "object"
+        },
+        "role_affirmations_patch": {
+          "type": "object"
+        },
+        "role_roadmaps_patch": {
+          "type": "object"
+        },
+        "bundle_policy_patch": {
+          "type": "object"
+        },
+        "web_gateway_policy_patch": {
+          "type": "object"
+        },
+        "local_gateway_policy_patch": {
+          "type": "object"
+        },
+        "nids_policy_patch": {
+          "type": "object",
+          "description": "Patch to nids-policy.yaml (NIDS-lite for local LAN monitoring)."
+        },
+        "bootdoctor_policy_patch": {
+          "type": "object"
+        },
+        "installer_policy_patch": {
+          "type": "object"
+        },
+        "role_model_policy_patch": {
+          "type": "object"
+        },
+        "model_eval_suite_patch": {
+          "type": "object"
+        },
+        "llm_backends_policy_patch": {
+          "type": "object"
+        },
+        "maintenance_policy_patch": {
+          "type": "object"
+        },
+        "resource_policy_patch": {
+          "type": "object"
+        },
+        "taskqueue_policy_patch": {
+          "type": "object"
+        },
+        "storage_policy_patch": {
+          "type": "object",
+          "description": "Patch to storage-policy.yaml (origin disk + foreign volumes allowlist)."
+        }
+      },
+      "additionalProperties": false
+    },
+    "required_approvals": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "human",
+          "surgeon",
+          "scary"
+        ]
+      }
+    },
+    "canary_plan": {
+      "type": "object",
+      "description": "Pre-start only. Runtime must not execute canaries automatically.",
+      "properties": {
+        "suite": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "smoke",
+            "full"
+          ]
+        },
+        "tests": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "egress_mode": {
+          "type": "string",
+          "enum": [
+            "emulated",
+            "deny"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "audit": {
+      "type": "object",
+      "properties": {
+        "scary_report_ref": {
+          "type": "string"
+        },
+        "surgeon_report_ref": {
+          "type": "string"
+        },
+        "applied_epoch_id": {
+          "type": "string"
+        },
+        "applied_at": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,8 @@
+version: 0.27.8
+notes:
+- Added implementation-grade SQLite DDL for the durable prep-store and error-learning loop.
+- Added trace levels, provenance contracts, and an executable B backlog.
+- This release turns the durable prep-store from spec into working runtime code with CLI access, queue semantics, and JSONL import/export.
+
+- Added src/knowledge/prep_store.py and prep-store CLI surface under `brainctl kg prep-*`.
+- Added prep-store smoke tests and aligned knowledge-policy with prep-store paths.

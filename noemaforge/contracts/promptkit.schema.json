@@ -1,0 +1,387 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer"
+    },
+    "archetypes": {
+      "type": "object",
+      "properties": {
+        "structured_executor": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "planner_then_doer": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "evaluator": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "planner": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "coordinator_worker": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "dreamer": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "template": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "roles": {
+      "type": "object",
+      "properties": {
+        "pm": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "solution_architect": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "dev": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "qa": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "sr": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "ssr": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "scary": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "surgeon": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "prompt_engineer": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "evaluation_engineer": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "editor.science": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "editor.literary": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "editor.tone": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "formatter": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "cowriter": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "tropemaster": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            },
+            "goals": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "deliverables": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "planner": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "coordinator_worker": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "dreamer": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "task_manager": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "notifier": {
+          "type": "object",
+          "properties": {
+            "archetype": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/promptkit.schema.json",
+  "title": "Promptkit"
+}

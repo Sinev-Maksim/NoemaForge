@@ -1,0 +1,287 @@
+{
+  "apiVersion": "noemaforge.ai/v0.30.09",
+  "kind": "SmallImprovementPacks",
+  "version": "0.31.13.alpha",
+  "collections": [
+    {
+      "id": "lhf_operator_polish_001",
+      "title": "Operator polish: fewer commands, clearer docs, dashboard hints",
+      "pipeline": "lhf_operator_polish_collection",
+      "items": [
+        {
+          "id": "cmd_palette_index",
+          "impact": 5,
+          "effort": 1,
+          "action": "Add/update a top-command palette in docs and dashboard next_actions."
+        },
+        {
+          "id": "docs_first_success_path",
+          "impact": 5,
+          "effort": 1,
+          "action": "Make QUICKSTART and README converge on one safe first run."
+        },
+        {
+          "id": "dashboard_catalog_count",
+          "impact": 4,
+          "effort": 1,
+          "action": "Show pipeline catalog size and selected persona."
+        },
+        {
+          "id": "copyable_troubleshooting",
+          "impact": 4,
+          "effort": 1,
+          "action": "Keep one-line rescue/status commands copy-ready."
+        },
+        {
+          "id": "persona_activation_banner",
+          "impact": 3,
+          "effort": 1,
+          "action": "Show codename/portrait path when a role is activated."
+        },
+        {
+          "id": "release_file_index",
+          "impact": 3,
+          "effort": 1,
+          "action": "Generate manifest index for top-level release artifacts."
+        }
+      ]
+    },
+    {
+      "id": "lhf_pipeline_reliability_001",
+      "title": "Pipeline reliability: context-packet lint, artifact gaps, retry notes",
+      "pipeline": "lhf_reliability_collection",
+      "items": [
+        {
+          "id": "context_packet_linter",
+          "impact": 5,
+          "effort": 2,
+          "action": "Check each run has one packet and output stub per stage."
+        },
+        {
+          "id": "artifact_gap_report",
+          "impact": 5,
+          "effort": 1,
+          "action": "Report stages with no registered artifacts."
+        },
+        {
+          "id": "pipeline_pattern_catalog",
+          "impact": 4,
+          "effort": 1,
+          "action": "List imported n8n/Temporal/Airflow/GitHub/agent-life patterns."
+        },
+        {
+          "id": "retry_timeout_template",
+          "impact": 4,
+          "effort": 1,
+          "action": "Add retry/idempotence note fields to pipeline docs."
+        },
+        {
+          "id": "persona_state_validate",
+          "impact": 3,
+          "effort": 1,
+          "action": "Validate codenames, portraits and default generation."
+        },
+        {
+          "id": "smoke_includes_new_surface",
+          "impact": 4,
+          "effort": 1,
+          "action": "Extend MVP smoke with persona/pattern checks."
+        }
+      ]
+    },
+    {
+      "id": "lhf_context_handoff_002",
+      "title": "Context handoff polish",
+      "pipeline": "context_compaction",
+      "items": [
+        {
+          "id": "lint_packets",
+          "action": "noemaforge pipeline context-lint <run_id>",
+          "benefit": "catch broken handoff packets before role/model switch"
+        },
+        {
+          "id": "compact_run",
+          "action": "noemaforge pipeline compact <run_id> --register",
+          "benefit": "make long work resumable in one markdown artifact"
+        },
+        {
+          "id": "queue_view",
+          "action": "noemaforge pipeline queue --active",
+          "benefit": "operator sees active work without opening SQLite"
+        }
+      ]
+    },
+    {
+      "id": "lhf_public_dashboard_003",
+      "title": "Public dashboard launcher polish",
+      "pipeline": "dashboard_operator_console",
+      "items": [
+        {
+          "id": "write_state",
+          "action": "noemaforge dashboard state",
+          "benefit": "static GUI gets fresh state"
+        },
+        {
+          "id": "serve_local",
+          "action": "noemaforge dashboard serve",
+          "benefit": "one local command opens a minimal web surface"
+        },
+        {
+          "id": "metrics_check",
+          "action": "noemaforge pipeline metrics",
+          "benefit": "readiness and WIP are visible before launch"
+        }
+      ]
+    },
+    {
+      "id": "lhf_self_improvement_testbench_004",
+      "title": "Self-improvement safety/testbench uplift",
+      "pipeline": "self_improvement_test_matrix",
+      "items": [
+        {
+          "id": "testbench_item_1",
+          "impact": 4,
+          "effort": 2,
+          "action": "Add quick/integration/live test matrix entries for every runtime surface."
+        },
+        {
+          "id": "testbench_item_2",
+          "impact": 4,
+          "effort": 2,
+          "action": "Capture CPU, memory, disk and optional GPU/ECC telemetry for every case."
+        },
+        {
+          "id": "testbench_item_3",
+          "impact": 4,
+          "effort": 2,
+          "action": "Compare before/after summaries before accepting an optimization."
+        },
+        {
+          "id": "testbench_item_4",
+          "impact": 4,
+          "effort": 2,
+          "action": "Publish wiki patch bundles with functional and metric deltas."
+        }
+      ],
+      "status": "packaged_0.31.13.alpha"
+    },
+    {
+      "id": "lhf_self_improvement_observability_004",
+      "title": "Self-improvement observability: tests, telemetry and wiki patches",
+      "pipeline": "self_improvement_test_matrix",
+      "items": [
+        {
+          "id": "selftest_core_suite",
+          "impact": 5,
+          "effort": 1,
+          "action": "Run noemaforge selftest run --suite core before accepting changes."
+        },
+        {
+          "id": "resource_baseline_compare",
+          "impact": 5,
+          "effort": 2,
+          "action": "Compare CPU/RAM/disk/GPU/ECC metrics against the last accepted baseline."
+        },
+        {
+          "id": "wiki_patch_export",
+          "impact": 4,
+          "effort": 1,
+          "action": "Generate wiki incremental patches from the self-test report."
+        },
+        {
+          "id": "module_gap_catalog",
+          "impact": 4,
+          "effort": 2,
+          "action": "Use the selftest-case-catalog to find untested modules and create cases."
+        },
+        {
+          "id": "memory_leak_repeat",
+          "impact": 4,
+          "effort": 2,
+          "action": "Repeat selected cases and flag RSS growth as leak_suspect before apply."
+        }
+      ]
+    },
+    {
+      "id": "lhf_gui_help_compat_0310",
+      "version": "0.31.13.alpha",
+      "title": "GUI/help compatibility quick fixes",
+      "items": [
+        {
+          "id": "install_gui_wrappers",
+          "impact": 5,
+          "effort": 1,
+          "action": "Install gui-rescue/gui-status into /usr/local/bin and /usr/local/sbin"
+        },
+        {
+          "id": "fallback_direct_rescue",
+          "impact": 5,
+          "effort": 2,
+          "action": "Make helpers fall back to direct Trixie recovery when full CLI delegate is unavailable"
+        },
+        {
+          "id": "help_surface",
+          "impact": 4,
+          "effort": 1,
+          "action": "Add full command help and user test case docs"
+        }
+      ],
+      "pipeline": "gui_recovery_compatibility"
+    },
+    {
+      "id": "lhf_code_qa_subteam_0310",
+      "version": "0.31.13.alpha",
+      "title": "Code QA sub-team low-hanging fruit",
+      "items": [
+        {
+          "id": "qa_cli",
+          "impact": 5,
+          "effort": 2,
+          "action": "Add noemaforge qa code team/run/show/list"
+        },
+        {
+          "id": "finding_ledger",
+          "impact": 5,
+          "effort": 2,
+          "action": "Log reviewer proposals, consensus and unique findings"
+        },
+        {
+          "id": "qa_selftests",
+          "impact": 4,
+          "effort": 1,
+          "action": "Add selftest cases for QA selector and run artifact creation"
+        }
+      ],
+      "pipeline": "code_dev_qa_subteam"
+    },
+    {
+      "id": "lhf_member_cell_03101",
+      "title": "Member-cell pipeline hardening",
+      "pipeline": "dev_pipeline_member_cells",
+      "items": [
+        {
+          "id": "member_cell_cli",
+          "action": "Add standalone-or-ensemble member runtime"
+        },
+        {
+          "id": "artifact_consistency",
+          "action": "Gate outgoing member artifacts"
+        },
+        {
+          "id": "code_visualizer",
+          "action": "Generate diagrams and bottleneck report"
+        },
+        {
+          "id": "first_start_ui_testcase",
+          "action": "Add full first-start UI validation user test case"
+        }
+      ]
+    }
+  ],
+  "public_name": "small_improvement_packs",
+  "legacy_alias": "low_hanging_collections",
+  "enabled_by_default": false,
+  "allow_autorun": false,
+  "require_admin_approval": true,
+  "self_improvement_loop": "explicit_only"
+}

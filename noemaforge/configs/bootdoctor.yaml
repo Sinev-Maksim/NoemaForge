@@ -1,0 +1,46 @@
+apiVersion: noemaforge.bootdoctor/v1
+kind: BootDoctorPolicy
+enabled: true
+report:
+  reports_dir: /var/lib/noemaforge/boot/reports
+  onfailure_dir: /var/lib/noemaforge/boot/onfailure
+  outbox_reports_dir: /workspace/outbox/bootreports
+  outbox_support_dir: /workspace/outbox/support
+  keep_reports: 50
+  keep_support_bundles: 20
+collection:
+  # auto: first boot -> full, later boots -> quick unless failures
+  level: auto
+  journal_lines_boot: 1200
+  journal_lines_per_unit: 400
+  dmesg_lines: 500
+  include_systemd_analyze: true
+  include_lsblk: true
+  include_mounts: true
+  include_df: true
+  include_free: true
+failure_policy:
+  watch_units:
+    - noemaforge-llm-gateway.service
+    - noemaforge-toolproxy.service
+    - noemaforge-memsentinel.service
+  bundle_on_failed_units: true
+  onfailure_collect_unit_journal_lines: 900
+first_run:
+  force_full: true
+  state_file: /var/lib/noemaforge/.sys/bootdoctor-state.json
+
+hardware:
+  enabled: true
+  include_inventory: auto
+  state_file: /var/lib/noemaforge/.sys/hardware-fingerprint.json
+  emit_installer_plan:
+    on_first_seen: true
+    on_hardware_change: true
+redaction:
+  enabled: true
+  # These are conservative: they try to avoid dumping obvious secrets into outbox bundles.
+  patterns:
+    - '(?i)api[_-]?key\s*[:=]\s*[^\s]+'
+    - '(?i)authorization\s*:\s*bearer\s+[^\s]+'
+    - '(?i)password\s*[:=]\s*[^\s]+'

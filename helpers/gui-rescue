@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/gui-rescue
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# NoemaForge legacy-compatible GUI rescue wrapper.
+# Help is handled before delegation/root checks, so selftests and operators are safe.
+set -euo pipefail
+case "${1:-}" in
+  -h|--help|help|"?")
+    cat <<'HELP'
+Usage: sudo gui-rescue [--wait] [--direct] [--stop-llm] [--no-restart-dm] [--dry-run] [--help]
+
+Recover GUI/NVIDIA/GDM on Debian Trixie.
+Help never starts a rescue job.
+HELP
+    exit 0 ;;
+esac
+if [[ -x /usr/local/sbin/noemaforge ]] && /usr/local/sbin/noemaforge version >/dev/null 2>&1; then
+  exec /usr/local/sbin/noemaforge gui-rescue "$@"
+fi
+STOP_LLM=0; RESTART_DM=1; DRY_RUN=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --stop-llm) STOP_LLM=1; shift ;;
+    --no-restart-dm) RESTART_DM=0; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    --wait|--direct) shift ;;
+    *) echo "[gui-rescue][ERROR] unknown option: $1" >&2; exit 2 ;;
+  esac
+done
+[[ ${EUID:-$(id -u)} -eq 0 ]] || { echo "[gui-rescue][ERROR] run with sudo" >&2; exit 1; }
+if [[ "$STOP_LLM" == 1 ]]; then
+  systemctl stop noemaforge-llama@main.service noemaforge-llm-backends-manager.service 2>/dev/null || true
+  systemctl disable --now noemaforge-modelscan.timer noemaforge-llm-backends-manager.timer 2>/dev/null || true
+  pgrep -f llama-server | xargs -r kill -TERM || true
+  sleep 2
+  pgrep -f llama-server | xargs -r kill -KILL || true
+  rm -f /run/noemaforge/llm/backends/*.sock 2>/dev/null || true
+fi
+DM=""
+for u in display-manager.service gdm3.service gdm.service lightdm.service sddm.service; do
+  if systemctl list-unit-files "$u" --no-legend 2>/dev/null | grep -q . || systemctl status "$u" >/dev/null 2>&1; then DM="$u"; break; fi
+done
+if [[ -n "$DM" && "$RESTART_DM" == 1 ]]; then
+  systemctl stop "$DM" 2>/dev/null || true
+  systemctl reset-failed "$DM" 2>/dev/null || true
+fi
+modprobe nvidia-current 2>/dev/null || modprobe nvidia 2>/dev/null || true
+modprobe nvidia-current-modeset 2>/dev/null || modprobe nvidia_modeset 2>/dev/null || true
+modprobe nvidia-current-uvm 2>/dev/null || modprobe nvidia_uvm 2>/dev/null || true
+modprobe nvidia-current-drm modeset=1 2>/dev/null || modprobe nvidia_drm modeset=1 2>/dev/null || true
+cat /sys/module/nvidia_drm/parameters/modeset 2>/dev/null || echo "nvidia_drm not loaded"
+update-alternatives --set glx /usr/lib/nvidia 2>/dev/null || true
+ldconfig || true
+systemctl daemon-reload
+systemctl reset-failed || true
+systemctl set-default graphical.target 2>/dev/null || true
+if [[ -n "$DM" && "$RESTART_DM" == 1 ]]; then
+  systemctl enable "$DM" 2>/dev/null || true
+  systemctl start "$DM"
+else
+  systemctl start --no-block display-manager.service || systemctl start --no-block gdm.service || systemctl start --no-block gdm3.service || true
+fi
+echo "[gui-rescue] done"

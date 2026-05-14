@@ -1,0 +1,83 @@
+apiVersion: noemaforge.discordbridge/v1
+kind: DiscordBridgePolicy
+enabled: false
+mode: desktop_bridge
+sessions_root: /var/lib/noemaforge/discord_bridge/sessions
+artifacts_root: /var/lib/noemaforge/discord_bridge/assets
+
+# This contract enables a local Discord desktop bridge.
+# NoemaForge does not push media to Discord APIs directly. Instead it creates
+# local delayed audio/video outputs that the Discord desktop client can select
+# as its camera and microphone.
+
+discord_client:
+  handoff_mode: desktop_virtual_devices
+  application_name: Discord
+  recommended_video_device: /dev/video10
+  recommended_audio_source: noemaforge-discord.monitor
+  launch_notes:
+    - Start the NoemaForge Discord bridge session first.
+    - In Discord desktop settings, select the configured virtual camera and microphone.
+    - Discord network transport itself is handled by the desktop client, not by NoemaForge.
+
+capture:
+  av_delay_ms: 350
+  video:
+    enabled: false
+    backend_order:
+      - ffmpeg
+      - command
+    camera_device: /dev/video0
+    input_path: ""
+    width: 1280
+    height: 720
+    fps: 24
+    input_format: v4l2
+    ffmpeg_executable: ffmpeg
+    output_mode: v4l2loopback
+    output_device: /dev/video10
+    output_path: ""
+    command:
+      argv: []
+  audio:
+    enabled: false
+    backend_order:
+      - ffmpeg
+      - command
+    input_device: default
+    sample_rate_hz: 48000
+    channels: 2
+    input_format: pulse
+    ffmpeg_executable: ffmpeg
+    output_mode: pulse_sink
+    output_target: noemaforge-discord
+    output_path: ""
+    delay_ms: 350
+    command:
+      argv: []
+
+processing:
+  background:
+    enabled: true
+    backend_order:
+      - prompt_gradient_ppm
+      - command
+    width: 1280
+    height: 720
+    command:
+      argv: []
+  mask:
+    enabled: true
+    backend_order:
+      - soft_center_mask_pgm
+      - command
+      - passthrough
+    width: 1280
+    height: 720
+    blur_px: 28
+    command:
+      argv: []
+
+assistant_bridge:
+  default_alias: administrator
+  overlay_title: NoemaForge Administrator

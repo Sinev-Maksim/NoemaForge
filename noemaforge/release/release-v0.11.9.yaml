@@ -1,0 +1,31 @@
+version: 0.11.9
+codename: "Daily Tasks as Explicit Queue + Audit Markers"
+date_utc: "2026-03-02"
+
+summary:
+  - "Daily SLA (must-run) recurring tasks are now enqueued into TaskQueue (core.run_recurring) instead of being executed directly by maintenance."
+  - "Daily verification becomes explicit: daily-auditor checks are enqueued as TaskQueue tasks (core.run_audit)."
+  - "run-audit now records an audit run marker and distinguishes missing vs in-progress tasks."
+
+changes:
+  added:
+    - seed/noemaforge/src/daily_scheduler.py
+    - seed/noemaforge/release/release-v0.11.9.yaml
+  modified:
+    - seed/noemaforge/src/maintenance.py
+    - seed/noemaforge/src/task_runner.py
+    - seed/noemaforge/src/taskqueue.py
+    - seed/noemaforge/src/noemaforge_core.py
+    - seed/noemaforge/manifest.yaml
+
+contracts:
+  runtime_immutable:
+    - "recurring-tasks.yaml, daily-auditor.yaml, taskqueue-policy.yaml and maintenance-policy.yaml remain epoch-scoped; runtime must not mutate them."
+  behavior:
+    - "maintenance tick enqueues due daily tasks and audits first; then, if not busy, dispatches one daily_sla step even outside idle-cycle."
+    - "TaskQueue executes daily tasks via noemaforge_core.py run-recurring and audits via noemaforge_core.py run-audit."
+    - "run-audit writes /var/lib/noemaforge/routines/audit/runs/YYYY-MM-DD_<check_id>.json as a scheduler marker."
+
+notes:
+  - "This does not change the 'no canaries at runtime' rule: canary runs remain pre-start only (except by explicit user request)."
+  - "If a recurring task is currently running (lock present), run-audit lists it under in_progress rather than marking it missing."

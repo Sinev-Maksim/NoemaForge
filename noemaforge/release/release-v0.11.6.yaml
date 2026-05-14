@@ -1,0 +1,19 @@
+version: 0.11.6
+codename: Team-Opt + Role Specialization Hooks
+date_utc: 2026-03-01
+
+highlights:
+  - Team evaluation: end-to-end scorecards for flows (combinatorics over model assignments).
+  - TeamModelPolicy (epoch contract): allows team-level model overrides (drafted by Surgeon, applied via pre-start).
+  - Role specialization hooks: hierarchical role IDs with dot inheritance (dev -> dev.python -> ...).
+  - ToolProxy + router updated to understand role inheritance and optional team overrides.
+
+new_contracts:
+  - configs/flow-catalog.yaml
+  - configs/flow-eval-suite.yaml
+  - configs/team-eval-policy.yaml
+  - configs/team-model-policy.yaml
+
+notes:
+  - Team evaluation is measurement (not canary) and is executed only by SurgeonAuto.
+  - Policy application remains pre-start only.

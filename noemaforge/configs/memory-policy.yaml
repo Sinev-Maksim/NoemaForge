@@ -1,0 +1,45 @@
+apiVersion: noemaforge.memory/v1
+kind: MemoryPolicy
+enabled: true
+session:
+  enabled: true
+  max_ram_ratio: 0.25
+  vstore_base_dir: /dev/shm/noemaforge/vstore
+  sqlite_path: /dev/shm/noemaforge/session_memory.sqlite
+  layer: memory_session
+  embed:
+    model_id: hash256-v1
+    dims: 256
+  osmyslenie:
+    enabled: true
+    n_per_category: 3
+    similarity_threshold: 0.62
+    max_categories: 200
+    max_subcategories: 50
+    min_cluster_size: 3
+longterm:
+  enabled: true
+  vstore_base_dir: /var/lib/noemaforge/vstore
+  sqlite_path: /var/lib/noemaforge/memory/longterm.sqlite
+  layer: memory_long
+  embed:
+    model_id: hash256-v1
+    dims: 256
+casebase:
+  enabled: true
+  behind_scheduler: true
+retrieval:
+  top_k: 8
+  include_casebase: true
+  include_longterm: true
+  include_session: true
+  filters:
+    default_streams: []
+    max_age_days: 3650
+summaries:
+  session_dir: /var/lib/noemaforge/memory/session
+  markdown_name: session_memory.md
+  longterm_table: session_summaries
+dream:
+  outbox_dir: /var/lib/noemaforge/outbox/dream
+  table: dream_cycles

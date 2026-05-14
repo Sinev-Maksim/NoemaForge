@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/intent_spec.schema.json",
+  "type": "object",
+  "required": [
+    "intent_id",
+    "intent",
+    "channel",
+    "constraints",
+    "risk_class"
+  ],
+  "properties": {
+    "intent_id": {
+      "type": "string"
+    },
+    "intent": {
+      "type": "string"
+    },
+    "channel": {
+      "type": "string",
+      "enum": [
+        "messenger",
+        "ui",
+        "console"
+      ]
+    },
+    "constraints": {
+      "type": "object"
+    },
+    "risk_class": {
+      "type": "string",
+      "enum": [
+        "A",
+        "B",
+        "C"
+      ]
+    }
+  },
+  "additionalProperties": true
+}

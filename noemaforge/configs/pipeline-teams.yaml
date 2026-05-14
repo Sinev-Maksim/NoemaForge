@@ -1,0 +1,16 @@
+# NoemaForge role teams. These are role labels, not simultaneous LLM workers.
+public_onboarding_team:
+  coordinator: operator_guide
+  roles: [status_checker, safe_runtime_helper, chat_guide, support_archivist]
+development_evolution_team:
+  coordinator: administrator
+  roles: [architect, developer, tester, integration_tester, optimizer, reviewer, archivist]
+book_team:
+  coordinator: editor_in_chief
+  roles: [researcher, outline_architect, writer, editor, fact_checker, archivist]
+knowledge_graph_team:
+  coordinator: knowledge_architect
+  roles: [source_curator, entity_mapper, relation_mapper, provenance_reviewer, graph_validator]
+release_team:
+  coordinator: release_manager
+  roles: [inventory_checker, merge_analyst, smoke_tester, docs_writer, reviewer]

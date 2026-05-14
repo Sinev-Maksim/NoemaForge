@@ -1,0 +1,6 @@
+version: 0.27.11
+notes:
+  - Added grounded administrator runtime with provenance-backed citations.
+  - Added deterministic synthetic book fixtures and gold eval packs.
+  - Added error-learning runtime adapter and extraction evaluation CLI.
+  - Added heuristic conflict detection and administrator model-selection cases.

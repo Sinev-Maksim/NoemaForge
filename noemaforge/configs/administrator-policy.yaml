@@ -1,0 +1,36 @@
+apiVersion: noemaforge.administrator/v1
+kind: AdministratorPolicy
+default_stream: operator.admin
+default_role: administrator
+confidence:
+  ask_boundaries_below: 0.65
+  allow_combined_roles_above: 0.8
+delegation:
+  code:
+  - dev.work/solution_architect
+  - dev.work/dev
+  - dev.work/qa
+  writing:
+  - writing.story/writer
+  - writing.story/editor.literary
+  - writing.story/fact_checker
+  knowledge:
+  - knowledge.vault/researcher
+  - system.guard/ssr
+  learning:
+  - selfdev.learning/coach
+  video:
+  - video.drone/video_editor
+  music:
+  - operator.admin/administrator
+  ops:
+  - system.guard/surgeon
+  - system.guard/scary
+knowledge:
+  prefer_grounded_answer: true
+  fallback_to_question_when_unavailable: true
+tasks:
+  allow_create: true
+  allow_update: true
+ui_guidance:
+  allow_capability_explanations: true

@@ -1,0 +1,60 @@
+apiVersion: noemaforge.resourcepolicy/v1
+kind: ResourcePolicy
+
+# Global governor: never allow brain zone workloads to consume more than this
+# percentage of total machine resources. This is conservative and is meant
+# to leave headroom for the spinal zone and for unforeseen spikes.
+limits:
+  max_cpu_pct: 95
+  max_mem_pct: 95
+
+# Reserved budget for spinal services (spine/core/logging). Used only for
+# planning/clamping defaults (not cgroups yet).
+spine_reserved:
+  cpu_pct: 5
+  mem_pct: 5
+
+# Per-role defaults/caps. These values act as *caps* unless overridden by
+# explicit operator policies in a future epoch.
+# Roles may be hierarchical: dev -> dev.python -> dev.python.sql.
+# If a role is not found, we walk up the dot hierarchy.
+defaults:
+  role:
+    cpu_cores: 2
+    ram_mib: 2048
+    timeout_sec: 600
+  task:
+    cpu_cores: 1
+    ram_mib: 1024
+
+roles:
+  pm:
+    cpu_cores: 2
+    ram_mib: 2048
+  qa:
+    cpu_cores: 2
+    ram_mib: 2048
+
+  dev:
+    cpu_cores: 4
+    ram_mib: 4096
+
+  architect:
+    cpu_cores: 4
+    ram_mib: 4096
+
+  scary:
+    cpu_cores: 2
+    ram_mib: 2048
+
+  surgeon:
+    cpu_cores: 4
+    ram_mib: 4096
+
+enforcement:
+  # soft: clamp requests to caps + log. hard: deny if request exceeds caps.
+  mode: soft
+  podman:
+    enabled: true
+  host:
+    nice: 10

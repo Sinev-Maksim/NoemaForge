@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/wiki_incremental_patch.schema.json",
+  "title": "NoemaForge Wiki Incremental Patch",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "patch_id", "created_at", "files"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "WikiIncrementalPatch"},
+    "version": {"type": "string"},
+    "patch_id": {"type": "string"},
+    "created_at": {"type": "string"},
+    "report_run_id": {"type": "string"},
+    "summary": {"type": "string"},
+    "task": {"type": ["string", "null"]},
+    "user_note": {"type": ["string", "null"]},
+    "files": {"type": "array", "items": {"type": "string"}},
+    "comparison": {"type": "object"}
+  }
+}

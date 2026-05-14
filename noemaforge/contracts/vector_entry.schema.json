@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/vector_entry.schema.json",
+  "type": "object",
+  "required": [
+    "entry_id",
+    "layer",
+    "dims",
+    "model_id",
+    "created_at",
+    "vector",
+    "meta"
+  ],
+  "properties": {
+    "entry_id": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string"
+    },
+    "dims": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "vector": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "tombstone": {
+      "type": "boolean",
+      "default": false
+    },
+    "source_ref": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

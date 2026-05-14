@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/vector_segment_manifest.schema.json",
+  "type": "object",
+  "required": [
+    "segment_id",
+    "layer",
+    "backend",
+    "dims",
+    "model_id",
+    "created_at",
+    "count",
+    "path",
+    "sha256"
+  ],
+  "properties": {
+    "segment_id": {
+      "type": "string"
+    },
+    "layer": {
+      "type": "string"
+    },
+    "backend": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "hnsw"
+      ]
+    },
+    "dims": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "model_id": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "path": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "active",
+        "sealed",
+        "compacted"
+      ],
+      "default": "active"
+    },
+    "sha256": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false
+}

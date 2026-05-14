@@ -1,0 +1,89 @@
+#!/usr/bin/env python3
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-model-advisor
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+from __future__ import annotations
+import argparse, json, os, re, shutil, subprocess
+from pathlib import Path
+VERSION='0.29.10'
+
+def meminfo():
+    d={}
+    try:
+        for line in Path('/proc/meminfo').read_text().splitlines():
+            m=re.match(r'^(\w+):\s+(\d+)\s+kB',line)
+            if m: d[m.group(1)]=int(m.group(2))*1024
+    except Exception: pass
+    return d
+
+def gib(n): return round(float(n)/(1024**3),2) if n is not None else None
+
+def nvidia():
+    if not shutil.which('nvidia-smi'): return []
+    try:
+        out=subprocess.check_output(['nvidia-smi','--query-gpu=name,memory.total,memory.free','--format=csv,noheader,nounits'],text=True,stderr=subprocess.DEVNULL,timeout=5)
+    except Exception: return []
+    g=[]
+    for line in out.splitlines():
+        p=[x.strip() for x in line.split(',')]
+        if len(p)>=3:
+            try: total=int(float(p[1])); free=int(float(p[2]))
+            except Exception: total=free=0
+            g.append({'name':p[0],'vram_total_gib':round(total/1024,2),'vram_free_gib':round(free/1024,2)})
+    return g
+
+def disk(path):
+    try:
+        du=shutil.disk_usage(path)
+        return {'path':path,'total_gib':gib(du.total),'free_gib':gib(du.free)}
+    except Exception:
+        return {'path':path,'total_gib':None,'free_gib':None,'mounted':False}
+
+def advise(ram,avail,swap,vram):
+    if ram < 8:
+        tier='tiny'; main='0.3B-1.5B Q4_K_M/Q5_K_M; Q8_0 only <=1B'; avoid=['7B+','14B+','Q6/Q8 on non-tiny models']
+    elif ram < 16:
+        tier='small'; main='1.5B-3B Q4_K_M; 7B Q4_K_S only for short tests'; avoid=['14B+','32B+','parallel model runtime']
+    elif ram < 32:
+        tier='desktop-16gb'; main='3B Q4_K_M safe main; 7B/8B Q4_K_M next-round tests; 14B only headless/test'; avoid=['32B+ as runtime-main','Q8_0 for 7B+','multiple active models']
+    elif ram < 64:
+        tier='workstation-32gb'; main='7B/8B Q4_K_M or Q5_K_M main; 14B Q4_K_M tests'; avoid=['32B always-on unless headless/monitored','parallel without scheduler']
+    else:
+        tier='large-workstation'; main='14B Q4_K_M/Q5_K_M candidates; 32B Q4_K_M test/headless'; avoid=['unsafe non-head shards','unbounded parallel runtime']
+    if avail < 6: main += '; current available RAM low, prefer <=3B Q4_K_M until cleanup'
+    return {'tier':tier,'default_main_recommendation':main,'quantization_policy':{'default':'Q4_K_M','small_fast':'Q5_K_M or Q8_0 for <=1B','large_economy':'Q4_K_S','avoid_for_default':avoid,'sharded_rule':'only single GGUF or 00001-of-N head shards are launchable; never 00002-of-N+'},'runtime_policy':{'runtime_desired_count':1,'parallel_model_runtime':'TODO explicit scheduler/resource guard'},'role_hints':{'main':'3B Q4_K_M until system is fully stable','dev/python':'Coder 3B Q4_K_M, then Coder 7B Q4_K_M test','admin/operator':'3B-8B Q4_K_M','sr/ssr/surgeon':'7B/8B Q4_K_M after smoke stability','writing':'3B-7B Q4_K_M','music/vision/video':'dedicated runtime packs later'}}
+
+def main():
+    ap=argparse.ArgumentParser()
+    ap.add_argument('--json',action='store_true')
+    ap.add_argument('--vault',default=os.environ.get('NOEMAFORGE_VAULT_PATH','/mnt/noemaforge-share/noemaforge-lab/data/Vault'))
+    args=ap.parse_args()
+    mi=meminfo(); ram=gib(mi.get('MemTotal',0)) or 0; avail=gib(mi.get('MemAvailable',0)) or 0; swap=gib(mi.get('SwapTotal',0)) or 0
+    gpus=nvidia(); vram=max([float(x.get('vram_total_gib') or 0) for x in gpus] or [0.0])
+    payload={'apiVersion':'noemaforge.model-advisor/v1','version':VERSION,'host':os.uname().nodename,'detected':{'ram_total_gib':ram,'ram_available_gib':avail,'swap_total_gib':swap,'gpus':gpus,'root_disk':disk('/'),'vault_disk':disk(args.vault)},'recommendation':advise(ram,avail,swap,vram)}
+    if args.json:
+        print(json.dumps(payload,ensure_ascii=False,indent=2)); return 0
+    print('=== NoemaForge model advisor ===')
+    print(f'version={VERSION}')
+    print(f"ram_total_gib={ram} ram_available_gib={avail} swap_total_gib={swap}")
+    for gpu in gpus: print(f"gpu={gpu['name']} vram_total_gib={gpu['vram_total_gib']} vram_free_gib={gpu['vram_free_gib']}")
+    if not gpus: print('gpu=none-detected')
+    print(f"root_free_gib={payload['detected']['root_disk'].get('free_gib')} vault_free_gib={payload['detected']['vault_disk'].get('free_gib')}")
+    rec=payload['recommendation']; print(f"tier={rec['tier']}"); print(f"default_main={rec['default_main_recommendation']}")
+    print('quantization_default=Q4_K_M'); print('runtime_desired_count=1'); print('parallel_model_runtime=TODO')
+    print('Role hints:')
+    for k,v in rec['role_hints'].items(): print(f'  {k}: {v}')
+    print('Avoid:')
+    for x in rec['quantization_policy']['avoid_for_default']: print(f'  - {x}')
+    return 0
+if __name__=='__main__': raise SystemExit(main())

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/ui_registry.schema.json",
+  "title": "UIRegistry",
+  "type": "object",
+  "required": ["apiVersion", "kind", "screens", "actions"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.ui_registry/v1"},
+    "kind": {"type": "string", "const": "UIRegistry"},
+    "screens": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "actions": {"type": "array", "items": {"type": "object", "additionalProperties": true}},
+    "meta": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

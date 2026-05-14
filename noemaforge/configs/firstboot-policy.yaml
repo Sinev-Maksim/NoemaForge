@@ -1,0 +1,39 @@
+apiVersion: noemaforge.firstboot/v1
+kind: FirstbootPolicy
+share_root_default: /mnt/noemaforge-share
+vault_root_candidates:
+- /mnt/noemaforge-share/noemaforge-lab/data/Vault
+- /mnt/noemaforge-share/Vault
+modelstore_root: /var/lib/modelstore
+scorecards_dir: /var/lib/noemaforge/model_scorecards
+requests_dir: /var/lib/noemaforge/requests/prestart
+status_path: /var/lib/noemaforge/bootstrap/firstboot-status.json
+events_path: /var/lib/noemaforge/bootstrap/firstboot-events.jsonl
+candidate_limit: 0
+top_k: 8
+top_k_per_role: 8
+tasks_per_model_per_role: 10
+auto_apply_first_epoch: true
+auto_reboot_after_apply: true
+minimal_thresholds:
+  pass_rate: 0.6
+  json_parse_rate: 0.8
+  quality_score: 0.55
+mandatory_core_roles:
+- operator.admin/administrator
+- system.guard/surgeon
+- dev.work/solution_architect
+- writing.story/writer
+roles_order:
+- operator.admin/administrator
+- system.guard/surgeon
+- system.guard/ssr
+- dev.work/solution_architect
+- dev.work/dev
+- dev.work/qa
+- writing.story/writer
+- writing.story/editor.literary
+- writing.story/fact_checker
+- writing.story/formatter
+- writing.story/world_keeper
+- selfdev.learning/coach

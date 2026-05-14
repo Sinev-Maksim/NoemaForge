@@ -1,0 +1,13 @@
+release: 0.9.0
+codename: EpochPrestart-ToolProxy-v1
+highlights:
+  - "Pre-start epoch manager: build/switch Contract Epochs from PreStartChangeRequest queue."
+  - "ToolProxy v1: llm.embed + fs/db/exec handlers (stream allowlists, resource limits)."
+  - "Bootstrap now initializes epoch 00001 and points ToolProxy to epoch-scoped contracts."
+  - "vstore: promoted to first-class memory substrate (casebase/vault/events layers)."
+compat:
+  - "No network by default."
+  - "CPU-first: GPU optional; VRAM used only if stream/resource contracts allow it."
+notes:
+  - "This is still an MVP seed kit: exec.run sandboxing is best-effort unless you enable podman-based execution."
+  - "All contract/policy changes must happen pre-start; runtime may only emit requests."

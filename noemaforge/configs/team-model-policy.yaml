@@ -1,0 +1,31 @@
+apiVersion: noemaforge.teammodel/v1
+kind: TeamModelPolicy
+
+# Contract Epoch: team-level overrides for model routing.
+#
+# Motivation:
+# - Оптимальная модель "по роли" не всегда даёт лучший итог.
+# - Surgeon может измерять качество команды как целого (team scorecards)
+#   и предлагать включить team overrides через PRE-START.
+
+defaults:
+  enabled: false
+  selection:
+    # Strategy reserved for future extensions; MVP uses explicit overrides.
+    strategy: selected
+
+teams:
+  # Example: dev.work
+  dev.work:
+    enabled: false
+    # The selected team config (optional metadata)
+    selected_team_id: ""
+    roles:
+      pm:
+        llm: main
+      solution_architect:
+        llm: main
+      dev:
+        llm: main
+      qa:
+        llm: main

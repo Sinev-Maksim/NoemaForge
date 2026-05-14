@@ -1,0 +1,429 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "queue": {
+      "type": "object",
+      "properties": {
+        "db_path": {
+          "type": "string"
+        },
+        "max_tasks_per_domain": {
+          "type": "integer"
+        },
+        "claim_lease_sec": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "selection": {
+      "type": "object",
+      "properties": {
+        "priority_order": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "domain_cycle": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "skip_empty_domains": {
+          "type": "boolean"
+        },
+        "repeat_boost": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "thresholds": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "repeats": {
+                    "type": "integer"
+                  },
+                  "promote_to": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              }
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "default_tasks": {
+      "type": "object",
+      "properties": {
+        "SELF_IMPROVE": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "module": {
+                "type": "string"
+              },
+              "priority_class": {
+                "type": "string"
+              },
+              "group_key": {
+                "type": "string"
+              },
+              "cooldown_sec": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "SECURITY": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "module": {
+                "type": "string"
+              },
+              "priority_class": {
+                "type": "string"
+              },
+              "group_key": {
+                "type": "string"
+              },
+              "cooldown_sec": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "PLANNED": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string"
+              },
+              "module": {
+                "type": "string"
+              },
+              "priority_class": {
+                "type": "string"
+              },
+              "group_key": {
+                "type": "string"
+              },
+              "cooldown_sec": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "signal_to_task": {
+      "type": "object",
+      "properties": {
+        "scary.sel.integrity": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "scary.quarantine.review": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "scary.fixtures.v1": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "scary.gloves.v1": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "scary.supplychain.audit": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "sr.memory.pressure": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "surgeon.memory.spill": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "surgeon.prestart_discipline.v1": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "arch.tool_policy.gaps": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "arch.recurring.failures": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "security.toolproxy.*.repeat.*": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "security.webgateway.*.repeat.*": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "security.incident.*.repeat.*": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "noemaforge.session_memory.extract": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        },
+        "noemaforge.dream.cycle": {
+          "type": "object",
+          "properties": {
+            "domain": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "module": {
+              "type": "string"
+            },
+            "priority_class": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/taskqueue_policy.schema.json",
+  "title": "TaskqueuePolicy"
+}

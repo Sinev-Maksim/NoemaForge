@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlowEvalSuite",
+  "type": "object",
+  "required": ["apiVersion", "kind", "suites"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "FlowEvalSuite"},
+    "suites": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "cases": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["id", "goal"],
+                "properties": {
+                  "id": {"type": "string"},
+                  "goal": {"type": "string"},
+                  "constraints": {"type": "object"},
+                  "rubric": {"type": "object"},
+                  "judge_prompt": {"type": "string"}
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

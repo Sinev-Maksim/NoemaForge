@@ -1,0 +1,2870 @@
+{
+  "public_mwp": {
+    "description": "Public minimum workable path: status, safe start, first chat, first pipeline, support bundle.",
+    "project_id": "noemaforge_public_mwp",
+    "stages": [
+      "orient",
+      "status_check",
+      "safe_runtime",
+      "first_chat",
+      "first_pipeline",
+      "support_bundle",
+      "review"
+    ],
+    "team": "public_onboarding_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "status_note",
+      "safe_runtime_check",
+      "first_chat_note",
+      "first_pipeline_note",
+      "support_bundle_plan"
+    ],
+    "quality_gates": [
+      "status_before_runtime",
+      "safe_start_before_chat",
+      "support_bundle_no_weights"
+    ]
+  },
+  "evolution": {
+    "description": "Architecture-aware development/evolution pipeline.",
+    "project_id": "noemaforge",
+    "stages": [
+      "intake",
+      "architecture_clarification",
+      "development",
+      "unit_testing",
+      "integration_testing",
+      "optimization",
+      "review",
+      "merge_plan"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "architecture_note",
+      "patch_or_plan",
+      "test_report",
+      "optimization_note",
+      "merge_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ]
+  },
+  "book": {
+    "description": "Research-to-book pipeline.",
+    "project_id": "noemaforge_book",
+    "stages": [
+      "intake",
+      "research",
+      "outline",
+      "drafting",
+      "editor_review",
+      "fact_check",
+      "integration_edit",
+      "export_plan"
+    ],
+    "team": "book_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "source_notes",
+      "outline",
+      "draft",
+      "editor_notes",
+      "fact_check",
+      "export_plan"
+    ],
+    "quality_gates": [
+      "source_notes_exist",
+      "fact_check_before_export",
+      "editor_review_before_publish"
+    ]
+  },
+  "knowledge_graph": {
+    "description": "Knowledge graph creation/update pipeline.",
+    "project_id": "noemaforge_kg",
+    "stages": [
+      "intake",
+      "source_inventory",
+      "entity_extraction",
+      "relation_mapping",
+      "provenance_review",
+      "graph_patch",
+      "validation",
+      "publish_plan"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "source_inventory",
+      "entities",
+      "relations",
+      "provenance",
+      "graph_patch",
+      "validation_report"
+    ],
+    "quality_gates": [
+      "provenance_required",
+      "validation_before_publish"
+    ]
+  },
+  "release_prep": {
+    "description": "Release merge and checks pipeline.",
+    "project_id": "noemaforge_release",
+    "stages": [
+      "intake",
+      "inventory",
+      "merge_analysis",
+      "smoke_tests",
+      "docs_update",
+      "changelog",
+      "archive_plan",
+      "admin_review"
+    ],
+    "team": "release_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "merge_summary",
+      "smoke_report",
+      "release_notes",
+      "archive_plan"
+    ],
+    "quality_gates": [
+      "smoke_before_archive",
+      "release_notes_exist",
+      "admin_review_required"
+    ]
+  },
+  "persona_evolution": {
+    "description": "Evolve a NoemaForge persona codename, drives, memory style and portrait generation.",
+    "project_id": "noemaforge_personas",
+    "stages": [
+      "intake",
+      "baseline_snapshot",
+      "drive_review",
+      "mutation_proposal",
+      "portrait_evolution",
+      "behavior_eval",
+      "admin_review",
+      "publish_plan"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "persona_baseline",
+      "drive_delta",
+      "mutation_note",
+      "portrait_svg",
+      "eval_note",
+      "publish_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "creatures_agent_life",
+    "tags": [
+      "persona",
+      "creatures",
+      "portrait"
+    ]
+  },
+  "agent_life_lab": {
+    "description": "Sandbox agent-life experiment: genome/drives/memory ecology without autonomous system changes.",
+    "project_id": "noemaforge_life_lab",
+    "stages": [
+      "intake",
+      "genome_design",
+      "drive_matrix",
+      "stimulus_plan",
+      "simulation_stub",
+      "fitness_eval",
+      "safety_review",
+      "archive"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "genome_spec",
+      "drive_matrix",
+      "simulation_plan",
+      "fitness_scorecard"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "creatures_agent_life",
+    "tags": [
+      "creatures",
+      "simulation"
+    ]
+  },
+  "drive_calibration": {
+    "description": "Tune persona drives/needs/thresholds with explicit safety and resource bounds.",
+    "project_id": "noemaforge_personas",
+    "stages": [
+      "intake",
+      "drive_inventory",
+      "conflict_analysis",
+      "threshold_tuning",
+      "dry_run_eval",
+      "operator_review"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "drive_inventory",
+      "threshold_patch",
+      "eval_report"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "utility_ai",
+    "tags": [
+      "persona",
+      "drives"
+    ]
+  },
+  "memory_digestion": {
+    "description": "Turn accumulated packets into compact memory summaries and update knowledge graph links.",
+    "project_id": "noemaforge_memory",
+    "stages": [
+      "intake",
+      "packet_inventory",
+      "salience_scoring",
+      "summary_generation",
+      "graph_linking",
+      "staleness_review",
+      "archive"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "packet_inventory",
+      "memory_summary",
+      "graph_links",
+      "staleness_report"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "creatures_memory_ecology",
+    "tags": [
+      "memory",
+      "kg"
+    ]
+  },
+  "dream_cycle": {
+    "description": "Offline reflective cycle for error learning, roadmap hints and persona state notes.",
+    "project_id": "noemaforge_dream",
+    "stages": [
+      "intake",
+      "event_sampling",
+      "pattern_mining",
+      "hypothesis_generation",
+      "risk_filter",
+      "roadmap_signal",
+      "archive"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "sample_set",
+      "hypotheses",
+      "risk_filter",
+      "roadmap_signals"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "agent_reflection",
+    "tags": [
+      "evolution",
+      "reflection"
+    ]
+  },
+  "curriculum_training_plan": {
+    "description": "Create a curriculum of eval tasks for a role/persona before allowing new behavior.",
+    "project_id": "noemaforge_eval",
+    "stages": [
+      "intake",
+      "role_scope",
+      "task_inventory",
+      "curriculum_design",
+      "eval_pack_stub",
+      "review",
+      "publish_plan"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "role_scope",
+      "curriculum",
+      "eval_pack_stub",
+      "review_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "curriculum_learning",
+    "tags": [
+      "eval",
+      "roles"
+    ]
+  },
+  "persona_portrait_refresh": {
+    "description": "Refresh active persona portraits and dashboard metadata without changing behavior.",
+    "project_id": "noemaforge_personas",
+    "stages": [
+      "intake",
+      "persona_inventory",
+      "style_consistency",
+      "svg_generation",
+      "dashboard_patch",
+      "visual_review",
+      "archive"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "portrait_inventory",
+      "svg_set",
+      "dashboard_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "visual_identity",
+    "tags": [
+      "persona",
+      "ui"
+    ]
+  },
+  "webhook_to_pipeline": {
+    "description": "Convert an incoming webhook/form/request into a reviewed NoemaForge pipeline run.",
+    "project_id": "noemaforge_automation",
+    "stages": [
+      "trigger_capture",
+      "payload_normalize",
+      "intent_route",
+      "pipeline_select",
+      "approval_gate",
+      "run_create",
+      "notification"
+    ],
+    "team": "automation_patterns_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "payload_schema",
+      "route_decision",
+      "run_command",
+      "notification_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_webhook_router",
+    "tags": [
+      "n8n",
+      "trigger"
+    ]
+  },
+  "error_workflow_handler": {
+    "description": "n8n-like error workflow: collect failure, notify, create recovery packet.",
+    "project_id": "noemaforge_ops",
+    "stages": [
+      "error_trigger",
+      "context_collect",
+      "severity_classify",
+      "notify_operator",
+      "recovery_packet",
+      "postmortem_stub"
+    ],
+    "team": "automation_patterns_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "error_event",
+      "severity",
+      "notification",
+      "recovery_packet"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_error_workflow",
+    "tags": [
+      "reliability",
+      "n8n"
+    ]
+  },
+  "scheduled_status_digest": {
+    "description": "Scheduled status digest for operator, no LLM boot required.",
+    "project_id": "noemaforge_ops",
+    "stages": [
+      "schedule_trigger",
+      "status_snapshot",
+      "metrics_summarize",
+      "risk_highlight",
+      "digest_write",
+      "operator_notify"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "status_snapshot",
+      "digest",
+      "risk_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_schedule_digest",
+    "tags": [
+      "ops",
+      "dashboard"
+    ]
+  },
+  "rss_to_research_notes": {
+    "description": "RSS/feed intake to source notes for research/book/marketing.",
+    "project_id": "noemaforge_research",
+    "stages": [
+      "feed_fetch_plan",
+      "source_filter",
+      "dedupe",
+      "summary",
+      "claim_extract",
+      "archive",
+      "handoff"
+    ],
+    "team": "data_ops_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "feed_plan",
+      "summaries",
+      "claims",
+      "handoff_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_rss_summary",
+    "tags": [
+      "research",
+      "n8n"
+    ]
+  },
+  "email_to_task_triage": {
+    "description": "Email/inbox style triage into NoemaForge task queue candidates.",
+    "project_id": "noemaforge_tasks",
+    "stages": [
+      "inbox_snapshot",
+      "classification",
+      "priority_score",
+      "task_stub",
+      "admin_review",
+      "queue_plan"
+    ],
+    "team": "community_support_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "triage_table",
+      "priority_scores",
+      "task_stubs"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_email_triage",
+    "tags": [
+      "support",
+      "tasks"
+    ]
+  },
+  "document_extraction": {
+    "description": "Extract structured facts from docs/PDFs into artifacts and graph candidates.",
+    "project_id": "noemaforge_docs",
+    "stages": [
+      "source_inventory",
+      "chunk_plan",
+      "extract_fields",
+      "validate_fields",
+      "kg_candidates",
+      "review",
+      "archive"
+    ],
+    "team": "data_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "source_inventory",
+      "field_table",
+      "kg_candidates",
+      "validation_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_document_extraction",
+    "tags": [
+      "docs",
+      "kg"
+    ]
+  },
+  "lead_research": {
+    "description": "Marketing/sales lead research with strict provenance and no spam execution.",
+    "project_id": "noemaforge_marketing",
+    "stages": [
+      "intake",
+      "source_scope",
+      "entity_research",
+      "fit_score",
+      "outreach_brief",
+      "review"
+    ],
+    "team": "marketing_growth_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "source_scope",
+      "lead_table",
+      "fit_scores",
+      "brief"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_crm_enrichment",
+    "tags": [
+      "marketing",
+      "research"
+    ]
+  },
+  "social_content_queue": {
+    "description": "Prepare social/content queue from release notes and research artifacts.",
+    "project_id": "noemaforge_marketing",
+    "stages": [
+      "intake",
+      "source_select",
+      "angle_matrix",
+      "draft_assets",
+      "editor_review",
+      "schedule_plan"
+    ],
+    "team": "marketing_growth_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "angle_matrix",
+      "asset_drafts",
+      "schedule_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_social_queue",
+    "tags": [
+      "marketing",
+      "content"
+    ]
+  },
+  "support_faq_generator": {
+    "description": "Convert recurring support problems into FAQ entries and support bundle hints.",
+    "project_id": "noemaforge_support",
+    "stages": [
+      "issue_inventory",
+      "cluster_questions",
+      "answer_draft",
+      "safety_review",
+      "docs_patch_plan",
+      "publish_plan"
+    ],
+    "team": "community_support_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "issue_clusters",
+      "faq_draft",
+      "docs_patch_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "n8n_support_bot",
+    "tags": [
+      "support",
+      "docs"
+    ]
+  },
+  "github_issue_triage": {
+    "description": "Triage GitHub issues into bug/feature/docs/security/release queues.",
+    "project_id": "noemaforge_dev",
+    "stages": [
+      "issue_snapshot",
+      "label_suggest",
+      "duplicate_scan",
+      "severity_score",
+      "owner_suggest",
+      "admin_review"
+    ],
+    "team": "community_support_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "labels",
+      "duplicates",
+      "severity",
+      "owner_suggest"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "github_actions_issue_flow",
+    "tags": [
+      "github",
+      "support"
+    ]
+  },
+  "github_ci_smoke": {
+    "description": "GitHub Actions style smoke/test/release summary pipeline.",
+    "project_id": "noemaforge_ci",
+    "stages": [
+      "trigger",
+      "checkout_plan",
+      "syntax_checks",
+      "unit_smoke",
+      "artifact_collect",
+      "release_gate"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "check_plan",
+      "smoke_report",
+      "artifact_list",
+      "gate_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "github_actions_ci",
+    "tags": [
+      "ci",
+      "github"
+    ]
+  },
+  "durable_approval_flow": {
+    "description": "Temporal-like durable human-in-the-loop approval for long-running work.",
+    "project_id": "noemaforge_workflows",
+    "stages": [
+      "start",
+      "checkpoint",
+      "admin_signal_wait",
+      "resume",
+      "activity_retry_plan",
+      "complete",
+      "archive"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "checkpoint",
+      "approval_record",
+      "retry_plan",
+      "completion_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "temporal_hitl",
+    "tags": [
+      "temporal",
+      "approval"
+    ]
+  },
+  "saga_rollback_plan": {
+    "description": "Plan reversible multi-step changes with compensating actions before execution.",
+    "project_id": "noemaforge_safety",
+    "stages": [
+      "intake",
+      "forward_steps",
+      "compensation_steps",
+      "risk_review",
+      "dry_run",
+      "admin_gate",
+      "archive"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "forward_plan",
+      "rollback_plan",
+      "risk_review",
+      "dry_run_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "temporal_saga",
+    "tags": [
+      "safety",
+      "rollback"
+    ]
+  },
+  "airflow_batch_kg_ingest": {
+    "description": "Airflow-like batch DAG for knowledge ingest dependencies.",
+    "project_id": "noemaforge_kg",
+    "stages": [
+      "source_sensor",
+      "extract",
+      "transform",
+      "load_graph_patch",
+      "validate",
+      "lineage_record",
+      "publish_plan"
+    ],
+    "team": "data_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "dag_plan",
+      "lineage",
+      "graph_patch",
+      "validation"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "airflow_dag",
+    "tags": [
+      "airflow",
+      "kg"
+    ]
+  },
+  "matrix_model_eval": {
+    "description": "Matrix-style model/role eval without concurrent LLM execution.",
+    "project_id": "noemaforge_eval",
+    "stages": [
+      "role_matrix",
+      "candidate_inventory",
+      "one_by_one_eval",
+      "scorecard_merge",
+      "degraded_selection",
+      "admin_review"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "matrix",
+      "scorecards",
+      "selection_report"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "github_actions_matrix_serialized",
+    "tags": [
+      "eval",
+      "models"
+    ]
+  },
+  "idempotent_retry_audit": {
+    "description": "Audit pipeline steps for idempotence, retries and timeout boundaries.",
+    "project_id": "noemaforge_reliability",
+    "stages": [
+      "inventory",
+      "idempotence_check",
+      "retry_policy",
+      "timeout_policy",
+      "failure_modes",
+      "patch_plan"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "idempotence_table",
+      "retry_policy",
+      "timeout_policy",
+      "patch_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "temporal_activity_audit",
+    "tags": [
+      "reliability"
+    ]
+  },
+  "architecture_review": {
+    "description": "Architecture clarification and ADR generation for a proposed change.",
+    "project_id": "noemaforge_arch",
+    "stages": [
+      "intake",
+      "context_load",
+      "architecture_questions",
+      "adr_draft",
+      "risk_review",
+      "decision"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "questions",
+      "adr",
+      "risk_review",
+      "decision"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "architecture"
+    ]
+  },
+  "code_audit": {
+    "description": "Read-only code audit with prioritized patch plan.",
+    "project_id": "noemaforge_dev",
+    "stages": [
+      "scope",
+      "inventory",
+      "static_review",
+      "risk_rank",
+      "patch_plan",
+      "review"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "risk_rank",
+      "patch_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "audit"
+    ]
+  },
+  "refactor_sweep": {
+    "description": "Small reversible refactor sweep through worktree and tests.",
+    "project_id": "noemaforge_dev",
+    "stages": [
+      "scope",
+      "worktree_plan",
+      "refactor_patch",
+      "unit_testing",
+      "integration_testing",
+      "rollback_note",
+      "review"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "worktree_plan",
+      "patch",
+      "test_report",
+      "rollback_note"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "dev",
+      "refactor"
+    ]
+  },
+  "test_gap_closure": {
+    "description": "Find easy missing tests and add/plan them.",
+    "project_id": "noemaforge_tests",
+    "stages": [
+      "inventory",
+      "coverage_guess",
+      "low_hanging_tests",
+      "test_stub",
+      "run_smoke",
+      "review"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "test_gap_table",
+      "test_stubs",
+      "smoke_report"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "tests",
+      "low_hanging"
+    ]
+  },
+  "performance_budget": {
+    "description": "Speed/memory/operation-count optimization loop.",
+    "project_id": "noemaforge_perf",
+    "stages": [
+      "baseline",
+      "hotspot_guess",
+      "budget_set",
+      "optimization_patch",
+      "benchmark_stub",
+      "review"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "baseline",
+      "budget",
+      "optimization_note",
+      "benchmark_stub"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "performance"
+    ]
+  },
+  "context_merge": {
+    "description": "Merge uploaded research/context into wiki, TODO and roadmap safely.",
+    "project_id": "noemaforge_context",
+    "stages": [
+      "source_inventory",
+      "dedupe",
+      "conflict_map",
+      "wiki_patch",
+      "todo_patch",
+      "roadmap_patch",
+      "review"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "conflict_map",
+      "wiki_patch",
+      "todo_patch",
+      "roadmap_patch"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "context",
+      "wiki"
+    ]
+  },
+  "roadmap_refresh": {
+    "description": "Refresh roadmap from TODO, incidents, research and operator priorities.",
+    "project_id": "noemaforge_roadmap",
+    "stages": [
+      "source_inventory",
+      "theme_cluster",
+      "priority_score",
+      "roadmap_patch",
+      "review",
+      "publish_plan"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "themes",
+      "scores",
+      "roadmap_patch"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "roadmap"
+    ]
+  },
+  "todo_low_hanging_sweep": {
+    "description": "Collect low-effort high-impact TODO items and prepare tiny patches.",
+    "project_id": "noemaforge_todo",
+    "stages": [
+      "todo_inventory",
+      "impact_effort_score",
+      "batch_select",
+      "patch_plan",
+      "smoke_plan",
+      "review"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "scored_todo",
+      "batch_plan",
+      "smoke_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "todo",
+      "low_hanging"
+    ]
+  },
+  "capability_token_audit": {
+    "description": "Audit ToolProxy capability token path and propose safe issuance docs/tests.",
+    "project_id": "noemaforge_toolproxy",
+    "stages": [
+      "context_load",
+      "token_path_inventory",
+      "policy_review",
+      "test_fixture_plan",
+      "docs_patch",
+      "admin_review"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "policy_review",
+      "fixtures",
+      "docs_patch"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "toolproxy",
+      "security"
+    ]
+  },
+  "llm_runtime_governor": {
+    "description": "Review runtime manager policy and maintain single-active-LLM invariant.",
+    "project_id": "noemaforge_runtime",
+    "stages": [
+      "policy_inventory",
+      "manager_code_review",
+      "hazard_list",
+      "patch_plan",
+      "smoke_plan",
+      "admin_gate"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "policy_inventory",
+      "hazard_list",
+      "patch_plan",
+      "smoke_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "runtime",
+      "llm"
+    ]
+  },
+  "nvidia_gui_recovery": {
+    "description": "Operator-safe GUI/NVIDIA recovery verification without LLM autostart.",
+    "project_id": "noemaforge_gui",
+    "stages": [
+      "status_snapshot",
+      "preflight_check",
+      "llm_pause_plan",
+      "gui_rescue_plan",
+      "postcheck",
+      "archive"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "status_snapshot",
+      "rescue_plan",
+      "postcheck"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "gui",
+      "trixie"
+    ]
+  },
+  "forensic_bundle_review": {
+    "description": "Build/review no-weights support bundle plan and redaction policy.",
+    "project_id": "noemaforge_support",
+    "stages": [
+      "scope",
+      "redaction_review",
+      "bundle_collect_plan",
+      "manifest_check",
+      "operator_notes"
+    ],
+    "team": "community_support_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "redaction_review",
+      "bundle_plan",
+      "manifest_check"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "support",
+      "forensics"
+    ]
+  },
+  "modelstore_normalize": {
+    "description": "Detect non-head GGUF shards and produce safe normalization plan.",
+    "project_id": "noemaforge_models",
+    "stages": [
+      "inventory",
+      "head_shard_detect",
+      "unsafe_dir_list",
+      "repair_plan",
+      "admin_review"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "unsafe_dirs",
+      "repair_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "models",
+      "safety"
+    ]
+  },
+  "public_onboarding_polish": {
+    "description": "Polish first-run/docs/dashboard UX for public MVP users.",
+    "project_id": "noemaforge_public",
+    "stages": [
+      "user_path_review",
+      "friction_list",
+      "quick_patch",
+      "copy_review",
+      "smoke",
+      "release_note"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "friction_list",
+      "quick_patch",
+      "copy_review",
+      "smoke"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "public",
+      "ux"
+    ]
+  },
+  "install_docs_lint": {
+    "description": "Find stale install commands and align docs with safe runtime defaults.",
+    "project_id": "noemaforge_docs",
+    "stages": [
+      "doc_inventory",
+      "command_extract",
+      "invariant_check",
+      "patch_plan",
+      "review"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "doc_inventory",
+      "command_table",
+      "patch_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "docs",
+      "install"
+    ]
+  },
+  "wiki_index_build": {
+    "description": "Build a GitHub wiki-like index from docs and research sources.",
+    "project_id": "noemaforge_wiki",
+    "stages": [
+      "doc_inventory",
+      "topic_cluster",
+      "index_draft",
+      "crosslink_patch",
+      "review"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "topic_clusters",
+      "index",
+      "crosslinks"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "wiki",
+      "docs"
+    ]
+  },
+  "graph_entity_resolution": {
+    "description": "Resolve duplicate KG entities and produce merge decisions with provenance.",
+    "project_id": "noemaforge_kg",
+    "stages": [
+      "candidate_pairs",
+      "evidence_compare",
+      "merge_decision",
+      "conflict_review",
+      "graph_patch"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "candidate_pairs",
+      "merge_decisions",
+      "graph_patch"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "kg",
+      "provenance"
+    ]
+  },
+  "embedding_reindex_plan": {
+    "description": "Plan embedding/chunking/index version migration without corrupting retrieval.",
+    "project_id": "noemaforge_memory",
+    "stages": [
+      "current_versions",
+      "chunking_delta",
+      "embedding_delta",
+      "migration_plan",
+      "eval_plan",
+      "admin_review"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "version_inventory",
+      "migration_plan",
+      "eval_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "embeddings",
+      "memory"
+    ]
+  },
+  "book_chapter_factory": {
+    "description": "Repeatable chapter production: sources, outline, draft, review, export.",
+    "project_id": "noemaforge_book",
+    "stages": [
+      "source_select",
+      "chapter_outline",
+      "draft",
+      "style_review",
+      "fact_check",
+      "continuity_review",
+      "export"
+    ],
+    "team": "book_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "sources",
+      "outline",
+      "draft",
+      "reviews",
+      "export"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "book",
+      "writing"
+    ]
+  },
+  "book_continuity_pass": {
+    "description": "Continuity and contradictions pass across book chapters and wiki.",
+    "project_id": "noemaforge_book",
+    "stages": [
+      "chapter_inventory",
+      "claim_table",
+      "contradiction_scan",
+      "fix_suggestions",
+      "editor_review"
+    ],
+    "team": "book_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "claim_table",
+      "contradictions",
+      "fix_suggestions"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "book",
+      "continuity"
+    ]
+  },
+  "citation_backfill": {
+    "description": "Backfill citations/provenance for claims in docs/book/wiki.",
+    "project_id": "noemaforge_docs",
+    "stages": [
+      "claim_inventory",
+      "source_search_plan",
+      "citation_map",
+      "uncited_risk",
+      "review"
+    ],
+    "team": "book_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "claim_inventory",
+      "citation_map",
+      "uncited_risk"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "citations",
+      "docs"
+    ]
+  },
+  "launch_announcement": {
+    "description": "Prepare launch announcement from release notes and public checklist.",
+    "project_id": "noemaforge_marketing",
+    "stages": [
+      "source_select",
+      "audience_map",
+      "message_draft",
+      "faq_risks",
+      "editor_review",
+      "publish_plan"
+    ],
+    "team": "marketing_growth_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "audience_map",
+      "draft",
+      "faq_risks",
+      "publish_plan"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "marketing",
+      "launch"
+    ]
+  },
+  "feedback_loop": {
+    "description": "Collect user feedback, cluster, convert to roadmap/TODO signals.",
+    "project_id": "noemaforge_feedback",
+    "stages": [
+      "feedback_inventory",
+      "cluster",
+      "impact_score",
+      "roadmap_signal",
+      "reply_draft",
+      "review"
+    ],
+    "team": "community_support_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "clusters",
+      "impact_scores",
+      "roadmap_signals",
+      "reply_drafts"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "feedback",
+      "roadmap"
+    ]
+  },
+  "competitive_scan": {
+    "description": "Compare adjacent AI OS/workflow tools and update positioning notes.",
+    "project_id": "noemaforge_marketing",
+    "stages": [
+      "scope",
+      "source_plan",
+      "feature_matrix",
+      "positioning_delta",
+      "risk_review",
+      "archive"
+    ],
+    "team": "marketing_growth_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "feature_matrix",
+      "positioning_delta",
+      "risk_review"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "marketing",
+      "research"
+    ]
+  },
+  "prompt_pack_update": {
+    "description": "Refresh role prompts/affirmations with tests and risk review.",
+    "project_id": "noemaforge_prompts",
+    "stages": [
+      "inventory",
+      "gap_analysis",
+      "prompt_patch",
+      "fixture_update",
+      "eval_smoke",
+      "review"
+    ],
+    "team": "development_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "gap_analysis",
+      "prompt_patch",
+      "fixture_update",
+      "eval_smoke"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "prompts",
+      "roles"
+    ]
+  },
+  "role_scorecard_refresh": {
+    "description": "Refresh role scorecards and degraded/mandatory selection notes.",
+    "project_id": "noemaforge_roles",
+    "stages": [
+      "inventory",
+      "eval_pack_check",
+      "scorecard_run_plan",
+      "selection_update",
+      "admin_review"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "run_plan",
+      "selection_update"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "roles",
+      "eval"
+    ]
+  },
+  "local_gateway_safety": {
+    "description": "Review local gateway/web gateway policies and scary-only access guardrails.",
+    "project_id": "noemaforge_security",
+    "stages": [
+      "policy_inventory",
+      "access_surface",
+      "fixture_plan",
+      "deny_test",
+      "review"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "access_surface",
+      "fixture_plan",
+      "deny_test"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "security",
+      "gateway"
+    ]
+  },
+  "supplychain_miniscan": {
+    "description": "Quick supply-chain scan of scripts/configs/manifests for public release.",
+    "project_id": "noemaforge_security",
+    "stages": [
+      "inventory",
+      "hash_check",
+      "script_review",
+      "external_url_review",
+      "risk_rank",
+      "review"
+    ],
+    "team": "security_ops_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "hash_check",
+      "risk_rank"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "security",
+      "release"
+    ]
+  },
+  "operator_command_palette": {
+    "description": "Curate top CLI commands into a minimal operator palette and dashboard hints.",
+    "project_id": "noemaforge_ui",
+    "stages": [
+      "command_inventory",
+      "frequency_guess",
+      "palette_draft",
+      "dashboard_patch",
+      "copy_review",
+      "smoke"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "command_palette",
+      "dashboard_patch",
+      "smoke"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "ui",
+      "operator"
+    ]
+  },
+  "pipeline_template_import": {
+    "description": "Convert external workflow examples into NoemaForge-safe pipeline templates.",
+    "project_id": "noemaforge_workflows",
+    "stages": [
+      "source_select",
+      "node_decompose",
+      "stage_map",
+      "policy_map",
+      "template_write",
+      "validate",
+      "review"
+    ],
+    "team": "automation_patterns_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "node_map",
+      "stage_map",
+      "template",
+      "validation"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "noemaforge_native",
+    "tags": [
+      "n8n",
+      "templates"
+    ]
+  },
+  "lhf_operator_polish_collection": {
+    "description": "Low-hanging fruit collection #1: operator polish, docs/index/dashboard/command simplification.",
+    "project_id": "noemaforge_lhf",
+    "stages": [
+      "inventory",
+      "score_impact_effort",
+      "batch_plan",
+      "tiny_patch",
+      "smoke",
+      "release_note"
+    ],
+    "team": "operator_polish_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "inventory",
+      "impact_effort_scores",
+      "batch_plan",
+      "tiny_patch",
+      "smoke"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "low_hanging_fruit",
+    "tags": [
+      "low_hanging",
+      "operator"
+    ]
+  },
+  "lhf_reliability_collection": {
+    "description": "Low-hanging fruit collection #2: packet lint, artifact gaps, retry/idempotence notes, dashboard sanity.",
+    "project_id": "noemaforge_lhf",
+    "stages": [
+      "inventory",
+      "lint_context_packets",
+      "artifact_gap_report",
+      "retry_timeout_notes",
+      "tiny_patch",
+      "smoke",
+      "release_note"
+    ],
+    "team": "workflow_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "packet_lint",
+      "artifact_gap_report",
+      "retry_notes",
+      "tiny_patch",
+      "smoke"
+    ],
+    "quality_gates": [
+      "context_packet_exists",
+      "artifact_registered",
+      "review_or_admin_note"
+    ],
+    "pattern_family": "low_hanging_fruit",
+    "tags": [
+      "low_hanging",
+      "reliability"
+    ]
+  },
+  "dashboard_operator_console": {
+    "description": "Generate local dashboard state and guide operator through minimal console.",
+    "project_id": "noemaforge_dashboard",
+    "stages": [
+      "intake",
+      "state_generation",
+      "dashboard_review",
+      "operator_actions",
+      "admin_review"
+    ],
+    "team": "public_onboarding_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "dashboard_state",
+      "operator_action_list",
+      "review_note"
+    ]
+  },
+  "template_review_append": {
+    "description": "Review imported workflow template and append it to local pipeline catalog only after approval.",
+    "project_id": "noemaforge_template_import",
+    "stages": [
+      "intake",
+      "template_inventory",
+      "risk_review",
+      "noemaforge_mapping",
+      "operator_approval",
+      "local_catalog_append",
+      "smoke_check"
+    ],
+    "team": "automation_patterns_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "template_inventory",
+      "mapping_note",
+      "risk_note",
+      "append_plan"
+    ]
+  },
+  "context_compaction": {
+    "description": "Compact long pipeline run context for handoff between switchable LLM sessions.",
+    "project_id": "noemaforge_context",
+    "stages": [
+      "intake",
+      "packet_lint",
+      "artifact_inventory",
+      "summary_compaction",
+      "handoff_review",
+      "admin_review"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "context_lint",
+      "compact_context",
+      "handoff_note"
+    ]
+  },
+  "public_support_triage": {
+    "description": "Collect public operator evidence, classify issue, suggest next safe step without model autostart.",
+    "project_id": "noemaforge_support",
+    "stages": [
+      "intake",
+      "evidence_bundle",
+      "preflight_review",
+      "classification",
+      "safe_next_step",
+      "operator_reply"
+    ],
+    "team": "support_reliability_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "issue_summary",
+      "evidence_manifest",
+      "reply_draft"
+    ]
+  },
+  "toolproxy_capability_smoke_plan": {
+    "description": "Plan and record ToolProxy capability-token issue/verify smoke on target host.",
+    "project_id": "noemaforge_toolproxy",
+    "stages": [
+      "intake",
+      "policy_inventory",
+      "token_issue_plan",
+      "verify_plan",
+      "target_smoke",
+      "risk_review"
+    ],
+    "team": "security_audit_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "policy_inventory",
+      "smoke_plan",
+      "risk_review"
+    ]
+  },
+  "gpu_gateway_live_smoke_plan": {
+    "description": "Plan NoemaForge live smoke for NVIDIA/GDM/gateway/llama-server without boot autostart.",
+    "project_id": "noemaforge_live_smoke",
+    "stages": [
+      "intake",
+      "preflight",
+      "pause_runtime",
+      "nvidia_check",
+      "manual_llm_start",
+      "gateway_chat_smoke",
+      "manual_llm_stop",
+      "report"
+    ],
+    "team": "support_reliability_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "preflight_result",
+      "smoke_transcript",
+      "rollback_note"
+    ]
+  },
+  "community_pack_review": {
+    "description": "Review community-submitted NoemaForge packs safely before local adoption.",
+    "project_id": "noemaforge_community_pack",
+    "stages": [
+      "intake",
+      "manifest_review",
+      "license_review",
+      "security_review",
+      "sandbox_plan",
+      "operator_decision"
+    ],
+    "team": "security_audit_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "manifest_review",
+      "security_review",
+      "decision_note"
+    ]
+  },
+  "memory_hygiene_sweep": {
+    "description": "Sweep pipeline/persona memory state for stale runs, missing artifacts and compaction candidates.",
+    "project_id": "noemaforge_memory_hygiene",
+    "stages": [
+      "intake",
+      "state_inventory",
+      "stale_run_detection",
+      "context_compaction",
+      "archive_plan",
+      "admin_review"
+    ],
+    "team": "knowledge_graph_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "state_inventory",
+      "archive_plan",
+      "compact_contexts"
+    ]
+  },
+  "persona_activation_review": {
+    "description": "Review active persona, codename, portrait generation and safety contract before operator session.",
+    "project_id": "noemaforge_persona_review",
+    "stages": [
+      "intake",
+      "active_persona_check",
+      "portrait_check",
+      "safety_contract",
+      "operator_confirm",
+      "session_packet"
+    ],
+    "team": "agent_life_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "persona_doctor",
+      "activation_packet",
+      "session_context"
+    ]
+  },
+  "release_provenance_pack": {
+    "description": "Create release provenance, manifest, checksums and verification report for public archive.",
+    "project_id": "noemaforge_release_provenance",
+    "stages": [
+      "intake",
+      "file_inventory",
+      "manifest_generation",
+      "checksum_generation",
+      "verification_report",
+      "archive_smoke",
+      "admin_review"
+    ],
+    "team": "release_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "manifest",
+      "checksums",
+      "verification_report"
+    ]
+  },
+  "self_improvement_test_matrix": {
+    "description": "Run module-level self-tests, capture resource telemetry, compare against baseline and produce a reviewable improvement report.",
+    "project_id": "noemaforge_self_improvement",
+    "stages": [
+      "intake",
+      "test_plan",
+      "case_execution",
+      "resource_telemetry",
+      "baseline_compare",
+      "regression_review",
+      "optimization_tasking",
+      "wiki_patch_plan",
+      "admin_review"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "test_plan",
+      "selftest_report",
+      "telemetry_log",
+      "baseline_comparison",
+      "regression_decision",
+      "optimization_backlog",
+      "wiki_patch_manifest"
+    ],
+    "quality_gates": [
+      "no_failed_p0_cases",
+      "no_unapproved_resource_regression",
+      "report_has_metrics",
+      "wiki_patch_is_incremental"
+    ]
+  },
+  "telemetry_regression_audit": {
+    "description": "Compare candidate metrics against previous baselines and block unsafe regressions.",
+    "project_id": "noemaforge_telemetry",
+    "stages": [
+      "intake",
+      "baseline_select",
+      "candidate_metrics_load",
+      "resource_delta",
+      "regression_classification",
+      "rollback_or_accept_plan",
+      "admin_review"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "metrics_delta",
+      "regression_table",
+      "rollback_plan",
+      "acceptance_note"
+    ]
+  },
+  "wiki_incremental_patch_publish": {
+    "description": "Generate incremental wiki-repository patches with functional and metric deltas from a self-test report and optional user task summary.",
+    "project_id": "noemaforge_wiki",
+    "stages": [
+      "intake",
+      "collect_report",
+      "summarize_functional_delta",
+      "summarize_metric_delta",
+      "build_patch_files",
+      "review_patch",
+      "apply_or_export_patch",
+      "archive_provenance"
+    ],
+    "team": "wiki_patch_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "functional_delta_md",
+      "metrics_delta_md",
+      "wiki_patch",
+      "patch_manifest",
+      "provenance_record"
+    ],
+    "quality_gates": [
+      "patch_is_incremental",
+      "metrics_are_machine_readable",
+      "user_note_or_task_present",
+      "no_weights_or_sensitive_files"
+    ]
+  },
+  "auto_optimization_change_request": {
+    "description": "Turn a user request or auto-optimization finding into a tested, measured, reviewable change request.",
+    "project_id": "noemaforge_optimization",
+    "stages": [
+      "intake",
+      "architecture_clarification",
+      "hypothesis",
+      "implementation_plan",
+      "testbench_before",
+      "change_patch",
+      "testbench_after",
+      "metrics_compare",
+      "optimization_review",
+      "wiki_patch_publish_plan"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "hypothesis",
+      "patch_plan",
+      "before_metrics",
+      "after_metrics",
+      "metrics_delta",
+      "review_note",
+      "wiki_patch_plan"
+    ]
+  },
+  "module_test_case_authoring": {
+    "description": "Create or update tests for one NoemaForge module before allowing self-improvement against it.",
+    "project_id": "noemaforge_tests",
+    "stages": [
+      "intake",
+      "module_contract_inventory",
+      "unit_case_authoring",
+      "integration_case_authoring",
+      "resource_probe_selection",
+      "negative_case_authoring",
+      "testbench_registration",
+      "review"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "module_contract",
+      "unit_tests",
+      "integration_tests",
+      "resource_probe_plan",
+      "test_matrix_patch"
+    ]
+  },
+  "resource_regression_guard": {
+    "description": "Compare current CPU/RAM/disk/GPU/ECC telemetry with an accepted baseline before applying self-improvement changes.",
+    "project_id": "noemaforge_self_improvement",
+    "stages": [
+      "load_baseline",
+      "run_guard_suite",
+      "compare_metrics",
+      "classify_regressions",
+      "rollback_or_approve",
+      "publish_guard_result"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "baseline_reference",
+      "guard_report",
+      "regression_list",
+      "rollback_recommendation",
+      "approval_record"
+    ],
+    "quality_gates": [
+      "failed_case_blocks_apply",
+      "ecc_delta_blocks_apply",
+      "admin_approval_required_for_regression_override"
+    ]
+  },
+  "module_test_case_factory": {
+    "description": "Create or update test cases for NoemaForge modules that lack unit/integration/resource coverage.",
+    "project_id": "noemaforge_self_improvement",
+    "stages": [
+      "module_inventory",
+      "gap_detection",
+      "case_design",
+      "fixture_generation",
+      "test_authoring",
+      "smoke_run",
+      "coverage_report",
+      "review"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "module_test_matrix",
+      "new_test_cases",
+      "fixture_manifest",
+      "coverage_gap_report",
+      "review_notes"
+    ],
+    "quality_gates": [
+      "new_tests_do_not_start_heavy_llm",
+      "fixtures_are_local",
+      "coverage_gap_reduced"
+    ]
+  },
+  "memory_leak_probe": {
+    "description": "Repeat selected test cases and detect suspicious RSS/resource growth before accepting optimization patches.",
+    "project_id": "noemaforge_self_improvement",
+    "stages": [
+      "select_cases",
+      "repeat_execution",
+      "rss_sequence_capture",
+      "leak_classification",
+      "optimization_recommendation",
+      "review"
+    ],
+    "team": "self_improvement_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "repeat_run_report",
+      "rss_sequence",
+      "leak_classification",
+      "recommendation"
+    ],
+    "quality_gates": [
+      "leak_suspect_requires_review",
+      "no_live_llm_without_allow_live"
+    ]
+  },
+  "code_dev_qa_subteam": {
+    "description": "Code-development QA sub-team: two reviewer LLMs distinct from producer, sequential by default under single-active-LLM policy, consensus merge and handoff.",
+    "project_id": "noemaforge_code_qa",
+    "stages": [
+      "intake",
+      "producer_context",
+      "reviewer_selection",
+      "static_scan",
+      "reviewer_a_analysis",
+      "reviewer_b_analysis",
+      "consensus_merge",
+      "test_plan",
+      "handoff_to_tester"
+    ],
+    "team": "code_qa_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1,
+      "reviewer_count": 2,
+      "exclude_producer": true
+    },
+    "deliverables": [
+      "reviewer_selection",
+      "static_scan",
+      "reviewer_proposals",
+      "consensus_report",
+      "test_plan",
+      "next_participant_handoff"
+    ]
+  },
+  "gui_recovery_compatibility": {
+    "description": "TTY/GUI recovery compatibility pipeline for legacy recovery dispatcher, wrappers, help coverage and Trixie NVIDIA/GDM startup.",
+    "project_id": "noemaforge_gui_recovery",
+    "stages": [
+      "intake",
+      "legacy_dispatcher_check",
+      "nvidia_preflight",
+      "display_manager_start",
+      "wrapper_install",
+      "help_surface_check",
+      "operator_live_test"
+    ],
+    "team": "operator_recovery_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "gui_start_commands",
+      "wrapper_matrix",
+      "live_test_case"
+    ]
+  },
+  "dev_pipeline_member_cells": {
+    "description": "Development pipeline where every participant can be standalone or a sequential multi-model member cell.",
+    "project_id": "noemaforge_dev_member_cells",
+    "stages": [
+      "intake",
+      "architecture_clarification",
+      "development",
+      "code_analyser_visualiser",
+      "qa",
+      "integration_testing",
+      "optimization",
+      "review",
+      "merge_plan"
+    ],
+    "team": "development_member_cell_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "member_cell_policy": "noemaforge/configs/team-member-policy.json",
+    "deliverables": [
+      "architecture_clarification",
+      "implementation_plan",
+      "auto_tests_report",
+      "architecture_diagrams",
+      "qa_report",
+      "integration_report",
+      "optimization_report",
+      "merge_plan"
+    ],
+    "quality_gates": [
+      "member_artifact_consistency_ok",
+      "developer_auto_tests_before_qa",
+      "qa_loop_detection",
+      "code_analyser_diagrams_present",
+      "typed_handoff_sidecar"
+    ]
+  },
+  "first_start_ui_validation": {
+    "description": "Live first-start validation through NoemaForge UI/dashboard/autostart modes rather than only manual llama-server flow.",
+    "project_id": "noemaforge_first_start_ui",
+    "stages": [
+      "tty_baseline",
+      "install_or_upgrade",
+      "gui_mode_select",
+      "safe_autostart_after_gui",
+      "dashboard_open",
+      "first_pipeline_from_ui",
+      "first_llm_smoke_if_approved",
+      "forensic_bundle",
+      "operator_review"
+    ],
+    "team": "first_start_ui_test_team",
+    "permission_mode": "guided_admin",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "tty_status",
+      "boot_mode_report",
+      "dashboard_state",
+      "ui_smoke_report",
+      "gateway_smoke_if_enabled",
+      "recovery_notes"
+    ],
+    "quality_gates": [
+      "gui_first_before_llm_in_gui_mode",
+      "wogui_instead_of_gui_mode",
+      "no_raw_heavy_autostart",
+      "operator_approval_for_live_llm"
+    ]
+  },
+  "admin_operator_console": {
+    "description": "Admin GUI/control-plane pipeline: natural-language routing to concrete NoemaForge pipelines, GUI actions and audit trail.",
+    "project_id": "noemaforge_admin_console",
+    "stages": [
+      "intake",
+      "route_inference",
+      "pipeline_selection",
+      "operator_confirmation",
+      "pipeline_launch",
+      "artifact_review",
+      "admin_followup"
+    ],
+    "team": "admin_console_team",
+    "permission_mode": "guided_readmostly",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "route_decision",
+      "selected_pipeline",
+      "gui_action_log",
+      "admin_review_note"
+    ],
+    "quality_gates": [
+      "no_implicit_llm_autostart",
+      "route_has_pipeline_id",
+      "operator_visible_action"
+    ]
+  },
+  "model_evolution": {
+    "description": "Measured model-evolution control cycle: baseline snapshot, mutation plan, selftest matrix, scorecard, rollback gate and candidate profile.",
+    "project_id": "noemaforge_model_evolution",
+    "stages": [
+      "intake",
+      "baseline_snapshot",
+      "mutation_plan",
+      "selftest_matrix",
+      "resource_telemetry",
+      "scorecard",
+      "rollback_gate",
+      "candidate_profile",
+      "admin_review"
+    ],
+    "team": "model_evolution_team",
+    "permission_mode": "ask_before_write",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "baseline_snapshot",
+      "mutation_plan",
+      "selftest_report",
+      "resource_telemetry",
+      "scorecard",
+      "rollback_plan",
+      "candidate_profile"
+    ],
+    "quality_gates": [
+      "baseline_snapshot_present",
+      "no_p0_regressions",
+      "rollback_plan_present",
+      "admin_approval_before_apply"
+    ]
+  },
+  "music_generation": {
+    "description": "Music-generation pipeline: discover Vault audio models, prepare backend plan, prompt specification and review generated artifact plan.",
+    "project_id": "noemaforge_media_music",
+    "stages": [
+      "intake",
+      "vault_scan",
+      "backend_plan",
+      "prompt_spec",
+      "generation_plan",
+      "artifact_review",
+      "admin_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "explicit_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "vault_capability_map",
+      "music_backend_plan",
+      "prompt_spec",
+      "generation_plan",
+      "artifact_review"
+    ],
+    "quality_gates": [
+      "manual_backend_start_only",
+      "no_implicit_audio_capture",
+      "operator_approval_required"
+    ]
+  },
+  "voice_generation": {
+    "description": "Voice/TTS generation pipeline: discover TTS assets, prepare speaker/backend plan and review output plan.",
+    "project_id": "noemaforge_media_voice",
+    "stages": [
+      "intake",
+      "vault_scan",
+      "voice_backend_plan",
+      "speaker_profile",
+      "generation_plan",
+      "artifact_review",
+      "admin_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "explicit_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "vault_capability_map",
+      "tts_backend_plan",
+      "speaker_profile",
+      "generation_plan",
+      "artifact_review"
+    ],
+    "quality_gates": [
+      "manual_backend_start_only",
+      "no_implicit_microphone_capture",
+      "operator_approval_required"
+    ]
+  },
+  "photo_generation": {
+    "description": "Image/photo generation pipeline: discover diffusion assets, prepare backend plan and prompt/artifact review.",
+    "project_id": "noemaforge_media_photo",
+    "stages": [
+      "intake",
+      "vault_scan",
+      "backend_plan",
+      "prompt_spec",
+      "generation_plan",
+      "artifact_review",
+      "admin_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "explicit_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "vault_capability_map",
+      "image_backend_plan",
+      "prompt_spec",
+      "generation_plan",
+      "artifact_review"
+    ],
+    "quality_gates": [
+      "manual_backend_start_only",
+      "operator_approval_required",
+      "artifact_policy_review"
+    ]
+  },
+  "video_generation": {
+    "description": "Video-generation pipeline: discover video/i2v/t2v assets, prepare storyboard/backend plan and review output plan.",
+    "project_id": "noemaforge_media_video",
+    "stages": [
+      "intake",
+      "vault_scan",
+      "backend_plan",
+      "storyboard",
+      "generation_plan",
+      "artifact_review",
+      "admin_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "explicit_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "vault_capability_map",
+      "video_backend_plan",
+      "storyboard",
+      "generation_plan",
+      "artifact_review"
+    ],
+    "quality_gates": [
+      "manual_backend_start_only",
+      "operator_approval_required",
+      "artifact_policy_review"
+    ]
+  },
+  "image_analysis": {
+    "description": "Image analysis pipeline: metadata extraction now, VLM caption/recognition via selected adapter later.",
+    "project_id": "noemaforge_media_image_analysis",
+    "stages": [
+      "intake",
+      "file_metadata",
+      "vault_vision_scan",
+      "caption_backend_plan",
+      "result_review",
+      "admin_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "explicit_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "image_metadata",
+      "vision_backend_plan",
+      "result_review"
+    ],
+    "quality_gates": [
+      "no_implicit_file_exfiltration",
+      "operator_selected_image_only"
+    ]
+  },
+  "camera_mask_bridge": {
+    "description": "Video-call masks/virtual camera bridge planning with privacy gate and no camera hijack.",
+    "project_id": "noemaforge_media_masks",
+    "stages": [
+      "intake",
+      "privacy_gate",
+      "dependency_check",
+      "segmentation_plan",
+      "virtual_camera_plan",
+      "manual_operator_review"
+    ],
+    "team": "media_generation_team",
+    "permission_mode": "manual_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "privacy_gate",
+      "dependency_report",
+      "mask_plan",
+      "virtual_camera_plan"
+    ],
+    "quality_gates": [
+      "no_camera_hijack",
+      "no_implicit_capture",
+      "manual_operator_command_required"
+    ]
+  }
+}

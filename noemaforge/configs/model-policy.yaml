@@ -1,0 +1,27 @@
+apiVersion: noemaforge.modelpolicy/v1
+kind: ModelPolicy
+
+defaults:
+  network_outbound: "deny"
+  tm_memory: "ram_only"
+  tm_ttl: "5m"
+
+routes:
+  - id: "instruction_broker"
+    tools: []
+    honeykeys: false
+
+  - id: "executor"
+    tools_allow:
+      - "fs.read:/workspace/**"
+      - "fs.write:/workspace/**"
+      - "mount.request:foreign_ro"
+      - "gpu.use"  # tool-runner only; actual tool must enforce policy
+    honeykeys: true
+
+  - id: "surgeon"
+    tools_allow:
+      - "glove.read_forensics"
+      - "canary.run_policy_tests"
+    honeykeys: true
+    canary_egress: "emulated"

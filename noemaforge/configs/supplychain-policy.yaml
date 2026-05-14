@@ -1,0 +1,49 @@
+apiVersion: noemaforge.supplychain/v1
+kind: SupplyChainPolicy
+enabled: true
+tool_vault:
+  root: /var/lib/noemaforge/toolvault
+  manifests_dir: /var/lib/noemaforge/toolvault/manifests
+  artifacts_dir: /var/lib/noemaforge/toolvault/artifacts
+  trust_dir: /var/lib/noemaforge/toolvault/trust
+  trusted_keys_file: trusted_keys.json
+  signing_key_file: toolvault_signing_ed25519.pem
+enforcement:
+  require_attestation_for_enabled_risks:
+  - high
+  - critical
+  require_attestation_for_handlers:
+  - plugin
+  - sandbox_exec
+  - blender
+  - ffmpeg
+  - colmap
+  - slicer
+  - git
+plugins:
+  runtime_prepare: false
+  fail_in_full_suite: true
+  warn_in_smoke_suite: true
+attestation:
+  allowed_kinds:
+  - internal
+  - system
+  - bundle
+  bundle:
+    require_manifest_sha256: true
+    require_artifact_sha256: true
+    require_artifact_present: true
+    signature:
+      mode: prefer
+  system:
+    require_lock_ref: true
+    allowed_lock_kinds:
+    - apt-snapshot
+    - nix-derivation
+    - manual-inventory
+notes:
+- Internal tools = code shipped inside NoemaForge epoch/contracts.
+- System tools = binaries installed via offline package mechanism (apt/nix) with a
+  lock reference.
+- Bundle tools/plugins = added as offline artifacts pinned by sha256 and verified
+  by canary before epoch switch.

@@ -1,0 +1,2931 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "SelfTestCaseCatalog",
+  "version": "0.31.13.alpha",
+  "invariant": {
+    "llm_mode": "switchable",
+    "max_active_llms": 1,
+    "heavy_llm_autostart": false
+  },
+  "suites": {
+    "core": [
+      "cli_status_json",
+      "pipeline_validate",
+      "schema_validate",
+      "persona_validate",
+      "pipeline_metrics_prometheus",
+      "toolproxy_offline_smoke",
+      "dashboard_state",
+      "code_qa_team_select",
+      "code_qa_run_offline",
+      "gui_helper_help_surface"
+    ],
+    "pipeline": [
+      "pipeline_run_public_mwp",
+      "pipeline_template_import"
+    ],
+    "full_safe": [
+      "cli_status_json",
+      "pipeline_validate",
+      "schema_validate",
+      "persona_validate",
+      "pipeline_metrics_prometheus",
+      "toolproxy_offline_smoke",
+      "dashboard_state",
+      "pipeline_run_public_mwp",
+      "pipeline_template_import",
+      "mvp_smoke_offline",
+      "code_qa_team_select",
+      "code_qa_run_offline",
+      "gui_helper_help_surface"
+    ],
+    "module_compile": [
+      "module_compile_src_administrator",
+      "module_compile_src_audit_remediation",
+      "module_compile_src_bootdoctor",
+      "module_compile_src_brainctl",
+      "module_compile_src_noemaforge_chat",
+      "module_compile_src_noemaforge_core",
+      "module_compile_src_noemaforge_eval",
+      "module_compile_src_noemaforge_interpret",
+      "module_compile_src_noemaforge_json_tools",
+      "module_compile_src_noemaforge_llm_client",
+      "module_compile_src_noemaforge_monitor",
+      "module_compile_src_noemaforge_status",
+      "module_compile_src_noemaforge_tasks",
+      "module_compile_src_noemaforge_toolproxy_diag",
+      "module_compile_src_brainui",
+      "module_compile_src_bundles",
+      "module_compile_src_canary_runner",
+      "module_compile_src_caps",
+      "module_compile_src_casebase",
+      "module_compile_src_coordinator_fanout",
+      "module_compile_src_daily_scheduler",
+      "module_compile_src_daily_stats",
+      "module_compile_src_dataset_inventory",
+      "module_compile_src_discord_bridge",
+      "module_compile_src_doctor",
+      "module_compile_src_dream_cycle",
+      "module_compile_src_email_airlock",
+      "module_compile_src_embeddings",
+      "module_compile_src_epoch",
+      "module_compile_src_first_run_wizard",
+      "module_compile_src_firstboot_eval",
+      "module_compile_src_firstboot_orchestrator",
+      "module_compile_src_firstboot_status",
+      "module_compile_src_fixture_autogen",
+      "module_compile_src_fixture_bundle",
+      "module_compile_src_flow_catalog",
+      "module_compile_src_flow_metrics",
+      "module_compile_src_gguf_select",
+      "module_compile_src_glove_agent",
+      "module_compile_src_glove_runner",
+      "module_compile_src_honeykeys",
+      "module_compile_src_hwscan",
+      "module_compile_src_ics_import",
+      "module_compile_src_incident_metrics",
+      "module_compile_src_incidents",
+      "module_compile_src_installer_plan",
+      "module_compile_src_invites",
+      "module_compile_src_knowledge___init__",
+      "module_compile_src_knowledge_conflict_runtime",
+      "module_compile_src_knowledge_embedding_worker",
+      "module_compile_src_knowledge_error_learning",
+      "module_compile_src_knowledge_eval_runtime",
+      "module_compile_src_knowledge_extraction_pipeline",
+      "module_compile_src_knowledge_gatekeeper",
+      "module_compile_src_knowledge_grounded_administrator",
+      "module_compile_src_knowledge_ingest",
+      "module_compile_src_knowledge_policy",
+      "module_compile_src_knowledge_prep_pipeline",
+      "module_compile_src_knowledge_prep_store",
+      "module_compile_src_knowledge_retrieval",
+      "module_compile_src_knowledge_store",
+      "module_compile_src_knowledge_synthetic_book",
+      "module_compile_src_knowledge_trails",
+      "module_compile_src_knowledge_vector_index",
+      "module_compile_src_knowledge_maintainer",
+      "module_compile_src_lan_discovery",
+      "module_compile_src_lan_identity",
+      "module_compile_src_llm_backends_manager",
+      "module_compile_src_localgateway",
+      "module_compile_src_localgw_connectors___init__",
+      "module_compile_src_localgw_connectors_base",
+      "module_compile_src_localgw_connectors_ipp",
+      "module_compile_src_localgw_connectors_octoprint",
+      "module_compile_src_localgw_ratelimit",
+      "module_compile_src_localgw_secrets",
+      "module_compile_src_localgw_uplink",
+      "module_compile_src_localgw_uplink_agent",
+      "module_compile_src_lsm",
+      "module_compile_src_lsp_facade",
+      "module_compile_src_maintenance",
+      "module_compile_src_mcp_router",
+      "module_compile_src_memory_system",
+      "module_compile_src_memsentinel",
+      "module_compile_src_metrics_snapshot",
+      "module_compile_src_model_capabilities",
+      "module_compile_src_model_installer_plan",
+      "module_compile_src_model_inventory_normalize",
+      "module_compile_src_model_profiles",
+      "module_compile_src_model_registry",
+      "module_compile_src_model_router",
+      "module_compile_src_model_scorecards",
+      "module_compile_src_netguard",
+      "module_compile_src_nids_lite",
+      "module_compile_src_notifier",
+      "module_compile_src_observability_metrics",
+      "module_compile_src_offline_apt",
+      "module_compile_src_persona_runtime",
+      "module_compile_src_pi_firewall",
+      "module_compile_src_pipeline_runtime",
+      "module_compile_src_pipelines___init__",
+      "module_compile_src_pipelines_finance_budget",
+      "module_compile_src_pipelines_photos_diary",
+      "module_compile_src_plan_mode",
+      "module_compile_src_planned_sweep",
+      "module_compile_src_plugin_runner",
+      "module_compile_src_prestart",
+      "module_compile_src_profile_manager",
+      "module_compile_src_project_snapshot",
+      "module_compile_src_quarantine",
+      "module_compile_src_quarantine_samples",
+      "module_compile_src_readinglist_workflow",
+      "module_compile_src_resource_policy",
+      "module_compile_src_resource_recovery",
+      "module_compile_src_roadmap",
+      "module_compile_src_role_runner",
+      "module_compile_src_role_tournament",
+      "module_compile_src_roles_role_entry",
+      "module_compile_src_rss_airlock",
+      "module_compile_src_runtime_safety",
+      "module_compile_src_runtime_state",
+      "module_compile_src_sandbox",
+      "module_compile_src_scary_sweep",
+      "module_compile_src_seclog",
+      "module_compile_src_selfdev_learning",
+      "module_compile_src_selftest_runtime",
+      "module_compile_src_session_memory_extractor",
+      "module_compile_src_skills_registry",
+      "module_compile_src_sr_cycle",
+      "module_compile_src_sr_lite",
+      "module_compile_src_ssr_cycle",
+      "module_compile_src_storage_broker",
+      "module_compile_src_surgeon_auto",
+      "module_compile_src_task_runner",
+      "module_compile_src_task_tools",
+      "module_compile_src_taskqueue",
+      "module_compile_src_team_installer_plan",
+      "module_compile_src_team_memory_sync",
+      "module_compile_src_team_scorecards",
+      "module_compile_src_team_search",
+      "module_compile_src_telemetry",
+      "module_compile_src_tg_bot_runtime",
+      "module_compile_src_tg_channel_workflow",
+      "module_compile_src_tool_onboard",
+      "module_compile_src_toolproxy",
+      "module_compile_src_toolvault",
+      "module_compile_src_tts_runtime",
+      "module_compile_src_ui_snapshot",
+      "module_compile_src_vault_inventory",
+      "module_compile_src_vault_reorg",
+      "module_compile_src_verifiers",
+      "module_compile_src_voice_ingest",
+      "module_compile_src_vstore",
+      "module_compile_src_webgateway",
+      "module_compile_src_wiki_patch_runtime",
+      "module_compile_src_worktree_manager"
+    ],
+    "all_safe": [
+      "cli_status_json",
+      "pipeline_validate",
+      "schema_validate",
+      "persona_validate",
+      "pipeline_metrics_prometheus",
+      "toolproxy_offline_smoke",
+      "dashboard_state",
+      "pipeline_run_public_mwp",
+      "pipeline_template_import",
+      "mvp_smoke_offline",
+      "module_compile_src_administrator",
+      "module_compile_src_audit_remediation",
+      "module_compile_src_bootdoctor",
+      "module_compile_src_brainctl",
+      "module_compile_src_noemaforge_chat",
+      "module_compile_src_noemaforge_core",
+      "module_compile_src_noemaforge_eval",
+      "module_compile_src_noemaforge_interpret",
+      "module_compile_src_noemaforge_json_tools",
+      "module_compile_src_noemaforge_llm_client",
+      "module_compile_src_noemaforge_monitor",
+      "module_compile_src_noemaforge_status",
+      "module_compile_src_noemaforge_tasks",
+      "module_compile_src_noemaforge_toolproxy_diag",
+      "module_compile_src_brainui",
+      "module_compile_src_bundles",
+      "module_compile_src_canary_runner",
+      "module_compile_src_caps",
+      "module_compile_src_casebase",
+      "module_compile_src_coordinator_fanout",
+      "module_compile_src_daily_scheduler",
+      "module_compile_src_daily_stats",
+      "module_compile_src_dataset_inventory",
+      "module_compile_src_discord_bridge",
+      "module_compile_src_doctor",
+      "module_compile_src_dream_cycle",
+      "module_compile_src_email_airlock",
+      "module_compile_src_embeddings",
+      "module_compile_src_epoch",
+      "module_compile_src_first_run_wizard",
+      "module_compile_src_firstboot_eval",
+      "module_compile_src_firstboot_orchestrator",
+      "module_compile_src_firstboot_status",
+      "module_compile_src_fixture_autogen",
+      "module_compile_src_fixture_bundle",
+      "module_compile_src_flow_catalog",
+      "module_compile_src_flow_metrics",
+      "module_compile_src_gguf_select",
+      "module_compile_src_glove_agent",
+      "module_compile_src_glove_runner",
+      "module_compile_src_honeykeys",
+      "module_compile_src_hwscan",
+      "module_compile_src_ics_import",
+      "module_compile_src_incident_metrics",
+      "module_compile_src_incidents",
+      "module_compile_src_installer_plan",
+      "module_compile_src_invites",
+      "module_compile_src_knowledge___init__",
+      "module_compile_src_knowledge_conflict_runtime",
+      "module_compile_src_knowledge_embedding_worker",
+      "module_compile_src_knowledge_error_learning",
+      "module_compile_src_knowledge_eval_runtime",
+      "module_compile_src_knowledge_extraction_pipeline",
+      "module_compile_src_knowledge_gatekeeper",
+      "module_compile_src_knowledge_grounded_administrator",
+      "module_compile_src_knowledge_ingest",
+      "module_compile_src_knowledge_policy",
+      "module_compile_src_knowledge_prep_pipeline",
+      "module_compile_src_knowledge_prep_store",
+      "module_compile_src_knowledge_retrieval",
+      "module_compile_src_knowledge_store",
+      "module_compile_src_knowledge_synthetic_book",
+      "module_compile_src_knowledge_trails",
+      "module_compile_src_knowledge_vector_index",
+      "module_compile_src_knowledge_maintainer",
+      "module_compile_src_lan_discovery",
+      "module_compile_src_lan_identity",
+      "module_compile_src_llm_backends_manager",
+      "module_compile_src_localgateway",
+      "module_compile_src_localgw_connectors___init__",
+      "module_compile_src_localgw_connectors_base",
+      "module_compile_src_localgw_connectors_ipp",
+      "module_compile_src_localgw_connectors_octoprint",
+      "module_compile_src_localgw_ratelimit",
+      "module_compile_src_localgw_secrets",
+      "module_compile_src_localgw_uplink",
+      "module_compile_src_localgw_uplink_agent",
+      "module_compile_src_lsm",
+      "module_compile_src_lsp_facade",
+      "module_compile_src_maintenance",
+      "module_compile_src_mcp_router",
+      "module_compile_src_memory_system",
+      "module_compile_src_memsentinel",
+      "module_compile_src_metrics_snapshot",
+      "module_compile_src_model_capabilities",
+      "module_compile_src_model_installer_plan",
+      "module_compile_src_model_inventory_normalize",
+      "module_compile_src_model_profiles",
+      "module_compile_src_model_registry",
+      "module_compile_src_model_router",
+      "module_compile_src_model_scorecards",
+      "module_compile_src_netguard",
+      "module_compile_src_nids_lite",
+      "module_compile_src_notifier",
+      "module_compile_src_observability_metrics",
+      "module_compile_src_offline_apt",
+      "module_compile_src_persona_runtime",
+      "module_compile_src_pi_firewall",
+      "module_compile_src_pipeline_runtime",
+      "module_compile_src_pipelines___init__",
+      "module_compile_src_pipelines_finance_budget",
+      "module_compile_src_pipelines_photos_diary",
+      "module_compile_src_plan_mode",
+      "module_compile_src_planned_sweep",
+      "module_compile_src_plugin_runner",
+      "module_compile_src_prestart",
+      "module_compile_src_profile_manager",
+      "module_compile_src_project_snapshot",
+      "module_compile_src_quarantine",
+      "module_compile_src_quarantine_samples",
+      "module_compile_src_readinglist_workflow",
+      "module_compile_src_resource_policy",
+      "module_compile_src_resource_recovery",
+      "module_compile_src_roadmap",
+      "module_compile_src_role_runner",
+      "module_compile_src_role_tournament",
+      "module_compile_src_roles_role_entry",
+      "module_compile_src_rss_airlock",
+      "module_compile_src_runtime_safety",
+      "module_compile_src_runtime_state",
+      "module_compile_src_sandbox",
+      "module_compile_src_scary_sweep",
+      "module_compile_src_seclog",
+      "module_compile_src_selfdev_learning",
+      "module_compile_src_selftest_runtime",
+      "module_compile_src_session_memory_extractor",
+      "module_compile_src_skills_registry",
+      "module_compile_src_sr_cycle",
+      "module_compile_src_sr_lite",
+      "module_compile_src_ssr_cycle",
+      "module_compile_src_storage_broker",
+      "module_compile_src_surgeon_auto",
+      "module_compile_src_task_runner",
+      "module_compile_src_task_tools",
+      "module_compile_src_taskqueue",
+      "module_compile_src_team_installer_plan",
+      "module_compile_src_team_memory_sync",
+      "module_compile_src_team_scorecards",
+      "module_compile_src_team_search",
+      "module_compile_src_telemetry",
+      "module_compile_src_tg_bot_runtime",
+      "module_compile_src_tg_channel_workflow",
+      "module_compile_src_tool_onboard",
+      "module_compile_src_toolproxy",
+      "module_compile_src_toolvault",
+      "module_compile_src_tts_runtime",
+      "module_compile_src_ui_snapshot",
+      "module_compile_src_vault_inventory",
+      "module_compile_src_vault_reorg",
+      "module_compile_src_verifiers",
+      "module_compile_src_voice_ingest",
+      "module_compile_src_vstore",
+      "module_compile_src_webgateway",
+      "module_compile_src_wiki_patch_runtime",
+      "module_compile_src_worktree_manager"
+    ],
+    "quick": [
+      "cli_status_json",
+      "pipeline_validate",
+      "schema_validate",
+      "persona_validate",
+      "pipeline_metrics_prometheus",
+      "toolproxy_offline_smoke",
+      "dashboard_state",
+      "code_qa_team_select",
+      "code_qa_run_offline",
+      "gui_helper_help_surface",
+      "member_runtime_validate",
+      "member_team_select"
+    ],
+    "integration": [
+      "pipeline_run_public_mwp",
+      "pipeline_template_import",
+      "member_runtime_validate",
+      "member_team_select",
+      "member_analyze_code",
+      "member_run_analyser",
+      "first_start_ui_playbook_present"
+    ]
+  },
+  "cases": [
+    {
+      "id": "cli_status_json",
+      "module": "operator_cli",
+      "tier": "smoke",
+      "description": "noemaforge status JSON shape",
+      "command": [
+        "{{noemaforge}}",
+        "status",
+        "--json"
+      ],
+      "expect": {
+        "exit_code": [
+          0,
+          2
+        ],
+        "stdout_contains": [
+          "\"health\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "pipeline_validate",
+      "module": "pipeline_runtime",
+      "tier": "unit",
+      "description": "Pipeline/persona/pattern catalogs validate",
+      "command": [
+        "{{noemaforge}}",
+        "pipeline",
+        "validate"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "schema_validate",
+      "module": "schema_validation",
+      "tier": "unit",
+      "description": "NoemaForge native schemas validate",
+      "command": [
+        "{{noemaforge}}",
+        "schema",
+        "validate"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "persona_validate",
+      "module": "persona_runtime",
+      "tier": "unit",
+      "description": "Persona catalog and portraits validate",
+      "command": [
+        "{{noemaforge}}",
+        "persona",
+        "validate"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "pipeline_metrics_prometheus",
+      "module": "observability",
+      "tier": "unit",
+      "description": "Prometheus metrics exporter emits core metrics",
+      "command": [
+        "{{noemaforge}}",
+        "pipeline",
+        "metrics",
+        "--format",
+        "prometheus"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "noemaforge_pipeline_runs_total"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "toolproxy_offline_smoke",
+      "module": "toolproxy",
+      "tier": "integration_offline",
+      "description": "Offline capability token issue/verify smoke",
+      "command": [
+        "{{noemaforge}}",
+        "toolproxy",
+        "smoke",
+        "--tokens-dir",
+        "{{tmp}}/cap_tokens"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "dashboard_state",
+      "module": "dashboard",
+      "tier": "integration_offline",
+      "description": "Dashboard state can be generated without launching LLM",
+      "command": [
+        "{{noemaforge}}",
+        "dashboard",
+        "state",
+        "--out",
+        "{{tmp}}/dashboard-state.json"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "file_exists": [
+          "{{tmp}}/dashboard-state.json"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "pipeline_run_public_mwp",
+      "module": "pipeline_runtime",
+      "tier": "integration_offline",
+      "description": "Create public_mwp run and typed context sidecars",
+      "command": [
+        "{{noemaforge}}",
+        "pipeline",
+        "run",
+        "public_mwp",
+        "--task-id",
+        "selftest",
+        "--request",
+        "selftest public MWP run"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"run_id\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "pipeline_template_import",
+      "module": "pipeline_import",
+      "tier": "integration_offline",
+      "description": "Import external workflow/template draft safely",
+      "setup_files": {
+        "{{tmp}}/template.json": "{\"name\":\"SelfTest Template\",\"nodes\":[{\"name\":\"Webhook\"},{\"name\":\"Review\"}],\"connections\":{}}"
+      },
+      "command": [
+        "{{noemaforge}}",
+        "pipeline",
+        "template-import",
+        "{{tmp}}/template.json",
+        "--family",
+        "n8n",
+        "--pipeline-id",
+        "selftest_import"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"pipeline\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "mvp_smoke_offline",
+      "module": "public_mwp",
+      "tier": "system_offline",
+      "description": "Full public MVP smoke without live LLM",
+      "command": [
+        "{{noemaforge}}",
+        "mvp-smoke",
+        "--json"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"failed\": 0"
+        ]
+      },
+      "live": false,
+      "timeout_sec": 120
+    },
+    {
+      "id": "gateway_live_smoke_plan",
+      "module": "llm_gateway",
+      "tier": "system_live",
+      "description": "Placeholder live gate: must be run on NoemaForge with explicit --allow-live",
+      "command": [
+        "{{noemaforge}}",
+        "smoke"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": true,
+      "timeout_sec": 180
+    },
+    {
+      "id": "module_compile_src_administrator",
+      "module": "src.administrator",
+      "tier": "unit_compile",
+      "description": "Compile check for src/administrator.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/administrator.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_audit_remediation",
+      "module": "src.audit_remediation",
+      "tier": "unit_compile",
+      "description": "Compile check for src/audit_remediation.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/audit_remediation.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_bootdoctor",
+      "module": "src.bootdoctor",
+      "tier": "unit_compile",
+      "description": "Compile check for src/bootdoctor.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/bootdoctor.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_brainctl",
+      "module": "src.brainctl",
+      "tier": "unit_compile",
+      "description": "Compile check for src/brainctl.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/brainctl.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_chat",
+      "module": "src.noemaforge_chat",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_chat.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_chat.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_core",
+      "module": "src.noemaforge_core",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_core.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_core.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_eval",
+      "module": "src.noemaforge_eval",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_eval.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_eval.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_interpret",
+      "module": "src.noemaforge_interpret",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_interpret.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_interpret.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_json_tools",
+      "module": "src.noemaforge_json_tools",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_json_tools.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_json_tools.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_llm_client",
+      "module": "src.noemaforge_llm_client",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_llm_client.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_llm_client.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_monitor",
+      "module": "src.noemaforge_monitor",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_monitor.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_monitor.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_status",
+      "module": "src.noemaforge_status",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_status.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_status.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_tasks",
+      "module": "src.noemaforge_tasks",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_tasks.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_tasks.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_noemaforge_toolproxy_diag",
+      "module": "src.noemaforge_toolproxy_diag",
+      "tier": "unit_compile",
+      "description": "Compile check for src/noemaforge_toolproxy_diag.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/noemaforge_toolproxy_diag.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_brainui",
+      "module": "src.brainui",
+      "tier": "unit_compile",
+      "description": "Compile check for src/brainui.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/brainui.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_bundles",
+      "module": "src.bundles",
+      "tier": "unit_compile",
+      "description": "Compile check for src/bundles.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/bundles.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_canary_runner",
+      "module": "src.canary_runner",
+      "tier": "unit_compile",
+      "description": "Compile check for src/canary_runner.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/canary_runner.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_caps",
+      "module": "src.caps",
+      "tier": "unit_compile",
+      "description": "Compile check for src/caps.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/caps.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_casebase",
+      "module": "src.casebase",
+      "tier": "unit_compile",
+      "description": "Compile check for src/casebase.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/casebase.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_coordinator_fanout",
+      "module": "src.coordinator_fanout",
+      "tier": "unit_compile",
+      "description": "Compile check for src/coordinator_fanout.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/coordinator_fanout.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_daily_scheduler",
+      "module": "src.daily_scheduler",
+      "tier": "unit_compile",
+      "description": "Compile check for src/daily_scheduler.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/daily_scheduler.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_daily_stats",
+      "module": "src.daily_stats",
+      "tier": "unit_compile",
+      "description": "Compile check for src/daily_stats.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/daily_stats.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_dataset_inventory",
+      "module": "src.dataset_inventory",
+      "tier": "unit_compile",
+      "description": "Compile check for src/dataset_inventory.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/dataset_inventory.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_discord_bridge",
+      "module": "src.discord_bridge",
+      "tier": "unit_compile",
+      "description": "Compile check for src/discord_bridge.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/discord_bridge.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_doctor",
+      "module": "src.doctor",
+      "tier": "unit_compile",
+      "description": "Compile check for src/doctor.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/doctor.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_dream_cycle",
+      "module": "src.dream_cycle",
+      "tier": "unit_compile",
+      "description": "Compile check for src/dream_cycle.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/dream_cycle.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_email_airlock",
+      "module": "src.email_airlock",
+      "tier": "unit_compile",
+      "description": "Compile check for src/email_airlock.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/email_airlock.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_embeddings",
+      "module": "src.embeddings",
+      "tier": "unit_compile",
+      "description": "Compile check for src/embeddings.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/embeddings.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_epoch",
+      "module": "src.epoch",
+      "tier": "unit_compile",
+      "description": "Compile check for src/epoch.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/epoch.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_first_run_wizard",
+      "module": "src.first_run_wizard",
+      "tier": "unit_compile",
+      "description": "Compile check for src/first_run_wizard.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/first_run_wizard.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_firstboot_eval",
+      "module": "src.firstboot_eval",
+      "tier": "unit_compile",
+      "description": "Compile check for src/firstboot_eval.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/firstboot_eval.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_firstboot_orchestrator",
+      "module": "src.firstboot_orchestrator",
+      "tier": "unit_compile",
+      "description": "Compile check for src/firstboot_orchestrator.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/firstboot_orchestrator.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_firstboot_status",
+      "module": "src.firstboot_status",
+      "tier": "unit_compile",
+      "description": "Compile check for src/firstboot_status.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/firstboot_status.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_fixture_autogen",
+      "module": "src.fixture_autogen",
+      "tier": "unit_compile",
+      "description": "Compile check for src/fixture_autogen.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/fixture_autogen.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_fixture_bundle",
+      "module": "src.fixture_bundle",
+      "tier": "unit_compile",
+      "description": "Compile check for src/fixture_bundle.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/fixture_bundle.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_flow_catalog",
+      "module": "src.flow_catalog",
+      "tier": "unit_compile",
+      "description": "Compile check for src/flow_catalog.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/flow_catalog.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_flow_metrics",
+      "module": "src.flow_metrics",
+      "tier": "unit_compile",
+      "description": "Compile check for src/flow_metrics.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/flow_metrics.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_gguf_select",
+      "module": "src.gguf_select",
+      "tier": "unit_compile",
+      "description": "Compile check for src/gguf_select.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/gguf_select.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_glove_agent",
+      "module": "src.glove_agent",
+      "tier": "unit_compile",
+      "description": "Compile check for src/glove_agent.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/glove_agent.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_glove_runner",
+      "module": "src.glove_runner",
+      "tier": "unit_compile",
+      "description": "Compile check for src/glove_runner.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/glove_runner.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_honeykeys",
+      "module": "src.honeykeys",
+      "tier": "unit_compile",
+      "description": "Compile check for src/honeykeys.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/honeykeys.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_hwscan",
+      "module": "src.hwscan",
+      "tier": "unit_compile",
+      "description": "Compile check for src/hwscan.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/hwscan.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_ics_import",
+      "module": "src.ics_import",
+      "tier": "unit_compile",
+      "description": "Compile check for src/ics_import.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/ics_import.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_incident_metrics",
+      "module": "src.incident_metrics",
+      "tier": "unit_compile",
+      "description": "Compile check for src/incident_metrics.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/incident_metrics.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_incidents",
+      "module": "src.incidents",
+      "tier": "unit_compile",
+      "description": "Compile check for src/incidents.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/incidents.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_installer_plan",
+      "module": "src.installer_plan",
+      "tier": "unit_compile",
+      "description": "Compile check for src/installer_plan.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/installer_plan.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_invites",
+      "module": "src.invites",
+      "tier": "unit_compile",
+      "description": "Compile check for src/invites.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/invites.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge___init__",
+      "module": "src.knowledge.__init__",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/__init__.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/__init__.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_conflict_runtime",
+      "module": "src.knowledge.conflict_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/conflict_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/conflict_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_embedding_worker",
+      "module": "src.knowledge.embedding_worker",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/embedding_worker.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/embedding_worker.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_error_learning",
+      "module": "src.knowledge.error_learning",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/error_learning.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/error_learning.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_eval_runtime",
+      "module": "src.knowledge.eval_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/eval_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/eval_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_extraction_pipeline",
+      "module": "src.knowledge.extraction_pipeline",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/extraction_pipeline.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/extraction_pipeline.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_gatekeeper",
+      "module": "src.knowledge.gatekeeper",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/gatekeeper.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/gatekeeper.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_grounded_administrator",
+      "module": "src.knowledge.grounded_administrator",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/grounded_administrator.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/grounded_administrator.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_ingest",
+      "module": "src.knowledge.ingest",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/ingest.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/ingest.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_policy",
+      "module": "src.knowledge.policy",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/policy.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/policy.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_prep_pipeline",
+      "module": "src.knowledge.prep_pipeline",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/prep_pipeline.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/prep_pipeline.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_prep_store",
+      "module": "src.knowledge.prep_store",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/prep_store.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/prep_store.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_retrieval",
+      "module": "src.knowledge.retrieval",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/retrieval.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/retrieval.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_store",
+      "module": "src.knowledge.store",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/store.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/store.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_synthetic_book",
+      "module": "src.knowledge.synthetic_book",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/synthetic_book.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/synthetic_book.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_trails",
+      "module": "src.knowledge.trails",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/trails.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/trails.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_vector_index",
+      "module": "src.knowledge.vector_index",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge/vector_index.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge/vector_index.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_knowledge_maintainer",
+      "module": "src.knowledge_maintainer",
+      "tier": "unit_compile",
+      "description": "Compile check for src/knowledge_maintainer.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/knowledge_maintainer.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_lan_discovery",
+      "module": "src.lan_discovery",
+      "tier": "unit_compile",
+      "description": "Compile check for src/lan_discovery.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/lan_discovery.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_lan_identity",
+      "module": "src.lan_identity",
+      "tier": "unit_compile",
+      "description": "Compile check for src/lan_identity.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/lan_identity.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_llm_backends_manager",
+      "module": "src.llm_backends_manager",
+      "tier": "unit_compile",
+      "description": "Compile check for src/llm_backends_manager.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/llm_backends_manager.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgateway",
+      "module": "src.localgateway",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgateway.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgateway.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_connectors___init__",
+      "module": "src.localgw_connectors.__init__",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_connectors/__init__.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_connectors/__init__.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_connectors_base",
+      "module": "src.localgw_connectors.base",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_connectors/base.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_connectors/base.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_connectors_ipp",
+      "module": "src.localgw_connectors.ipp",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_connectors/ipp.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_connectors/ipp.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_connectors_octoprint",
+      "module": "src.localgw_connectors.octoprint",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_connectors/octoprint.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_connectors/octoprint.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_ratelimit",
+      "module": "src.localgw_ratelimit",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_ratelimit.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_ratelimit.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_secrets",
+      "module": "src.localgw_secrets",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_secrets.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_secrets.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_uplink",
+      "module": "src.localgw_uplink",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_uplink.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_uplink.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_localgw_uplink_agent",
+      "module": "src.localgw_uplink_agent",
+      "tier": "unit_compile",
+      "description": "Compile check for src/localgw_uplink_agent.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/localgw_uplink_agent.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_lsm",
+      "module": "src.lsm",
+      "tier": "unit_compile",
+      "description": "Compile check for src/lsm.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/lsm.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_lsp_facade",
+      "module": "src.lsp_facade",
+      "tier": "unit_compile",
+      "description": "Compile check for src/lsp_facade.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/lsp_facade.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_maintenance",
+      "module": "src.maintenance",
+      "tier": "unit_compile",
+      "description": "Compile check for src/maintenance.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/maintenance.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_mcp_router",
+      "module": "src.mcp_router",
+      "tier": "unit_compile",
+      "description": "Compile check for src/mcp_router.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/mcp_router.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_memory_system",
+      "module": "src.memory_system",
+      "tier": "unit_compile",
+      "description": "Compile check for src/memory_system.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/memory_system.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_memsentinel",
+      "module": "src.memsentinel",
+      "tier": "unit_compile",
+      "description": "Compile check for src/memsentinel.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/memsentinel.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_metrics_snapshot",
+      "module": "src.metrics_snapshot",
+      "tier": "unit_compile",
+      "description": "Compile check for src/metrics_snapshot.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/metrics_snapshot.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_capabilities",
+      "module": "src.model_capabilities",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_capabilities.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_capabilities.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_installer_plan",
+      "module": "src.model_installer_plan",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_installer_plan.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_installer_plan.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_inventory_normalize",
+      "module": "src.model_inventory_normalize",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_inventory_normalize.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_inventory_normalize.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_profiles",
+      "module": "src.model_profiles",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_profiles.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_profiles.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_registry",
+      "module": "src.model_registry",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_registry.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_registry.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_router",
+      "module": "src.model_router",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_router.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_router.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_model_scorecards",
+      "module": "src.model_scorecards",
+      "tier": "unit_compile",
+      "description": "Compile check for src/model_scorecards.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/model_scorecards.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_netguard",
+      "module": "src.netguard",
+      "tier": "unit_compile",
+      "description": "Compile check for src/netguard.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/netguard.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_nids_lite",
+      "module": "src.nids_lite",
+      "tier": "unit_compile",
+      "description": "Compile check for src/nids_lite.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/nids_lite.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_notifier",
+      "module": "src.notifier",
+      "tier": "unit_compile",
+      "description": "Compile check for src/notifier.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/notifier.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_observability_metrics",
+      "module": "src.observability_metrics",
+      "tier": "unit_compile",
+      "description": "Compile check for src/observability_metrics.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/observability_metrics.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_offline_apt",
+      "module": "src.offline_apt",
+      "tier": "unit_compile",
+      "description": "Compile check for src/offline_apt.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/offline_apt.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_persona_runtime",
+      "module": "src.persona_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/persona_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/persona_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_pi_firewall",
+      "module": "src.pi_firewall",
+      "tier": "unit_compile",
+      "description": "Compile check for src/pi_firewall.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/pi_firewall.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_pipeline_runtime",
+      "module": "src.pipeline_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/pipeline_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/pipeline_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_pipelines___init__",
+      "module": "src.pipelines.__init__",
+      "tier": "unit_compile",
+      "description": "Compile check for src/pipelines/__init__.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/pipelines/__init__.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_pipelines_finance_budget",
+      "module": "src.pipelines.finance_budget",
+      "tier": "unit_compile",
+      "description": "Compile check for src/pipelines/finance_budget.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/pipelines/finance_budget.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_pipelines_photos_diary",
+      "module": "src.pipelines.photos_diary",
+      "tier": "unit_compile",
+      "description": "Compile check for src/pipelines/photos_diary.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/pipelines/photos_diary.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_plan_mode",
+      "module": "src.plan_mode",
+      "tier": "unit_compile",
+      "description": "Compile check for src/plan_mode.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/plan_mode.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_planned_sweep",
+      "module": "src.planned_sweep",
+      "tier": "unit_compile",
+      "description": "Compile check for src/planned_sweep.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/planned_sweep.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_plugin_runner",
+      "module": "src.plugin_runner",
+      "tier": "unit_compile",
+      "description": "Compile check for src/plugin_runner.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/plugin_runner.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_prestart",
+      "module": "src.prestart",
+      "tier": "unit_compile",
+      "description": "Compile check for src/prestart.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/prestart.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_profile_manager",
+      "module": "src.profile_manager",
+      "tier": "unit_compile",
+      "description": "Compile check for src/profile_manager.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/profile_manager.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_project_snapshot",
+      "module": "src.project_snapshot",
+      "tier": "unit_compile",
+      "description": "Compile check for src/project_snapshot.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/project_snapshot.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_quarantine",
+      "module": "src.quarantine",
+      "tier": "unit_compile",
+      "description": "Compile check for src/quarantine.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/quarantine.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_quarantine_samples",
+      "module": "src.quarantine_samples",
+      "tier": "unit_compile",
+      "description": "Compile check for src/quarantine_samples.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/quarantine_samples.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_readinglist_workflow",
+      "module": "src.readinglist_workflow",
+      "tier": "unit_compile",
+      "description": "Compile check for src/readinglist_workflow.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/readinglist_workflow.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_resource_policy",
+      "module": "src.resource_policy",
+      "tier": "unit_compile",
+      "description": "Compile check for src/resource_policy.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/resource_policy.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_resource_recovery",
+      "module": "src.resource_recovery",
+      "tier": "unit_compile",
+      "description": "Compile check for src/resource_recovery.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/resource_recovery.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_roadmap",
+      "module": "src.roadmap",
+      "tier": "unit_compile",
+      "description": "Compile check for src/roadmap.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/roadmap.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_role_runner",
+      "module": "src.role_runner",
+      "tier": "unit_compile",
+      "description": "Compile check for src/role_runner.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/role_runner.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_role_tournament",
+      "module": "src.role_tournament",
+      "tier": "unit_compile",
+      "description": "Compile check for src/role_tournament.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/role_tournament.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_roles_role_entry",
+      "module": "src.roles.role_entry",
+      "tier": "unit_compile",
+      "description": "Compile check for src/roles/role_entry.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/roles/role_entry.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_rss_airlock",
+      "module": "src.rss_airlock",
+      "tier": "unit_compile",
+      "description": "Compile check for src/rss_airlock.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/rss_airlock.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_runtime_safety",
+      "module": "src.runtime_safety",
+      "tier": "unit_compile",
+      "description": "Compile check for src/runtime_safety.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/runtime_safety.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_runtime_state",
+      "module": "src.runtime_state",
+      "tier": "unit_compile",
+      "description": "Compile check for src/runtime_state.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/runtime_state.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_sandbox",
+      "module": "src.sandbox",
+      "tier": "unit_compile",
+      "description": "Compile check for src/sandbox.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/sandbox.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_scary_sweep",
+      "module": "src.scary_sweep",
+      "tier": "unit_compile",
+      "description": "Compile check for src/scary_sweep.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/scary_sweep.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_seclog",
+      "module": "src.seclog",
+      "tier": "unit_compile",
+      "description": "Compile check for src/seclog.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/seclog.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_selfdev_learning",
+      "module": "src.selfdev_learning",
+      "tier": "unit_compile",
+      "description": "Compile check for src/selfdev_learning.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/selfdev_learning.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_selftest_runtime",
+      "module": "src.selftest_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/selftest_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/selftest_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_session_memory_extractor",
+      "module": "src.session_memory_extractor",
+      "tier": "unit_compile",
+      "description": "Compile check for src/session_memory_extractor.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/session_memory_extractor.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_skills_registry",
+      "module": "src.skills_registry",
+      "tier": "unit_compile",
+      "description": "Compile check for src/skills_registry.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/skills_registry.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_sr_cycle",
+      "module": "src.sr_cycle",
+      "tier": "unit_compile",
+      "description": "Compile check for src/sr_cycle.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/sr_cycle.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_sr_lite",
+      "module": "src.sr_lite",
+      "tier": "unit_compile",
+      "description": "Compile check for src/sr_lite.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/sr_lite.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_ssr_cycle",
+      "module": "src.ssr_cycle",
+      "tier": "unit_compile",
+      "description": "Compile check for src/ssr_cycle.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/ssr_cycle.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_storage_broker",
+      "module": "src.storage_broker",
+      "tier": "unit_compile",
+      "description": "Compile check for src/storage_broker.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/storage_broker.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_surgeon_auto",
+      "module": "src.surgeon_auto",
+      "tier": "unit_compile",
+      "description": "Compile check for src/surgeon_auto.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/surgeon_auto.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_task_runner",
+      "module": "src.task_runner",
+      "tier": "unit_compile",
+      "description": "Compile check for src/task_runner.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/task_runner.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_task_tools",
+      "module": "src.task_tools",
+      "tier": "unit_compile",
+      "description": "Compile check for src/task_tools.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/task_tools.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_taskqueue",
+      "module": "src.taskqueue",
+      "tier": "unit_compile",
+      "description": "Compile check for src/taskqueue.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/taskqueue.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_team_installer_plan",
+      "module": "src.team_installer_plan",
+      "tier": "unit_compile",
+      "description": "Compile check for src/team_installer_plan.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/team_installer_plan.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_team_memory_sync",
+      "module": "src.team_memory_sync",
+      "tier": "unit_compile",
+      "description": "Compile check for src/team_memory_sync.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/team_memory_sync.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_team_scorecards",
+      "module": "src.team_scorecards",
+      "tier": "unit_compile",
+      "description": "Compile check for src/team_scorecards.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/team_scorecards.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_team_search",
+      "module": "src.team_search",
+      "tier": "unit_compile",
+      "description": "Compile check for src/team_search.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/team_search.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_telemetry",
+      "module": "src.telemetry",
+      "tier": "unit_compile",
+      "description": "Compile check for src/telemetry.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/telemetry.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_tg_bot_runtime",
+      "module": "src.tg_bot_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/tg_bot_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/tg_bot_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_tg_channel_workflow",
+      "module": "src.tg_channel_workflow",
+      "tier": "unit_compile",
+      "description": "Compile check for src/tg_channel_workflow.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/tg_channel_workflow.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_tool_onboard",
+      "module": "src.tool_onboard",
+      "tier": "unit_compile",
+      "description": "Compile check for src/tool_onboard.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/tool_onboard.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_toolproxy",
+      "module": "src.toolproxy",
+      "tier": "unit_compile",
+      "description": "Compile check for src/toolproxy.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/toolproxy.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_toolvault",
+      "module": "src.toolvault",
+      "tier": "unit_compile",
+      "description": "Compile check for src/toolvault.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/toolvault.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_tts_runtime",
+      "module": "src.tts_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/tts_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/tts_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_ui_snapshot",
+      "module": "src.ui_snapshot",
+      "tier": "unit_compile",
+      "description": "Compile check for src/ui_snapshot.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/ui_snapshot.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_vault_inventory",
+      "module": "src.vault_inventory",
+      "tier": "unit_compile",
+      "description": "Compile check for src/vault_inventory.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/vault_inventory.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_vault_reorg",
+      "module": "src.vault_reorg",
+      "tier": "unit_compile",
+      "description": "Compile check for src/vault_reorg.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/vault_reorg.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_verifiers",
+      "module": "src.verifiers",
+      "tier": "unit_compile",
+      "description": "Compile check for src/verifiers.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/verifiers.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_voice_ingest",
+      "module": "src.voice_ingest",
+      "tier": "unit_compile",
+      "description": "Compile check for src/voice_ingest.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/voice_ingest.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_vstore",
+      "module": "src.vstore",
+      "tier": "unit_compile",
+      "description": "Compile check for src/vstore.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/vstore.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_webgateway",
+      "module": "src.webgateway",
+      "tier": "unit_compile",
+      "description": "Compile check for src/webgateway.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/webgateway.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_wiki_patch_runtime",
+      "module": "src.wiki_patch_runtime",
+      "tier": "unit_compile",
+      "description": "Compile check for src/wiki_patch_runtime.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/wiki_patch_runtime.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "module_compile_src_worktree_manager",
+      "module": "src.worktree_manager",
+      "tier": "unit_compile",
+      "description": "Compile check for src/worktree_manager.py",
+      "command": [
+        "__py_compile__",
+        "{{root}}/src/worktree_manager.py"
+      ],
+      "expect": {
+        "exit_code": 0
+      },
+      "live": false
+    },
+    {
+      "id": "code_qa_team_select",
+      "module": "code_qa",
+      "tier": "unit",
+      "description": "Select two code-capable QA reviewers distinct from producer model",
+      "command": [
+        "{{noemaforge}}",
+        "qa",
+        "code",
+        "team",
+        "--producer",
+        "qwen25-coder-14b",
+        "--json"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "gpt-5.5-pro-external"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "code_qa_run_offline",
+      "module": "code_qa",
+      "tier": "integration_offline",
+      "description": "Run offline code QA sub-team and emit consensus/handoff context",
+      "setup_files": {
+        "{{tmp}}/sample_project/app.py": "def add(a,b):\n    return a+b\n",
+        "{{tmp}}/sample_project/test_app.py": "from app import add\n\ndef test_add():\n    assert add(1,2)==3\n"
+      },
+      "command": [
+        "{{noemaforge}}",
+        "qa",
+        "code",
+        "run",
+        "--project",
+        "{{tmp}}/sample_project",
+        "--producer",
+        "qwen25-coder-14b",
+        "--state",
+        "{{tmp}}/qa_state",
+        "--run-id",
+        "selftest_codeqa",
+        "--json"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"consensus\""
+        ],
+        "file_exists": [
+          "{{tmp}}/qa_state/runs/selftest_codeqa/next_participant_handoff_context.md",
+          "{{tmp}}/qa_state/runs/selftest_codeqa/next_participant_handoff_context.json"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "gui_helper_help_surface",
+      "module": "operator_cli",
+      "tier": "unit",
+      "description": "Legacy GUI wrappers provide help even when full delegate is unavailable",
+      "command": [
+        "bash",
+        "{{root}}/../helpers/gui-rescue",
+        "--help"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "Usage: sudo gui-rescue"
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "member_runtime_validate",
+      "module": "member_runtime",
+      "kind": "unit",
+      "command": [
+        "{{noemaforge}}",
+        "member",
+        "validate"
+      ],
+      "timeout_seconds": 20
+    },
+    {
+      "id": "member_team_select",
+      "module": "member_runtime",
+      "kind": "unit",
+      "command": [
+        "{{noemaforge}}",
+        "member",
+        "team",
+        "--member",
+        "qa",
+        "--producer",
+        "qwen25-coder-14b",
+        "--json"
+      ],
+      "timeout_seconds": 20
+    },
+    {
+      "id": "member_analyze_code",
+      "module": "member_runtime",
+      "kind": "integration",
+      "command": [
+        "{{noemaforge}}",
+        "member",
+        "analyze-code",
+        "--project",
+        "{{root}}",
+        "--out",
+        "{{out}}/member-analyze"
+      ],
+      "timeout_seconds": 60
+    },
+    {
+      "id": "member_run_analyser",
+      "module": "member_runtime",
+      "kind": "integration",
+      "command": [
+        "{{noemaforge}}",
+        "member",
+        "run",
+        "--member",
+        "code_analyser_visualiser",
+        "--project",
+        "{{root}}",
+        "--state",
+        "{{out}}/member-state",
+        "--run-id",
+        "selftest_analyser",
+        "--json"
+      ],
+      "timeout_seconds": 90
+    },
+    {
+      "id": "first_start_ui_playbook_present",
+      "module": "first_start_ui",
+      "kind": "docs",
+      "command": [
+        "test",
+        "-s",
+        "{{root}}/../docs/USER_TEST_CASE_0.31.13.alpha.md"
+      ],
+      "timeout_seconds": 10
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "apiVersion": "noemaforge.tasks/v1",
+  "kind": "TaskCategories",
+  "version": "0.31.13.alpha",
+  "categories": [
+    "model_selection",
+    "dev_team",
+    "wiki_docs",
+    "vault_inventory",
+    "media_pipeline",
+    "safety_review",
+    "sr_review",
+    "ssr_review",
+    "gui_improvements",
+    "roadmap",
+    "smarthome"
+  ],
+  "dev_backlog_empty_policy": {
+    "action": "create_seed_optimization_task",
+    "target": "latest_seed_version",
+    "mode": "plan_first",
+    "approval_required": true,
+    "budget": {
+      "max_steps": 3,
+      "time_budget_minutes": 20
+    },
+    "stop_on_no_further_improvement": true
+  }
+}

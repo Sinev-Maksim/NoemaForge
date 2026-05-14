@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/local_gateway_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"type": "string", "enum": ["LocalGatewayPolicy"]},
+    "enabled": {"type": "boolean"},
+    "arming": {
+      "type": "object",
+      "properties": {
+        "preflight_required": {"type": "boolean"},
+        "first_run_force_full": {"type": "boolean"},
+        "token_ttl_sec": {"type": "integer", "minimum": 10}
+      },
+      "additionalProperties": true
+    },
+    "identity": {
+      "type": "object",
+      "properties": {
+        "uid_prefix": {"type": "string"},
+        "uid_algorithm": {"type": "string"},
+        "prefer_fields": {"type": "array", "items": {"type": "string"}},
+        "mac_normalization": {"type": "string"}
+      },
+      "additionalProperties": true
+    },
+    "network": {"type": "object", "additionalProperties": true},
+    "devices": {"type": "object", "additionalProperties": true},
+    "connectors": {"type": "object", "additionalProperties": true},
+    "notes": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

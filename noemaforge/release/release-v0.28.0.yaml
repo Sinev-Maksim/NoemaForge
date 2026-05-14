@@ -1,0 +1,33 @@
+version: 0.28.0
+date: '2026-04-30'
+title: Role-normalized firstboot, deeper model selection, and functional branch manifests
+highlights:
+- Fixed grounded provenance addresses in Administrator answers.
+- Normalized missing role inventory across affirmations, tool-policy, role-eval datasets,
+  and administrator delegation.
+- Aligned firstboot default role surface with the declared role-eval dataset catalog.
+- Merged default and role-specific model-eval cases to deepen per-role scorecard coverage.
+- Recorded extraction over-generation extras in the error-learning loop.
+- Added Wiki-LLM-inspired manifests for each major NoemaForge functional branch.
+changes:
+  configs:
+  - functional-branches.yaml
+  - role-affirmations.yaml
+  - role-eval-datasets.yaml
+  - tool-policy.yaml
+  contracts:
+  - functional_branches.schema.json
+  - functional_branch_manifest.schema.json
+  runtime:
+  - firstboot_eval.py
+  - brainctl.py
+  - knowledge/prep_store.py
+  - knowledge/grounded_administrator.py
+  - knowledge/eval_runtime.py
+  - model_scorecards.py
+  tests:
+  - test_grounded_addresses.py
+  - test_role_inventory_alignment.py
+  - test_functional_branch_manifests.py
+  manifests:
+  - manifests/functional/*.yaml

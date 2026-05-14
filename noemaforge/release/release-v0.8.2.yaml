@@ -1,0 +1,22 @@
+version: 0.8.2
+release_date_utc: 2026-02-26
+name: Contract Epochs + Local Vector Store (vstore)
+highlights:
+- 'Introduced Contract Epoch scaffolding: runtime contracts are treated as immutable;
+  tokens are bound to epoch_id.'
+- ToolProxy denies capability tokens issued under a different epoch (epoch mismatch).
+- 'Added new contract schemas: EpochManifest, PreStartChangeRequest, PatternSpec,
+  StreamSpec.'
+- Added local segmented vector store (vstore) + tool actions (vstore.query/upsert/tombstone)
+  for semantic memory indexes.
+- Added vstore config (configs/vstore.yaml) and documentation (docs/EPOCHS.md, docs/VSTORE.md).
+breaking_changes:
+- CapabilityToken contract now includes epoch_id (tokens issued by older code must
+  be reissued).
+next:
+- 'Implement full pre-start acceptance loop: apply PreStartChangeRequest -> build
+  candidate epoch -> scary/surgeon audit -> canary -> switch current epoch.'
+- Connect vstore writes to Solution Cache/Casebase and Memory events (auto-upsert
+  on task completion).
+- Introduce relation classification (entails/contradicts/neutral) to keep A and ¬A
+  from collapsing into the same truth bucket.

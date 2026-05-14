@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RoleRoadmaps",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "roles"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "RoleRoadmaps"
+    },
+    "defaults": {
+      "type": "object"
+    },
+    "roles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "principles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "priority_rules": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hygiene": {
+            "type": "object"
+          },
+          "attentive_gaze": {
+            "type": "object"
+          },
+          "roadmap": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "title"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "priority": {
+                  "type": "string"
+                },
+                "acceptance": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

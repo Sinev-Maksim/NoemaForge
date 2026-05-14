@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/security_event.schema.json",
+  "type": "object",
+  "required": [
+    "evt_id",
+    "ts",
+    "severity",
+    "type",
+    "actor",
+    "decision",
+    "trace_id"
+  ],
+  "properties": {
+    "evt_id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "string"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "S1",
+        "S2",
+        "S3"
+      ]
+    },
+    "type": {
+      "type": "string"
+    },
+    "actor": {
+      "type": "object"
+    },
+    "decision": {
+      "type": "string"
+    },
+    "trace_id": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

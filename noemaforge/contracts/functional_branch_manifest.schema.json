@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "FunctionalBranchManifest",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "branch_id",
+    "title",
+    "purpose",
+    "why_it_exists",
+    "raw_inputs",
+    "compiled_artifacts",
+    "workflows",
+    "source_of_truth"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "FunctionalBranchManifest"
+    },
+    "branch_id": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "purpose": {
+      "type": "string"
+    },
+    "why_it_exists": {
+      "type": "string"
+    },
+    "source_of_truth": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "raw_inputs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "compiled_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "workflows": {
+      "type": "object",
+      "required": [
+        "ingest",
+        "query",
+        "lint"
+      ],
+      "properties": {
+        "ingest": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "query": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lint": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "success_signals": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "owner_roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

@@ -1,0 +1,15 @@
+version: 0.26.4
+date: 2026-04-10
+title: Rollout-by-config closure for LSP / MCP / Voice and gateway alignment
+changes:
+  - area: runtime
+    detail: "Added src/lsp_facade.py and upgraded MCP/Voice local runtimes so the staged actions become functional as soon as rollout flags are enabled."
+  - area: policy
+    detail: "Aligned tool-registry, tool-policy, skills, and local gateway connector policy so the configured capabilities match the actual code paths."
+  - area: datasets
+    detail: "Added a seed MCP issue sample and expanded unit coverage for local adapter execution, LSP facades, and sidecar voice transcript import."
+  - area: docs
+    detail: "Updated manifest notes and LocalGW documentation to reflect the supported seed connectors and offline-first tool facades."
+notes:
+  - "webgw.fetch and localgw.* are now registry-enabled; operational activation still depends on their dedicated policy files."
+  - "mcp.*, lsp.*, and voice.* remain rollout-gated in the registry but no longer require extra code work after enablement."

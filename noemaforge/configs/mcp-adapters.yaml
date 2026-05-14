@@ -1,0 +1,38 @@
+apiVersion: noemaforge.mcp_adapters/v1
+kind: MCPAdapterCatalog
+enabled_by_default: true
+adapters:
+- id: docs.search
+  title: Documentation search adapter
+  bundle_id: mcp.bundle
+  allowlist_profile: read_only_docs
+  enabled: true
+  mode: local
+  local_handler: docs_search
+  search_roots:
+  - ../docs
+  - ../src
+  - ../configs
+  search_extensions:
+  - .md
+  - .txt
+  - .py
+  - .yaml
+  - .yml
+  - .json
+  tool_allowlist:
+  - search
+  - query
+  - find
+- id: issue.tracker
+  title: Issue tracker adapter
+  bundle_id: mcp.bundle
+  allowlist_profile: read_only_issues
+  enabled: true
+  mode: local
+  local_handler: issue_tracker
+  issues_path: ../seed_data/mcp/issues.sample.json
+  tool_allowlist:
+  - list
+  - search
+  - get

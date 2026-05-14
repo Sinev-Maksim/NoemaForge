@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NoemaForge Telemetry Snapshot",
+  "type": "object",
+  "properties": {
+    "hardware": {
+      "type": "object"
+    },
+    "runtime": {
+      "type": "object"
+    },
+    "product": {
+      "type": "object"
+    }
+  }
+}

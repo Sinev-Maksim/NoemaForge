@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/tts_backends_policy.schema.json",
+  "title": "TTSBackendsPolicy",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "artifacts_root": {
+      "type": "string"
+    },
+    "sessions_root": {
+      "type": "string"
+    },
+    "synthesis": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "backchannel": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

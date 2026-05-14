@@ -1,0 +1,546 @@
+apiVersion: noemaforge.toolregistry/v1
+kind: ToolRegistry
+tools:
+- id: blender.run
+  handler: blender
+  enabled: false
+  risk: critical
+  description: Headless Blender render/export pipeline. Disabled until the external
+    adapter bundle is installed.
+- id: db.query
+  handler: sqlite
+  enabled: false
+  risk: high
+  description: Read-only queries to local SQLite DB. Disabled until the database adapter
+    is installed.
+- id: db.write
+  handler: sqlite
+  enabled: false
+  risk: high
+  description: Write to local SQLite DB. Disabled until the database adapter is installed.
+- id: exec.run
+  handler: sandbox_exec
+  enabled: false
+  risk: critical
+  description: Run allowlisted commands in a sandbox. Disabled until the executor
+    bundle is installed.
+- id: ffmpeg.run
+  handler: ffmpeg
+  enabled: false
+  risk: critical
+  description: Video processing pipeline (stabilize/concat/etc). Disabled until the
+    media adapter is installed.
+- id: fs.read
+  handler: fs
+  enabled: true
+  risk: high
+  description: Read files from allowlisted paths through the ToolProxy filesystem
+    guard.
+- id: fs.write
+  handler: fs
+  enabled: true
+  risk: high
+  description: Write files to allowlisted paths through the ToolProxy filesystem guard.
+- id: git.apply_patch
+  handler: git
+  enabled: false
+  risk: high
+  description: Apply a patch to a repo in artifacts. Disabled until the git adapter
+    is installed.
+- id: glove.analyze
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove analysis for quarantine incidents.
+- id: glove.web_sanitize
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove (profile=web_sanitize) for RSS/Web intake analysis.
+- id: glove.net_inspect
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove (profile=net_inspect) for LAN/localgw incident
+    analysis.
+- id: glove.rss_sanitize
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove (profile=rss_sanitize) for RSS intake sanitation.
+- id: glove.package_inspect
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove (profile=package_inspect) for package/supply-chain
+    intake.
+- id: glove.git_scan
+  handler: glove
+  enabled: true
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: One-shot amnesic glove (profile=git_scan) for git/repo supply-chain
+    intake.
+- id: gyroflow.run
+  handler: gyroflow
+  enabled: false
+  risk: high
+  description: Gyro-based stabilization (Gyroflow). Disabled until the media adapter
+    is installed.
+- id: llm.chat
+  handler: llm_proxy
+  enabled: true
+  risk: medium
+  description: Chat completion via local LLM Gateway (unix socket).
+- id: llm.embed
+  handler: llm_proxy
+  enabled: true
+  risk: medium
+  description: Embeddings via local LLM Gateway (/v1/embeddings).
+- id: photogrammetry.colmap
+  handler: colmap
+  enabled: false
+  risk: critical
+  description: SfM/MVS pipeline (COLMAP). Disabled until the photogrammetry adapter
+    is installed.
+- id: roadmap.export
+  handler: roadmap
+  enabled: true
+  risk: low
+  description: Export a roadmap report artifact (for surgeon/SR/SSR).
+- id: roadmap.list
+  handler: roadmap
+  enabled: true
+  risk: low
+  description: List prioritized roadmap items (aggregated, surgeon/SR/SSR).
+- id: roadmap.record
+  handler: roadmap
+  enabled: true
+  risk: medium
+  description: Record a roadmap signal (requests to Solution Architect etc.).
+- id: scenedetect.run
+  handler: scenedetect
+  enabled: false
+  risk: high
+  description: Scene detection for videos (PySceneDetect). Disabled until the media
+    adapter is installed.
+- id: slicer.run
+  handler: slicer
+  enabled: false
+  risk: critical
+  description: 3D slicing pipeline (PrusaSlicer/CuraEngine). Disabled until the slicer
+    adapter is installed.
+- id: vstore.query
+  handler: vstore
+  enabled: true
+  risk: medium
+  description: Query local segmented vector store (offline-first).
+- id: vstore.tombstone
+  handler: vstore
+  enabled: true
+  risk: high
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: Mark vector entries as tombstoned (logical delete).
+- id: vstore.upsert
+  handler: vstore
+  enabled: true
+  risk: high
+  supply_chain:
+    kind: internal
+    origin: epoch
+  description: Append entries to local segmented vector store (writes memory).
+- id: webgw.fetch
+  description: 'WebGateway: fetch URL into quarantine (metadata only). Activation
+    is controlled by web-gateway-policy.yaml.'
+  handler: web_gateway
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: contract_epoch
+    notes:
+    - No raw content is returned to executors; all payloads go to quarantine.
+- id: localgw.preflight
+  description: 'LocalGateway: arming/preflight for LAN. First run forces FULL; later
+    smoke/full. Availability is controlled by local-gateway-policy.yaml.'
+  handler: local_gateway
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: contract_epoch
+- id: localgw.discover
+  description: 'LocalGateway: discover devices best-effort (ip neigh). Does not grant
+    access. Availability is controlled by local-gateway-policy.yaml.'
+  handler: local_gateway
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  supply_chain:
+    kind: internal
+    origin: contract_epoch
+- id: localgw.nids_snapshot
+  description: 'LocalGateway: NIDS-lite snapshot+analysis for LAN (scary only). Availability
+    is controlled by local-gateway-policy.yaml.'
+  handler: local_gateway
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  supply_chain:
+    kind: internal
+    origin: contract_epoch
+- id: localgw.call
+  description: 'LocalGateway: typed connector call into LAN (requires lan_session_token).
+    Seed tree ships with octoprint and ipp connectors; activation is controlled by
+    local-gateway-policy.yaml.'
+  handler: local_gateway
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  supply_chain:
+    kind: internal
+    origin: contract_epoch
+- id: plan.enter
+  handler: internal
+  enabled: true
+  risk: low
+  description: Enter plan mode for a project/session.
+- id: plan.approve
+  handler: internal
+  enabled: true
+  risk: low
+  description: Approve the current plan mode state.
+- id: plan.exit
+  handler: internal
+  enabled: true
+  risk: low
+  description: Exit plan mode for a project/session.
+- id: plan.status
+  handler: internal
+  enabled: true
+  risk: low
+  description: Inspect current plan mode state.
+- id: task.create
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Create a user-facing task on top of TaskQueue.
+- id: task.list
+  handler: internal
+  enabled: true
+  risk: low
+  description: List user-facing tasks.
+- id: task.get
+  handler: internal
+  enabled: true
+  risk: low
+  description: Get user-facing task details.
+- id: task.update
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Update user-facing task state/metadata.
+- id: task.stop
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Stop a user-facing task and its backing engine task if any.
+- id: task.output
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Attach an output artifact to a user-facing task.
+- id: worktree.enter
+  handler: internal
+  enabled: true
+  risk: high
+  description: Create an isolated worktree for dev.work.
+- id: worktree.status
+  handler: internal
+  enabled: true
+  risk: low
+  description: Inspect active worktrees.
+- id: worktree.promote
+  handler: internal
+  enabled: true
+  risk: high
+  description: Promote a worktree into the main repo.
+- id: worktree.exit
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Close or discard an active worktree.
+- id: worktree.discard
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Discard an active worktree.
+- id: skills.list
+  handler: internal
+  enabled: true
+  risk: low
+  description: List registered NoemaForge skills.
+- id: skills.run
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Run a NoemaForge skill macro/flow/bundle wrapper.
+- id: notify.emit
+  handler: internal
+  enabled: true
+  risk: low
+  description: Emit a user-facing notification.
+- id: notify.list
+  handler: internal
+  enabled: true
+  risk: low
+  description: List recent notifications.
+- id: notify.ack
+  handler: internal
+  enabled: true
+  risk: low
+  description: Acknowledge a notification.
+- id: coordinator.fanout
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Create read-only research fanout tasks for a coordinator.
+- id: team_memory.export
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Export a team-memory bundle for sharing.
+- id: team_memory.import
+  handler: internal
+  enabled: true
+  risk: high
+  description: Import a team-memory bundle after scanning.
+- id: team_memory.scan
+  handler: internal
+  enabled: true
+  risk: low
+  description: Scan a team-memory bundle for secrets or risky content.
+- id: lsp.diagnostics
+  handler: lsp_facade
+  enabled: false
+  activation_mode: rollout_gated
+  risk: critical
+  description: Offline-first source diagnostics via the built-in LSP facade. Enable
+    in registry to expose through ToolProxy.
+- id: lsp.symbols
+  handler: lsp_facade
+  enabled: false
+  activation_mode: rollout_gated
+  risk: critical
+  description: Offline-first symbol extraction via the built-in LSP facade. Enable
+    in registry to expose through ToolProxy.
+- id: lsp.references
+  handler: lsp_facade
+  enabled: false
+  activation_mode: rollout_gated
+  risk: critical
+  description: Offline-first reference lookup via the built-in LSP facade. Enable
+    in registry to expose through ToolProxy.
+- id: mcp.adapters.list
+  handler: mcp_router
+  enabled: false
+  activation_mode: rollout_gated
+  risk: critical
+  description: List MCP-like adapters through the built-in MCP router. Local adapters
+    work immediately after rollout is enabled.
+- id: mcp.call
+  handler: mcp_router
+  enabled: false
+  activation_mode: rollout_gated
+  risk: critical
+  description: Call a typed MCP-like adapter through the built-in MCP router. Local
+    read-only adapters work immediately after rollout is enabled.
+- id: voice.capture
+  handler: voice_ingest
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  description: Stage audio into the voice inbox through the built-in voice runtime.
+    Live microphone capture is available via voice.capture_live when voice-backends-policy.yaml
+    is enabled.
+- id: voice.transcribe
+  handler: voice_ingest
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  description: Import transcript text or run local STT through the built-in voice
+    runtime. Live STT is available via voice.transcribe_live when voice-backends-policy.yaml
+    is enabled.
+- id: voice.capture_live
+  handler: voice_ingest
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Capture audio from a local microphone through the configured live voice
+    backend. Availability is controlled by voice-backends-policy.yaml.
+- id: voice.transcribe_live
+  handler: voice_ingest
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Run local speech-to-text on audio or microphone input through the configured
+    live voice backend. Availability is controlled by voice-backends-policy.yaml.
+- id: voice.chat_turn
+  handler: voice_ingest
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Capture/transcribe a voice turn and forward it to a configured administrator
+    assistant role through ToolProxy-routed llm.chat. Availability is controlled by
+    voice-backends-policy.yaml.
+- id: discord.assets.prepare
+  handler: discord_bridge
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  description: Generate local background and mask assets for the Discord desktop bridge
+    from user prompts.
+- id: discord.bridge.start
+  handler: discord_bridge
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Start a local delayed audio/video bridge session for the Discord desktop
+    client using virtual devices or host-specific command backends.
+- id: discord.bridge.status
+  handler: discord_bridge
+  enabled: true
+  activation_mode: rollout_gated
+  risk: low
+  description: Read the status of a Discord bridge session and report worker liveness
+    plus handoff notes.
+- id: discord.bridge.stop
+  handler: discord_bridge
+  enabled: true
+  activation_mode: rollout_gated
+  risk: high
+  description: Stop a running Discord bridge session and terminate its local worker
+    processes.
+- &id001
+  id: voice.tts_backchannel
+  handler: internal
+  enabled: true
+  risk: high
+  description: Synthesize a local TTS response and inject it into the configured virtual
+    microphone path.
+- &id002
+  id: voice.chat_roundtrip
+  handler: internal
+  enabled: true
+  risk: high
+  description: Run a voice chat turn and immediately synthesize/inject the assistant
+    reply through the TTS backchannel.
+- &id003
+  id: profiles.list
+  handler: internal
+  enabled: true
+  risk: low
+  description: List operator-toggleable runtime profiles and their current enabled
+    state.
+- &id004
+  id: profiles.set_enabled
+  handler: internal
+  enabled: true
+  risk: high
+  description: Enable or disable an operator profile config file in place.
+- &id005
+  id: operator.status
+  handler: internal
+  enabled: true
+  risk: low
+  description: Read a safe operator-facing status snapshot including profile states
+    and AV/voice readiness.
+- &id006
+  id: rss.intake
+  handler: internal
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Fetch RSS content through WebGateway and produce a glove-safe summary
+    artifact.
+- &id007
+  id: mail.intake
+  handler: internal
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Intake .eml mail into quarantine and emit a scrubbed safe-summary artifact.
+- &id008
+  id: tg.bot.fetch
+  handler: internal
+  enabled: true
+  activation_mode: rollout_gated
+  risk: critical
+  description: Fetch Telegram Bot API updates through a policy-gated live connector
+    and emit normalized update artifacts.
+- &id009
+  id: tg.channel.curate
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Normalize, deduplicate, and score Telegram channel exports into curated
+    review artifacts.
+- &id010
+  id: readinglist.curate
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Build a review queue from browser tab/reading-list exports.
+- &id011
+  id: selfdev.learning.ingest
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Ingest self-development items and update the learning state model.
+- &id012
+  id: selfdev.learning.review
+  handler: internal
+  enabled: true
+  risk: low
+  description: Build a prioritized self-development review queue.
+- &id013
+  id: selfdev.ics.import
+  handler: internal
+  enabled: true
+  risk: medium
+  description: Import ICS/calendar events into the self-development workflow.
+actions:
+- *id001
+- *id002
+- *id003
+- *id004
+- *id005
+- *id006
+- *id007
+- *id008
+- *id009
+- *id010
+- *id011
+- *id012
+- *id013

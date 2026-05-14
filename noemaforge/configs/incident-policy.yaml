@@ -1,0 +1,81 @@
+apiVersion: noemaforge.incidents/v1
+kind: IncidentPolicy
+
+# Epoch-scoped policy used by incidents.py (spine).
+# Controls conservative emission of Roadmap signals from repeated Incidents.
+
+enabled: true
+
+roadmap:
+  enabled: true
+
+  # When an existing open Incident is hit repeatedly (via dedupe_key), emit roadmap signals
+  # only when crossing these thresholds.
+  repeat_thresholds: [3, 6, 12]
+
+  # Default recipients for incident-driven improvements.
+  default_targets: ["scary"]
+
+  # Per-kind overrides. Use safe, structural keys (do not include secrets or raw prompts).
+  kind_overrides:
+    toolproxy_deny:
+      targets: ["scary"]
+      key_prefix: "security.toolproxy.deny"
+    toolproxy_quarantine:
+      targets: ["scary", "surgeon"]
+      key_prefix: "security.toolproxy.quarantine"
+    webgateway_quarantine:
+      targets: ["scary", "surgeon"]
+      key_prefix: "security.webgateway.quarantine"
+    quarantine:
+      targets: ["scary", "surgeon"]
+      key_prefix: "security.quarantine"
+
+# Optional: auto-generate SecurityFixtures (pre-start canary scenarios) from repeated incidents.
+# This does NOT execute canaries at runtime; it only emits draft PreStartChangeRequests.
+fixtures:
+  enabled: true
+
+  # How fixtures are emitted:
+  # - "tasks" (recommended): enqueue TaskQueue work (stage -> bundle -> draft request)
+  # - "requests": scary_sweep writes draft PreStartChangeRequests directly
+  emit_mode: tasks
+
+  # If true, when a fixture is generated from a quarantine-linked incident,
+  # we also store a *slim* quarantine signature sample (hash-only reference)
+  # to enable future "real" canaries without leaking content.
+  use_quarantine_samples: true
+
+  # Generate fixture drafts only when an incident repeats enough times.
+  min_repeats: 3
+
+  # Safety valve: avoid spamming too many requests per maintenance sweep.
+  max_new_requests_per_sweep: 5
+
+  # Which incident kinds can be converted into fixtures.
+  kinds:
+    toolproxy_deny: true
+    toolproxy_quarantine: true
+    webgateway_quarantine: true
+    quarantine: true
+
+  # Where scary_sweep writes draft requests.
+  paths:
+    requests_dir: "/var/lib/noemaforge/requests/prestart"
+    outbox_dir: "/workspace/outbox/scary/fixtures"
+    state_path: "/var/lib/noemaforge/.sys/scary_autogen_fixtures.json"
+    quarantine_sample_store_dir: "/var/lib/noemaforge/.sys/fixture_samples/quarantine"
+
+    # Runtime staging (sterile, local-only): fixtures are staged here before bundling.
+    staging_dir: "/var/lib/noemaforge/.sys/fixture_autogen/staging"
+    sent_dir: "/var/lib/noemaforge/.sys/fixture_autogen/sent"
+
+  # Bundle staged fixtures into a single draft request to reduce review noise.
+  bundle:
+    enabled: true
+    max_fixtures_per_request: 25
+    track: policy
+    risk_level: medium
+
+  # Canary suite to require for fixture introduction.
+  requires_canary: full

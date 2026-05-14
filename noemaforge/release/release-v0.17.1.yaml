@@ -1,0 +1,14 @@
+version: 0.17.1
+date: '2026-03-04'
+type: hotfix
+highlights:
+- 'Seed hygiene: remove __pycache__/.pyc and compiled go binary from source tree;
+  forbid them in Windows verification.'
+- 'Add offline Doctor: brainctl doctor runs fast self-checks (YAML/JSON/schema/canary
+  refs/checksums/forbidden artifacts).'
+- BootDoctor support bundles now include doctor.json (best-effort, offline).
+- Checksum generator excludes gateway binaries explicitly.
+breaking_changes: []
+notes:
+- Doctor does not require network and does not read quarantine payload bodies.
+- Full hash verification can be enabled via brainctl doctor --full (slow).

@@ -1,0 +1,224 @@
+{
+    "apiVersion":  "noemaforge.checker/v1",
+    "kind":  "SeedCheckReport",
+    "created_at":  "20260331T221448Z",
+    "brain_root":  "C:\\Users\\sinev\\!Projects\\noemaforge",
+    "steps":  [
+                  {
+                      "id":  "00",
+                      "title":  "Basic structure",
+                      "status":  "PASS",
+                      "message":  "OK",
+                      "data":  {
+
+                               }
+                  },
+                  {
+                      "id":  "10",
+                      "title":  "SHA256SUMS integrity",
+                      "status":  "PASS",
+                      "message":  "OK=325 FAIL=0",
+                      "data":  {
+                                   "ok":  325,
+                                   "missing":  [
+
+                                               ],
+                                   "fail":  0,
+                                   "mismatch":  [
+
+                                                ]
+                               }
+                  },
+                  {
+                      "id":  "11",
+                      "title":  "Forbidden artifacts",
+                      "status":  "PASS",
+                      "message":  "Clean",
+                      "data":  {
+
+                               }
+                  },
+                  {
+                      "id":  "12",
+                      "title":  "JSON parse",
+                      "status":  "PASS",
+                      "message":  "OK (57 files)",
+                      "data":  {
+
+                               }
+                  },
+                  {
+                      "id":  "13",
+                      "title":  "Filename charset scan",
+                      "status":  "PASS",
+                      "message":  "All paths ASCII",
+                      "data":  {
+
+                               }
+                  },
+                  {
+                      "id":  "14",
+                      "title":  "Hidden/odd characters scan",
+                      "status":  "PASS",
+                      "message":  "No odd chars",
+                      "data":  {
+
+                               }
+                  },
+                  {
+                      "id":  "20",
+                      "title":  "Python-based deep checks",
+                      "status":  "PASS",
+                      "message":  "python checker exit=0",
+                      "data":  {
+                                   "stderr_preview":  "",
+                                   "stdout_path":  "C:\\Users\\sinev\\!Projects\\noemaforge\\reports\\checker\\20260331T221448Z\\python_checker.stdout.txt",
+                                   "report":  {
+                                                  "apiVersion":  "noemaforge.checker/v1",
+                                                  "brain_root":  "C:\\Users\\sinev\\!Projects\\noemaforge",
+                                                  "created_at":  "20260331T221451Z",
+                                                  "kind":  "SeedCheckReport",
+                                                  "steps":  [
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "00",
+                                                                    "message":  "OK",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Basic structure"
+                                                                },
+                                                                {
+                                                                    "data":  {
+                                                                                 "fail":  0,
+                                                                                 "mismatch":  [
+
+                                                                                              ],
+                                                                                 "missing":  [
+
+                                                                                             ],
+                                                                                 "ok":  325
+                                                                             },
+                                                                    "id":  "10",
+                                                                    "message":  "OK=325 FAIL=0",
+                                                                    "status":  "PASS",
+                                                                    "title":  "SHA256SUMS integrity"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "11",
+                                                                    "message":  "Clean",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Forbidden artifacts"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "12",
+                                                                    "message":  "OK (57 files)",
+                                                                    "status":  "PASS",
+                                                                    "title":  "JSON parse"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "13",
+                                                                    "message":  "OK (48 files)",
+                                                                    "status":  "PASS",
+                                                                    "title":  "YAML parse (configs + contracts)"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "14",
+                                                                    "message":  "OK (107 files)",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Python syntax compile (src + tools)"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "15",
+                                                                    "message":  "OK (39 epoch files)",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Epoch contract files referenced by prestart"
+                                                                },
+                                                                {
+                                                                    "data":  {
+                                                                                 "cryptography":  {
+                                                                                                      "ok":  true,
+                                                                                                      "why":  "ok"
+                                                                                                  },
+                                                                                 "jsonschema":  {
+                                                                                                    "ok":  true,
+                                                                                                    "why":  "ok"
+                                                                                                },
+                                                                                 "yaml":  {
+                                                                                              "ok":  true,
+                                                                                              "why":  "ok"
+                                                                                          }
+                                                                             },
+                                                                    "id":  "16",
+                                                                    "message":  "All present",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Python dependencies (import probes)"
+                                                                },
+                                                                {
+                                                                    "data":  {
+
+                                                                             },
+                                                                    "id":  "17",
+                                                                    "message":  "Clean",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Odd characters scan (warn-only)"
+                                                                },
+                                                                {
+                                                                    "data":  {
+                                                                                 "fail":  [
+
+                                                                                          ],
+                                                                                 "warn":  [
+
+                                                                                          ]
+                                                                             },
+                                                                    "id":  "18",
+                                                                    "message":  "FAIL=0 WARN=0",
+                                                                    "status":  "PASS",
+                                                                    "title":  "Roles/prompts cross-file consistency"
+                                                                }
+                                                            ],
+                                                  "summary":  {
+                                                                  "fails":  0,
+                                                                  "step_count":  10,
+                                                                  "warns":  0
+                                                              }
+                                              },
+                                   "stderr_path":  "C:\\Users\\sinev\\!Projects\\noemaforge\\reports\\checker\\20260331T221448Z\\python_checker.stderr.txt",
+                                   "python":  {
+                                                  "kind":  "exe",
+                                                  "path":  "C:\\ProgramData\\anaconda3\\python.exe"
+                                              }
+                               }
+                  },
+                  {
+                      "id":  "30",
+                      "title":  "WSL/Linux tool availability (optional)",
+                      "status":  "PASS",
+                      "message":  "WSL detected",
+                      "data":  {
+                                   "distros":  " \u0000 \u0000N\u0000A\u0000M\u0000E\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000S\u0000T\u0000A\u0000T\u0000E\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000V\u0000E\u0000R\u0000S\u0000I\u0000O\u0000N\u0000\\n\u0000\\n\u0000*\u0000 \u0000d\u0000o\u0000c\u0000k\u0000e\u0000r\u0000-\u0000d\u0000e\u0000s\u0000k\u0000t\u0000o\u0000p\u0000 \u0000 \u0000 \u0000 \u0000S\u0000t\u0000o\u0000p\u0000p\u0000e\u0000d\u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u0000 \u00002\u0000\\n\u0000\\n\u0000"
+                               }
+                  }
+              ],
+    "summary":  {
+                    "warns":  0,
+                    "step_count":  8,
+                    "fails":  0
+                }
+}

@@ -1,0 +1,2035 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "ModuleTestMatrix",
+  "version": "0.31.13.alpha",
+  "coverage_policy": {
+    "minimum": "unit_compile per Python module",
+    "recommended": [
+      "unit",
+      "integration_offline",
+      "resource",
+      "regression"
+    ],
+    "live_requires_allow_live": true
+  },
+  "modules": [
+    {
+      "module": "src.administrator",
+      "path": "src/administrator.py",
+      "baseline_cases": [
+        "module_compile_src_administrator"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.audit_remediation",
+      "path": "src/audit_remediation.py",
+      "baseline_cases": [
+        "module_compile_src_audit_remediation"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.bootdoctor",
+      "path": "src/bootdoctor.py",
+      "baseline_cases": [
+        "module_compile_src_bootdoctor"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.brainctl",
+      "path": "src/brainctl.py",
+      "baseline_cases": [
+        "module_compile_src_brainctl"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_chat",
+      "path": "src/noemaforge_chat.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_chat"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_core",
+      "path": "src/noemaforge_core.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_core"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_eval",
+      "path": "src/noemaforge_eval.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_eval"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_interpret",
+      "path": "src/noemaforge_interpret.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_interpret"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_json_tools",
+      "path": "src/noemaforge_json_tools.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_json_tools"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_llm_client",
+      "path": "src/noemaforge_llm_client.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_llm_client"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_monitor",
+      "path": "src/noemaforge_monitor.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_monitor"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_status",
+      "path": "src/noemaforge_status.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_status"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_tasks",
+      "path": "src/noemaforge_tasks.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_tasks"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.noemaforge_toolproxy_diag",
+      "path": "src/noemaforge_toolproxy_diag.py",
+      "baseline_cases": [
+        "module_compile_src_noemaforge_toolproxy_diag"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.brainui",
+      "path": "src/brainui.py",
+      "baseline_cases": [
+        "module_compile_src_brainui"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.bundles",
+      "path": "src/bundles.py",
+      "baseline_cases": [
+        "module_compile_src_bundles"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.canary_runner",
+      "path": "src/canary_runner.py",
+      "baseline_cases": [
+        "module_compile_src_canary_runner"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.caps",
+      "path": "src/caps.py",
+      "baseline_cases": [
+        "module_compile_src_caps"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.casebase",
+      "path": "src/casebase.py",
+      "baseline_cases": [
+        "module_compile_src_casebase"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.coordinator_fanout",
+      "path": "src/coordinator_fanout.py",
+      "baseline_cases": [
+        "module_compile_src_coordinator_fanout"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.daily_scheduler",
+      "path": "src/daily_scheduler.py",
+      "baseline_cases": [
+        "module_compile_src_daily_scheduler"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.daily_stats",
+      "path": "src/daily_stats.py",
+      "baseline_cases": [
+        "module_compile_src_daily_stats"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.dataset_inventory",
+      "path": "src/dataset_inventory.py",
+      "baseline_cases": [
+        "module_compile_src_dataset_inventory"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.discord_bridge",
+      "path": "src/discord_bridge.py",
+      "baseline_cases": [
+        "module_compile_src_discord_bridge"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.doctor",
+      "path": "src/doctor.py",
+      "baseline_cases": [
+        "module_compile_src_doctor"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.dream_cycle",
+      "path": "src/dream_cycle.py",
+      "baseline_cases": [
+        "module_compile_src_dream_cycle"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.email_airlock",
+      "path": "src/email_airlock.py",
+      "baseline_cases": [
+        "module_compile_src_email_airlock"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.embeddings",
+      "path": "src/embeddings.py",
+      "baseline_cases": [
+        "module_compile_src_embeddings"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.epoch",
+      "path": "src/epoch.py",
+      "baseline_cases": [
+        "module_compile_src_epoch"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.first_run_wizard",
+      "path": "src/first_run_wizard.py",
+      "baseline_cases": [
+        "module_compile_src_first_run_wizard"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.firstboot_eval",
+      "path": "src/firstboot_eval.py",
+      "baseline_cases": [
+        "module_compile_src_firstboot_eval"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.firstboot_orchestrator",
+      "path": "src/firstboot_orchestrator.py",
+      "baseline_cases": [
+        "module_compile_src_firstboot_orchestrator"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.firstboot_status",
+      "path": "src/firstboot_status.py",
+      "baseline_cases": [
+        "module_compile_src_firstboot_status"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.fixture_autogen",
+      "path": "src/fixture_autogen.py",
+      "baseline_cases": [
+        "module_compile_src_fixture_autogen"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.fixture_bundle",
+      "path": "src/fixture_bundle.py",
+      "baseline_cases": [
+        "module_compile_src_fixture_bundle"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.flow_catalog",
+      "path": "src/flow_catalog.py",
+      "baseline_cases": [
+        "module_compile_src_flow_catalog"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.flow_metrics",
+      "path": "src/flow_metrics.py",
+      "baseline_cases": [
+        "module_compile_src_flow_metrics"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.gguf_select",
+      "path": "src/gguf_select.py",
+      "baseline_cases": [
+        "module_compile_src_gguf_select"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.glove_agent",
+      "path": "src/glove_agent.py",
+      "baseline_cases": [
+        "module_compile_src_glove_agent"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.glove_runner",
+      "path": "src/glove_runner.py",
+      "baseline_cases": [
+        "module_compile_src_glove_runner"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.honeykeys",
+      "path": "src/honeykeys.py",
+      "baseline_cases": [
+        "module_compile_src_honeykeys"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.hwscan",
+      "path": "src/hwscan.py",
+      "baseline_cases": [
+        "module_compile_src_hwscan"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.ics_import",
+      "path": "src/ics_import.py",
+      "baseline_cases": [
+        "module_compile_src_ics_import"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.incident_metrics",
+      "path": "src/incident_metrics.py",
+      "baseline_cases": [
+        "module_compile_src_incident_metrics"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.incidents",
+      "path": "src/incidents.py",
+      "baseline_cases": [
+        "module_compile_src_incidents"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.installer_plan",
+      "path": "src/installer_plan.py",
+      "baseline_cases": [
+        "module_compile_src_installer_plan"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.invites",
+      "path": "src/invites.py",
+      "baseline_cases": [
+        "module_compile_src_invites"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.__init__",
+      "path": "src/knowledge/__init__.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge___init__"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.conflict_runtime",
+      "path": "src/knowledge/conflict_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_conflict_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.embedding_worker",
+      "path": "src/knowledge/embedding_worker.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_embedding_worker"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.error_learning",
+      "path": "src/knowledge/error_learning.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_error_learning"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.eval_runtime",
+      "path": "src/knowledge/eval_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_eval_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.extraction_pipeline",
+      "path": "src/knowledge/extraction_pipeline.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_extraction_pipeline"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.gatekeeper",
+      "path": "src/knowledge/gatekeeper.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_gatekeeper"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.grounded_administrator",
+      "path": "src/knowledge/grounded_administrator.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_grounded_administrator"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.ingest",
+      "path": "src/knowledge/ingest.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_ingest"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.policy",
+      "path": "src/knowledge/policy.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_policy"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.prep_pipeline",
+      "path": "src/knowledge/prep_pipeline.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_prep_pipeline"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.prep_store",
+      "path": "src/knowledge/prep_store.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_prep_store"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.retrieval",
+      "path": "src/knowledge/retrieval.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_retrieval"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.store",
+      "path": "src/knowledge/store.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_store"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.synthetic_book",
+      "path": "src/knowledge/synthetic_book.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_synthetic_book"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.trails",
+      "path": "src/knowledge/trails.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_trails"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge.vector_index",
+      "path": "src/knowledge/vector_index.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_vector_index"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.knowledge_maintainer",
+      "path": "src/knowledge_maintainer.py",
+      "baseline_cases": [
+        "module_compile_src_knowledge_maintainer"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.lan_discovery",
+      "path": "src/lan_discovery.py",
+      "baseline_cases": [
+        "module_compile_src_lan_discovery"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.lan_identity",
+      "path": "src/lan_identity.py",
+      "baseline_cases": [
+        "module_compile_src_lan_identity"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.llm_backends_manager",
+      "path": "src/llm_backends_manager.py",
+      "baseline_cases": [
+        "module_compile_src_llm_backends_manager"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgateway",
+      "path": "src/localgateway.py",
+      "baseline_cases": [
+        "module_compile_src_localgateway"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_connectors.__init__",
+      "path": "src/localgw_connectors/__init__.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_connectors___init__"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_connectors.base",
+      "path": "src/localgw_connectors/base.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_connectors_base"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_connectors.ipp",
+      "path": "src/localgw_connectors/ipp.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_connectors_ipp"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_connectors.octoprint",
+      "path": "src/localgw_connectors/octoprint.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_connectors_octoprint"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_ratelimit",
+      "path": "src/localgw_ratelimit.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_ratelimit"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_secrets",
+      "path": "src/localgw_secrets.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_secrets"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_uplink",
+      "path": "src/localgw_uplink.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_uplink"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.localgw_uplink_agent",
+      "path": "src/localgw_uplink_agent.py",
+      "baseline_cases": [
+        "module_compile_src_localgw_uplink_agent"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.lsm",
+      "path": "src/lsm.py",
+      "baseline_cases": [
+        "module_compile_src_lsm"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.lsp_facade",
+      "path": "src/lsp_facade.py",
+      "baseline_cases": [
+        "module_compile_src_lsp_facade"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.maintenance",
+      "path": "src/maintenance.py",
+      "baseline_cases": [
+        "module_compile_src_maintenance"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.mcp_router",
+      "path": "src/mcp_router.py",
+      "baseline_cases": [
+        "module_compile_src_mcp_router"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.memory_system",
+      "path": "src/memory_system.py",
+      "baseline_cases": [
+        "module_compile_src_memory_system"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.memsentinel",
+      "path": "src/memsentinel.py",
+      "baseline_cases": [
+        "module_compile_src_memsentinel"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.metrics_snapshot",
+      "path": "src/metrics_snapshot.py",
+      "baseline_cases": [
+        "module_compile_src_metrics_snapshot"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_capabilities",
+      "path": "src/model_capabilities.py",
+      "baseline_cases": [
+        "module_compile_src_model_capabilities"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_installer_plan",
+      "path": "src/model_installer_plan.py",
+      "baseline_cases": [
+        "module_compile_src_model_installer_plan"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_inventory_normalize",
+      "path": "src/model_inventory_normalize.py",
+      "baseline_cases": [
+        "module_compile_src_model_inventory_normalize"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_profiles",
+      "path": "src/model_profiles.py",
+      "baseline_cases": [
+        "module_compile_src_model_profiles"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_registry",
+      "path": "src/model_registry.py",
+      "baseline_cases": [
+        "module_compile_src_model_registry"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_router",
+      "path": "src/model_router.py",
+      "baseline_cases": [
+        "module_compile_src_model_router"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.model_scorecards",
+      "path": "src/model_scorecards.py",
+      "baseline_cases": [
+        "module_compile_src_model_scorecards"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.netguard",
+      "path": "src/netguard.py",
+      "baseline_cases": [
+        "module_compile_src_netguard"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.nids_lite",
+      "path": "src/nids_lite.py",
+      "baseline_cases": [
+        "module_compile_src_nids_lite"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.notifier",
+      "path": "src/notifier.py",
+      "baseline_cases": [
+        "module_compile_src_notifier"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.observability_metrics",
+      "path": "src/observability_metrics.py",
+      "baseline_cases": [
+        "module_compile_src_observability_metrics"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.offline_apt",
+      "path": "src/offline_apt.py",
+      "baseline_cases": [
+        "module_compile_src_offline_apt"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.persona_runtime",
+      "path": "src/persona_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_persona_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.pi_firewall",
+      "path": "src/pi_firewall.py",
+      "baseline_cases": [
+        "module_compile_src_pi_firewall"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.pipeline_runtime",
+      "path": "src/pipeline_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_pipeline_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.pipelines.__init__",
+      "path": "src/pipelines/__init__.py",
+      "baseline_cases": [
+        "module_compile_src_pipelines___init__"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.pipelines.finance_budget",
+      "path": "src/pipelines/finance_budget.py",
+      "baseline_cases": [
+        "module_compile_src_pipelines_finance_budget"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.pipelines.photos_diary",
+      "path": "src/pipelines/photos_diary.py",
+      "baseline_cases": [
+        "module_compile_src_pipelines_photos_diary"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.plan_mode",
+      "path": "src/plan_mode.py",
+      "baseline_cases": [
+        "module_compile_src_plan_mode"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.planned_sweep",
+      "path": "src/planned_sweep.py",
+      "baseline_cases": [
+        "module_compile_src_planned_sweep"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.plugin_runner",
+      "path": "src/plugin_runner.py",
+      "baseline_cases": [
+        "module_compile_src_plugin_runner"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.prestart",
+      "path": "src/prestart.py",
+      "baseline_cases": [
+        "module_compile_src_prestart"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.profile_manager",
+      "path": "src/profile_manager.py",
+      "baseline_cases": [
+        "module_compile_src_profile_manager"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.project_snapshot",
+      "path": "src/project_snapshot.py",
+      "baseline_cases": [
+        "module_compile_src_project_snapshot"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.quarantine",
+      "path": "src/quarantine.py",
+      "baseline_cases": [
+        "module_compile_src_quarantine"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.quarantine_samples",
+      "path": "src/quarantine_samples.py",
+      "baseline_cases": [
+        "module_compile_src_quarantine_samples"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.readinglist_workflow",
+      "path": "src/readinglist_workflow.py",
+      "baseline_cases": [
+        "module_compile_src_readinglist_workflow"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.resource_policy",
+      "path": "src/resource_policy.py",
+      "baseline_cases": [
+        "module_compile_src_resource_policy"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.resource_recovery",
+      "path": "src/resource_recovery.py",
+      "baseline_cases": [
+        "module_compile_src_resource_recovery"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.roadmap",
+      "path": "src/roadmap.py",
+      "baseline_cases": [
+        "module_compile_src_roadmap"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.role_runner",
+      "path": "src/role_runner.py",
+      "baseline_cases": [
+        "module_compile_src_role_runner"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.role_tournament",
+      "path": "src/role_tournament.py",
+      "baseline_cases": [
+        "module_compile_src_role_tournament"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.roles.role_entry",
+      "path": "src/roles/role_entry.py",
+      "baseline_cases": [
+        "module_compile_src_roles_role_entry"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.rss_airlock",
+      "path": "src/rss_airlock.py",
+      "baseline_cases": [
+        "module_compile_src_rss_airlock"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.runtime_safety",
+      "path": "src/runtime_safety.py",
+      "baseline_cases": [
+        "module_compile_src_runtime_safety"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.runtime_state",
+      "path": "src/runtime_state.py",
+      "baseline_cases": [
+        "module_compile_src_runtime_state"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.sandbox",
+      "path": "src/sandbox.py",
+      "baseline_cases": [
+        "module_compile_src_sandbox"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.scary_sweep",
+      "path": "src/scary_sweep.py",
+      "baseline_cases": [
+        "module_compile_src_scary_sweep"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.seclog",
+      "path": "src/seclog.py",
+      "baseline_cases": [
+        "module_compile_src_seclog"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.selfdev_learning",
+      "path": "src/selfdev_learning.py",
+      "baseline_cases": [
+        "module_compile_src_selfdev_learning"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.selftest_runtime",
+      "path": "src/selftest_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_selftest_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.session_memory_extractor",
+      "path": "src/session_memory_extractor.py",
+      "baseline_cases": [
+        "module_compile_src_session_memory_extractor"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.skills_registry",
+      "path": "src/skills_registry.py",
+      "baseline_cases": [
+        "module_compile_src_skills_registry"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.sr_cycle",
+      "path": "src/sr_cycle.py",
+      "baseline_cases": [
+        "module_compile_src_sr_cycle"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.sr_lite",
+      "path": "src/sr_lite.py",
+      "baseline_cases": [
+        "module_compile_src_sr_lite"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.ssr_cycle",
+      "path": "src/ssr_cycle.py",
+      "baseline_cases": [
+        "module_compile_src_ssr_cycle"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.storage_broker",
+      "path": "src/storage_broker.py",
+      "baseline_cases": [
+        "module_compile_src_storage_broker"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.surgeon_auto",
+      "path": "src/surgeon_auto.py",
+      "baseline_cases": [
+        "module_compile_src_surgeon_auto"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.task_runner",
+      "path": "src/task_runner.py",
+      "baseline_cases": [
+        "module_compile_src_task_runner"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.task_tools",
+      "path": "src/task_tools.py",
+      "baseline_cases": [
+        "module_compile_src_task_tools"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.taskqueue",
+      "path": "src/taskqueue.py",
+      "baseline_cases": [
+        "module_compile_src_taskqueue"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.team_installer_plan",
+      "path": "src/team_installer_plan.py",
+      "baseline_cases": [
+        "module_compile_src_team_installer_plan"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.team_memory_sync",
+      "path": "src/team_memory_sync.py",
+      "baseline_cases": [
+        "module_compile_src_team_memory_sync"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.team_scorecards",
+      "path": "src/team_scorecards.py",
+      "baseline_cases": [
+        "module_compile_src_team_scorecards"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.team_search",
+      "path": "src/team_search.py",
+      "baseline_cases": [
+        "module_compile_src_team_search"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.telemetry",
+      "path": "src/telemetry.py",
+      "baseline_cases": [
+        "module_compile_src_telemetry"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.tg_bot_runtime",
+      "path": "src/tg_bot_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_tg_bot_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.tg_channel_workflow",
+      "path": "src/tg_channel_workflow.py",
+      "baseline_cases": [
+        "module_compile_src_tg_channel_workflow"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.tool_onboard",
+      "path": "src/tool_onboard.py",
+      "baseline_cases": [
+        "module_compile_src_tool_onboard"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.toolproxy",
+      "path": "src/toolproxy.py",
+      "baseline_cases": [
+        "module_compile_src_toolproxy"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.toolvault",
+      "path": "src/toolvault.py",
+      "baseline_cases": [
+        "module_compile_src_toolvault"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.tts_runtime",
+      "path": "src/tts_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_tts_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.ui_snapshot",
+      "path": "src/ui_snapshot.py",
+      "baseline_cases": [
+        "module_compile_src_ui_snapshot"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.vault_inventory",
+      "path": "src/vault_inventory.py",
+      "baseline_cases": [
+        "module_compile_src_vault_inventory"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.vault_reorg",
+      "path": "src/vault_reorg.py",
+      "baseline_cases": [
+        "module_compile_src_vault_reorg"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.verifiers",
+      "path": "src/verifiers.py",
+      "baseline_cases": [
+        "module_compile_src_verifiers"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.voice_ingest",
+      "path": "src/voice_ingest.py",
+      "baseline_cases": [
+        "module_compile_src_voice_ingest"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.vstore",
+      "path": "src/vstore.py",
+      "baseline_cases": [
+        "module_compile_src_vstore"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.webgateway",
+      "path": "src/webgateway.py",
+      "baseline_cases": [
+        "module_compile_src_webgateway"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.wiki_patch_runtime",
+      "path": "src/wiki_patch_runtime.py",
+      "baseline_cases": [
+        "module_compile_src_wiki_patch_runtime"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    },
+    {
+      "module": "src.worktree_manager",
+      "path": "src/worktree_manager.py",
+      "baseline_cases": [
+        "module_compile_src_worktree_manager"
+      ],
+      "status": "baseline_compile_case_created",
+      "next_cases": [
+        "unit_behavior",
+        "integration_offline",
+        "resource_regression"
+      ]
+    }
+  ],
+  "notes": [
+    "0.31.13.alpha includes code-dev QA sub-team and GUI recovery compatibility checks"
+  ]
+}

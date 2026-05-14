@@ -1,0 +1,8 @@
+version: 0.27.10
+notes:
+- Added the first working extraction runtime above the prep pipeline.
+- Published stable Source, Passage, Claim, Evidence, and lineage records from prep
+  leaf chunks.
+- Added deterministic claim provenance addresses and claim-origin lookup CLI.
+- Added optional heuristic auto-concepts and claim->concept links.
+- Extended knowledge-policy with extraction settings.

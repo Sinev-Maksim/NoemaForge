@@ -1,0 +1,137 @@
+apiVersion: noemaforge.taskqueue/v1
+kind: TaskQueuePolicy
+queue:
+  db_path: /var/lib/noemaforge/taskqueue/taskqueue.sqlite
+  max_tasks_per_domain: 5000
+  claim_lease_sec: 900
+selection:
+  priority_order:
+  - critical
+  - urgent
+  - daily_sla
+  - high
+  - normal
+  - background
+  domain_cycle:
+  - WORK
+  - SELF_IMPROVE
+  - SECURITY
+  - PLANNED
+  skip_empty_domains: true
+  repeat_boost:
+    enabled: true
+    thresholds:
+    - repeats: 3
+      promote_to: high
+    - repeats: 6
+      promote_to: urgent
+default_tasks:
+  SELF_IMPROVE:
+  - kind: module
+    module: surgeon_auto
+    priority_class: background
+    group_key: default.self_improve.surgeon_auto
+    cooldown_sec: 3600
+  SECURITY:
+  - kind: module
+    module: scary_sweep
+    priority_class: background
+    group_key: default.security.scary_sweep
+    cooldown_sec: 1800
+  PLANNED:
+  - kind: module
+    module: planned_sweep
+    priority_class: background
+    group_key: default.planned.planned_sweep
+    cooldown_sec: 3600
+  - kind: module
+    module: knowledge_maintainer
+    priority_class: background
+    group_key: default.planned.knowledge_maintainer
+    cooldown_sec: 7200
+  - kind: module
+    module: session_memory_extractor
+    priority_class: background
+    group_key: default.planned.session_memory_extractor
+    cooldown_sec: 1800
+  - kind: module
+    module: dream_cycle
+    priority_class: background
+    group_key: default.planned.dream_cycle
+    cooldown_sec: 3600
+signal_to_task:
+  scary.sel.integrity:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: urgent
+  scary.quarantine.review:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: high
+  scary.fixtures.v1:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: high
+  scary.gloves.v1:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: normal
+  scary.supplychain.audit:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: high
+  sr.memory.pressure:
+    domain: SELF_IMPROVE
+    kind: module
+    module: surgeon_auto
+    priority_class: urgent
+  surgeon.memory.spill:
+    domain: SELF_IMPROVE
+    kind: module
+    module: surgeon_auto
+    priority_class: high
+  surgeon.prestart_discipline.v1:
+    domain: SELF_IMPROVE
+    kind: module
+    module: surgeon_auto
+    priority_class: normal
+  arch.tool_policy.gaps:
+    domain: SELF_IMPROVE
+    kind: module
+    module: surgeon_auto
+    priority_class: normal
+  arch.recurring.failures:
+    domain: PLANNED
+    kind: module
+    module: planned_sweep
+    priority_class: high
+  security.toolproxy.*.repeat.*:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: high
+  security.webgateway.*.repeat.*:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: high
+  security.incident.*.repeat.*:
+    domain: SECURITY
+    kind: module
+    module: scary_sweep
+    priority_class: normal
+  noemaforge.session_memory.extract:
+    domain: PLANNED
+    kind: module
+    module: session_memory_extractor
+    priority_class: normal
+  noemaforge.dream.cycle:
+    domain: PLANNED
+    kind: module
+    module: dream_cycle
+    priority_class: background

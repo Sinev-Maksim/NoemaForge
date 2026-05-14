@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/administrator_policy.schema.json",
+  "title": "AdministratorPolicy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "default_stream",
+    "default_role"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "AdministratorPolicy"
+    },
+    "default_stream": {
+      "type": "string"
+    },
+    "default_role": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "object"
+    },
+    "delegation": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "knowledge": {
+      "type": "object"
+    },
+    "tasks": {
+      "type": "object"
+    },
+    "ui_guidance": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": true
+}

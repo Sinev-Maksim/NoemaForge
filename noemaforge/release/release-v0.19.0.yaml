@@ -1,0 +1,17 @@
+release:
+  version: 0.19.0
+  date: 2026-03-04
+  highlights:
+    - Added MemoryPolicy + MemorySystem: session RAM limiter (best-effort), osmyslenie categorizer, session/longterm vstore layers.
+    - ToolVault now supports Ed25519 signing of bundle manifests, plus signature verification (mode: prefer/require/off).
+    - WebGateway promotion to ToolVault now emits a BundleManifest (and attempts to sign it with a local ToolVault key).
+    - Sandbox microVM backend implemented via delegated runner contract; ships with a reference runner stub for wiring tests.
+    - KnowledgeStore extended with linkbase + lineage tables (contexts, annotations, links, evidence, arguments, issues, lineage_links).
+
+  notes:
+    - microVM execution still depends on host-provided runtime (firecracker/qemu/etc). The seed kit provides a stable interface.
+    - Manifest signature verification is defense-in-depth; sha256 pinning remains required for critical bundles.
+
+  compatibility:
+    - New epoch file: memory-policy.yaml
+    - Supplychain policy extended with tool_vault trust_dir/key files and attestation.bundle.signature.mode.

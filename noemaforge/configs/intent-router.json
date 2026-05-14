@@ -1,0 +1,46 @@
+{
+  "apiVersion": "noemaforge.intent_router/v1",
+  "kind": "IntentRouter",
+  "routes": [
+    {
+      "default_priority": "normal",
+      "intent_id": "user.ask",
+      "target": "stream:operator.admin"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.task",
+      "target": "stream:operator.admin"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.daily",
+      "target": "stream:daily"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.review_prestart",
+      "target": "prestart"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.invite",
+      "target": "capability"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.library",
+      "target": "stream:knowledge"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.vault",
+      "target": "vault"
+    },
+    {
+      "default_priority": "normal",
+      "intent_id": "user.capture",
+      "target": "stream:operator.admin"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+apiVersion: noemaforge.eval/v1
+kind: RoleLightEvalPack
+version: "0.29.0"
+principle: "Small role-specific smoke packs; not benchmark-grade. Top-k lists are candidates, not simultaneous runtime backends."
+roles:
+  dev.work/dev:
+    - name: python_bugfix_plan
+      prompt: "Find the bug and propose a minimal fix: def add(a,b): return str(a)+str(b). Requirement: numeric addition. Return JSON with keys bug, fix, test."
+      expect_contains: ["bug", "fix", "test"]
+    - name: bash_guard
+      prompt: "Write a safe bash guard before deleting a directory variable TARGET. Return JSON keys risk, guard, command."
+      expect_contains: ["risk", "guard"]
+  system.guard/sr:
+    - name: release_review
+      prompt: "Review a patch that starts all safe models in ModelStore. Return JSON keys invariant, regression, required_fix."
+      expect_contains: ["invariant", "required_fix"]
+    - name: timer_review
+      prompt: "Review systemd oneshot timers stuck in active elapsed with no NEXT. Return JSON keys cause, fix, verification."
+      expect_contains: ["cause", "verification"]
+  system.guard/surgeon:
+    - name: emergency_triage
+      prompt: "System is slow after manager reconcile. Produce reversible triage JSON keys stop, preserve, restore, verify."
+      expect_contains: ["stop", "restore", "verify"]
+    - name: non_head_shard
+      prompt: "A backend tries to start 00005-of-00005.gguf. Return JSON keys diagnosis, block, repair."
+      expect_contains: ["diagnosis", "repair"]
+  music:
+    - name: music_plan
+      prompt: "Create a small plan to classify a local audio file into tempo, key, sections. Return JSON keys tools, steps, outputs."
+      expect_contains: ["tools", "steps", "outputs"]
+    - name: lyric_safety
+      prompt: "Explain how to help with a song without copying copyrighted lyrics. Return JSON keys allowed, disallowed, safe_alternative."
+      expect_contains: ["allowed", "safe_alternative"]

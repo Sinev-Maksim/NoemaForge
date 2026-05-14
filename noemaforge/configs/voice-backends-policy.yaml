@@ -1,0 +1,53 @@
+apiVersion: noemaforge.voicebackends/v1
+kind: VoiceBackendsPolicy
+enabled: false
+microphone:
+  enabled: false
+  backend_order:
+  - sounddevice
+  - arecord
+  - ffmpeg
+  - command
+  sample_rate_hz: 16000
+  channels: 1
+  max_seconds: 15
+  device: ''
+  ffmpeg_input_args:
+  - -f
+  - alsa
+  - -i
+  - default
+  command:
+    argv: []
+stt:
+  enabled: false
+  backend_order:
+  - faster_whisper
+  - whisper
+  - whisper_cli
+  - command
+  default_language: ''
+  device: cpu
+  model: small
+  model_path: ''
+  compute_type: int8
+  beam_size: 5
+  vad_filter: true
+  whisper_cli:
+    executable: ''
+    argv: []
+  command:
+    argv: []
+    result_mode: stdout_text
+assistant:
+  default_alias: administrator
+  history_root: /var/lib/noemaforge/voice_sessions
+  max_turn_history: 12
+assistant_targets:
+  administrator:
+    title: NoemaForge Administrator
+    stream_id: operator.admin
+    role: administrator
+    system_preamble: You are the current NoemaForge administrator assistant. Interpret
+      user text/audio quickly, route or combine specialist roles when needed, answer
+      from grounded knowledge, manage tasks, and explain system capabilities clearly.

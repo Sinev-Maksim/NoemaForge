@@ -1,0 +1,7 @@
+apiVersion: noemaforge.tgbot/v1
+kind: TelegramBotPolicy
+enabled: false
+base_url: https://api.telegram.org
+token: ''
+timeout_sec: 15
+outbox_dir: /workspace/outbox/tg_bot

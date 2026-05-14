@@ -1,0 +1,13 @@
+apiVersion: noemaforge.runtime/v1
+kind: RuntimeInvariants
+version: 0.29.06
+runtime_desired_count: 1
+single_active_model: true
+stop_closes_gui_by_default: false
+shutdown_stop_hook: true
+vault_policy:
+  canonical_vault: /mnt/noemaforge-share/noemaforge-lab/data/Vault
+  ntfs_dirty_recovery: use noemaforge vault-mount-ro, then repair with Windows chkdsk
+modelstore:
+  allow_head_shards_only: true
+  forbidden_non_head_shards: true

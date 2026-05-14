@@ -1,0 +1,140 @@
+apiVersion: noemaforge.skills/v1
+kind: SkillsRegistry
+skills:
+- id: review
+  title: Code / artifact review
+  type: macro
+  description: Structured review with findings and follow-up tasks.
+  steps:
+  - title: Inspect changed artifacts
+    description: Review touched files and produced artifacts.
+    owner: qa
+    priority_class: high
+  - title: Write review summary
+    description: Produce a short review report and action list.
+    owner: qa
+    priority_class: normal
+- id: debug
+  title: Debug workflow
+  type: macro
+  description: Reproduce, isolate, patch, verify.
+  steps:
+  - title: Reproduce the issue
+    description: Gather the shortest failing path and evidence.
+    owner: coordinator_worker
+  - title: Prepare fix plan
+    description: Capture likely root cause and patch approach.
+    owner: solution_architect
+  - title: Implement fix
+    description: Apply the chosen patch in an isolated worktree.
+    owner: dev
+    priority_class: high
+- id: prepare_bundle
+  title: Prepare team-memory bundle
+  type: macro
+  description: Export reusable memory and artifacts for sharing.
+  steps:
+  - title: Extract latest session memory
+    description: Refresh session summary before export.
+    owner: task_manager
+  - title: Export team-memory bundle
+    description: Prepare portable JSON bundle for review/import.
+    owner: task_manager
+- id: dev.work.v26
+  title: V26 dev flow
+  type: flow
+  flow_id: dev.work.v26
+  description: Plan -> implement in worktree -> verify.
+- id: lsp.diagnostics
+  title: LSP diagnostics
+  type: tool
+  description: Offline-first diagnostics for source files via ToolProxy.
+  action:
+    tool_action: lsp.diagnostics
+    default_inputs:
+      root_paths:
+      - /opt/noemaforge/src
+      - /opt/noemaforge/configs
+- id: mcp.docs.search
+  title: Documentation search adapter
+  type: tool
+  description: Search local NoemaForge documentation through the MCP router facade.
+  action:
+    tool_action: mcp.call
+    default_inputs:
+      adapter_id: docs.search
+      tool_name: search
+- id: voice.transcribe
+  title: Voice transcript import
+  type: tool
+  description: Import manual or sidecar transcripts through the offline voice runtime.
+  action:
+    tool_action: voice.transcribe
+    default_inputs: {}
+- id: voice.capture_live
+  title: Live microphone capture
+  type: tool
+  description: Capture a short microphone clip through the live voice backend.
+  action:
+    tool_action: voice.capture_live
+    default_inputs:
+      max_seconds: 12
+- id: voice.transcribe_live
+  title: Live voice transcription
+  type: tool
+  description: Record or transcribe audio through the local STT backend.
+  action:
+    tool_action: voice.transcribe_live
+    default_inputs:
+      from_microphone: true
+      max_seconds: 12
+- id: voice.chat.administrator
+  title: Administrator voice chat turn
+  type: tool
+  description: Capture a microphone turn, transcribe it locally, and route it to the
+    configured NoemaForge Administrator assistant.
+  action:
+    tool_action: voice.chat_turn
+    default_inputs:
+      assistant_alias: administrator
+      from_microphone: true
+      max_seconds: 12
+- id: voice.chat.roundtrip.administrator
+  title: Administrator voice roundtrip
+  type: tool
+  description: Capture or use a transcript, talk to the Administrator assistant, then
+    synthesize the response back into the virtual microphone path.
+  action:
+    tool_action: voice.chat_roundtrip
+    default_inputs:
+      assistant_alias: administrator
+      from_microphone: true
+      max_seconds: 12
+- id: operator.status
+  title: Operator status snapshot
+  type: tool
+  description: Read profile and AV/voice readiness for the operator face.
+  action:
+    tool_action: operator.status
+    default_inputs: {}
+- id: tg.channel.curate
+  title: Curate Telegram export
+  type: tool
+  description: Normalize and deduplicate Telegram export items into a review artifact.
+  action:
+    tool_action: tg.channel.curate
+    default_inputs: {}
+- id: readinglist.curate
+  title: Curate reading list
+  type: tool
+  description: Build a triage queue from browser/tabs exports.
+  action:
+    tool_action: readinglist.curate
+    default_inputs: {}
+- id: selfdev.learning.review
+  title: Selfdev review queue
+  type: tool
+  description: Refresh the self-development tracker and return the review queue.
+  action:
+    tool_action: selfdev.learning.review
+    default_inputs: {}

@@ -1,0 +1,11 @@
+version: 0.10.2
+codename: "BootDoctor+OnFailure (Startup Debug P1)"
+date_utc: "2026-02-28"
+highlights:
+  - "BootDoctor: automatic boot reports + portable support bundles (outbox)."
+  - "OnFailure handler: unit failures trigger targeted diagnostics + bundle."
+  - "/run/noemaforge/mode is now reliably set to runtime at boot (tmpfiles)."
+  - "bootdoctor.yaml is a first-class epoch contract (pre-start changeable only)."
+  - "brainctl doctor: quick summary + manual bundle."
+notes:
+  - "All diagnostics are offline-first. No quarantine payloads are ever copied into outbox bundles."

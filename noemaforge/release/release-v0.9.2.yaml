@@ -1,0 +1,23 @@
+version: 0.9.2
+codename: ScaryReport-PrestartOnly-Canary
+high_level:
+  - Added ScaryReport contract + mandatory Scary Report artifact for every canary run.
+  - Canary runner now persists scary_report.json into candidate epoch and logs `canary_report_saved` to SEL/WORM.
+  - "`brainctl prestart apply-epoch` refuses to switch epochs if Scary Report is missing, mismatched, or not PASS."
+  - Added structured fixture mismatch reporting and structured privilege widening diff in reports.
+changes:
+  contracts:
+    added:
+      - scary_report.schema.json
+  docs:
+    updated:
+      - CANARY.md
+  prestart:
+    - Added canary_run_report() producing a structured report (tests, changed_files, fixtures summary, privilege_diff, SEL refs).
+    - canary_checks() now delegates to canary_run_report for compatibility.
+  tooling:
+    - canary_runner.py now outputs {ok, problems, report_path, report} and writes scary_report.json to candidate epoch.
+    - brainctl.py now enforces Scary Report presence + PASS.
+notes:
+  - Canary remains PRE-START only. Runtime canary is break-glass and requires explicit operator flags.
+  - Scary Report is intentionally a separate artifact (not baked into epoch_manifest) to avoid mutating contract hashes post-build.

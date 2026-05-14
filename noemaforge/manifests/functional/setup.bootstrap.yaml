@@ -1,0 +1,42 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: setup.bootstrap
+title: Setup and bootstrap
+purpose: Install NoemaForge predictably on a fresh host or VM with minimal operator cognitive
+  load.
+why_it_exists: Users need one blessed path from seed to running services without reconstructing
+  the install graph manually.
+source_of_truth:
+- bootstrap/noemaforge-bootstrap.sh
+- bootstrap/noemaforge-host-preflight.py
+- docs/noemaforge/docs/TRIXIE_INSTALL.md
+raw_inputs:
+- seed archive
+- host packages
+- optional offline apt repo
+- optional model bundle
+compiled_artifacts:
+- /opt/noemaforge
+- systemd units
+- checksums
+- host-preflight report
+workflows:
+  ingest:
+  - read seed manifest
+  - validate host prerequisites
+  - install files and units
+  query:
+  - show install status
+  - show preflight blockers
+  lint:
+  - validate checksums
+  - verify units and contracts
+boundaries:
+- Does not own runtime decisions after installation.
+- Must preserve supply-chain and contract validation.
+success_signals:
+- fresh host reaches setup.done
+- core services are installable deterministically
+owner_roles:
+- surgeon
+- administrator

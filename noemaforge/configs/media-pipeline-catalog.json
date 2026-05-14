@@ -1,0 +1,77 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "MediaPipelineCatalog",
+  "version": "0.31.13.alpha",
+  "pipelines": [
+    {
+      "id": "image.metadata_and_caption",
+      "stage": "mvp",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal image-metadata IMAGE",
+      "notes": "Metadata extraction works without VLM; captioning needs discovered vision model/backend."
+    },
+    {
+      "id": "audio.tts_generate",
+      "stage": "prepared",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal prepare voice_generate",
+      "notes": "Creates action plan; live generation needs Piper/Coqui/Bark adapter and model."
+    },
+    {
+      "id": "audio.music_generate",
+      "stage": "prepared",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal prepare music_generate",
+      "notes": "Creates action plan; live generation needs MusicGen/Stable-Audio adapter."
+    },
+    {
+      "id": "image.photo_generate",
+      "stage": "prepared",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal prepare photo_generate",
+      "notes": "Creates action plan; live generation needs diffusion backend."
+    },
+    {
+      "id": "video.generate",
+      "stage": "prepared",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal prepare video_generate",
+      "notes": "Creates action plan; live generation needs video diffusion backend."
+    },
+    {
+      "id": "video_call.masks_virtual_camera",
+      "stage": "prepared",
+      "autostart": false,
+      "entrypoint": "noemaforge multimodal mask-plan",
+      "notes": "Checks v4l2/OBS/PipeWire/segmentation assets and emits setup plan."
+    },
+    {
+      "id": "gui.persona_portraits",
+      "stage": "mvp",
+      "autostart": "optional",
+      "entrypoint": "noemaforge persona gui-status && noemaforge dashboard start",
+      "notes": "SVG persona portraits are checked and dashboard can be started after first-run."
+    },
+    {
+      "id": "gui.admin_console_api",
+      "stage": "rc",
+      "autostart": "manual_start_only",
+      "entrypoint": "noemaforge gui console start",
+      "notes": "Starts localhost Admin GUI/API only; no LLM, camera, microphone or media backend autostart."
+    },
+    {
+      "id": "admin.route_music_generation",
+      "stage": "rc",
+      "autostart": false,
+      "entrypoint": "noemaforge admin message --execute --prepare-media \"создай музыку\"",
+      "notes": "Admin can create a music_generation pipeline run and prepare explicit-only media plan."
+    },
+    {
+      "id": "admin.route_model_evolution",
+      "stage": "rc",
+      "autostart": false,
+      "entrypoint": "noemaforge admin message --execute \"эволюция модели\"",
+      "notes": "Admin can create model_evolution pipeline run and conduct measured evolution control cycle."
+    }
+  ]
+}

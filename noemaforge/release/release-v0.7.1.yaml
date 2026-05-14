@@ -1,0 +1,28 @@
+apiVersion: noemaforge.release/v1
+kind: Release
+metadata:
+  name: noemaforge
+  version: "0.7.1"
+  codename: "BCA-SerialTeam-DailySLA-MemSentinel-TeamWorker"
+  status: "spec"
+
+defaults:
+  compute: "cpu-first"
+  network: "deny-by-default"
+  llm_entrypoint: "unix:///run/noemaforge/llm/gateway.sock"
+  team_execution: "serial"
+  recurring_priority: "daily_sla"
+
+services:
+  - noemaforge-llm-gateway
+  - noemaforge-llama@main
+  - noemaforge-memsentinel
+  - noemaforge-dailyplan
+  - noemaforge-auditor
+  - noemaforge-recurring
+  - noemaforge-teamworker
+
+notes:
+  - "TeamWorker consumes wake queues and kickstarts PM when backlog has todo items."
+  - "Daily SLA tasks outrank regular work except urgent/critical."
+  - "Memory pressure treated as critical; avoid starting new work under memergency flag."

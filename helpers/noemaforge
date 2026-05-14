@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# Legacy compatibility helper only. The installer must not install this as the
+# public noemaforge command; public noemaforge paths are symlinks to /opt/noemaforge/bin/noemaforge.
+set -euo pipefail
+REAL=/opt/noemaforge/bin/noemaforge
+SELF="$(readlink -f "$0" 2>/dev/null || echo "$0")"
+REAL_RESOLVED="$(readlink -f "$REAL" 2>/dev/null || echo "$REAL")"
+if [[ "$REAL_RESOLVED" == "$SELF" ]]; then
+  echo "[noemaforge-legacy-helper][ERROR] recursion detected: $REAL resolves to this helper" >&2
+  exit 70
+fi
+exec "$REAL" "$@"

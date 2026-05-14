@@ -1,0 +1,537 @@
+apiVersion: noemaforge.toolpolicy/v1
+kind: ToolPolicy
+default_decision: deny
+streams:
+  dev.work:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+        - plan.enter
+        - plan.approve
+        - plan.exit
+        - plan.status
+        - task.create
+        - task.list
+        - task.get
+        - task.update
+        - notify.emit
+        - voice.capture
+        - voice.transcribe
+        - mcp.adapters.list
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - discord.assets.prepare
+        - discord.bridge.status
+        - operator.status
+        - profiles.list
+        - voice.chat_roundtrip
+      qa:
+        allow:
+        - task.list
+        - task.get
+        - notify.emit
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - discord.bridge.status
+      architect:
+        allow:
+        - llm.chat
+        - roadmap.record
+        - vstore.query
+        - plan.status
+        - task.list
+        - task.get
+        - skills.list
+        - notify.emit
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - mcp.call
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - discord.assets.prepare
+        - discord.bridge.start
+        - discord.bridge.status
+        - discord.bridge.stop
+        - operator.status
+        - profiles.list
+        - voice.tts_backchannel
+        - voice.chat_roundtrip
+        - profiles.set_enabled
+        - rss.intake
+        - mail.intake
+        - tg.bot.fetch
+      solution_architect:
+        allow:
+        - llm.chat
+        - roadmap.record
+        - vstore.query
+        - plan.status
+        - task.list
+        - task.get
+        - skills.list
+        - notify.emit
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - mcp.call
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - discord.assets.prepare
+        - discord.bridge.start
+        - discord.bridge.status
+        - discord.bridge.stop
+        - operator.status
+        - profiles.list
+        - voice.tts_backchannel
+        - voice.chat_roundtrip
+        - profiles.set_enabled
+        - rss.intake
+        - mail.intake
+        - tg.bot.fetch
+      python_dev:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - task.update
+        - task.output
+        - worktree.status
+        - skills.run
+        - notify.emit
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - mcp.call
+      sql_dev:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - task.update
+        - task.output
+        - worktree.status
+        - skills.run
+        - notify.emit
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - mcp.call
+      planner:
+        allow:
+        - llm.chat
+        - fs.read
+        - vstore.query
+        - roadmap.record
+        - plan.enter
+        - plan.approve
+        - plan.status
+        - task.list
+        - task.get
+        - notify.emit
+        - mcp.adapters.list
+      dev:
+        allow:
+        - llm.chat
+        - fs.read
+        - fs.write
+        - task.create
+        - task.list
+        - task.get
+        - task.update
+        - task.output
+        - task.stop
+        - worktree.enter
+        - worktree.status
+        - worktree.promote
+        - worktree.exit
+        - skills.run
+        - notify.emit
+        - vstore.query
+        - lsp.diagnostics
+        - lsp.symbols
+        - lsp.references
+        - mcp.adapters.list
+        - mcp.call
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - discord.assets.prepare
+        - discord.bridge.start
+        - discord.bridge.status
+        - discord.bridge.stop
+        - operator.status
+        - profiles.list
+        - voice.tts_backchannel
+        - voice.chat_roundtrip
+        - profiles.set_enabled
+        - rss.intake
+        - mail.intake
+        - tg.bot.fetch
+      coordinator_worker:
+        allow:
+        - llm.chat
+        - fs.read
+        - task.list
+        - task.get
+        - skills.list
+        - notify.emit
+        - vstore.query
+        - mcp.adapters.list
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - operator.status
+        - profiles.list
+      dreamer:
+        allow:
+        - fs.read
+        - fs.write
+        - llm.embed
+        - vstore.query
+        - vstore.upsert
+        - task.list
+        - task.get
+        - notify.emit
+      task_manager:
+        allow:
+        - task.create
+        - task.list
+        - task.get
+        - task.update
+        - task.output
+        - notify.emit
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - operator.status
+        - profiles.list
+      notifier:
+        allow:
+        - notify.emit
+        - notify.list
+        - notify.ack
+        - task.list
+        - task.get
+  photos.diary:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+      diary_writer:
+        allow:
+        - llm.chat
+        - vstore.query
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+      photo_indexer:
+        allow: []
+      qa:
+        allow: []
+      dev:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - task.update
+        - notify.emit
+  finance.budget:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+      budget_analyst:
+        allow:
+        - llm.chat
+        - vstore.query
+      qa:
+        allow: []
+      dev:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - task.update
+        - notify.emit
+  video.drone:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+      video_editor:
+        allow:
+        - llm.chat
+        - vstore.query
+      qa:
+        allow: []
+  blender.cinema:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+      story_writer:
+        allow:
+        - llm.chat
+        - vstore.query
+      blender_artist:
+        allow:
+        - llm.chat
+        - vstore.query
+      qa:
+        allow: []
+  modeling.3dgen:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+      modeler:
+        allow:
+        - llm.chat
+        - vstore.query
+      qa:
+        allow: []
+  system.guard:
+    roles:
+      guard:
+        allow: []
+      surgeon:
+        allow:
+        - glove.analyze
+        - llm.chat
+        - llm.embed
+        - roadmap.export
+        - roadmap.list
+        - roadmap.record
+        - vstore.query
+        - vstore.tombstone
+        - vstore.upsert
+        - operator.status
+      sr:
+        allow:
+        - glove.analyze
+        - roadmap.export
+        - roadmap.list
+        - roadmap.record
+        - vstore.query
+        - operator.status
+      ssr:
+        allow:
+        - glove.analyze
+        - roadmap.export
+        - roadmap.list
+        - roadmap.record
+        - vstore.query
+        - operator.status
+      scary:
+        allow:
+        - glove.analyze
+        - glove.web_sanitize
+        - glove.net_inspect
+        - glove.rss_sanitize
+        - glove.package_inspect
+        - glove.git_scan
+        - roadmap.export
+        - roadmap.list
+        - roadmap.record
+        - vstore.query
+        - webgw.fetch
+        - localgw.preflight
+        - localgw.discover
+        - localgw.nids_snapshot
+        - localgw.call
+        - rss.intake
+        - mail.intake
+        - tg.bot.fetch
+        - operator.status
+        - profiles.list
+        - profiles.set_enabled
+  tg.channel:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+        - tg.channel.curate
+        - operator.status
+      fact_checker:
+        allow:
+        - llm.chat
+        - vstore.query
+        - tg.channel.curate
+      writer:
+        allow:
+        - llm.chat
+        - vstore.query
+        - tg.channel.curate
+      qa:
+        allow:
+        - tg.channel.curate
+  browser.readinglist:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+        - readinglist.curate
+        - operator.status
+      researcher:
+        allow:
+        - llm.chat
+        - vstore.query
+        - readinglist.curate
+      qa:
+        allow:
+        - readinglist.curate
+  selfdev.learning:
+    roles:
+      pm:
+        allow:
+        - roadmap.record
+        - vstore.query
+        - selfdev.learning.ingest
+        - selfdev.learning.review
+        - selfdev.ics.import
+        - operator.status
+      coach:
+        allow:
+        - llm.chat
+        - vstore.query
+        - selfdev.learning.ingest
+        - selfdev.learning.review
+        - selfdev.ics.import
+      qa:
+        allow:
+        - selfdev.learning.review
+  operator.admin:
+    roles:
+      administrator:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.create
+        - task.list
+        - task.get
+        - task.update
+        - plan.status
+        - skills.list
+        - notify.emit
+        - operator.status
+        - profiles.list
+        - voice.capture
+        - voice.transcribe
+        - voice.capture_live
+        - voice.transcribe_live
+        - voice.chat_turn
+        - voice.tts_backchannel
+        - voice.chat_roundtrip
+        - discord.assets.prepare
+        - discord.bridge.status
+        - rss.intake
+        - mail.intake
+        - tg.bot.fetch
+      solution_architect:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - notify.emit
+        - operator.status
+        - profiles.list
+      writer:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - notify.emit
+        - operator.status
+      coach:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - notify.emit
+        - operator.status
+  writing.story:
+    roles:
+      writer:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - notify.emit
+      tropemaster:
+        allow:
+        - llm.chat
+        - vstore.query
+      world_keeper:
+        allow:
+        - llm.chat
+        - vstore.query
+      fact_checker:
+        allow:
+        - llm.chat
+        - vstore.query
+      editor.literary:
+        allow:
+        - llm.chat
+        - vstore.query
+      critic:
+        allow:
+        - llm.chat
+        - vstore.query
+      formatter:
+        allow:
+        - llm.chat
+        - vstore.query
+  knowledge.vault:
+    roles:
+      researcher:
+        allow:
+        - llm.chat
+        - vstore.query
+        - task.list
+        - task.get
+        - notify.emit
+        - operator.status

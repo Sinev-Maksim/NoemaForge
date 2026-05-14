@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "VoiceCapture",
+  "type": "object",
+  "required": [
+    "captured_path"
+  ],
+  "properties": {
+    "captured_path": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    }
+  }
+}

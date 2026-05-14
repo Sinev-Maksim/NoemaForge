@@ -1,0 +1,31 @@
+apiVersion: noemaforge.nids/v1
+kind: NIDSPolicy
+enabled: false
+
+# NIDS-lite is observation-only.
+# No payload capture, no active scans by default.
+
+snapshot:
+  interval_sec: 300
+  max_snapshots: 200
+
+identity:
+  uid_prefix: "lan:"
+  uid_algorithm: "sha256"
+  prefer_fields: ["tls_pubkey_sha256", "device_cert_sha256", "serial", "dhcp_client_id", "mac"]
+  mac_normalization: "lower"
+
+devices:
+  # If allowlist_mode is 'required', any device not in allowlist is suspicious.
+  # If 'permissive', we enforce only if allowlist is non-empty.
+  allowlist_uids: []
+  allowlist_mode: "permissive"  # permissive|required
+  on_unknown: "incident"        # incident|warn|ignore
+
+capture:
+  include_listeners: true
+  include_routes: true
+  include_addrs: true
+
+notes:
+  - "NIDS-lite is meant for local LAN hygiene, not as a full IDS."

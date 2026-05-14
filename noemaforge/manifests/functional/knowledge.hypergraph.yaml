@@ -1,0 +1,46 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: knowledge.hypergraph
+title: Knowledge hypergraph
+purpose: Compile long-form sources into a provenance-preserving knowledge substrate
+  instead of answering from raw chunks each time.
+why_it_exists: The graph is the durable memory and reasoning substrate for grounded
+  answers, conflict detection, and task-aware synthesis.
+source_of_truth:
+- src/knowledge/store.py
+- src/knowledge/prep_store.py
+- src/knowledge/prep_pipeline.py
+- src/knowledge/extraction_pipeline.py
+raw_inputs:
+- raw books and documents
+- normalized text artifacts
+- sentence topic maps
+compiled_artifacts:
+- prep_index.sqlite
+- kg.sqlite
+- passages
+- claims
+- evidence
+- concept links
+workflows:
+  ingest:
+  - enqueue source
+  - build prep-store
+  - extract passage and claim objects
+  query:
+  - retrieve grounded claims and provenance
+  - resolve claim origins
+  lint:
+  - detect orphan claims
+  - check trace completeness
+  - detect conflicts
+boundaries:
+- Prep metadata is separate from ontology.
+- Claims without provenance are not publishable.
+success_signals:
+- every claim has machine-resolvable address
+- grounded answers cite graph-backed provenance
+owner_roles:
+- administrator
+- researcher
+- ssr

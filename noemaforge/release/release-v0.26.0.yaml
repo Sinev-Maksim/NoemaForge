@@ -1,0 +1,12 @@
+version: 0.26.0
+date: 2026-04-08
+title: "Plan Mode + Tasks + Memory + Worktree"
+highlights:
+  - "Added Plan Mode state and tool actions (enter/approve/exit/status)"
+  - "Added user-facing task registry on top of TaskQueue sqlite"
+  - "Added session memory extractor and dream-cycle consolidation"
+  - "Added worktree manager for isolated dev.work changes"
+  - "Added coordinator fanout, skills registry and notifications"
+  - "Prepared LSP/MCP/Voice bundle structure (disabled by default)"
+notes:
+  - "This release enriches NoemaForge without replacing the existing spine architecture."

@@ -1,0 +1,60 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IncidentPolicy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "enabled",
+    "roadmap"
+  ],
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "const": "IncidentPolicy"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "roadmap": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "repeat_thresholds": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "default_targets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "kind_overrides": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "targets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "key_prefix": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,114 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "idle_trigger_sec": {
+      "type": "integer"
+    },
+    "sr": {
+      "type": "object",
+      "properties": {
+        "max_events_scan": {
+          "type": "integer"
+        },
+        "export_roles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "export_limit": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "ssr": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "max_events_scan": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "daily_sla": {
+      "type": "object",
+      "properties": {
+        "timezone": {
+          "type": "string"
+        },
+        "fallback_mean_sec": {
+          "type": "integer"
+        },
+        "fallback_sigma_sec": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "daily_queue": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "dispatch_outside_idle": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "recovery": {
+      "type": "object",
+      "properties": {
+        "max_work_age_sec": {
+          "type": "integer"
+        },
+        "max_token_age_sec": {
+          "type": "integer"
+        },
+        "stop_extra_backends": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dispatch": {
+      "type": "object",
+      "properties": {
+        "domain_cycle": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "auto_cycle": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "sr_every_sec": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/maintenance_policy.schema.json",
+  "title": "MaintenancePolicy"
+}

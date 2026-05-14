@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-reboot-safe
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+# NoemaForge 0.29.10 safe reboot/shutdown helper.
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+
+MODE="reboot"
+CLOSE_GUI=0
+DRY_RUN=0
+UMOUNT_SHARE=1
+
+for arg in "$@"; do
+  case "$arg" in
+    --shutdown|shutdown) MODE="shutdown" ;;
+    --reboot|reboot) MODE="reboot" ;;
+    --close-gui-heavy|--kill-gui-heavy) CLOSE_GUI=1 ;;
+    --dry-run|--plan) DRY_RUN=1 ;;
+    --no-umount) UMOUNT_SHARE=0 ;;
+    -h|--help)
+      cat <<'HELP'
+Usage:
+  sudo noemaforge reboot-safe [--close-gui-heavy] [--dry-run]
+  sudo noemaforge shutdown-safe [--close-gui-heavy] [--dry-run]
+
+Stops NoemaForge runtime first, audits Vault users, syncs, tries to unmount NOEMAFORGE_SHARE,
+then reboots/shuts down. Firefox/Nautilus are not closed unless --close-gui-heavy is set.
+HELP
+      exit 0 ;;
+  esac
+done
+
+noemaforge_require_root
+STOP_ARGS=(--shutdown-hook)
+[[ "$CLOSE_GUI" == "1" ]] && STOP_ARGS+=(--close-gui-heavy)
+[[ "$DRY_RUN" == "1" ]] && STOP_ARGS+=(--dry-run)
+
+printf '=== NoemaForge %s-safe 0.29.10 ===\n' "$MODE"
+printf 'close_gui_heavy=%s\n' "$CLOSE_GUI"
+printf 'umount_share=%s\n' "$UMOUNT_SHARE"
+
+/usr/local/sbin/noemaforge-stop "${STOP_ARGS[@]}" || true
+
+printf '\n=== Vault users ===\n'
+fuser -vm "$NOEMAFORGE_SHARE_MOUNT" 2>/dev/null || true
+
+printf '\n=== sync ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo '[noemaforge-reboot-safe][dry-run] sync'
+else
+  sync || true
+fi
+
+if [[ "$UMOUNT_SHARE" == "1" ]]; then
+  printf '\n=== try unmount NOEMAFORGE_SHARE ===\n'
+  if findmnt "$NOEMAFORGE_SHARE_MOUNT" >/dev/null 2>&1; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+      echo "[noemaforge-reboot-safe][dry-run] umount $NOEMAFORGE_SHARE_MOUNT || umount -l $NOEMAFORGE_SHARE_MOUNT"
+    else
+      umount "$NOEMAFORGE_SHARE_MOUNT" 2>/dev/null || umount -l "$NOEMAFORGE_SHARE_MOUNT" 2>/dev/null || true
+    fi
+  else
+    echo "not mounted: $NOEMAFORGE_SHARE_MOUNT"
+  fi
+  findmnt "$NOEMAFORGE_SHARE_MOUNT" || true
+fi
+
+printf '\n=== final action ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then
+  echo "[noemaforge-reboot-safe][dry-run] systemctl $MODE"
+  exit 0
+fi
+
+case "$MODE" in
+  shutdown) systemctl poweroff ;;
+  *) systemctl reboot ;;
+esac

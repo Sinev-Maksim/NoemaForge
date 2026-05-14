@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/honeykeys_policy.schema.json",
+  "title": "HoneykeysPolicy",
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "state_dir": {
+      "type": "string"
+    },
+    "inject_into_prompts": {
+      "type": "boolean"
+    },
+    "ttl_sec": {
+      "type": "integer"
+    },
+    "quarantine_on_leak": {
+      "type": "boolean"
+    },
+    "system_prompt_template": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,9 @@
+apiVersion: noemaforge.notifications/v1
+kind: NotificationsPolicy
+enabled: true
+store:
+  jsonl_path: /var/lib/noemaforge/outbox/notifications.jsonl
+  acks_path: /var/lib/noemaforge/outbox/notifications.acks.json
+defaults:
+  severity: info
+  max_message_chars: 2000

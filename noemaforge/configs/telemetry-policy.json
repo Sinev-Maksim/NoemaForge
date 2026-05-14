@@ -1,0 +1,15 @@
+{
+  "version": "0.31.13.alpha",
+  "apiVersion": "noemaforge/v1",
+  "kind": "TelemetryPolicy",
+  "source": "selftest-telemetry-policy.json",
+  "thresholds": {
+    "duration_warn_pct": 0.25,
+    "duration_fail_pct": 0.5,
+    "max_rss_warn_pct": 0.3,
+    "max_rss_fail_pct": 0.6,
+    "disk_write_warn_bytes": 52428800,
+    "memory_leak_warn_pct": 0.1,
+    "ecc_delta_fail": 1
+  }
+}

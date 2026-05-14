@@ -1,0 +1,39 @@
+version: 0.9.5
+codename: RoleRoadmaps-ArchitectPriority-SRSSRScaffolding
+high_level:
+- 'Добавлен контракт role-roadmaps.yaml: фиксированные roadmaps по ролям для хирурга
+  (часть contract epoch).'
+- 'Добавлен Roadmap aggregator: повторяющиеся запросы к Solution Architect из разных
+  потоков повышают приоритет (unique_sources + total_events).'
+- 'Добавлены ToolProxy tools: roadmap.record / roadmap.list / roadmap.export (с ограничением
+  по policy).'
+- 'SR/SSR получают формальную точку фиксации маршрутов развития: экспорт Roadmap отчётов
+  в /var/lib/noemaforge/roadmaps/exports/.'
+changes:
+  configs:
+    added:
+    - role-roadmaps.yaml
+    updated:
+    - tool-registry.yaml
+    - tool-policy.yaml
+  contracts:
+    added:
+    - role_roadmaps.schema.json
+    - roadmap_signal.schema.json
+    - roadmap_report.schema.json
+    updated:
+    - epoch_manifest.schema.json
+  src:
+    added:
+    - roadmap.py
+    updated:
+    - toolproxy.py
+    - prestart.py
+    - brainctl.py
+  docs:
+    added:
+    - ROADMAPS.md
+notes:
+- Roadmap данные по умолчанию не раскрывают внутренние протоколы безопасности исполнителям;
+  доступ выдаётся через policy.
+- Экспорт отчётов предназначен для system.guard (surgeon/sr/ssr/scary).

@@ -1,0 +1,216 @@
+apiVersion: noemaforge.roleeval/v1
+kind: RoleEvalDatasets
+defaults:
+  suite: smoke
+  cap: llm
+  dataset_profile: internal_jsonl
+  minimal_thresholds:
+    pass_rate: 0.6
+    json_parse_rate: 0.8
+    quality_score: 0.55
+profiles:
+  internal_jsonl:
+    type: seed_jsonl
+    available_when:
+    - path: /opt/noemaforge/datasets/role_eval_cases
+      kind: dir
+  administrator_core:
+    type: seed_jsonl
+    available_when:
+    - path: /opt/noemaforge/datasets/role_eval_cases/administrator_smoke.jsonl
+      kind: file
+  writer_library:
+    type: external_library
+    available_when:
+    - path: /var/lib/noemaforge/library
+      kind: dir
+      optional: true
+    - path: /workspace/inbox/library
+      kind: dir
+      optional: true
+  knowledge_graph:
+    type: state_kg
+    available_when:
+    - path: /var/lib/noemaforge/kg
+      kind: dir
+      optional: true
+  knowledge_bootstrap:
+    type: seed_jsonl
+    available_when:
+    - path: /opt/noemaforge/datasets/role_eval_cases
+      kind: dir
+roles:
+  operator.admin/administrator:
+    suite: full
+    dataset_profile: administrator_core
+  system.guard/surgeon:
+    suite: full
+    dataset_profile: internal_jsonl
+  system.guard/ssr:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  system.guard/sr:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  system.guard/scary:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/solution_architect:
+    suite: full
+    dataset_profile: internal_jsonl
+  dev.work/dev:
+    suite: full
+    dataset_profile: internal_jsonl
+  dev.work/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/python_dev:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/sql_dev:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/planner:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/coordinator_worker:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  photos.diary/diary_writer:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  finance.budget/budget_analyst:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  video.drone/video_editor:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  blender.cinema/blender_artist:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  blender.cinema/story_writer:
+    suite: smoke
+    dataset_profile: writer_library
+  modeling.3dgen/modeler:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  tg.channel/fact_checker:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  tg.channel/writer:
+    suite: smoke
+    dataset_profile: writer_library
+  browser.readinglist/researcher:
+    suite: smoke
+    dataset_profile: knowledge_graph
+  selfdev.learning/coach:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  writing.story/writer:
+    suite: full
+    dataset_profile: writer_library
+  writing.story/tropemaster:
+    suite: smoke
+    dataset_profile: writer_library
+  writing.story/world_keeper:
+    suite: full
+    dataset_profile: writer_library
+  writing.story/fact_checker:
+    suite: full
+    dataset_profile: writer_library
+  writing.story/editor.literary:
+    suite: full
+    dataset_profile: writer_library
+  writing.story/critic:
+    suite: smoke
+    dataset_profile: writer_library
+  writing.story/formatter:
+    suite: full
+    dataset_profile: writer_library
+  dev.work/architect:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/dreamer:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/task_manager:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  dev.work/notifier:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  photos.diary/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  photos.diary/photo_indexer:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  photos.diary/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  finance.budget/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  finance.budget/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  video.drone/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  video.drone/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  blender.cinema/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  blender.cinema/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  modeling.3dgen/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  modeling.3dgen/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  system.guard/guard:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  tg.channel/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  tg.channel/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  browser.readinglist/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  browser.readinglist/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  selfdev.learning/pm:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  selfdev.learning/qa:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  operator.admin/coach:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  operator.admin/solution_architect:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  operator.admin/writer:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  photos.diary/dev:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  finance.budget/dev:
+    suite: smoke
+    dataset_profile: internal_jsonl
+  knowledge.vault/researcher:
+    suite: smoke
+    dataset_profile: knowledge_bootstrap

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-manager
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+set -euo pipefail
+. /usr/local/lib/noemaforge-common.sh
+cmd="${1:-status}"; [[ $# -gt 0 ]] && shift || true
+runtime=1; plan=0
+for arg in "$@"; do case "$arg" in --runtime-desired-count=*) runtime="${arg#*=}" ;; --plan|--dry-run) plan=1 ;; esac; done
+status(){ echo '=== runtime desired policy ==='; echo "runtime_desired_count=$runtime"; echo "active_llama_units=$(noemaforge_count_active_llama)"; echo 'invariant=active_llama_units <= runtime_desired_count'; echo; echo '=== manager timers ==='; for t in $NOEMAFORGE_RUNTIME_TIMERS; do systemctl is-enabled "$t" 2>/dev/null || true; systemctl is-active "$t" 2>/dev/null || true; done; echo; systemctl list-units --all 'noemaforge-llama@*.service' --no-pager || true; }
+case "$cmd" in
+ disable) noemaforge_require_root; systemctl disable --now $NOEMAFORGE_RUNTIME_TIMERS 2>/dev/null || true; systemctl stop noemaforge-llm-backends-manager.service noemaforge-modelscan.service 2>/dev/null || true; echo '[noemaforge-manager] disabled'; status ;;
+ status) status ;;
+ reconcile) noemaforge_require_root; mapfile -t active < <(noemaforge_active_llama_units); stop=(); for u in "${active[@]}"; do [[ "$u" != noemaforge-llama@main.service ]] && stop+=("$u"); done; echo 'desired_active: noemaforge-llama@main.service'; echo "would_stop: ${stop[*]:-(none)}"; echo "plan: $plan"; [[ "$plan" == 1 ]] || { [[ ${#stop[@]} -gt 0 ]] && systemctl stop "${stop[@]}" 2>/dev/null || true; [[ "$runtime" -ge 1 ]] && systemctl start noemaforge-llama@main.service; }; status ;;
+ enable) noemaforge_require_root; "$0" reconcile --runtime-desired-count="$runtime"; systemctl enable --now $NOEMAFORGE_RUNTIME_TIMERS 2>/dev/null || true; status ;;
+ *) echo 'usage: noemaforge manager status|disable|reconcile|enable' >&2; exit 2 ;;
+esac

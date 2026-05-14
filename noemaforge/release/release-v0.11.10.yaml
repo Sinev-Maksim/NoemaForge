@@ -1,0 +1,13 @@
+version: 0.11.10
+codename: Daily Audit Remediation as Explicit Tasks + Handoffs
+changes:
+  - Daily auditor (noemaforge_core run-audit) now supports per-check on_missing actions:
+      - create_remediation_tasks -> enqueue core.run_recurring tasks into TaskQueue (idempotent via group_key)
+      - open_incident -> create incident artifact under /var/lib/noemaforge/incidents/daily_audit
+      - notify_user -> write markdown notification under /workspace/outbox/notifications/daily_audit
+  - Daily audit run markers now include remediation report (actions + artifact paths).
+  - Handoff packets emitted for Surgeon and Scary when missing tasks are detected.
+notes:
+  - No runtime contract/policy changes; remediation only creates tasks + artifacts.
+  - Repeat enqueues of the same daily task boost priority via TaskQueue repeat_boost thresholds.
+  - This is offline-only and safe for spine operation.

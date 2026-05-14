@@ -1,0 +1,111 @@
+{
+  "type": "object",
+  "properties": {
+    "apiVersion": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "prefer": {
+          "type": "string"
+        },
+        "allow_gpu": {
+          "type": "boolean"
+        },
+        "allow_hybrid": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "gpu_trigger": {
+      "type": "object",
+      "properties": {
+        "priorities": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "intents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "vram_budget": {
+      "type": "object",
+      "properties": {
+        "min_free_mib_to_enable": {
+          "type": "integer"
+        },
+        "reserve_mib": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "llama_server": {
+      "type": "object",
+      "properties": {
+        "cpu_default": {
+          "type": "object",
+          "properties": {
+            "args": {
+              "type": "object",
+              "properties": {
+                "device": {
+                  "type": "string"
+                },
+                "n_gpu_layers": {
+                  "type": "integer"
+                },
+                "kv_offload": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "hybrid_default": {
+          "type": "object",
+          "properties": {
+            "args": {
+              "type": "object",
+              "properties": {
+                "n_gpu_layers": {
+                  "type": "string"
+                },
+                "fit": {
+                  "type": "string"
+                },
+                "fit_target_mib": {
+                  "type": "integer"
+                },
+                "kv_offload": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/compute_policy.schema.json",
+  "title": "ComputePolicy"
+}

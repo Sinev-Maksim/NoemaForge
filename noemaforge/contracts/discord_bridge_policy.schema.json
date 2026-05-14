@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DiscordBridgePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "enabled", "capture", "processing"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.discordbridge/v1"},
+    "kind": {"const": "DiscordBridgePolicy"},
+    "enabled": {"type": "boolean"},
+    "mode": {"type": "string", "enum": ["desktop_bridge"]},
+    "sessions_root": {"type": "string"},
+    "artifacts_root": {"type": "string"},
+    "discord_client": {
+      "type": "object",
+      "properties": {
+        "handoff_mode": {"type": "string"},
+        "application_name": {"type": "string"},
+        "recommended_video_device": {"type": "string"},
+        "recommended_audio_source": {"type": "string"},
+        "launch_notes": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "capture": {
+      "type": "object",
+      "required": ["video", "audio"],
+      "properties": {
+        "av_delay_ms": {"type": "integer", "minimum": 0},
+        "video": {
+          "type": "object",
+          "required": ["enabled", "backend_order"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "backend_order": {"type": "array", "items": {"type": "string", "enum": ["ffmpeg", "command"]}},
+            "camera_device": {"type": "string"},
+            "input_path": {"type": "string"},
+            "width": {"type": "integer", "minimum": 16},
+            "height": {"type": "integer", "minimum": 16},
+            "fps": {"type": "integer", "minimum": 1},
+            "input_format": {"type": "string"},
+            "ffmpeg_executable": {"type": "string"},
+            "output_mode": {"type": "string", "enum": ["v4l2loopback", "file"]},
+            "output_device": {"type": "string"},
+            "output_path": {"type": "string"},
+            "command": {
+              "type": "object",
+              "properties": {"argv": {"type": "array", "items": {"type": "string"}}}
+            }
+          }
+        },
+        "audio": {
+          "type": "object",
+          "required": ["enabled", "backend_order"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "backend_order": {"type": "array", "items": {"type": "string", "enum": ["ffmpeg", "command"]}},
+            "input_device": {"type": "string"},
+            "sample_rate_hz": {"type": "integer", "minimum": 8000},
+            "channels": {"type": "integer", "minimum": 1},
+            "input_format": {"type": "string"},
+            "ffmpeg_executable": {"type": "string"},
+            "output_mode": {"type": "string", "enum": ["pulse_sink", "file"]},
+            "output_target": {"type": "string"},
+            "output_path": {"type": "string"},
+            "delay_ms": {"type": "integer", "minimum": 0},
+            "command": {
+              "type": "object",
+              "properties": {"argv": {"type": "array", "items": {"type": "string"}}}
+            }
+          }
+        }
+      }
+    },
+    "processing": {
+      "type": "object",
+      "required": ["background", "mask"],
+      "properties": {
+        "background": {
+          "type": "object",
+          "required": ["enabled", "backend_order"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "backend_order": {"type": "array", "items": {"type": "string", "enum": ["prompt_gradient_ppm", "command"]}},
+            "width": {"type": "integer", "minimum": 16},
+            "height": {"type": "integer", "minimum": 16},
+            "command": {
+              "type": "object",
+              "properties": {"argv": {"type": "array", "items": {"type": "string"}}}
+            }
+          }
+        },
+        "mask": {
+          "type": "object",
+          "required": ["enabled", "backend_order"],
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "backend_order": {"type": "array", "items": {"type": "string", "enum": ["soft_center_mask_pgm", "command", "passthrough"]}},
+            "width": {"type": "integer", "minimum": 16},
+            "height": {"type": "integer", "minimum": 16},
+            "blur_px": {"type": "integer", "minimum": 1},
+            "command": {
+              "type": "object",
+              "properties": {"argv": {"type": "array", "items": {"type": "string"}}}
+            }
+          }
+        }
+      }
+    },
+    "assistant_bridge": {
+      "type": "object",
+      "properties": {
+        "default_alias": {"type": "string"},
+        "overlay_title": {"type": "string"}
+      }
+    }
+  }
+}

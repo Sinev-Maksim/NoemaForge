@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "TeamModelPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "defaults", "teams"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "TeamModelPolicy"},
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "selection": {
+          "type": "object",
+          "properties": {
+            "strategy": {"type": "string"}
+          }
+        }
+      }
+    },
+    "teams": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "enabled": {"type": "boolean"},
+          "selected_team_id": {"type": "string"},
+          "roles": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "llm": {"type": "string"},
+                "embed": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

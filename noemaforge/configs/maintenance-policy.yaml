@@ -1,0 +1,57 @@
+apiVersion: noemaforge.maintenance/v1
+kind: MaintenancePolicy
+
+# If there is *no active work* and *no pending wakes* for this long,
+# the idle-cycle is allowed to run.
+idle_trigger_sec: 300
+
+# SR/SSR are deterministic and scan recent SEL events.
+sr:
+  max_events_scan: 600
+  # SR produces roadmap artifacts; export a few focused views.
+  export_roles: ["", "surgeon", "scary", "sr", "ssr", "solution_architect"]
+  export_limit: 100
+
+ssr:
+  enabled: true
+  max_events_scan: 600
+
+# Daily SLA: tasks with must_run=true and deadline_local must start no later than
+# deadline - (mean + sigma). For early life (no history), we use fallbacks.
+daily_sla:
+  timezone: Europe/Lisbon
+  fallback_mean_sec: 1800
+  fallback_sigma_sec: 600
+
+# v0.11.9: daily recurring tasks + daily audits are enqueued into TaskQueue.
+# This keeps them visible/auditable and allows deterministic one-step dispatch.
+daily_queue:
+  enabled: true
+  # If due daily_sla tasks exist, dispatch one step even outside the idle-trigger
+  # maintenance cycle (to keep SLA on-time).
+  dispatch_outside_idle: true
+
+# Resource recovery after SR/SSR.
+recovery:
+  # Remove RoleRunner workdirs older than this.
+  max_work_age_sec: 3600
+  # Remove capability tokens older than this.
+  max_token_age_sec: 86400
+  # Optional: stop any *extra* LLM backends that are running but not enabled
+  # by the current epoch's llm-backends-policy.
+  # (Keeps "main" and any enabled backends.)
+  stop_extra_backends: true
+
+# Domain rotation after idle SR.
+# WORK is mainly handled by teamworker; in idle mode we rotate into
+# SELF_IMPROVE/SECURITY/PLANNED to keep the system improving.
+dispatch:
+  domain_cycle: [WORK, SELF_IMPROVE, SECURITY, PLANNED]
+
+# v0.11.8: once idle_trigger_sec fires, we can stay in an AUTO_CYCLE where each
+# maintenance tick dispatches ONE queued task.
+auto_cycle:
+  enabled: true
+  # Optional: re-run SR/SSR periodically during long unattended runs.
+  # 0 disables cadence (SR/SSR runs only when the idle trigger fires).
+  sr_every_sec: 0

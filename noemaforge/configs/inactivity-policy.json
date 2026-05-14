@@ -1,0 +1,14 @@
+{
+  "apiVersion": "noemaforge.inactivity/v1",
+  "kind": "InactivityPolicy",
+  "version": "0.31.13.alpha",
+  "mode": "manual_only",
+  "next_idle_action": "none",
+  "allowed_modes": [
+    "manual_only",
+    "idle_take_one_task",
+    "idle_take_one_per_category",
+    "idle_continue_previous"
+  ],
+  "safety": "idle actions are plan-only unless Admin approves"
+}

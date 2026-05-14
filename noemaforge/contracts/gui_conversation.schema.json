@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NoemaForge GUI Conversation",
+  "type": "object",
+  "required": [
+    "conversation_id",
+    "messages"
+  ],
+  "properties": {
+    "conversation_id": {
+      "type": "string"
+    },
+    "messages": {
+      "type": "array"
+    },
+    "pending_intent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

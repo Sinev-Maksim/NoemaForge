@@ -1,0 +1,27 @@
+version: 0.9.9
+date: 2026-02-28
+title: WebGateway (strict intake) + BundlePolicy (pre-start bundles)
+
+highlights:
+  - WebGateway direction (strict moderation): quarantine-first URL fetch skeleton (disabled by default) with SEL audit.
+  - BundlePolicy contract: pre-start bundle preparation with pinned locks (manifest_sha256 + artifact_sha256).
+  - ToolVault helper CLI: hash/import/list for offline artifact staging.
+  - Hardening: tar extraction path traversal guard for ToolVault plugin bundles.
+
+changes:
+  contracts:
+    - new bundle-policy.yaml contract (+ schema + epoch manifest hashes).
+    - new web-gateway-policy.yaml contract (+ schema + epoch manifest hashes).
+    - prestart change request schema extended: bundle locks may be structured objects; bundle/webgw policy patch support.
+  prestart:
+    - epoch manifest now pins bundle/webgw policy hashes.
+    - apply-epoch now prepares requested bundles pre-start (and records inventory) before epoch switch.
+  tool_system:
+    - tool-registry adds webgw.fetch (disabled) with handler=web_gateway.
+    - toolproxy adds handler dispatch for web_gateway (quarantine-first).
+  security:
+    - bundle + webgw actions emit SEL events for auditability.
+
+docs:
+  - docs/BUNDLES.md
+  - docs/WEB_GATEWAY.md

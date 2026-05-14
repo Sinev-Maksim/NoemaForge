@@ -1,0 +1,31 @@
+apiVersion: noemaforge.llmbackends/v1
+kind: LLMBackendsPolicy
+version: 0.29.06
+
+# Contract Epoch: which llama-server backend instance should be active.
+#
+# NoemaForge currently runs in single-active-model mode:
+#   runtime_desired_count: 1
+#
+# Inventory, ModelStore and role shortlists may contain many models, but the
+# runtime manager must keep at most runtime_desired_count noemaforge-llama@*.service
+# instances active at once.  This prevents accidental RAM/VRAM storms when a
+# large ModelStore is present.
+#
+# TODO(parallel-model-runtime): support runtime_desired_count > 1 only after an
+# explicit scheduler/resource guard is implemented.  Do not infer parallelism
+# from safe_count, ModelStore directory count, or role top-k candidate lists.
+
+defaults:
+  min_enabled: 1
+  enforce_main_present: true
+  preferred_backend_id: main
+  runtime_desired_count: 1
+  max_enabled: 1
+
+backends:
+  - id: main
+    enabled: true
+    model_id: main
+    mode: cpu
+    notes: "baseline safe single active backend"

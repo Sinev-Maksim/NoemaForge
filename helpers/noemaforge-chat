@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# === NoemaForge File Header ===
+# File: helpers/noemaforge-chat
+# Zone: release/package
+# Version: 0.31.13.alpha
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+import argparse,json,os,socket,sys
+sock=os.environ.get('NOEMAFORGE_GATEWAY_SOCKET','/run/noemaforge/llm/gateway.sock')
+ap=argparse.ArgumentParser(); ap.add_argument('--once',nargs='*'); ap.add_argument('--system',default='You are NoemaForge local assistant. Be concise.'); ap.add_argument('prompt',nargs='*'); ns=ap.parse_args()
+prompt=' '.join(ns.once or ns.prompt).strip() or sys.stdin.read().strip()
+payload={'model':'main','messages':[{'role':'system','content':ns.system},{'role':'user','content':prompt}],'max_tokens':512,'temperature':0.2}; body=json.dumps(payload,ensure_ascii=False).encode(); req=b'POST /v1/chat/completions HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: '+str(len(body)).encode()+b'\r\n\r\n'+body
+s=socket.socket(socket.AF_UNIX); s.settimeout(120); s.connect(sock); s.sendall(req); out=b''
+while True:
+    try: c=s.recv(65536)
+    except socket.timeout: break
+    if not c: break
+    out+=c
+body=out.split(b'\r\n\r\n',1)[-1]
+print(json.loads(body.decode()).get('choices',[{}])[0].get('message',{}).get('content','').strip())

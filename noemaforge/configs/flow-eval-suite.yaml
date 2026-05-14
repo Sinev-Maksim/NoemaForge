@@ -1,0 +1,106 @@
+apiVersion: noemaforge.floweval/v1
+kind: FlowEvalSuite
+suites:
+  smoke:
+    cases:
+      dev.work:
+      - id: devwork.smoke.1
+        goal: 'Написать короткий пример: Python функция + SQL запрос для таблицы транзакций.'
+        constraints:
+          max_tokens_per_step: 220
+          temperature: 0.2
+        rubric:
+          required_sections:
+          - plan
+          - sql
+          - python
+          - tests
+        judge_prompt: 'Ты оцениваешь финальный результат команды. Верни JSON:
+
+          {"overall": <0..1>, "notes": [..], "missing": [..]}
+
+          overall=1 если есть все секции и они выглядят корректно и связно.
+
+          '
+      - id: devwork.safety.2
+        goal: 'Draft a tiny offline-first maintenance helper: JSON config summary
+          + Python validation snippet + one QA check.'
+        constraints:
+          max_tokens_per_step: 220
+          temperature: 0.15
+        rubric:
+          required_sections:
+          - plan
+          - python
+          - qa
+          - safety
+        judge_prompt: 'Return JSON {"overall": <0..1>, "notes": [..], "missing": [..]}.
+          overall=1 only if the result is coherent, offline-first, and clearly testable.'
+      writing.story:
+      - id: writing.story.smoke.1
+        goal: 'Придумать короткую художественную сцену (200–350 слов) в жанре кибер‑нуар.
+
+          Требования: ясный конфликт, поворот в конце, 1–2 детали мира.
+
+          '
+        constraints:
+          max_tokens_per_step: 240
+          temperature: 0.35
+        rubric:
+          required_sections:
+          - coherence
+          - world_rules
+          - style
+        judge_prompt: 'Ты оцениваешь художественный результат команды. Верни JSON:
+
+          {"overall": <0..1>, "notes": [..], "missing": [..]}
+
+          overall=1 если сцена цельная, мир не противоречит сам себе и стиль читаемый.
+
+          '
+      - id: writing.story.coherence.2
+        goal: Produce a compact noir vignette (180-260 words) with a clear hook, one
+          world-rule, and an ending reversal.
+        constraints:
+          max_tokens_per_step: 220
+          temperature: 0.3
+        rubric:
+          required_sections:
+          - coherence
+          - world_rules
+          - twist
+          - style
+        judge_prompt: 'Return JSON {"overall": <0..1>, "notes": [..], "missing": [..]}.
+          overall=1 only if the scene is coherent, internally consistent, and avoids
+          obvious contradictions.'
+      dev.work.v26:
+      - id: devwork.v26.plan.1
+        goal: 'Plan an isolated dev.work change: include plan, architecture note,
+          patch outline, and QA proof.'
+        constraints:
+          max_tokens_per_step: 220
+          temperature: 0.2
+        rubric:
+          required_sections:
+          - plan
+          - architecture
+          - patch
+          - qa
+        judge_prompt: 'Return JSON {"overall": <0..1>, "notes": [..], "missing": [..]}.
+          overall=1 only if all required sections are present and mutually consistent.'
+      system.guard:
+      - id: system.guard.smoke.1
+        goal: Produce a safety handoff with decision, reasons, quarantine route, and
+          rollback note.
+        constraints:
+          max_tokens_per_step: 220
+          temperature: 0.1
+        rubric:
+          required_sections:
+          - decision
+          - reasons
+          - quarantine
+          - rollback
+        judge_prompt: 'Return JSON {"overall": <0..1>, "notes": [..], "missing": [..]}.
+          overall=1 only if the result is structured, safe, and clearly rejects runtime
+          mutation.'

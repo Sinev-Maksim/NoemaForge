@@ -1,0 +1,41 @@
+apiVersion: noemaforge.manifest/v1
+kind: FunctionalBranchManifest
+branch_id: model.selection
+title: Model selection and scorecards
+purpose: Select the best available model per role using reproducible scorecards instead
+  of ad hoc intuition.
+why_it_exists: Role quality differs by task type; NoemaForge needs measured staffing,
+  not one-size-fits-all selection.
+source_of_truth:
+- src/model_scorecards.py
+- src/model_installer_plan.py
+- configs/model-eval-suite.yaml
+- configs/role-eval-datasets.yaml
+raw_inputs:
+- model registry
+- role eval cases
+- gateway-backed responses
+compiled_artifacts:
+- scorecards
+- picked model lists
+- prestart patches
+workflows:
+  ingest:
+  - merge eval datasets
+  - run scorecards per role/model
+  query:
+  - rank candidates per role
+  - show picked models
+  lint:
+  - check dataset coverage depth
+  - flag shallow role coverage
+boundaries:
+- Scorecards are measurements, not epoch changes.
+- Selection must stay offline-first and reproducible.
+success_signals:
+- every operational role has non-trivial eval coverage
+- firstboot can choose more than minimally acceptable models
+owner_roles:
+- surgeon
+- ssr
+- evaluation_engineer

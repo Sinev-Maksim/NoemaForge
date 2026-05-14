@@ -1,0 +1,53 @@
+apiVersion: noemaforge.embeddings/v1
+kind: EmbeddingsPolicy
+
+# Embedding generation policy.
+#
+# v0.17.0: offline-first default uses deterministic hashing embeddings.
+# Later epochs may add LLM/SLM providers (llama.cpp embedding endpoint, etc.)
+# and selectively upgrade only certain layers.
+
+enabled: true
+
+providers:
+  hashing_v1:
+    kind: hashing
+    model_id: hash384-v1
+    dims: 384
+
+chunking:
+  kg_passage_v1:
+    kind: paragraph_chunk
+    max_chars: 1200
+  kg_claim_v1:
+    kind: whole_text
+    max_chars: 800
+  kg_concept_v1:
+    kind: whole_text
+    max_chars: 400
+
+layers:
+  kg_passages:
+    vstore_layer: kg_passages
+    provider: hashing_v1
+    chunking_version: kg_passage_v1
+    source_kind: passage
+    item_kind: kg.passage
+
+  kg_claims:
+    vstore_layer: kg_claims
+    provider: hashing_v1
+    chunking_version: kg_claim_v1
+    source_kind: claim
+    item_kind: kg.claim
+
+  kg_concepts:
+    vstore_layer: kg_concepts
+    provider: hashing_v1
+    chunking_version: kg_concept_v1
+    source_kind: concept
+    item_kind: kg.concept
+
+notes:
+  - "Hash embeddings capture topical similarity only. Contradictions remain close." 
+  - "Versioning is: (provider.model_id + chunking_version). Index growth is append-only." 

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FlowCatalog",
+  "type": "object",
+  "required": ["apiVersion", "kind", "flows"],
+  "properties": {
+    "apiVersion": {"type": "string"},
+    "kind": {"const": "FlowCatalog"},
+    "flows": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["nodes"],
+        "properties": {
+          "description": {"type": "string"},
+          "nodes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "role"],
+              "properties": {
+                "id": {"type": "string"},
+                "role": {"type": "string"},
+                "expandable": {"type": "boolean"}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

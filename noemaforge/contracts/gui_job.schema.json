@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "NoemaForge GUI Job",
+  "type": "object",
+  "required": [
+    "job_id",
+    "kind",
+    "status"
+  ],
+  "properties": {
+    "job_id": {
+      "type": "string"
+    },
+    "kind": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "queued",
+        "running",
+        "needs_privilege",
+        "paused",
+        "completed",
+        "failed",
+        "cancelled",
+        "stale"
+      ]
+    },
+    "progress": {
+      "type": "object"
+    }
+  }
+}

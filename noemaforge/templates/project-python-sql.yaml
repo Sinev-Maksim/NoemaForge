@@ -1,0 +1,10 @@
+apiVersion: noemaforge.projecttemplate/v1
+kind: ProjectTemplate
+id: python_sql_project
+title: Python+SQL Project
+defaults:
+  priority: 100
+  team_template: python-sql-serial
+  artifact_repo: git
+  execution_mode: serial
+  default_stream: dev.work

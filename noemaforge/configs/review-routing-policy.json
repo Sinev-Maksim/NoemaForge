@@ -1,0 +1,15 @@
+{
+  "apiVersion": "noemaforge.review/v1",
+  "kind": "ReviewRoutingPolicy",
+  "version": "0.31.13.alpha",
+  "message_review": {
+    "conversation_messages": "SR",
+    "system_mutations": "SSR",
+    "epoch_apply": "SSR",
+    "task_priority_changes": "SR"
+  },
+  "stores": {
+    "sr": "/var/lib/noemaforge/review/sr/inbox",
+    "ssr": "/var/lib/noemaforge/review/ssr/inbox"
+  }
+}

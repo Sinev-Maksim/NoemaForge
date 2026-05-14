@@ -1,0 +1,59 @@
+apiVersion: noemaforge.observability/v1
+kind: ObservabilityPolicy
+
+# Immutable contract epoch file.
+#
+# Purpose
+# -------
+# Provide an offline-first, low-dependency observability layer for NoemaForge.
+#
+# - Stores ONLY metadata by default (no raw prompts / no raw secrets).
+# - Enables SR/SSR/Security to reason about performance, reliability and drift.
+# - Designed for running on a single machine (no network required).
+
+enabled: true
+
+storage:
+  base_dir: /var/lib/noemaforge/telemetry
+  files:
+    llm_calls: llm_calls.jsonl
+    tool_calls: tool_calls.jsonl
+    snapshots: snapshots
+    exports: exports
+  rotation:
+    # Hard caps to keep logs from growing forever.
+    max_file_mb: 256
+    retention_days: 30
+
+collection:
+  llm_calls:
+    enabled: true
+    sample_rate: 1.0
+    redact:
+      # Store hashes/lengths instead of raw texts by default.
+      store_prompt_text: false
+      store_prompt_hash: true
+      store_prompt_len: true
+      store_messages_shape: true
+      store_response_text: false
+      store_response_len: true
+  tool_calls:
+    enabled: true
+    sample_rate: 0.25
+    redact:
+      store_args: false
+      store_args_hash: true
+
+metrics:
+  snapshots:
+    enabled: true
+    cadence:
+      # How far back to compute rolling stats when snapshotting.
+      window_hours: 24
+    percentiles: [50, 95]
+  alerts:
+    # SR/SSR can interpret these thresholds as "signals".
+    llm_error_rate_warn: 0.02
+    llm_error_rate_crit: 0.05
+    llm_p95_latency_ms_warn: 8000
+    llm_p95_latency_ms_crit: 20000

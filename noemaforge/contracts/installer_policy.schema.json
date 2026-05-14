@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/installer_policy.schema.json",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.installer/v1"},
+    "kind": {"type": "string", "const": "InstallerPolicy"},
+    "version": {"type": "integer"},
+
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "bundles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": {"type": "string"},
+              "confidence": {"type": "string"},
+              "reason": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        },
+        "apt_baseline": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "bundle_catalog": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {"type": "string"},
+          "packages": {"type": "array", "items": {"type": "string"}},
+          "notes": {"type": "array", "items": {"type": "string"}}
+        },
+        "additionalProperties": true
+      }
+    },
+
+    "hardware_rules": {
+      "type": "object",
+      "properties": {
+        "pci": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["match"],
+            "properties": {
+              "match": {
+                "type": "object",
+                "properties": {
+                  "vendor": {"type": "string"},
+                  "class_prefix": {"type": "string"}
+                },
+                "additionalProperties": true
+              },
+              "recommend_bundles": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["id"],
+                  "properties": {
+                    "id": {"type": "string"},
+                    "confidence": {"type": "string"},
+                    "reason": {"type": "string"}
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "notes": {"type": "array", "items": {"type": "string"}}
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+
+    "output": {
+      "type": "object",
+      "properties": {
+        "plans_dir": {"type": "string"},
+        "outbox_dir": {"type": "string"},
+        "keep_plans": {"type": "integer"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

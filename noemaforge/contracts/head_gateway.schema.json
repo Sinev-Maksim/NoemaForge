@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://schemas/head_gateway.schema.json",
+  "title": "HeadGatewayRegistry",
+  "type": "object",
+  "required": ["apiVersion", "kind", "intents", "screens", "actions"],
+  "properties": {
+    "apiVersion": {"type": "string", "const": "noemaforge.headgw/v1"},
+    "kind": {"type": "string", "const": "HeadGatewayRegistry"},
+    "intents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "description": {"type": "string"},
+          "input_schema": {"type": "object", "additionalProperties": true},
+          "route_hint": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "screens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "widgets": {"type": "array", "items": {"type": "object", "additionalProperties": true}, "default": []}
+        },
+        "additionalProperties": true
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "requires_invite": {"type": "string"},
+          "payload_schema": {"type": "object", "additionalProperties": true}
+        },
+        "additionalProperties": true
+      }
+    },
+    "ui": {"type": "object", "additionalProperties": true},
+    "meta": {"type": "object", "additionalProperties": true}
+  },
+  "additionalProperties": false
+}

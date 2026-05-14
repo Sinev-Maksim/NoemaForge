@@ -1,0 +1,32 @@
+version: 0.11.7
+codename: "System TaskQueue + Signal→Task Routing"
+date_utc: "2026-03-02"
+
+summary:
+  - "Add a spine-level TaskQueue (sqlite) so SR/SSR can produce actionable queued work, not just reports."
+  - "Idle-cycle now claims and executes ONE queued task (tie-break by domain cycle when priorities match)."
+  - "SR/SSR signal keys can be mapped to executable tasks via taskqueue-policy.yaml (epoch-scoped)."
+
+changes:
+  added:
+    - seed/noemaforge/src/taskqueue.py
+    - seed/noemaforge/src/task_runner.py
+    - seed/noemaforge/configs/taskqueue-policy.yaml
+  modified:
+    - seed/noemaforge/src/prestart.py
+    - seed/noemaforge/contracts/prestart_change_request.schema.json
+    - seed/noemaforge/src/maintenance.py
+    - seed/noemaforge/src/noemaforge_core.py
+    - seed/noemaforge/bootstrap/noemaforge-bootstrap.sh
+    - seed/noemaforge/manifest.yaml
+
+contracts:
+  runtime_immutable:
+    - "taskqueue-policy.yaml is epoch-scoped; runtime must not mutate it."
+  behavior:
+    - "maintenance idle-cycle: SR -> SSR -> recovery -> enqueue signal-tasks -> claim+run one TaskQueue task."
+    - "signals are de-duped by group_key; repeats boost priority based on policy thresholds."
+
+notes:
+  - "This is still a deterministic MVP: tasks are modules already present in /opt/noemaforge/src."
+  - "WORK domain remains primarily driven by teamworker; TaskQueue focuses on SELF_IMPROVE/SECURITY/PLANNED."

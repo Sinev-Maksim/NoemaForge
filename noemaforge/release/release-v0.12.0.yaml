@@ -1,0 +1,28 @@
+version: 0.12.0
+codename: TaskQueue Maintenance + Daily SLA Remediation (Full Seed)
+date: 2026-03-02
+highlights:
+  - "Maintenance loop: SR → SSR → recovery → TaskQueue dispatch (1 step per tick) with AUTO_CYCLE."
+  - "Daily tasks: SLA scheduling (mean+1σ) as explicit TaskQueue items; auditor remediation now enqueues catch-up tasks and creates handoff packets."
+  - "Model subsystem: auto-updating model_registry.json + role→model policy + scorecards; firstboot eval exception produces draft pre-start changes without mutating current epoch."
+  - "Gateways: WebGW/LocalGW airlocks with quarantine→glove→approve→promote; policy patchers (draft/lint/diff) for both gateways + connectors."
+  - "Team optimization scaffolding: team scorecards + team model policy drafts; role hierarchy supports future specialization via dotted role ids."
+components:
+  contracts_added:
+    - role-model-policy.yaml
+    - model-eval-suite.yaml
+    - llm-backends-policy.yaml
+    - maintenance-policy.yaml
+    - taskqueue-policy.yaml
+    - flow-catalog.yaml
+    - flow-eval-suite.yaml
+    - team-eval-policy.yaml
+    - team-model-policy.yaml
+  services_added:
+    - noemaforge-modelscan.timer
+    - noemaforge-maintenance.timer
+    - noemaforge-llm-backends-manager.timer
+    - noemaforge-firstboot-eval.service
+  notes:
+    - "This is a full seed build (not a patch). Apply on top of a clean workspace or new disk installation." 
+    - "Runtime remains immutable: contracts/policies change only via pre-start epoch switching; runtime may generate draft pre-start requests." 

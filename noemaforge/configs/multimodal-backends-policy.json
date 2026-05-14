@@ -1,0 +1,260 @@
+{
+  "apiVersion": "noemaforge/v1",
+  "kind": "MultimodalBackendsPolicy",
+  "version": "0.31.13.alpha",
+  "principles": {
+    "no_implicit_heavy_model_autostart": true,
+    "all_non_text_models_are_manual_or_pipeline_explicit": true,
+    "vault_models_are_discovered_not_assumed": true,
+    "single_active_llm_invariant": "text LLM invariant remains max_active_llms=1; non-LLM media workers require explicit lease/profile"
+  },
+  "vault_roots": [
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault",
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault/models-gguf",
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault/models-media",
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault/models-vision",
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault/models-audio",
+    "/mnt/noemaforge-share/noemaforge-lab/data/Vault/models-video"
+  ],
+  "model_families": {
+    "text_llm_gguf": {
+      "extensions": [
+        ".gguf"
+      ],
+      "backend": "llama.cpp/llama-server",
+      "default_autostart": "manual_or_profile"
+    },
+    "vision_understanding": {
+      "extensions": [
+        ".gguf",
+        ".safetensors",
+        ".onnx",
+        ".pt",
+        ".pth",
+        ".bin"
+      ],
+      "keywords": [
+        "llava",
+        "bakllava",
+        "moondream",
+        "qwen-vl",
+        "qwen2-vl",
+        "clip",
+        "siglip",
+        "vit",
+        "vision",
+        "vlm",
+        "mmproj"
+      ],
+      "backend": "VLM/CLIP adapter",
+      "default_autostart": "manual"
+    },
+    "image_metadata": {
+      "extensions": [
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
+        ".heic",
+        ".tif",
+        ".tiff",
+        ".gif"
+      ],
+      "backend": "ffprobe/exiftool/identify/Pillow fallback",
+      "default_autostart": "not_applicable"
+    },
+    "image_generation": {
+      "extensions": [
+        ".safetensors",
+        ".ckpt",
+        ".pt",
+        ".pth",
+        ".bin",
+        ".onnx"
+      ],
+      "keywords": [
+        "stable-diffusion",
+        "sdxl",
+        "sd15",
+        "flux",
+        "juggernaut",
+        "controlnet",
+        "lora",
+        "vae",
+        "diffusion"
+      ],
+      "backend": "ComfyUI/A1111/diffusers adapter",
+      "default_autostart": "manual"
+    },
+    "stt": {
+      "extensions": [
+        ".gguf",
+        ".bin",
+        ".onnx",
+        ".pt",
+        ".safetensors"
+      ],
+      "keywords": [
+        "whisper",
+        "faster-whisper",
+        "stt",
+        "speech-to-text"
+      ],
+      "backend": "Whisper-class adapter",
+      "default_autostart": "manual"
+    },
+    "tts_voice": {
+      "extensions": [
+        ".onnx",
+        ".pt",
+        ".pth",
+        ".safetensors",
+        ".bin"
+      ],
+      "keywords": [
+        "piper",
+        "tts",
+        "xtts",
+        "bark",
+        "vits",
+        "voice",
+        "speaker"
+      ],
+      "backend": "Piper/Coqui/Bark-class adapter",
+      "default_autostart": "manual"
+    },
+    "music_generation": {
+      "extensions": [
+        ".safetensors",
+        ".bin",
+        ".pt",
+        ".pth",
+        ".ckpt"
+      ],
+      "keywords": [
+        "musicgen",
+        "audiocraft",
+        "riffusion",
+        "stable-audio",
+        "music",
+        "audio-gen"
+      ],
+      "backend": "MusicGen/Stable-Audio-class adapter",
+      "default_autostart": "manual"
+    },
+    "video_generation": {
+      "extensions": [
+        ".safetensors",
+        ".ckpt",
+        ".pt",
+        ".pth",
+        ".bin"
+      ],
+      "keywords": [
+        "svd",
+        "animatediff",
+        "wan",
+        "hunyuanvideo",
+        "video",
+        "motion",
+        "i2v",
+        "t2v"
+      ],
+      "backend": "ComfyUI/video-diffusion adapter",
+      "default_autostart": "manual"
+    },
+    "segmentation_masks": {
+      "extensions": [
+        ".onnx",
+        ".pt",
+        ".pth",
+        ".safetensors",
+        ".bin"
+      ],
+      "keywords": [
+        "sam",
+        "segment-anything",
+        "u2net",
+        "rvm",
+        "modnet",
+        "segmentation",
+        "mask",
+        "matting"
+      ],
+      "backend": "segmentation/matting adapter",
+      "default_autostart": "manual"
+    },
+    "virtual_camera_masks": {
+      "extensions": [],
+      "keywords": [
+        "v4l2loopback",
+        "obs",
+        "pipewire",
+        "virtual-camera"
+      ],
+      "backend": "v4l2loopback/OBS/PipeWire bridge",
+      "default_autostart": "manual"
+    }
+  },
+  "pipelines": {
+    "image_analyze": {
+      "requires": [
+        "image_metadata"
+      ],
+      "optional": [
+        "vision_understanding"
+      ],
+      "outputs": [
+        "metadata.json",
+        "caption.md",
+        "tags.json"
+      ]
+    },
+    "voice_generate": {
+      "requires": [
+        "tts_voice"
+      ],
+      "outputs": [
+        "voice.wav",
+        "metadata.json"
+      ]
+    },
+    "music_generate": {
+      "requires": [
+        "music_generation"
+      ],
+      "outputs": [
+        "music.wav",
+        "metadata.json"
+      ]
+    },
+    "photo_generate": {
+      "requires": [
+        "image_generation"
+      ],
+      "outputs": [
+        "image.png",
+        "prompt.json"
+      ]
+    },
+    "video_generate": {
+      "requires": [
+        "video_generation"
+      ],
+      "outputs": [
+        "video.mp4",
+        "prompt.json"
+      ]
+    },
+    "video_call_masks": {
+      "requires": [
+        "segmentation_masks",
+        "virtual_camera_masks"
+      ],
+      "outputs": [
+        "virtual-camera-device",
+        "mask-session.log"
+      ]
+    }
+  }
+}

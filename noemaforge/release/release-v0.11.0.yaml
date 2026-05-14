@@ -1,0 +1,20 @@
+version: 0.11.0
+codename: Airlocks+PolicyPatchers (WebGW/LocalGW, Offline Prep P1)
+date_utc: '2026-03-01'
+highlights:
+- 'WebGW channels (packages/rss/git/generic): deny-by-default allowlists + quarantine→glove→approve→promote
+  pipeline.'
+- 'Policy patchers for WebGW and LocalGW: draft/lint/diff produce PreStartChangeRequests
+  (no manual YAML edits).'
+- 'LocalGW connectors policy: pre-start gated enable + allow/deny connector names;
+  deny wins; secure default is deny-all when allowlist empty.'
+- 'Offline-first portability helpers: WSL builder scripts for offline APT repo and
+  driver-vault bundles.'
+- LocalGW device ID discipline maintained (UID not SSID) and allowlist enforcement
+  stays pre-start only.
+notes:
+- 'Runtime remains immutable-by-default: contracts/policies change only via pre-start
+  epochs + canaries.'
+- Glove tools persist sanitized artifacts and payload inventories in quarantine incidents;
+  outbox bundles stay clean.
+- 'Windows-friendly workflow: patches overlay cleanly; verify_seed.ps1 validates SHA256SUMS.'

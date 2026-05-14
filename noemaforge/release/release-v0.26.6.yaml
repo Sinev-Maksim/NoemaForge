@@ -1,0 +1,17 @@
+version: 0.26.6
+date: 2026-04-10
+title: "Discord desktop bridge + prompt-driven assets"
+changes:
+  - area: runtime
+    detail: "Added src/discord_bridge.py for ToolProxy-mediated Discord desktop bridge assets, session lifecycle, and local media worker orchestration."
+  - area: contracts
+    detail: "Added configs/discord-bridge-policy.yaml plus contracts/discord_bridge_policy.schema.json and wired the new policy path into ToolProxy config."
+  - area: policy
+    detail: "Registry and tool policy now expose discord.assets.prepare, discord.bridge.start, discord.bridge.status, and discord.bridge.stop as rollout-gated actions."
+  - area: docs
+    detail: "Added docs/DISCORD_BRIDGE.md documenting the desktop-bridge architecture and host prerequisites."
+  - area: tests
+    detail: "Added unit coverage for deterministic asset generation, bridge worker lifecycle, and ToolProxy facade routing."
+notes:
+  - "The shipped bridge targets Discord desktop virtual-device handoff rather than direct Discord API media transport."
+  - "Built-in generators create deterministic backgrounds and masks; host command backends can provide richer generation or segmentation later."
