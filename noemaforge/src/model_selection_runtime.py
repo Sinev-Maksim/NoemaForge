@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_selection_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Create and manage model-selection plans and epoch candidate artifacts.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge model-selection control-plane runtime.
 
-This is a lightweight GUI/CLI bridge for 0.31.13.alpha. It creates an
+This is a lightweight GUI/CLI bridge for 0.31.13.alpha-patched1. It creates an
 operator-reviewable plan for first-start model optimization and, on apply,
 writes an epoch-switch request artifact. Actual heavy selection is performed by
 `sudo noemaforge first-start --<mode>`.
@@ -32,7 +32,9 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-RUNTIME_VERSION = "0.31.13.alpha"
+import production_ai_contracts
+
+RUNTIME_VERSION = "0.32.0.alpha"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
 
@@ -79,11 +81,12 @@ def mode_command(mode: str, composite_top_n: int, *, dry_run: bool = True, show:
     return " ".join([base, *flags])
 
 
-def plan_doc(request: str, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
+def plan_doc(request: str, mode: str, scope: str, composite_top_n: int, apply: bool, trace_id: str) -> Dict[str, Any]:
     return {
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionChatPlan",
         "version": RUNTIME_VERSION,
+        "trace_id": trace_id,
         "created_at": nowz(),
         "request": request,
         "scope": scope or "active runtime",
@@ -108,15 +111,17 @@ def plan_doc(request: str, mode: str, scope: str, composite_top_n: int, apply: b
 def cmd_plan(args: argparse.Namespace) -> int:
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     mode = normalize_mode(args.mode)
+    trace_id = str(args.trace_id or os.environ.get("NOEMAFORGE_TRACE_ID") or production_ai_contracts.new_trace_id("model-selection"))
     run_id = safe_id(args.run_id or f"msel_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{mode}")
     run_dir = state / "runs" / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
     request = args.request or " ".join(args.text or []) or "model optimization"
-    plan = plan_doc(request, mode, args.scope, args.composite_top_n, args.apply)
+    plan = plan_doc(request, mode, args.scope, args.composite_top_n, args.apply, trace_id)
     rollback = {
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ChatEpochRollbackPlan",
         "version": RUNTIME_VERSION,
+        "trace_id": trace_id,
         "created_at": nowz(),
         "run_id": run_id,
         "steps": [
@@ -129,6 +134,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ChatModelSelectionDecision",
         "version": RUNTIME_VERSION,
+        "trace_id": trace_id,
         "created_at": nowz(),
         "run_id": run_id,
         "status": "candidate_selection_requested" if not args.apply else "apply_command_ready",
@@ -147,6 +153,7 @@ def cmd_plan(args: argparse.Namespace) -> int:
     result = {
         "ok": True,
         "version": RUNTIME_VERSION,
+        "trace_id": trace_id,
         "run_id": run_id,
         "run_dir": str(run_dir),
         "mode": mode,
@@ -172,6 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
     plan.add_argument("--composite-top-n", type=int, default=0)
     plan.add_argument("--apply", action="store_true")
     plan.add_argument("--run-id")
+    plan.add_argument("--trace-id", default="")
     plan.add_argument("--json", action="store_true")
     plan.set_defaults(func=cmd_plan)
     apply = sub.add_parser("apply")
@@ -181,6 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
     apply.add_argument("--scope", default="active runtime")
     apply.add_argument("--composite-top-n", type=int, default=0)
     apply.add_argument("--run-id")
+    apply.add_argument("--trace-id", default="")
     apply.add_argument("--json", action="store_true")
     apply.set_defaults(func=lambda args: cmd_plan(argparse.Namespace(**{**vars(args), "apply": True})))
     return parser
@@ -193,3 +202,5 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

@@ -1,0 +1,74 @@
+{
+  "apiVersion": "noemaforge.dev-bounded-loop/v1",
+  "kind": "DevBoundedLoopPolicy",
+  "id": "dev-bounded-loop-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "summary": "Bounded Dev Team improvement loops must be multi-step, checkpointed, stoppable and never auto-applied.",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "bounded_dev_team_loop_checkpoint_stop",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "forbid_auto_apply": true,
+    "require_admin_approval": true,
+    "require_checkpoint_stop_handling": true,
+    "max_steps_bound": 10,
+    "time_budget_minutes_bound": 60,
+    "required_dev_team_tokens": [
+      "build_bounded_dev_loop_plan",
+      "write_bounded_dev_loop_plan",
+      "advance_bounded_dev_loop_checkpoint",
+      "cmd_bounded_loop_plan",
+      "cmd_bounded_loop_checkpoint",
+      "bounded-loop-plan",
+      "bounded-loop-checkpoint",
+      "stop-request.json",
+      "checkpoint-current.json",
+      "plan_and_checkpoint_only_no_auto_apply"
+    ],
+    "required_plan_fields": [
+      "mode",
+      "plan_status",
+      "loop_status",
+      "auto_apply",
+      "applied",
+      "requires_admin_approval",
+      "execution_policy",
+      "improvement_budget",
+      "checkpoint_policy",
+      "steps",
+      "forbidden_actions"
+    ],
+    "required_checkpoint_fields": [
+      "status",
+      "terminal",
+      "checkpoint_index",
+      "current_step",
+      "pending_steps",
+      "completed_step_ids",
+      "stop_requested",
+      "auto_apply",
+      "applied"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/dev-bounded-loop-policy.json",
+    "noemaforge/src/dev_team_runtime.py",
+    "noemaforge/src/dev_bounded_loop_runtime.py",
+    "noemaforge/tests/test_dev_bounded_loop_runtime.py",
+    "noemaforge/tests/test_dev_bounded_loop_qa.py",
+    "noemaforge/tests/test_dev_bounded_loop_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

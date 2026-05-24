@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/first_start_summary.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -22,7 +22,7 @@ import argparse, json, os, sys
 from pathlib import Path
 from typing import Any
 
-RUNTIME_VERSION = "0.31.13.alpha"
+RUNTIME_VERSION = "0.32.0.alpha"
 BOOT = Path(os.environ.get("NOEMAFORGE_BOOTSTRAP", "/var/lib/noemaforge/bootstrap"))
 
 COLORS = {
@@ -155,3 +155,5 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

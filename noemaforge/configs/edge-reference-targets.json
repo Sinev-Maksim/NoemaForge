@@ -1,0 +1,106 @@
+{
+  "apiVersion": "noemaforge.edge-reference-targets/v1",
+  "kind": "EdgeReferenceTargetsPolicy",
+  "id": "edge-reference-targets-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_post_mvp_for_orchestration": true,
+    "require_preferred_local_rule_engine": true,
+    "require_ota_reference_only": true,
+    "forbid_first_start_dependency": true,
+    "forbid_required_runtime_dependency": true,
+    "allowed_categories": [
+      "orchestration",
+      "stream_rule_engine",
+      "ota_reference"
+    ],
+    "allowed_statuses": [
+      "post_mvp",
+      "preferred_future",
+      "reference_only"
+    ],
+    "required_targets": [
+      "kubeedge",
+      "ekuiper",
+      "mender",
+      "rauc"
+    ]
+  },
+  "targets": [
+    {
+      "id": "kubeedge",
+      "category": "orchestration",
+      "status": "post_mvp",
+      "required_for_first_start": false,
+      "required_runtime_dependency": false,
+      "preferred": false,
+      "network_required": true,
+      "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.0",
+      "refs": [
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "id": "ekuiper",
+      "category": "stream_rule_engine",
+      "status": "preferred_future",
+      "required_for_first_start": false,
+      "required_runtime_dependency": false,
+      "preferred": true,
+      "network_required": true,
+      "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.0",
+      "refs": [
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
+        "noemaforge/configs/edge-rules-engine-policy.json"
+      ]
+    },
+    {
+      "id": "mender",
+      "category": "ota_reference",
+      "status": "reference_only",
+      "required_for_first_start": false,
+      "required_runtime_dependency": false,
+      "preferred": false,
+      "network_required": true,
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.0",
+      "refs": [
+        "ota/mender_module_model_update/README.md",
+        "noemaforge/configs/ota-update-layer.json"
+      ]
+    },
+    {
+      "id": "rauc",
+      "category": "ota_reference",
+      "status": "reference_only",
+      "required_for_first_start": false,
+      "required_runtime_dependency": false,
+      "preferred": false,
+      "network_required": true,
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.0",
+      "refs": [
+        "ota/rauc_bundle_notes.md",
+        "noemaforge/configs/ota-update-layer.json"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/edge-reference-targets.json",
+    "noemaforge/contracts/edge_reference_targets.schema.json",
+    "noemaforge/src/edge_reference_targets_runtime.py",
+    "noemaforge/tests/test_edge_reference_targets_runtime.py",
+    "noemaforge/tests/test_edge_reference_targets_qa.py",
+    "noemaforge/tests/test_edge_reference_targets_performance.py",
+    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
+    "noemaforge/configs/edge-rules-engine-policy.json",
+    "noemaforge/configs/gateway-inference-service.json",
+    "noemaforge/configs/ota-update-layer.json",
+    "ota/mender_module_model_update/README.md",
+    "ota/rauc_bundle_notes.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+
+

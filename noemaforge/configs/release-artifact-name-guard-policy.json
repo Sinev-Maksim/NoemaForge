@@ -1,0 +1,77 @@
+{
+  "apiVersion": "noemaforge.release-artifact-name-guard/v1",
+  "kind": "ReleaseArtifactNameGuardPolicy",
+  "id": "release-artifact-name-guard-core",
+  "version": "0.32.0.alpha",
+  "status": "stable",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "canonical_release_history_only",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "canonical_changelog_ref": "noemaforge/docs/history/CHANGELOG.md",
+    "allowed_exact_refs": [
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "forbidden_filename_patterns": [
+      "CHANGELOG_*",
+      "RELEASE_NOTES_*",
+      "VERIFICATION_REPORT_*",
+      "deep-research-report*",
+      "deep research report*",
+      "source-report*"
+    ],
+    "excluded_dir_names": [
+      ".git",
+      ".hg",
+      ".mypy_cache",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".tox",
+      ".venv",
+      "__pycache__",
+      "build",
+      "dist",
+      "node_modules",
+      "trash"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/release_artifact_name_guard_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "canonical_release_history_only",
+      "forbidden_filename_patterns",
+      "_scan_forbidden_file_names"
+    ],
+    "required_docs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/wiki/prelaunch/prelaunch-tooling.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "required_doc_tokens": [
+      "release-artifact-name-guard-core",
+      "history/CHANGELOG.md",
+      "parallel release-note"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/release-artifact-name-guard-policy.json",
+    "noemaforge/contracts/release_artifact_name_guard.schema.json",
+    "noemaforge/src/release_artifact_name_guard_runtime.py",
+    "noemaforge/tests/test_release_artifact_name_guard_runtime.py",
+    "noemaforge/tests/test_release_artifact_name_guard_qa.py",
+    "noemaforge/tests/test_release_artifact_name_guard_performance.py",
+    "prelaunch/governance/release_artifact_name_guard.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/wiki/prelaunch/prelaunch-tooling.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

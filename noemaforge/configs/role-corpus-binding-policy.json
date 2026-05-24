@@ -1,0 +1,82 @@
+{
+  "apiVersion": "noemaforge.role-corpus-binding/v1",
+  "kind": "RoleCorpusBindingPolicy",
+  "id": "role-corpus-binding-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "role_eval_requires_corpus_binding",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "role_eval_catalog_ref": "configs/role-eval-datasets.yaml",
+    "role_eval_schema_ref": "contracts/role_eval_datasets.schema.json",
+    "seed_dataset_root_ref": "datasets/role_eval_cases",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Role corpus binding boundary: Role evaluation keeps role-scoped JSONL suites, binds roles to real seed/external corpora when available, and marks missing required corpora as N/A instead of silently faking coverage.",
+    "required_role_fields": ["suite", "dataset_profile"],
+    "required_profile_fields": ["type", "available_when"],
+    "required_binding_statuses": ["available", "N/A"],
+    "required_na_reason": "dataset_missing",
+    "required_corpus_types": ["seed_jsonl", "external_library", "state_kg"],
+    "controls": {
+      "role_scoped_catalog_required": true,
+      "jsonl_suite_required_for_seed_profiles": true,
+      "real_corpus_binding_required": true,
+      "missing_corpus_marks_na": true,
+      "no_synthetic_coverage_for_missing_corpus": true,
+      "firstboot_surface_uses_catalog": true,
+      "no_live_host_required": true
+    },
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_runtime_refs": [
+      "src/firstboot_eval.py",
+      "src/dataset_inventory.py",
+      "src/model_scorecards.py"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/role_corpus_binding.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/role-corpus-binding-policy.json",
+    "noemaforge/contracts/role_corpus_binding.schema.json",
+    "noemaforge/configs/role-eval-datasets.yaml",
+    "noemaforge/contracts/role_eval_datasets.schema.json",
+    "noemaforge/datasets/role_eval_cases/administrator_smoke.jsonl",
+    "noemaforge/datasets/role_eval_cases/dev_work_smoke.jsonl",
+    "noemaforge/datasets/role_eval_cases/writing_story_smoke.jsonl",
+    "noemaforge/src/role_corpus_binding_runtime.py",
+    "noemaforge/src/firstboot_eval.py",
+    "noemaforge/src/dataset_inventory.py",
+    "noemaforge/src/model_scorecards.py",
+    "noemaforge/tests/test_role_corpus_binding_runtime.py",
+    "noemaforge/tests/test_role_corpus_binding_qa.py",
+    "noemaforge/tests/test_role_corpus_binding_performance.py",
+    "prelaunch/governance/role_corpus_binding.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

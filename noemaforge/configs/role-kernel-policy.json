@@ -1,0 +1,109 @@
+{
+  "apiVersion": "noemaforge.role-kernel/v1",
+  "kind": "RoleKernelPolicy",
+  "id": "role-kernel-active-nn-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "protected_kernel",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "persona_catalog_ref": "configs/persona-catalog.json",
+    "role_catalog_ref": "configs/role-catalog.yaml",
+    "default_roles": [
+      {
+        "id": "admin",
+        "role_key": "operator.admin/administrator",
+        "display_name": "Admin",
+        "role_class": "lightweight_supervisor",
+        "installed_by_default": true,
+        "always_present": true,
+        "heavy_worker": false
+      },
+      {
+        "id": "surgeon",
+        "role_key": "system.guard/surgeon",
+        "display_name": "Surgeon",
+        "role_class": "repair_worker",
+        "installed_by_default": true,
+        "always_present": false,
+        "heavy_worker": true
+      },
+      {
+        "id": "scary",
+        "role_key": "system.guard/scary",
+        "display_name": "Scary",
+        "role_class": "lightweight_supervisor",
+        "installed_by_default": true,
+        "always_present": true,
+        "heavy_worker": false
+      },
+      {
+        "id": "evolver_darwin",
+        "role_key": "selfdev.learning/coach",
+        "display_name": "Evolver/Darwin",
+        "role_class": "lab_worker",
+        "installed_by_default": true,
+        "always_present": false,
+        "heavy_worker": true
+      }
+    ],
+    "optional_rolepacks": [
+      {"role_key": "system.guard/ssr", "pack_id": "rolepack.system.guard.ssr", "activation": "inactive"},
+      {"role_key": "system.guard/sr", "pack_id": "rolepack.system.guard.sr", "activation": "inactive"},
+      {"role_key": "dev.work/solution_architect", "pack_id": "rolepack.dev.work.solution_architect", "activation": "inactive"},
+      {"role_key": "dev.work/dev", "pack_id": "rolepack.dev.work.dev", "activation": "inactive"},
+      {"role_key": "dev.work/python_dev", "pack_id": "rolepack.dev.work.python_dev", "activation": "inactive"},
+      {"role_key": "dev.work/qa", "pack_id": "rolepack.dev.work.qa", "activation": "inactive"},
+      {"role_key": "writing.story/writer", "pack_id": "rolepack.writing.story.writer", "activation": "inactive"},
+      {"role_key": "writing.story/editor.literary", "pack_id": "rolepack.writing.story.editor_literary", "activation": "inactive"},
+      {"role_key": "writing.story/fact_checker", "pack_id": "rolepack.writing.story.fact_checker", "activation": "inactive"},
+      {"role_key": "writing.story/formatter", "pack_id": "rolepack.writing.story.formatter", "activation": "inactive"},
+      {"role_key": "writing.story/world_keeper", "pack_id": "rolepack.writing.story.world_keeper", "activation": "inactive"},
+      {"role_key": "tg.channel/fact_checker", "pack_id": "rolepack.tg.channel.fact_checker", "activation": "inactive"},
+      {"role_key": "tg.channel/writer", "pack_id": "rolepack.tg.channel.writer", "activation": "inactive"},
+      {"role_key": "browser.readinglist/researcher", "pack_id": "rolepack.browser.readinglist.researcher", "activation": "inactive"},
+      {"role_key": "knowledge.vault/researcher", "pack_id": "rolepack.knowledge.vault.researcher", "activation": "inactive"},
+      {"role_key": "voice.transcriber", "pack_id": "rolepack.voice.transcriber", "activation": "inactive"},
+      {"role_key": "voice.speaker", "pack_id": "rolepack.voice.speaker", "activation": "inactive"},
+      {"role_key": "vision.segmenter", "pack_id": "rolepack.vision.segmenter", "activation": "inactive"},
+      {"role_key": "video.generator", "pack_id": "rolepack.video.generator", "activation": "inactive"}
+    ],
+    "active_nn_manager": {
+      "max_active_heavy_workers": 1,
+      "allow_parallel_heavy_workers": false,
+      "durable_baton_required": true,
+      "sleep_wake_baton_required": true
+    },
+    "evolve_boundary": {
+      "mutation_scope": "lab_only",
+      "production_weight_mutation": false,
+      "promotion_path": [
+        "system.guard/scary",
+        "system.guard/surgeon",
+        "operator.admin/administrator"
+      ]
+    },
+    "required_example_sets": [
+      "prelaunch/governance/role_kernel.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/role-kernel-policy.json",
+    "noemaforge/contracts/role_kernel.schema.json",
+    "noemaforge/src/role_kernel_runtime.py",
+    "noemaforge/tests/test_role_kernel_runtime.py",
+    "noemaforge/tests/test_role_kernel_qa.py",
+    "noemaforge/tests/test_role_kernel_performance.py",
+    "prelaunch/governance/role_kernel.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

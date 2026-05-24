@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.post-reboot-service-health-readiness/v1",
+  "kind": "PostRebootServiceHealthReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-post-reboot-service-health-evidence-readiness",
+      "trace_id": "trace:patched10:post-reboot-service-health",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "post-reboot-baseline",
+        "gateway-service-health",
+        "main-backend-service-health",
+        "toolproxy-service-health",
+        "socket-api-smoke",
+        "service-health-archive"
+      ],
+      "expected_outputs": [
+        "post_reboot_service_health_summary",
+        "blocked_completion_notice",
+        "target_health_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

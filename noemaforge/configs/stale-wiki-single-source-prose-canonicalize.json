@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.docs/v1",
+  "kind": "StaleWikiSingleSourceProseCanonicalize",
+  "id": "stale-wiki-single-source-prose-canonicalize-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "principle": "Single-source versioned wiki prose may be promoted to its canonical topic only when the canonical page is absent, content is copied byte-for-byte, and the source is quarantined in project trash.",
+  "policy": {
+    "mode": "offline_docs_single_source_prose_canonicalize_contract",
+    "source_prose_merge_plan": "stale-wiki-prose-merge-plan-core",
+    "batch_limit": 3,
+    "trash_subdir_prefix": "stale-wiki-single-source-prose",
+    "canonicalize_report": "noemaforge/docs/quality/STALE_WIKI_SINGLE_SOURCE_PROSE_CANONICALIZE_0.32.1.md",
+    "require_canonical_missing": true,
+    "require_single_source_group": true,
+    "copy_must_match_source_hash": true,
+    "move_source_to_project_trash": true,
+    "active_todo_must_remain_open": true
+  },
+  "refs": [
+    "noemaforge/configs/stale-wiki-single-source-prose-canonicalize.json",
+    "helpers/stale_wiki_single_source_prose_canonicalize.mjs",
+    "helpers/stale_wiki_single_source_prose_canonicalize.qa.test.mjs",
+    "helpers/stale_wiki_single_source_prose_canonicalize.performance.test.mjs",
+    "noemaforge/docs/quality/STALE_WIKI_SINGLE_SOURCE_PROSE_CANONICALIZE_0.32.1.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/CURRENT_0.32.1_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "apiVersion": "noemaforge.clean-distribution/v1",
+  "kind": "CleanDistributionPlanSet",
+  "id": "clean-distribution-allowlist-examples",
+  "version": "0.31.21.alpha",
+  "plans": [
+    {
+      "apiVersion": "noemaforge.clean-distribution/v1",
+      "kind": "CleanDistributionPlan",
+      "id": "public-core-seed-dry-run",
+      "trace_id": "trace:distribution:public-core-seed",
+      "build_type": "public_distribution",
+      "target_lane": "core_seed",
+      "allowlist_only": true,
+      "deny_by_default": true,
+      "dry_run": true,
+      "deletes_files": false,
+      "included_refs": [
+        "VERSION",
+        "README.md",
+        "TODO.md",
+        "noemaforge/configs/unified-registry.json",
+        "noemaforge/configs/clean-distribution-allowlist.json",
+        "noemaforge/contracts/clean_distribution_allowlist.schema.json",
+        "noemaforge/src/clean_distribution_allowlist_runtime.py",
+        "noemaforge/src/firstboot_eval.py",
+        "noemaforge/src/model_selection_runtime.py"
+      ],
+      "excluded_material": [
+        {
+          "category": "hf",
+          "destination_lane": "optional_hf",
+          "included_in_core": false,
+          "refs": [
+            "noemaforge/configs/hfbridge-metadata-policy.json",
+            "noemaforge/src/hfbridge_metadata_runtime.py"
+          ],
+          "reason": "HFBridge remains metadata-first and optional outside the minimal public core seed."
+        },
+        {
+          "category": "community",
+          "destination_lane": "optional_community",
+          "included_in_core": false,
+          "refs": [
+            "noemaforge/configs/git-exchange-quarantine-policy.json",
+            "noemaforge/src/git_exchange_quarantine_runtime.py"
+          ],
+          "reason": "Community exchange material remains quarantine-first and reviewed outside core."
+        },
+        {
+          "category": "history",
+          "destination_lane": "history_archive",
+          "included_in_core": false,
+          "refs": [
+            "docs/history/CHANGELOG.md",
+            "noemaforge/docs/history/CHANGELOG.md"
+          ],
+          "reason": "History and release-note archives are split from core seed payloads."
+        },
+        {
+          "category": "quarantine",
+          "destination_lane": "quarantine_archive",
+          "included_in_core": false,
+          "refs": [
+            "trash"
+          ],
+          "reason": "Trash and quarantine material never ship in public core seed payloads."
+        }
+      ],
+      "audit": {
+        "manifest_required": true,
+        "release_evidence_required": true,
+        "summary_required": true,
+        "operator_review_required": true
+      },
+      "refs": [
+        "noemaforge/configs/clean-distribution-allowlist.json",
+        "noemaforge/contracts/clean_distribution_allowlist.schema.json",
+        "docs/backlog/ROADMAP_AND_TODO.md"
+      ]
+    }
+  ]
+}

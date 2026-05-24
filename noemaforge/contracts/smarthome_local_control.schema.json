@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/smarthome_local_control.schema.json",
+  "title": "NoemaForge SmartHome Local Control Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "principle", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.smarthome/v1"},
+    "kind": {"const": "SmartHomeLocalControlPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "principle": {"type": "string", "minLength": 1},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "supported_devices",
+        "adapter_surfaces",
+        "privacy_controls",
+        "governance_controls",
+        "source_labels",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "local_first_control_pack"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "supported_devices": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "adapter_surfaces": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "privacy_controls": {
+          "type": "object",
+          "required": [
+            "telemetry_local_only",
+            "cloud_upload_default",
+            "hidden_camera_capture_allowed",
+            "hidden_microphone_capture_allowed",
+            "visible_privacy_state_required",
+            "raw_media_persistence_allowed"
+          ],
+          "properties": {
+            "telemetry_local_only": {"const": true},
+            "cloud_upload_default": {"const": false},
+            "hidden_camera_capture_allowed": {"const": false},
+            "hidden_microphone_capture_allowed": {"const": false},
+            "visible_privacy_state_required": {"const": true},
+            "raw_media_persistence_allowed": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "governance_controls": {
+          "type": "object",
+          "required": [
+            "room_graph_required",
+            "device_registry_required",
+            "automation_rules_required",
+            "emergency_pause_required",
+            "sr_ssr_review_required",
+            "human_override_wins",
+            "auditable_actions"
+          ],
+          "properties": {
+            "room_graph_required": {"const": true},
+            "device_registry_required": {"const": true},
+            "automation_rules_required": {"const": true},
+            "emergency_pause_required": {"const": true},
+            "sr_ssr_review_required": {"const": true},
+            "human_override_wins": {"const": true},
+            "auditable_actions": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "source_labels": {"type": "array", "items": {"enum": ["trusted", "simulated", "unverified"]}, "minItems": 3, "uniqueItems": true},
+        "required_example_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

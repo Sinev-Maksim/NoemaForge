@@ -1,0 +1,55 @@
+{
+  "apiVersion": "noemaforge.llama-server-launcher-gate/v1",
+  "kind": "LlamaServerLauncherGatePolicy",
+  "id": "llama-server-launcher-gate-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "llama_server_binary_shared_library_launcher_gate",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "required_scripts": [
+      "noemaforge/tools/prep/noemaforge-trixie-preflight.sh",
+      "noemaforge/tools/prep/noemaforge-first-launch.sh",
+      "noemaforge/tools/prep/noemaforge-gui-prepare.sh"
+    ],
+    "required_gate_function": "validate_llama_server_runtime",
+    "required_gate_tokens": [
+      "command -v ldd",
+      "grep -q 'not found'",
+      "not a dynamic executable|statically linked",
+      "llama-server binary/shared-library gate passed"
+    ],
+    "required_preflight_checks": [
+      "llama_start",
+      "llama_server",
+      "llama_libs"
+    ],
+    "required_failure_modes": [
+      "missing executable llama-server",
+      "ldd unavailable",
+      "unresolved shared libraries",
+      "ldd inspection failure"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/llama-server-launcher-gate-policy.json",
+    "noemaforge/src/llama_server_launcher_gate_runtime.py",
+    "noemaforge/tests/test_llama_server_launcher_gate_runtime.py",
+    "noemaforge/tests/test_llama_server_launcher_gate_qa.py",
+    "noemaforge/tests/test_llama_server_launcher_gate_performance.py",
+    "noemaforge/tools/prep/noemaforge-trixie-preflight.sh",
+    "noemaforge/tools/prep/noemaforge-first-launch.sh",
+    "noemaforge/tools/prep/noemaforge-gui-prepare.sh",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

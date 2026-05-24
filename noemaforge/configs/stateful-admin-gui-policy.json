@@ -1,0 +1,93 @@
+{
+  "apiVersion": "noemaforge.stateful-admin-gui/v1",
+  "kind": "StatefulAdminGuiPolicy",
+  "id": "stateful-admin-gui-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "install_state_restore_and_surface_hydration",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_gui_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_ui_files": [
+      "noemaforge/templates/pipeline-dashboard/index.html",
+      "noemaforge/templates/pipeline-dashboard/app.js"
+    ],
+    "required_api_paths": [
+      "/api/gui/state",
+      "/api/conversation/current",
+      "/api/conversation/history",
+      "/api/persona/current",
+      "/api/tasks",
+      "/api/jobs",
+      "/api/telemetry/status",
+      "/api/pipelines/catalog"
+    ],
+    "required_runtime_tokens": [
+      "def gui_state",
+      "def conversation_current",
+      "def conversation_history",
+      "def persona_current",
+      "def tasks_list",
+      "def jobs_list",
+      "def telemetry_status",
+      "def pipeline_catalog_api"
+    ],
+    "required_ui_tokens": [
+      "/api/gui/state",
+      "renderConversation",
+      "setPersona",
+      "refreshTelemetry",
+      "refreshTasks",
+      "refreshJobs",
+      "loadPipelines",
+      "persona-portrait",
+      "task-summary",
+      "job-summary",
+      "hardware-metrics",
+      "runtime-metrics",
+      "product-metrics",
+      "pipeline-dock"
+    ],
+    "required_gui_state_sections": [
+      "conversation",
+      "persona",
+      "tasks",
+      "jobs",
+      "telemetry",
+      "pipelines"
+    ],
+    "required_surface_assertions": [
+      "conversation_restore",
+      "persona_portrait",
+      "task_queue",
+      "job_panel",
+      "telemetry",
+      "pipeline_dock"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/stateful-admin-gui-policy.json",
+    "noemaforge/src/stateful_admin_gui_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/tests/test_stateful_admin_gui_runtime.py",
+    "noemaforge/tests/test_stateful_admin_gui_qa.py",
+    "noemaforge/tests/test_stateful_admin_gui_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

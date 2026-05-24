@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.docs/v1",
+  "kind": "StaleWikiProseMergePlan",
+  "id": "stale-wiki-prose-merge-plan-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "principle": "Non-identical versioned wiki pages must be reviewed for unique prose before any source page is quarantined.",
+  "policy": {
+    "mode": "offline_docs_prose_merge_plan_contract",
+    "source_crosswalk": "stale-wiki-topic-crosswalk-core",
+    "source_exact_duplicate_plan": "stale-wiki-exact-duplicate-plan-core",
+    "prose_merge_report": "noemaforge/docs/quality/STALE_WIKI_PROSE_MERGE_PLAN_0.32.1.md",
+    "required_status": "needs-prose-review",
+    "default_action": "merge-unique-prose-before-trash",
+    "move_sources_to_trash": false,
+    "active_todo_must_remain_open": true
+  },
+  "refs": [
+    "noemaforge/configs/stale-wiki-prose-merge-plan.json",
+    "helpers/stale_wiki_prose_merge_plan.mjs",
+    "helpers/stale_wiki_prose_merge_plan.qa.test.mjs",
+    "helpers/stale_wiki_prose_merge_plan.performance.test.mjs",
+    "noemaforge/docs/quality/STALE_WIKI_PROSE_MERGE_PLAN_0.32.1.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/CURRENT_0.32.1_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}

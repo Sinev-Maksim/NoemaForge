@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/community_pack_contribution.schema.json",
+  "title": "NoemaForge Community Pack Contribution Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "refs", "policy"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.community-pack-contribution/v1"},
+    "kind": {"const": "CommunityPackContributionPolicy"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_.:/-]{1,220}$"},
+    "version": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_pipeline_ref",
+        "boundary_phrase",
+        "quarantine_policy_ref",
+        "clean_distribution_policy_ref",
+        "allowed_pack_kinds",
+        "lab_only_pack_kinds",
+        "required_manifest_fields",
+        "mandatory_stages",
+        "blocked_activation_states",
+        "controls",
+        "required_outputs",
+        "blocked_public_claims",
+        "required_boundary_refs",
+        "scan_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "quarantine_first_reviewed_contribution_path"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_live_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 1},
+        "quarantine_policy_ref": {"type": "string", "minLength": 1},
+        "clean_distribution_policy_ref": {"type": "string", "minLength": 1},
+        "allowed_pack_kinds": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "lab_only_pack_kinds": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1}
+        },
+        "required_manifest_fields": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "mandatory_stages": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "blocked_activation_states": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "controls": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "blocked_public_claims": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_boundary_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "scan_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

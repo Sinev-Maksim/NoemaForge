@@ -1,0 +1,18 @@
+{
+  "apiVersion": "noemaforge.production-ai/v1",
+  "kind": "AbstentionPolicy",
+  "auto_route_min_confidence": 0.8,
+  "clarify_min_confidence": 0.5,
+  "high_risk_action": "defer_ssr",
+  "critical_risk_action": "block",
+  "ungrounded_action": "defer_sr",
+  "unsafe_action": "block",
+  "actions": {
+    "route": "Proceed with the selected route.",
+    "ask_clarification": "Ask the operator for missing context or route confirmation.",
+    "defer_admin": "Defer to Admin when confidence is too low for autonomous routing.",
+    "defer_sr": "Defer to SR for ungrounded or quality-sensitive decisions.",
+    "defer_ssr": "Defer to SR and SSR for high-risk decisions.",
+    "block": "Block unsafe or critical-risk requests until reviewed through policy."
+  }
+}

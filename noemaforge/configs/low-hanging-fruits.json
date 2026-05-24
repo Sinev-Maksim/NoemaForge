@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.ai/v0.30.09",
   "kind": "SmallImprovementPacks",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "collections": [
     {
       "id": "lhf_operator_polish_001",
@@ -163,7 +163,7 @@
           "action": "Publish wiki patch bundles with functional and metric deltas."
         }
       ],
-      "status": "packaged_0.31.13.alpha"
+      "status": "packaged_0.31.13.alpha-patched1"
     },
     {
       "id": "lhf_self_improvement_observability_004",
@@ -204,7 +204,7 @@
     },
     {
       "id": "lhf_gui_help_compat_0310",
-      "version": "0.31.13.alpha",
+      "version": "0.31.13.alpha-patched1",
       "title": "GUI/help compatibility quick fixes",
       "items": [
         {
@@ -230,7 +230,7 @@
     },
     {
       "id": "lhf_code_qa_subteam_0310",
-      "version": "0.31.13.alpha",
+      "version": "0.31.13.alpha-patched1",
       "title": "Code QA sub-team low-hanging fruit",
       "items": [
         {
@@ -285,3 +285,4 @@
   "require_admin_approval": true,
   "self_improvement_loop": "explicit_only"
 }
+

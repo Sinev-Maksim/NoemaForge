@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/tinyml_node.schema.json",
+  "title": "TinyMLNodePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "nodes", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.tinyml-node/v1"
+    },
+    "kind": {
+      "const": "TinyMLNodePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_golden_vectors",
+        "require_latency_budget",
+        "require_ram_arena_budget",
+        "require_model_size_gate",
+        "require_model_hash",
+        "require_signed_model_manifest",
+        "require_edge_rules_fallback",
+        "forbid_direct_control_decisions",
+        "min_golden_vectors",
+        "allowed_runtimes",
+        "allowed_decision_modes"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_validation"
+        },
+        "require_golden_vectors": {
+          "const": true
+        },
+        "require_latency_budget": {
+          "const": true
+        },
+        "require_ram_arena_budget": {
+          "const": true
+        },
+        "require_model_size_gate": {
+          "const": true
+        },
+        "require_model_hash": {
+          "const": true
+        },
+        "require_signed_model_manifest": {
+          "const": true
+        },
+        "require_edge_rules_fallback": {
+          "const": true
+        },
+        "forbid_direct_control_decisions": {
+          "const": true
+        },
+        "min_golden_vectors": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowed_runtimes": {
+          "type": "array",
+          "items": {
+            "enum": ["tflm", "mock"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_decision_modes": {
+          "type": "array",
+          "items": {
+            "enum": ["advisory_only", "fallback_only"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "target_mcu",
+          "runtime",
+          "decision_mode",
+          "model_ref",
+          "signed_model_manifest_ref",
+          "edge_rules_ref",
+          "golden_vectors_ref",
+          "static_arena_report_ref",
+          "model_hash",
+          "latency_budget_ms",
+          "observed_latency_ms",
+          "ram_arena_budget_bytes",
+          "observed_ram_arena_bytes",
+          "model_size_budget_bytes",
+          "observed_model_size_bytes",
+          "direct_control_decisions",
+          "fallback_rules_required",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["draft", "shadow", "stable", "retired"]
+          },
+          "target_mcu": {
+            "type": "string"
+          },
+          "runtime": {
+            "enum": ["tflm", "mock"]
+          },
+          "decision_mode": {
+            "enum": ["advisory_only", "fallback_only"]
+          },
+          "model_ref": {
+            "type": "string"
+          },
+          "signed_model_manifest_ref": {
+            "type": "string"
+          },
+          "edge_rules_ref": {
+            "type": "string"
+          },
+          "golden_vectors_ref": {
+            "type": "string"
+          },
+          "static_arena_report_ref": {
+            "type": "string"
+          },
+          "model_hash": {
+            "type": "string",
+            "pattern": "^[A-Fa-f0-9]{64}$"
+          },
+          "latency_budget_ms": {
+            "type": "number",
+            "exclusiveMinimum": 0
+          },
+          "observed_latency_ms": {
+            "type": "number",
+            "minimum": 0
+          },
+          "ram_arena_budget_bytes": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "observed_ram_arena_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "model_size_budget_bytes": {
+            "type": "integer",
+            "exclusiveMinimum": 0
+          },
+          "observed_model_size_bytes": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "direct_control_decisions": {
+            "const": false
+          },
+          "fallback_rules_required": {
+            "const": true
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

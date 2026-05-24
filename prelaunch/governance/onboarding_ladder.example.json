@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.onboarding-ladder/v1",
+  "kind": "OnboardingLadderExampleSet",
+  "id": "onboarding-ladder-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "newcomer-five-minute-overview",
+      "start_page": "docs/README.md",
+      "next_page": "docs/onboarding/QUICKSTART_VM.md",
+      "expected": ["five_minute_overview", "vm_first_success_link", "no_windows_lab_lead"]
+    },
+    {
+      "id": "first-success-vm",
+      "start_page": "docs/onboarding/QUICKSTART_VM.md",
+      "next_page": "docs/onboarding/SETUP_MODES.md",
+      "expected": ["vm_dry_run_selftest", "no_install", "no_model_download"]
+    },
+    {
+      "id": "setup-mode-decision",
+      "start_page": "docs/onboarding/SETUP_MODES.md",
+      "next_page": "docs/onboarding/PRODUCTION_INSTALL_TRIXIE.md",
+      "expected": ["host_vm_docker_macos_differences", "production_after_quickstart"]
+    },
+    {
+      "id": "production-after-validation",
+      "start_page": "docs/onboarding/PRODUCTION_INSTALL_TRIXIE.md",
+      "next_page": "docs/onboarding/MVP_OPERATOR_GUIDE.md",
+      "expected": ["after_quickstart_gate", "host_install_command", "operator_guide_next"]
+    }
+  ]
+}

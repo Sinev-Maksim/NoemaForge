@@ -52,6 +52,15 @@ else
   echo "[noemaforge-service-stop] no noemaforge-llama@*.service units found"
 fi
 
+echo "[noemaforge-service-stop] draining service cgroups..."
+CGROUP_UNITS=(noemaforge-llm-backends-manager.service noemaforge-modelscan.service noemaforge-llm-gateway.service noemaforge-toolproxy.service)
+if [[ ${#LLAMA_UNITS[@]} -gt 0 ]]; then
+  CGROUP_UNITS+=("${LLAMA_UNITS[@]}")
+fi
+noemaforge_ops_drain_unit_cgroups TERM "${CGROUP_UNITS[@]}"
+sleep 2
+noemaforge_ops_drain_unit_cgroups KILL "${CGROUP_UNITS[@]}"
+
 echo "[noemaforge-service-stop] terminating llama-server processes..."
 pkill -TERM -f '[l]lama-server' 2>/dev/null || true
 sleep 2

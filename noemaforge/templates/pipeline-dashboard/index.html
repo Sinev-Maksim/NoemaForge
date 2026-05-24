@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: templates/pipeline-dashboard/index.html
 Zone: gui/shell
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-10
 Modified: 2026-05-14
 Purpose: Stateful Admin GUI shell: persona portrait, chat, epoch panel, telemetry,
@@ -19,13 +19,16 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>NoemaForge Admin Chat</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="observer-cards.css" />
+  <link rel="stylesheet" href="pipeline-editor.css" />
+  <link rel="stylesheet" href="artifact-affordances.css" />
 </head>
 <body>
   <main class="app" aria-label="NoemaForge Admin Chat">
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
       <div class="title-block">
-        <p class="eyebrow" id="version-line">NoemaForge / 0.31.13.alpha</p>
+        <p class="eyebrow" id="version-line">NoemaForge / 0.31.13.alpha-patched1</p>
         <h1 id="app-title">NoemaForge Admin Chat</h1>
         <p class="muted" id="persona-line"><span id="persona-active-label">Активная персона</span>: <strong id="active-persona">Admin</strong></p>
       </div>
@@ -56,7 +59,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
 
     <section class="metrics-row">
       <section class="card compact-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre></section>
-      <section class="card compact-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><pre id="runtime-metrics">loading…</pre></section>
+      <section class="card compact-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><div id="runtime-observer-cards" class="observer-cards"></div><pre id="runtime-metrics">loading…</pre></section>
       <section class="card compact-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
     </section>
 
@@ -69,15 +72,16 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
           <button id="admin-send">Отправить</button>
         </div>
         <div class="depth-controls" aria-label="Improvement depth controls">
-          <label>Steps <input id="depth-steps" type="number" min="0" value="0" /></label>
-          <label>Minutes <input id="depth-minutes" type="number" min="0" value="0" /></label>
-          <label class="check"><input id="depth-until-stop" type="checkbox" /> until stop</label>
-          <button id="workflow-stop" class="ghost small">Stop loop</button>
+          <label><span id="depth-steps-label">Шаги</span> <input id="depth-steps" type="number" min="0" value="0" /></label>
+          <label><span id="depth-minutes-label">Минуты</span> <input id="depth-minutes" type="number" min="0" value="0" /></label>
+          <label class="check"><input id="depth-until-stop" type="checkbox" /> <span id="depth-until-stop-label">до остановки</span></label>
+          <button id="workflow-stop" class="ghost small">Остановить цикл</button>
         </div>
         <div id="pipeline-dock" class="pipeline-dock">
-          <div class="pipeline-dock-head"><strong>Pipeline Dock</strong><input id="pipeline-search" placeholder="Search pipeline…" /><button id="pipeline-new" class="new-pipeline">+ New pipeline</button></div>
+          <div class="pipeline-dock-head"><strong id="pipeline-dock-title">Док пайплайнов</strong><input id="pipeline-search" placeholder="Поиск пайплайна…" /><button id="pipeline-new" class="new-pipeline">+ Новый пайплайн</button></div>
           <div id="pipeline-groups" class="pipeline-groups"></div>
           <div id="pipeline-list" class="pipeline-list"></div>
+          <div id="pipeline-editor" class="pipeline-editor hidden" aria-label="Drag and drop pipeline editor"></div>
         </div>
       </section>
 
@@ -102,6 +106,11 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
         <section class="card">
           <div class="section-title"><h2 id="usecases-title">Usecase help</h2><span>?</span></div>
           <div id="usecases" class="usecases"><p class="muted">Loading…</p></div>
+        </section>
+        <section class="card">
+          <div class="section-title"><h2>Public scenario</h2><span id="public-showcase-status">—</span></div>
+          <div id="public-showcase" class="public-showcase"><p class="muted">Loading…</p></div>
+          <div class="task-controls"><button id="public-showcase-load" class="ghost small">Load guide</button></div>
         </section>
         <section class="card">
           <div class="section-title"><h2 id="internal-title">Between models / SR-SSR</h2><span id="internal-hint">handoffs</span></div>

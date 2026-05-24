@@ -1,0 +1,238 @@
+{
+  "apiVersion": "noemaforge.systemd-gdm-nvidia-live-validation-readiness/v1",
+  "kind": "SystemdGdmNvidiaLiveValidationReadinessPolicy",
+  "id": "systemd-gdm-nvidia-live-validation-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_systemd_gdm_nvidia_live_validation_readiness",
+    "completion_state": "blocked_until_target_systemd_gdm_nvidia_live_validation_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Run live systemd/GDM/NVIDIA validation on NoemaForge.",
+      "Confirm NoemaForge NVIDIA/GDM recovery path after reboot."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "read_only_checks_preferred": true,
+      "display_manager_required": true,
+      "nvidia_driver_required": true,
+      "archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "target-boot-baseline",
+        "title": "Target boot and systemd baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "cat /proc/sys/kernel/random/boot_id",
+          "systemctl is-system-running || true",
+          "systemctl --failed --no-pager || true"
+        ],
+        "evidence": [
+          "boot_id",
+          "system_running_state",
+          "failed_units",
+          "target_timestamp"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "system_state_recorded",
+          "failed_units_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval scoped to systemd, GDM and NVIDIA validation",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "printf '%s\\n' 'operator approves live systemd GDM NVIDIA validation and archive capture'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_systemd_gdm_nvidia_validation",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "display-manager-gdm",
+        "title": "Display manager and GDM target state",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-active display-manager.service || true",
+          "systemctl is-active gdm.service || true",
+          "systemctl status display-manager.service --no-pager -l || true"
+        ],
+        "evidence": [
+          "display_manager_state",
+          "gdm_state",
+          "graphical_target_state",
+          "display_manager_status_excerpt"
+        ],
+        "completion_gates": [
+          "display_manager_active_or_blocker_recorded",
+          "gdm_active_or_alias_recorded",
+          "graphical_target_state_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "nvidia-driver-device",
+        "title": "NVIDIA driver and device signal",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader || true",
+          "nvidia-smi -L || true",
+          "lsmod | grep -E '^nvidia' || true"
+        ],
+        "evidence": [
+          "gpu_name",
+          "driver_version",
+          "memory_total",
+          "nvidia_smi_exit_code",
+          "nvidia_module_state"
+        ],
+        "completion_gates": [
+          "nvidia_smi_ok_or_blocker_recorded",
+          "module_state_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "secure-boot-kernel",
+        "title": "Secure boot and kernel driver evidence",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "mokutil --sb-state || true",
+          "uname -a",
+          "journalctl -k -b --no-pager | grep -Ei 'nvidia|nouveau|secure boot' || true"
+        ],
+        "evidence": [
+          "secure_boot_state",
+          "kernel_release",
+          "kernel_driver_log_excerpt",
+          "nouveau_conflict_state"
+        ],
+        "completion_gates": [
+          "secure_boot_state_recorded",
+          "kernel_release_recorded",
+          "driver_log_reviewed",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "post-reboot-recovery-check",
+        "title": "Post-reboot display recovery guards",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "test ! -e /run/nologin",
+          "systemctl is-active graphical.target || true",
+          "loginctl seat-status seat0 || true"
+        ],
+        "evidence": [
+          "nologin_absent_state",
+          "graphical_target_state",
+          "seat0_status_excerpt"
+        ],
+        "completion_gates": [
+          "nologin_absence_recorded",
+          "graphical_target_ready_or_blocker_recorded",
+          "seat_state_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "evidence-archive",
+        "title": "Systemd GDM NVIDIA evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge forensics --include-systemd-gdm-nvidia",
+          "sha256sum <systemd-gdm-nvidia-live-validation-bundle>"
+        ],
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "validation_transcript",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review",
+          "evidence_file_archived"
+        ]
+      }
+    ],
+    "required_outputs": [
+      "systemd_gdm_nvidia_live_validation_summary",
+      "blocked_completion_notice",
+      "target_systemd_gdm_nvidia_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/systemd-gdm-nvidia-live-validation-readiness-policy.json",
+      "noemaforge/contracts/systemd_gdm_nvidia_live_validation_readiness.schema.json",
+      "noemaforge/src/systemd_gdm_nvidia_live_validation_readiness_runtime.py",
+      "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_runtime.py",
+      "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_qa.py",
+      "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_performance.py",
+      "prelaunch/governance/systemd_gdm_nvidia_live_validation_readiness.example.json",
+      "noemaforge/configs/target-live-validation-readiness-policy.json",
+      "noemaforge/configs/emergency-gui-recovery-readiness-policy.json",
+      "noemaforge/configs/target-gui-recovery-path-readiness-policy.json",
+      "noemaforge/src/target_live_validation_readiness_runtime.py",
+      "noemaforge/src/emergency_gui_recovery_readiness_runtime.py",
+      "noemaforge/src/target_gui_recovery_path_readiness_runtime.py",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/systemd-gdm-nvidia-live-validation-readiness-policy.json",
+    "noemaforge/contracts/systemd_gdm_nvidia_live_validation_readiness.schema.json",
+    "noemaforge/src/systemd_gdm_nvidia_live_validation_readiness_runtime.py",
+    "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_runtime.py",
+    "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_qa.py",
+    "noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_performance.py",
+    "prelaunch/governance/systemd_gdm_nvidia_live_validation_readiness.example.json",
+    "noemaforge/configs/target-live-validation-readiness-policy.json",
+    "noemaforge/configs/emergency-gui-recovery-readiness-policy.json",
+    "noemaforge/configs/target-gui-recovery-path-readiness-policy.json",
+    "noemaforge/src/target_live_validation_readiness_runtime.py",
+    "noemaforge/src/emergency_gui_recovery_readiness_runtime.py",
+    "noemaforge/src/target_gui_recovery_path_readiness_runtime.py",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

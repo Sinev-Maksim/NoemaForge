@@ -1,0 +1,25 @@
+{
+  "apiVersion": "noemaforge.post-reboot-validation-archive-readiness/v1",
+  "kind": "PostRebootValidationArchiveReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-post-reboot-validation-archive-readiness",
+      "trace_id": "trace:post-reboot:validation-archive",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "post-reboot-baseline",
+        "runtime-service-health",
+        "target-smoke-transcript",
+        "forensics-log-archive",
+        "wiki-patch-bundle"
+      ],
+      "expected_outputs": [
+        "post_reboot_archive_summary",
+        "blocked_completion_notice",
+        "target_validation_command_manifest",
+        "evidence_requirements",
+        "wiki_patch_requirements"
+      ]
+    }
+  ]
+}

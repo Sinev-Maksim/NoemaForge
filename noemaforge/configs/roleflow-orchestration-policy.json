@@ -1,0 +1,81 @@
+{
+  "apiVersion": "noemaforge.roleflow/v1",
+  "kind": "RoleFlowPolicy",
+  "id": "roleflow-orchestration-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "protected_orchestration",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "role_kernel_policy_ref": "configs/role-kernel-policy.json",
+    "role_catalog_ref": "configs/role-catalog.yaml",
+    "allowed_node_kinds": [
+      "role_switch",
+      "branch",
+      "guard",
+      "approval",
+      "action",
+      "rollback",
+      "baton"
+    ],
+    "required_flow_features": [
+      "role_switching",
+      "branching",
+      "guard_edges",
+      "approval_edges",
+      "rollback_edges",
+      "baton_payloads"
+    ],
+    "edge_kinds": [
+      "next",
+      "branch",
+      "guard",
+      "approval",
+      "rollback"
+    ],
+    "guard_requirements": {
+      "guard_edges_require_condition": true,
+      "branch_edges_require_condition": true,
+      "approval_edges_require_approver_role": true,
+      "rollback_edges_require_target": true
+    },
+    "baton_requirements": {
+      "durable": true,
+      "sleep_wake": true,
+      "required_fields": [
+        "id",
+        "role_key",
+        "payload",
+        "handoff_reason",
+        "resume_policy"
+      ]
+    },
+    "approval_roles": [
+      "operator.admin/administrator",
+      "system.guard/scary",
+      "system.guard/surgeon"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/roleflow_orchestration.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/roleflow-orchestration-policy.json",
+    "noemaforge/contracts/roleflow_orchestration.schema.json",
+    "noemaforge/src/roleflow_orchestration_runtime.py",
+    "noemaforge/tests/test_roleflow_orchestration_runtime.py",
+    "noemaforge/tests/test_roleflow_orchestration_qa.py",
+    "noemaforge/tests/test_roleflow_orchestration_performance.py",
+    "prelaunch/governance/roleflow_orchestration.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

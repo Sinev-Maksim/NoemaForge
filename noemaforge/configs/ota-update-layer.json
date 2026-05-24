@@ -1,0 +1,57 @@
+{
+  "apiVersion": "noemaforge.ota-update-layer/v1",
+  "kind": "OTAUpdateLayerPolicy",
+  "id": "ota-update-layer-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_staged_rollout": true,
+    "require_rollback_bundle": true,
+    "require_health_gate": true,
+    "require_signed_model_manifest": true,
+    "require_ci_release_evidence": true,
+    "forbid_activation_without_health_gate": true,
+    "allowed_targets": [
+      "model",
+      "container",
+      "gateway"
+    ],
+    "allowed_stages": [
+      "shadow",
+      "canary",
+      "stable"
+    ],
+    "required_health_checks": [
+      "health",
+      "ready",
+      "metrics"
+    ]
+  },
+  "update_manifests": [
+    {
+      "id": "edge-gateway-shadow-update",
+      "ref": "prelaunch/ota/update_manifest.json"
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/ota-update-layer.json",
+    "noemaforge/contracts/ota_update_layer.schema.json",
+    "noemaforge/src/ota_update_layer_runtime.py",
+    "noemaforge/tests/test_ota_update_layer_runtime.py",
+    "noemaforge/tests/test_ota_update_layer_qa.py",
+    "noemaforge/tests/test_ota_update_layer_performance.py",
+    "ota/manifest.schema.yaml",
+    "ota/rollback_policy.yaml",
+    "ota/update_agent.py",
+    "ota/mender_module_model_update/README.md",
+    "ota/rauc_bundle_notes.md",
+    "prelaunch/ota/update_manifest.json",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "noemaforge/configs/gateway-inference-service.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

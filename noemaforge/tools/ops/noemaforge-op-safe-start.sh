@@ -5,7 +5,7 @@
 # Purpose: Idempotently start the safe NoemaForge core with explicit LLM profile: runtime-only, CPU bootstrap LLM, or manual heavy LLM.
 # Callers: sudo noemaforge safe-start, sudo noemaforge start, sudo noemaforge up.
 # Safety: Keeps backend-manager/modelscan timers disabled unless --enable-managers is explicitly supplied.
-# Version: 0.31.13.alpha live-reboot-stabilization
+# Version: 0.31.13.alpha-patched1 live-reboot-stabilization
 # === End NoemaForge File Header ===
 set -euo pipefail
 

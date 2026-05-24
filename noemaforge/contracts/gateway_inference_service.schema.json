@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/gateway_inference_service.schema.json",
+  "title": "GatewayInferenceServicePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "services", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.gateway-inference-service/v1"
+    },
+    "kind": {
+      "const": "GatewayInferenceServicePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_inference_endpoint",
+        "require_manifest_only_model_loading",
+        "require_signed_model_manifest",
+        "require_health_endpoint",
+        "require_ready_endpoint",
+        "require_metrics_endpoint",
+        "require_edge_rules_fallback",
+        "forbid_direct_model_path",
+        "forbid_direct_control_decisions",
+        "allowed_protocols",
+        "allowed_model_sources",
+        "allowed_endpoint_kinds"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_inference_endpoint": {
+          "const": true
+        },
+        "require_manifest_only_model_loading": {
+          "const": true
+        },
+        "require_signed_model_manifest": {
+          "const": true
+        },
+        "require_health_endpoint": {
+          "const": true
+        },
+        "require_ready_endpoint": {
+          "const": true
+        },
+        "require_metrics_endpoint": {
+          "const": true
+        },
+        "require_edge_rules_fallback": {
+          "const": true
+        },
+        "forbid_direct_model_path": {
+          "const": true
+        },
+        "forbid_direct_control_decisions": {
+          "const": true
+        },
+        "allowed_protocols": {
+          "type": "array",
+          "items": {
+            "enum": ["rest", "mqtt"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_model_sources": {
+          "type": "array",
+          "items": {
+            "enum": ["signed_manifest"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_endpoint_kinds": {
+          "type": "array",
+          "items": {
+            "enum": ["inference", "health", "ready", "metrics"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "services": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "containerized",
+          "image",
+          "model_source",
+          "signed_model_manifest_ref",
+          "tinyml_node_policy_ref",
+          "edge_rules_ref",
+          "direct_control_decisions",
+          "endpoints",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["draft", "shadow", "stable", "retired"]
+          },
+          "containerized": {
+            "const": true
+          },
+          "image": {
+            "type": "string"
+          },
+          "model_source": {
+            "const": "signed_manifest"
+          },
+          "signed_model_manifest_ref": {
+            "type": "string"
+          },
+          "tinyml_node_policy_ref": {
+            "type": "string"
+          },
+          "edge_rules_ref": {
+            "type": "string"
+          },
+          "direct_control_decisions": {
+            "const": false
+          },
+          "endpoints": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "kind", "protocol", "enabled"],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "kind": {
+                  "enum": ["inference", "health", "ready", "metrics"]
+                },
+                "protocol": {
+                  "enum": ["rest", "mqtt"]
+                },
+                "method": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "topic": {
+                  "type": "string"
+                },
+                "enabled": {
+                  "type": "boolean"
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

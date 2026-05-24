@@ -1,0 +1,15 @@
+{
+  "apiVersion": "noemaforge.runtime/v1",
+  "kind": "HostControlLauncherPlan",
+  "id": "macos-control-host",
+  "platform": "macos",
+  "status": "planned",
+  "enabled_by_default": false,
+  "role": "control_host",
+  "allows_heavy_local_inference": false,
+  "connector": "remote_http",
+  "notes": [
+    "Control-only launcher path for future macOS host support.",
+    "Apple Silicon detection is allowed, but local MLX or model runtime startup remains disabled by default."
+  ]
+}

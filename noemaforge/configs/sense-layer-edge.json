@@ -1,0 +1,107 @@
+{
+  "apiVersion": "noemaforge.sense-layer-edge/v1",
+  "kind": "SenseLayerEdgePolicy",
+  "id": "sense-layer-edge-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_mqtt_adapter": true,
+    "require_serial_adapter": true,
+    "require_system_metrics_adapter": true,
+    "require_normalized_schema": true,
+    "require_explicit_source_trust": true,
+    "require_no_live_io_in_adapters": true,
+    "allowed_protocols": [
+      "mqtt",
+      "serial",
+      "system_metrics"
+    ],
+    "allowed_trust_levels": [
+      "trusted",
+      "simulated",
+      "unverified"
+    ],
+    "required_metric_fields": [
+      "metric_id",
+      "source_id",
+      "source_trust",
+      "timestamp",
+      "value",
+      "unit"
+    ]
+  },
+  "adapters": [
+    {
+      "id": "mqtt-floor-sensors",
+      "version": "0.32.0",
+      "state": "shadow",
+      "protocol": "mqtt",
+      "source_id": "floor-sensor-bus",
+      "source_trust": "simulated",
+      "ingress": {
+        "topic": "noemaforge/sense/floor/+",
+        "live_io": false
+      },
+      "normalizer": "sense.edge.mqtt_adapter:normalize_mqtt_message",
+      "schema_ref": "sense/edge/input_contract.yaml",
+      "refs": [
+        "sense/edge/mqtt_adapter.py",
+        "sense/edge/metrics_schema.py",
+        "sense/edge/input_contract.yaml"
+      ]
+    },
+    {
+      "id": "serial-floor-controller",
+      "version": "0.32.0",
+      "state": "shadow",
+      "protocol": "serial",
+      "source_id": "floor-controller-loopback",
+      "source_trust": "trusted",
+      "ingress": {
+        "device": "loopback://floor-controller",
+        "live_io": false
+      },
+      "normalizer": "sense.edge.serial_adapter:normalize_serial_line",
+      "schema_ref": "sense/edge/input_contract.yaml",
+      "refs": [
+        "sense/edge/serial_adapter.py",
+        "sense/edge/metrics_schema.py",
+        "sense/edge/input_contract.yaml"
+      ]
+    },
+    {
+      "id": "system-metrics-snapshot",
+      "version": "0.32.0",
+      "state": "shadow",
+      "protocol": "system_metrics",
+      "source_id": "gateway-system-metrics",
+      "source_trust": "unverified",
+      "ingress": {
+        "collector": "offline_snapshot",
+        "live_io": false
+      },
+      "normalizer": "sense.edge.metrics_schema:normalize_metric",
+      "schema_ref": "sense/edge/input_contract.yaml",
+      "refs": [
+        "sense/edge/metrics_schema.py",
+        "sense/edge/input_contract.yaml"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/sense-layer-edge.json",
+    "noemaforge/contracts/sense_layer_edge.schema.json",
+    "noemaforge/src/sense_layer_edge_runtime.py",
+    "noemaforge/tests/test_sense_layer_edge_runtime.py",
+    "noemaforge/tests/test_sense_layer_edge_qa.py",
+    "noemaforge/tests/test_sense_layer_edge_performance.py",
+    "sense/edge/input_contract.yaml",
+    "sense/edge/mqtt_adapter.py",
+    "sense/edge/serial_adapter.py",
+    "sense/edge/metrics_schema.py",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

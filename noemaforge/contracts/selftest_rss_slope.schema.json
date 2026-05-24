@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/selftest_rss_slope.schema.json",
+  "title": "NoemaForge SelfTestRssSlopeReport",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "ok", "summary", "cases", "findings"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge/v1"},
+    "kind": {"const": "SelfTestRssSlopeReport"},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "source_run_id": {"type": "string"},
+    "summary": {
+      "type": "object",
+      "required": ["analyzed_cases", "skipped_cases", "findings", "failures", "max_slope_kib_per_repeat", "min_repeats"],
+      "properties": {
+        "analyzed_cases": {"type": "integer", "minimum": 0},
+        "skipped_cases": {"type": "integer", "minimum": 0},
+        "findings": {"type": "integer", "minimum": 0},
+        "failures": {"type": "integer", "minimum": 0},
+        "max_slope_kib_per_repeat": {"type": "number"},
+        "warn_slope_kib": {"type": "number"},
+        "fail_slope_kib": {"type": "number"},
+        "min_repeats": {"type": "integer", "minimum": 2}
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["case_id", "repeat_count", "max_rss_kib_sequence", "slope_kib_per_repeat", "severity", "memory_leak_suspect"],
+        "properties": {
+          "case_id": {"type": "string", "minLength": 1},
+          "repeat_count": {"type": "integer", "minimum": 2},
+          "max_rss_kib_sequence": {"type": "array", "items": {"type": "integer", "minimum": 0}},
+          "slope_kib_per_repeat": {"type": "number"},
+          "delta_kib": {"type": "integer"},
+          "delta_pct": {"type": "number"},
+          "severity": {"enum": ["info", "warn", "fail"]},
+          "memory_leak_suspect": {"type": "boolean"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "findings": {"type": "array"},
+    "skipped": {"type": "array"}
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,26 @@
+{
+  "apiVersion": "noemaforge.setup-default-path/v1",
+  "kind": "SetupDefaultPathExampleSet",
+  "id": "setup-default-path-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "vm-first-canonical-onboarding",
+      "trace_id": "trace:setup-default-path:vm-first",
+      "candidate": {
+        "steps": ["release_unpack_or_git_clone", "root_setup_sh", "vm_mode_first", "explicit_host_install", "reboot_then_use"],
+        "first_command": "./setup.sh --mode vm --dry-run --selftest",
+        "host_command": "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share",
+        "requires_windows": false,
+        "windows_helpers": "optional_side_tools",
+        "modes": ["vm", "host", "docker-dev", "macos-dev"]
+      },
+      "expected": {
+        "ok": true,
+        "first_mode": "vm",
+        "host_install_explicit": true,
+        "requires_windows": false
+      }
+    }
+  ]
+}

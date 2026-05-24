@@ -1,0 +1,78 @@
+{
+  "apiVersion": "noemaforge.hypergraph-first-administrator/v1",
+  "kind": "HypergraphFirstAdministratorExampleSet",
+  "id": "hypergraph-first-administrator-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "administrator-hypergraph-first-supported-answer",
+      "trace_id": "trace:hypergraph-first-administrator:example:001",
+      "query_surface": "operator.admin/administrator",
+      "query": "What grounded knowledge supports Administrator answers?",
+      "retrieval_order": [
+        "hypergraph_claim_origins",
+        "hypergraph_claims",
+        "graph_neighbors",
+        "docs_rag_after_graph_miss",
+        "knowledge_gap_notice"
+      ],
+      "retrieval_trace": {
+        "trace_id": "trace:hypergraph-first-administrator:example:001",
+        "first_retrieval_surface": "hypergraph_claim_origins",
+        "graph_claim_origin_count": 1,
+        "fallback_allowed": false
+      },
+      "supported_answer": {
+        "mode": "grounded_answer",
+        "grounded": true,
+        "answer": "Administrator answers start from graph claim origins and cite graph-backed provenance.",
+        "citations": [
+          {
+            "claim_id": "claim:knowledge-hypergraph-grounding",
+            "human_address": "knowledge.hypergraph.yaml#success_signals[1]",
+            "score": 1.0
+          }
+        ],
+        "graph_provenance": [
+          "knowledge.hypergraph",
+          "claim:knowledge-hypergraph-grounding"
+        ]
+      },
+      "graph_miss": {
+        "mode": "knowledge_gap_notice",
+        "grounded": false,
+        "fallback_allowed": true,
+        "followup": [
+          "ingest_relevant_source",
+          "propose_research"
+        ]
+      },
+      "rejected_answers": [
+        {
+          "claim": "answer before querying hypergraph",
+          "reason": "The first retrieval surface must be hypergraph_claim_origins."
+        },
+        {
+          "claim": "use docs fallback before graph miss",
+          "reason": "Docs/RAG fallback is allowed only after graph_claim_origin_count is zero."
+        },
+        {
+          "claim": "return supported answer without graph citation",
+          "reason": "Supported answers require claim_id, human_address and score."
+        },
+        {
+          "claim": "hide first retrieval surface",
+          "reason": "The retrieval trace records first_retrieval_surface."
+        }
+      ],
+      "expected_outputs": [
+        "grounded_answer",
+        "citations",
+        "graph_provenance",
+        "retrieval_trace",
+        "fallback_allowed",
+        "knowledge_gap_notice"
+      ]
+    }
+  ]
+}

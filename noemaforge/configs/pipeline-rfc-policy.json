@@ -1,0 +1,69 @@
+{
+  "apiVersion": "noemaforge.pipeline-rfc/v1",
+  "kind": "PipelineRFCPolicy",
+  "id": "pipeline-rfc-mutation-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_trace_id": true,
+    "rfc_required_for_mutation": true,
+    "dry_run_required": true,
+    "dry_run_side_effects_allowed": false,
+    "eval_evidence_required": true,
+    "rollback_plan_required": true,
+    "explicit_approval_required": true,
+    "apply_blocked_without_approval": true,
+    "dangerous_action_review_required": true,
+    "mutation_types": [
+      "pipeline_config",
+      "role_flow",
+      "tool_policy",
+      "model_route",
+      "code_patch"
+    ],
+    "required_stage_order": [
+      "rfc",
+      "dry_run",
+      "eval",
+      "rollback",
+      "approval",
+      "apply"
+    ],
+    "required_eval_checks": [
+      "pipeline_eval",
+      "safety_eval",
+      "rollback_plan"
+    ],
+    "approval_states": [
+      "not_requested",
+      "requested",
+      "approved",
+      "rejected"
+    ],
+    "rfc_statuses": [
+      "draft",
+      "ready_for_review",
+      "ready_to_apply",
+      "blocked",
+      "applied"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/pipeline_rfc.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-rfc-policy.json",
+    "noemaforge/contracts/pipeline_rfc.schema.json",
+    "noemaforge/src/pipeline_rfc_runtime.py",
+    "noemaforge/tests/test_pipeline_rfc_runtime.py",
+    "noemaforge/tests/test_pipeline_rfc_qa.py",
+    "noemaforge/tests/test_pipeline_rfc_performance.py",
+    "prelaunch/governance/pipeline_rfc.example.json",
+    "prelaunch/governance/research_packet.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

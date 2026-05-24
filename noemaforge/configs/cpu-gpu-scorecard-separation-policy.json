@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.cpu-gpu-scorecard-separation/v1",
+  "kind": "CpuGpuScorecardSeparationPolicy",
+  "id": "cpu-gpu-scorecard-separation-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "cpu_gpu_scorecards_separate_by_runtime_device",
+    "scorecards_root": "/var/lib/noemaforge/model_scorecards",
+    "cpu_scorecards_root": "/var/lib/noemaforge/model_scorecards/cpu",
+    "gpu_scorecards_root": "/var/lib/noemaforge/model_scorecards/gpu",
+    "allowed_runtime_devices": ["cpu", "gpu"],
+    "aliases": {
+      "cuda": "gpu",
+      "nvidia": "gpu"
+    },
+    "default_runtime_device": "unspecified",
+    "require_runtime_device_field": true,
+    "require_device_specific_paths": true,
+    "require_docs_and_changelog_refs": true,
+    "require_registry_attachment": true,
+    "require_no_live_backend_dependency": true,
+    "required_runtime_tokens": {
+      "model_scorecards": [
+        "--runtime-device",
+        "runtime_device",
+        "scorecard_device_root",
+        "normalize_scorecard_device"
+      ],
+      "role_tournament": [
+        "NOEMAFORGE_SCORECARD_DEVICE",
+        "runtime_device",
+        "SCORECARD_DEVICE_ALIASES",
+        "device_root"
+      ]
+    },
+    "required_example_sets": [
+      "prelaunch/governance/cpu_gpu_scorecard_separation.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/cpu-gpu-scorecard-separation-policy.json",
+    "noemaforge/contracts/cpu_gpu_scorecard_separation.schema.json",
+    "noemaforge/src/cpu_gpu_scorecard_separation_runtime.py",
+    "noemaforge/src/model_scorecards.py",
+    "noemaforge/src/role_tournament.py",
+    "noemaforge/tests/test_cpu_gpu_scorecard_separation_runtime.py",
+    "noemaforge/tests/test_cpu_gpu_scorecard_separation_qa.py",
+    "noemaforge/tests/test_cpu_gpu_scorecard_separation_performance.py",
+    "prelaunch/governance/cpu_gpu_scorecard_separation.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "SelfTestTelemetryPolicy",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "thresholds": {
     "duration_warn_pct": 0.25,
     "duration_fail_pct": 0.5,
@@ -22,3 +22,4 @@
     "requires_admin_approval": true
   }
 }
+

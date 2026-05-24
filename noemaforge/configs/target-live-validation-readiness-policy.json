@@ -1,0 +1,160 @@
+{
+  "apiVersion": "noemaforge.target-live-validation-readiness/v1",
+  "kind": "TargetLiveValidationReadinessPolicy",
+  "id": "target-live-validation-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "nvidia_gdm_llm_live_evidence_readiness",
+    "completion_state": "blocked_until_target_machine_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Real NoemaForge live validation of NVIDIA/GDM/LLM services.",
+      "Add live target-machine smoke for gateway + `noemaforge-llama@main`.",
+      "Run live ToolProxy socket + `llm.chat` smoke on NoemaForge with `noemaforge toolproxy smoke --live-llm`."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required_for_llm_start": true,
+      "heavy_llm_manual_only": true,
+      "evidence_archive_required": true,
+      "redact_secrets": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "trixie-preflight",
+        "title": "Trixie preflight JSON",
+        "live_target_required": true,
+        "requires_operator_approval": false,
+        "commands": ["sudo noemaforge trixie-preflight --json"],
+        "evidence": ["preflight_json", "distro", "kernel", "secure_boot", "nvidia_driver", "missing_dependencies"],
+        "completion_gates": ["json_parse_ok", "no_unresolved_blockers", "evidence_file_archived"]
+      },
+      {
+        "id": "display-manager-gdm",
+        "title": "Display manager and GDM health",
+        "live_target_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-active display-manager.service",
+          "systemctl is-active gdm.service",
+          "systemctl status display-manager.service --no-pager -l"
+        ],
+        "evidence": ["display_manager_state", "gdm_state", "graphical_target_state"],
+        "completion_gates": ["display_manager_active_or_documented_alias", "no_run_nologin_block", "evidence_file_archived"]
+      },
+      {
+        "id": "nvidia-gpu",
+        "title": "NVIDIA GPU driver and device signal",
+        "live_target_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader",
+          "nvidia-smi -L"
+        ],
+        "evidence": ["gpu_name", "driver_version", "memory_total", "nvidia_smi_exit_code"],
+        "completion_gates": ["nvidia_smi_ok_or_driver_blocker_recorded", "no_secure_boot_module_blocker", "evidence_file_archived"]
+      },
+      {
+        "id": "gateway-socket",
+        "title": "Gateway service and socket smoke",
+        "live_target_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-active noemaforge-llm-gateway.service",
+          "ss -xlpn | grep -E '/run/(brainos|noemaforge)/llm/gateway.sock' || true"
+        ],
+        "evidence": ["gateway_service_state", "gateway_socket_path", "gateway_socket_owner"],
+        "completion_gates": ["gateway_service_active", "gateway_socket_present", "evidence_file_archived"]
+      },
+      {
+        "id": "main-llm-manual-smoke",
+        "title": "Manual main LLM backend smoke",
+        "live_target_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo systemctl stop noemaforge-llama@main.service 2>/dev/null || true",
+          "sudo rm -f /run/noemaforge/llm/backends/main.sock",
+          "sudo systemctl start noemaforge-llama@main.service",
+          "find /run/noemaforge/llm/backends -maxdepth 1 -type s -ls 2>/dev/null || true",
+          "sudo systemctl stop noemaforge-llama@main.service 2>/dev/null || true"
+        ],
+        "evidence": ["main_backend_socket", "manual_start_exit_code", "manual_stop_exit_code", "backend_runtime_log_excerpt"],
+        "completion_gates": ["operator_approval_recorded", "backend_socket_present_after_start", "backend_stopped_after_smoke", "evidence_file_archived"]
+      },
+      {
+        "id": "toolproxy-live-llm-smoke",
+        "title": "ToolProxy live LLM smoke",
+        "live_target_required": true,
+        "requires_operator_approval": true,
+        "commands": ["noemaforge toolproxy smoke --live-llm"],
+        "evidence": ["toolproxy_smoke_json", "capability_token_redacted", "llm_chat_result", "toolproxy_socket_state"],
+        "completion_gates": ["operator_approval_recorded", "token_secret_redacted", "smoke_ok_or_blocker_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "gui-rescue-recovery",
+        "title": "GUI recovery path",
+        "live_target_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge pause --wait",
+          "sudo noemaforge gui-rescue --wait",
+          "systemctl is-active display-manager.service"
+        ],
+        "evidence": ["pause_result", "gui_rescue_result", "post_rescue_display_manager_state"],
+        "completion_gates": ["operator_approval_recorded", "display_manager_active_after_rescue", "evidence_file_archived"]
+      },
+      {
+        "id": "evidence-archive",
+        "title": "Target evidence archive",
+        "live_target_required": true,
+        "requires_operator_approval": false,
+        "commands": ["noemaforge forensics --include-live-validation"],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "validation_transcript", "redaction_manifest"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "readiness_summary",
+      "blocked_completion_notice",
+      "target_command_manifest",
+      "evidence_requirements",
+      "manual_llm_approval_gate",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/target-live-validation-readiness-policy.json",
+      "noemaforge/contracts/target_live_validation_readiness.schema.json",
+      "noemaforge/src/target_live_validation_readiness_runtime.py",
+      "prelaunch/governance/target_live_validation_readiness.example.json",
+      "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/target-live-validation-readiness-policy.json",
+    "noemaforge/contracts/target_live_validation_readiness.schema.json",
+    "noemaforge/src/target_live_validation_readiness_runtime.py",
+    "noemaforge/tests/test_target_live_validation_readiness_runtime.py",
+    "noemaforge/tests/test_target_live_validation_readiness_qa.py",
+    "noemaforge/tests/test_target_live_validation_readiness_performance.py",
+    "prelaunch/governance/target_live_validation_readiness.example.json",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

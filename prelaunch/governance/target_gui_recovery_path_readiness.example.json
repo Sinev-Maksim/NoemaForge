@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.target-gui-recovery-path-readiness/v1",
+  "kind": "TargetGuiRecoveryPathReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-target-gui-recovery-path-evidence-readiness",
+      "trace_id": "trace:patched10:target-gui-recovery-path",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "display-baseline",
+        "pause-command-capture",
+        "gui-rescue-command-capture",
+        "recovery-state-verification",
+        "gui-recovery-archive",
+        "operator-inspection-followup"
+      ],
+      "expected_outputs": [
+        "target_gui_recovery_summary",
+        "blocked_completion_notice",
+        "target_gui_recovery_command_manifest",
+        "evidence_requirements",
+        "inspection_followup_manifest",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

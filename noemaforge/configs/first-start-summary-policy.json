@@ -1,0 +1,51 @@
+{
+  "apiVersion": "noemaforge.first-start-summary/v1",
+  "kind": "FirstStartSummaryPolicy",
+  "id": "first-start-summary-output-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "grouped_run_summary",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_runtime_ref": "src/first_start_summary.py",
+    "run_grouping": {
+      "group_by_start_step": true,
+      "latest_defaults_to_last_run": true,
+      "all_includes_every_run": true,
+      "timeline_uses_latest_run": true
+    },
+    "required_markers": ["PASS", "WARN", "FAIL"],
+    "required_sections": ["Latest run", "Timeline", "Staffing", "Final"],
+    "state_marker_map": {
+      "complete": "PASS",
+      "selection_ready_no_apply": "PASS",
+      "degraded_selected": "WARN",
+      "warning": "WARN",
+      "blocked_no_models": "FAIL",
+      "failed": "FAIL"
+    },
+    "required_example_sets": [
+      "prelaunch/governance/first_start_summary.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/first-start-summary-policy.json",
+    "noemaforge/contracts/first_start_summary.schema.json",
+    "noemaforge/src/first_start_summary.py",
+    "noemaforge/src/first_start_summary_contract_runtime.py",
+    "noemaforge/tests/test_first_start_summary_contract_runtime.py",
+    "noemaforge/tests/test_first_start_summary_contract_qa.py",
+    "noemaforge/tests/test_first_start_summary_contract_performance.py",
+    "prelaunch/governance/first_start_summary.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

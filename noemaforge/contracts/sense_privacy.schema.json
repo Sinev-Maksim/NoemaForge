@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/sense_privacy.schema.json",
+  "title": "SensePrivacyPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.sense-privacy/v1"
+    },
+    "kind": {
+      "const": "SensePrivacyPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_coarse_host_metrics",
+        "require_privacy_filter_before_persistence",
+        "forbid_raw_process_metadata",
+        "forbid_raw_paths",
+        "forbid_raw_usernames",
+        "forbid_raw_environment",
+        "forbid_raw_command_lines",
+        "local_only_default",
+        "allowed_metric_groups",
+        "required_metric_groups",
+        "allowed_pressure_levels",
+        "forbidden_keys",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_coarse_host_metrics": {
+          "const": true
+        },
+        "require_privacy_filter_before_persistence": {
+          "const": true
+        },
+        "forbid_raw_process_metadata": {
+          "const": true
+        },
+        "forbid_raw_paths": {
+          "const": true
+        },
+        "forbid_raw_usernames": {
+          "const": true
+        },
+        "forbid_raw_environment": {
+          "const": true
+        },
+        "forbid_raw_command_lines": {
+          "const": true
+        },
+        "local_only_default": {
+          "const": true
+        },
+        "allowed_metric_groups": {
+          "type": "array",
+          "items": {
+            "enum": ["cpu", "memory", "disk", "network", "load", "runtime"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_metric_groups": {
+          "type": "array",
+          "items": {
+            "enum": ["cpu", "memory", "disk", "network", "load"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_pressure_levels": {
+          "type": "array",
+          "items": {
+            "enum": ["unknown", "low", "medium", "high", "critical"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "forbidden_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

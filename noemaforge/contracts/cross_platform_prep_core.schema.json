@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/cross_platform_prep_core.schema.json",
+  "title": "NoemaForge Cross-Platform Prep Core Contract",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.cross-platform-prep/v1"},
+    "kind": {"const": "CrossPlatformPrepCorePolicy"},
+    "id": {"const": "cross-platform-prep-core"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_pipeline_ref",
+        "python_core_ref",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_no_windows_dependency",
+        "boundary_phrase",
+        "required_core_commands",
+        "required_python_surfaces",
+        "required_windows_wrappers",
+        "required_shell_wrappers",
+        "required_capabilities",
+        "required_boundary_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "python_prep_core_source_of_truth"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "python_core_ref": {"const": "tools/prep/noemaforge_prep_core.py"},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_windows_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 40},
+        "required_core_commands": {"type": "array", "minItems": 6, "items": {"type": "string"}},
+        "required_python_surfaces": {"type": "array", "minItems": 4, "items": {"type": "string"}},
+        "required_windows_wrappers": {"type": "array", "minItems": 7, "items": {"type": "string"}},
+        "required_shell_wrappers": {"type": "array", "minItems": 4, "items": {"type": "string"}},
+        "required_capabilities": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+        "required_boundary_refs": {"type": "array", "minItems": 4, "items": {"type": "string"}},
+        "required_example_sets": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "refs": {"type": "array", "minItems": 12, "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

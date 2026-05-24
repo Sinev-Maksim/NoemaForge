@@ -1,0 +1,133 @@
+{
+  "apiVersion": "noemaforge.hypergraph-first-administrator/v1",
+  "kind": "HypergraphFirstAdministratorPolicy",
+  "id": "hypergraph-first-administrator-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "administrator_queries_hypergraph_first",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Hypergraph-first Administrator answers query the hypergraph before any fallback: supported answers start from graph claim origins, include graph-backed citations, and only use docs/RAG fallback after an explicit graph miss.",
+    "grounded_administrator_policy_ref": "configs/grounded-administrator-policy.json",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "grounded_answer_runtime_ref": "src/knowledge/grounded_administrator.py",
+    "administrator_contract_runtime_ref": "src/grounded_administrator_runtime.py",
+    "required_algorithms": [
+      "graph_claim_origin_scan",
+      "hypergraph_first_retrieval_order",
+      "provenance_required_for_claims",
+      "graph_backed_citations",
+      "fallback_after_graph_miss",
+      "trace_records_graph_first"
+    ],
+    "retrieval_order": [
+      "hypergraph_claim_origins",
+      "hypergraph_claims",
+      "graph_neighbors",
+      "docs_rag_after_graph_miss",
+      "knowledge_gap_notice"
+    ],
+    "required_citation_fields": [
+      "claim_id",
+      "human_address",
+      "score"
+    ],
+    "required_trace_fields": [
+      "trace_id",
+      "first_retrieval_surface",
+      "graph_claim_origin_count",
+      "fallback_allowed"
+    ],
+    "required_static_tokens": {
+      "src/knowledge/grounded_administrator.py": [
+        "collect_grounded_claims",
+        "prep_store.list_claim_origins",
+        "store.get_claim",
+        "'mode': 'grounded_answer'",
+        "'citations': citations",
+        "'mode': 'knowledge_gap_notice'"
+      ],
+      "src/grounded_administrator_runtime.py": [
+        "policy_retrieval_order_not_hypergraph_first",
+        "admin_defaults_to_hypergraph",
+        "claims_require_provenance",
+        "graph_gap_emits_unknown",
+        "no_improvised_answer_on_gap"
+      ],
+      "manifests/functional/knowledge.hypergraph.yaml": [
+        "knowledge.hypergraph",
+        "retrieve grounded claims and provenance",
+        "grounded answers cite graph-backed provenance"
+      ]
+    },
+    "controls": {
+      "hypergraph_is_first_surface": true,
+      "claim_origins_checked_before_answer": true,
+      "supported_answers_require_graph_citations": true,
+      "docs_rag_fallback_requires_graph_miss": true,
+      "no_fallback_before_graph_miss": true,
+      "trace_records_first_surface": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "grounded_answer",
+      "citations",
+      "graph_provenance",
+      "retrieval_trace",
+      "fallback_allowed",
+      "knowledge_gap_notice"
+    ],
+    "blocked_answer_claims": [
+      "answer before querying hypergraph",
+      "use docs fallback before graph miss",
+      "return supported answer without graph citation",
+      "hide first retrieval surface"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/hypergraph_first_administrator.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/hypergraph-first-administrator-policy.json",
+    "noemaforge/contracts/hypergraph_first_administrator.schema.json",
+    "noemaforge/configs/grounded-administrator-policy.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/hypergraph_first_administrator_runtime.py",
+    "noemaforge/src/knowledge/grounded_administrator.py",
+    "noemaforge/src/grounded_administrator_runtime.py",
+    "noemaforge/tests/test_hypergraph_first_administrator_runtime.py",
+    "noemaforge/tests/test_hypergraph_first_administrator_qa.py",
+    "noemaforge/tests/test_hypergraph_first_administrator_performance.py",
+    "prelaunch/governance/hypergraph_first_administrator.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

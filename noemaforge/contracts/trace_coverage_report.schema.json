@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trace_coverage_report.schema.json",
+  "title": "TraceCoverageReport",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "ok",
+    "created_at",
+    "metrics",
+    "failures",
+    "surfaces"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.production-ai/v1"
+    },
+    "kind": {
+      "const": "TraceCoverageReport"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "project_root": {
+      "type": "string"
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "surface_total",
+        "surface_passed",
+        "surface_failed"
+      ],
+      "properties": {
+        "surface_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "surface_passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "surface_failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "surfaces": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "ok",
+          "path",
+          "missing_needles",
+          "present_needles"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "path": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "missing_needles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "present_needles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,51 @@
+{
+  "apiVersion": "noemaforge.selftest-event-store/v1",
+  "kind": "SelfTestEventStorePolicy",
+  "id": "selftest-event-store-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "sqlite_canonical_test_events",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_selftest_commands": ["events ingest", "events export"],
+    "required_tables": ["selftest_test_events"],
+    "required_event_types": ["selftest.run.summary", "selftest.case.result"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/selftest_runtime.py",
+      "contract_runtime": "src/selftest_event_store_runtime.py"
+    },
+    "controls": {
+      "sqlite_event_table_required": true,
+      "deterministic_event_ids": true,
+      "run_summary_events": true,
+      "case_result_events": true,
+      "json_export": true,
+      "report_ingest": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/selftest_event_store.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/selftest-event-store-policy.json",
+    "noemaforge/contracts/selftest_event_store.schema.json",
+    "noemaforge/src/selftest_runtime.py",
+    "noemaforge/src/selftest_event_store_runtime.py",
+    "noemaforge/tests/test_selftest_event_store_runtime.py",
+    "noemaforge/tests/test_selftest_event_store_qa.py",
+    "noemaforge/tests/test_selftest_event_store_performance.py",
+    "prelaunch/governance/selftest_event_store.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

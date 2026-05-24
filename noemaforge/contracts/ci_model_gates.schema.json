@@ -1,0 +1,214 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/ci_model_gates.schema.json",
+  "title": "CIModelGatesPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "gates", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.ci-model-gates/v1"
+    },
+    "kind": {
+      "const": "CIModelGatesPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_release_evidence",
+        "require_accuracy_regression",
+        "require_latency_budget",
+        "require_memory_budget",
+        "require_schema_compatibility",
+        "require_signature",
+        "require_golden_replay_for_edge",
+        "evidence_filename",
+        "allowed_runtimes",
+        "allowed_signature_schemes",
+        "required_checks",
+        "edge_required_checks"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_validation"
+        },
+        "require_release_evidence": {
+          "const": true
+        },
+        "require_accuracy_regression": {
+          "const": true
+        },
+        "require_latency_budget": {
+          "const": true
+        },
+        "require_memory_budget": {
+          "const": true
+        },
+        "require_schema_compatibility": {
+          "const": true
+        },
+        "require_signature": {
+          "const": true
+        },
+        "require_golden_replay_for_edge": {
+          "const": true
+        },
+        "evidence_filename": {
+          "const": "release_evidence.json"
+        },
+        "allowed_runtimes": {
+          "type": "array",
+          "items": {
+            "enum": ["onnx", "tflm", "llama.cpp", "python", "mock"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_signature_schemes": {
+          "type": "array",
+          "items": {
+            "enum": ["sha256-selftest", "cosign", "minisign", "pgp"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "enum": ["accuracy_regression", "latency", "memory", "schema_compatibility", "signature"]
+          },
+          "minItems": 5,
+          "uniqueItems": true
+        },
+        "edge_required_checks": {
+          "type": "array",
+          "items": {
+            "const": "golden_replay"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "target_type",
+          "model_ref",
+          "runtime",
+          "budgets",
+          "manifest",
+          "release_evidence_ref",
+          "release_evidence",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["draft", "shadow", "canary", "stable", "retired"]
+          },
+          "target_type": {
+            "enum": ["edge", "gateway", "local_model"]
+          },
+          "model_ref": {
+            "type": "string"
+          },
+          "runtime": {
+            "enum": ["onnx", "tflm", "llama.cpp", "python", "mock"]
+          },
+          "budgets": {
+            "type": "object",
+            "required": ["max_p95_latency_ms", "max_peak_memory_mb", "max_artifact_bytes", "max_accuracy_regression"],
+            "properties": {
+              "max_p95_latency_ms": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "max_peak_memory_mb": {
+                "type": "number",
+                "exclusiveMinimum": 0
+              },
+              "max_artifact_bytes": {
+                "type": "integer",
+                "exclusiveMinimum": 0
+              },
+              "max_accuracy_regression": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "manifest": {
+            "type": "object",
+            "required": ["artifact_uri", "sha256", "signature", "signature_scheme", "input_contract", "output_contract"],
+            "properties": {
+              "artifact_uri": {
+                "type": "string"
+              },
+              "sha256": {
+                "type": "string"
+              },
+              "signature": {
+                "type": "string"
+              },
+              "signature_scheme": {
+                "enum": ["sha256-selftest", "cosign", "minisign", "pgp"]
+              },
+              "input_contract": {
+                "type": "string"
+              },
+              "output_contract": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "release_evidence_ref": {
+            "type": "string"
+          },
+          "release_evidence": {
+            "type": "object"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

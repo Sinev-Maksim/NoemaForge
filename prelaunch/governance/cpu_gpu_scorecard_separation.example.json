@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.cpu-gpu-scorecard-separation/v1",
+  "kind": "CpuGpuScorecardSeparationExampleSet",
+  "id": "cpu-gpu-scorecard-separation-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "cpu-scorecard-path",
+      "trace_id": "trace:cpu-gpu-scorecard-separation:cpu",
+      "model_id": "qwen2.5-3b",
+      "stream_id": "operator.admin",
+      "role": "administrator",
+      "capability": "llm",
+      "runtime_device": "cpu",
+      "expected_path_suffix": "model_scorecards/cpu/qwen2.5-3b/operator.admin__administrator__llm.json"
+    },
+    {
+      "id": "gpu-scorecard-path",
+      "trace_id": "trace:cpu-gpu-scorecard-separation:gpu",
+      "model_id": "qwen2.5-14b",
+      "stream_id": "research.deep",
+      "role": "researcher",
+      "capability": "llm",
+      "runtime_device": "cuda",
+      "expected_path_suffix": "model_scorecards/gpu/qwen2.5-14b/research.deep__researcher__llm.json"
+    }
+  ]
+}

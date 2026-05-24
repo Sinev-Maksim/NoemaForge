@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/knowledge/gatekeeper.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -53,6 +53,10 @@ import sqlite3
 from typing import Any, Dict, List, Tuple
 
 from .store import KnowledgeStore
+
+
+AUTO_PUBLISH_MIN_CONFIDENCE = 0.85
+ALLOWED_CONFLICT_STATUSES = {"A_true", "B_true", "Unresolved"}
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -155,6 +159,12 @@ def check_claim(row: Dict[str, Any]) -> List[Dict[str, Any]]:
         v.append({"code": "claim_no_passage", "severity": "critical"})
     if not str(row.get("text_normalized") or "").strip():
         v.append({"code": "claim_missing_text", "severity": "warning"})
+    try:
+        confidence = float(row.get("confidence") or 0.0)
+    except Exception:
+        confidence = 0.0
+    if confidence < AUTO_PUBLISH_MIN_CONFIDENCE:
+        v.append({"code": "claim_confidence_below_auto_publish", "severity": "warning", "min_confidence": AUTO_PUBLISH_MIN_CONFIDENCE})
     # Realm context is allowed to be empty for now (some sources are realm-less).
     return v
 
@@ -176,11 +186,17 @@ def check_claim(row: Dict[str, Any]) -> List[Dict[str, Any]]:
 # === End NoemaForge Autodoc Function Header ===
 def check_conflict(row: Dict[str, Any]) -> List[Dict[str, Any]]:
     v: List[Dict[str, Any]] = []
+    if not str(row.get("entity_a") or "").strip() or not str(row.get("entity_b") or "").strip():
+        v.append({"code": "conflict_missing_entities", "severity": "critical"})
     st = str(row.get("status") or "").strip()
-    if st and st not in ("A_true", "B_true", "Unresolved"):
+    if st and st not in ALLOWED_CONFLICT_STATUSES:
         v.append({"code": "conflict_bad_status", "severity": "warning", "value": st})
     rc = str(row.get("realm_context_json") or "").strip()
-    if not rc:
+    try:
+        realm_context = json.loads(rc or "{}")
+    except Exception:
+        realm_context = {}
+    if not realm_context:
         v.append({"code": "conflict_missing_realm", "severity": "critical"})
     return v
 
@@ -286,7 +302,7 @@ def run_gatekeeper(
 
     # Conflicts
     cur.execute(
-        "SELECT conflict_id, entity_a_json, entity_b_json, incompatibility_type, realm_context_json, status, confidence, created_at FROM conflicts ORDER BY created_at DESC LIMIT ?",
+        "SELECT conflict_id, entity_a, entity_b, incompatibility_type, realm_context_json, status, confidence, created_at FROM conflicts ORDER BY created_at DESC LIMIT ?",
         (int(limit_each),),
     )
     for r in cur.fetchall():

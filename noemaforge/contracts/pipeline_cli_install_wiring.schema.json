@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.pipeline_cli_install_wiring.schema.json",
+  "title": "NoemaForge Pipeline CLI Install Wiring",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.pipeline-cli-install-wiring/v1" },
+    "kind": { "const": "PipelineCliInstallWiringPolicy" },
+    "id": { "const": "pipeline-cli-install-wiring-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_public_entrypoint",
+        "canonical_cli_target",
+        "required_scripts",
+        "required_install_symlinks",
+        "required_pipeline_commands",
+        "controls",
+        "summary_fields"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "pipeline_cli_installer_wiring_contract" },
+        "required_public_entrypoint": { "const": "/usr/local/bin/noemaforge" },
+        "canonical_cli_target": { "const": "/opt/noemaforge/bin/noemaforge" },
+        "required_scripts": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["id", "ref", "role"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "ref": { "type": "string", "minLength": 1 },
+              "role": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "required_install_symlinks": {
+          "type": "array",
+          "minItems": 1,
+          "contains": {
+            "type": "object",
+            "required": ["public_path", "target_path"],
+            "properties": {
+              "public_path": { "const": "/usr/local/bin/noemaforge" },
+              "target_path": { "const": "/opt/noemaforge/bin/noemaforge" }
+            }
+          }
+        },
+        "required_pipeline_commands": {
+          "type": "array",
+          "contains": { "const": "executor-step" }
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "copy_payload_before_symlink",
+            "public_cli_symlink_required",
+            "dry_run_prints_link_without_writing",
+            "setup_selftest_checks_cli",
+            "cli_self_resolves_to_canonical_root",
+            "no_public_wrapper_as_canonical_self",
+            "pipeline_runtime_dispatch_required",
+            "no_live_install_execution",
+            "docs_changelog_trace_required"
+          ],
+          "properties": {
+            "copy_payload_before_symlink": { "const": true },
+            "public_cli_symlink_required": { "const": true },
+            "dry_run_prints_link_without_writing": { "const": true },
+            "setup_selftest_checks_cli": { "const": true },
+            "cli_self_resolves_to_canonical_root": { "const": true },
+            "no_public_wrapper_as_canonical_self": { "const": true },
+            "pipeline_runtime_dispatch_required": { "const": true },
+            "no_live_install_execution": { "const": true },
+            "docs_changelog_trace_required": { "const": true }
+          }
+        },
+        "summary_fields": {
+          "type": "array",
+          "contains": { "const": "public_symlink_count" }
+        }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

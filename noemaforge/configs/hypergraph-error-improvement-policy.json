@@ -1,0 +1,89 @@
+{
+  "apiVersion": "noemaforge.hypergraph-error-improvement/v1",
+  "kind": "HypergraphErrorImprovementPolicy",
+  "id": "hypergraph-error-improvement-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "reviewed_hypergraph_errors_feed_training_and_eval",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "sql_schema_ref": "sql/error_learning_loop.sqlite.sql",
+    "store_adapter_ref": "src/knowledge/error_learning.py",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Hypergraph error improvement boundary: Error learning stores error_events, corrections and regression_cases, separates source defects from labeling/chunking/extraction/linking defects, reuses approved corrections for retraining and evaluation, and records the model, run and profile that produced each error.",
+    "required_stores": ["error_events", "corrections", "regression_cases"],
+    "required_run_fields": ["run_id", "component", "model_id", "profile_id"],
+    "required_defect_classes": [
+      "source_defect",
+      "labeling_defect",
+      "chunking_defect",
+      "extraction_defect",
+      "linking_defect"
+    ],
+    "approved_reuse_targets": ["retraining", "evaluation"],
+    "controls": {
+      "error_events_store_required": true,
+      "corrections_store_required": true,
+      "regression_cases_store_required": true,
+      "source_defects_separated": true,
+      "pipeline_defects_classified": true,
+      "approved_corrections_reused_for_training": true,
+      "approved_corrections_reused_for_evaluation": true,
+      "model_run_profile_tracking_required": true,
+      "no_live_host_required": true
+    },
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_runtime_refs": [
+      "src/knowledge/error_learning.py",
+      "sql/error_learning_loop.sqlite.sql",
+      "src/knowledge/eval_runtime.py",
+      "src/knowledge/extraction_pipeline.py",
+      "src/knowledge/prep_pipeline.py",
+      "tests/test_error_learning_runtime.py"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/hypergraph_error_improvement.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/hypergraph-error-improvement-policy.json",
+    "noemaforge/contracts/hypergraph_error_improvement.schema.json",
+    "noemaforge/sql/error_learning_loop.sqlite.sql",
+    "noemaforge/src/hypergraph_error_improvement_runtime.py",
+    "noemaforge/src/knowledge/error_learning.py",
+    "noemaforge/src/knowledge/eval_runtime.py",
+    "noemaforge/src/knowledge/extraction_pipeline.py",
+    "noemaforge/src/knowledge/prep_pipeline.py",
+    "noemaforge/tests/test_error_learning_runtime.py",
+    "noemaforge/tests/test_hypergraph_error_improvement_runtime.py",
+    "noemaforge/tests/test_hypergraph_error_improvement_qa.py",
+    "noemaforge/tests/test_hypergraph_error_improvement_performance.py",
+    "prelaunch/governance/hypergraph_error_improvement.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

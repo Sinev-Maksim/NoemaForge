@@ -131,7 +131,7 @@ def answer_query(
             'grounded': False,
             'answer': 'Local grounded knowledge does not currently contain a supported answer for this question.',
             'citations': [],
-            'followup': ['Ingest a relevant source or ask for a narrower scope.'],
+            'followup': ['Ingest a relevant source or ask for a narrower scope.', 'Propose research to add graph-backed evidence.'],
         }
     citations = []
     pieces: List[str] = []

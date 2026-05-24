@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/knowledge_core_relations.schema.json",
+  "title": "NoemaForge Knowledge Core Relations Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.knowledge-core-relations/v1"},
+    "kind": {"const": "KnowledgeCoreRelationsPolicy"},
+    "id": {"const": "knowledge-core-relations-gates-core"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": ["mode", "activation_state", "required_pipeline_ref", "knowledge_manifest_ref", "knowledge_policy_ref", "gatekeeper_ref", "store_ref", "boundary_phrase", "frozen_object_types", "required_relations", "publication_gate_object_kinds", "publication_decisions", "required_gate_codes", "required_boundary_refs", "required_example_sets"],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "canonical_relation_gate_freeze"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "knowledge_manifest_ref": {"type": "string"},
+        "knowledge_policy_ref": {"type": "string"},
+        "gatekeeper_ref": {"type": "string"},
+        "store_ref": {"type": "string"},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_live_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 80},
+        "frozen_object_types": {"type": "array", "minItems": 10, "items": {"type": "string"}},
+        "required_relations": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+        "publication_gate_object_kinds": {"type": "array", "minItems": 4, "items": {"type": "string"}},
+        "publication_decisions": {"type": "array", "minItems": 3, "items": {"type": "string"}},
+        "required_gate_codes": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+        "required_boundary_refs": {"type": "array", "minItems": 8, "items": {"type": "string"}},
+        "required_example_sets": {"type": "array", "minItems": 1, "items": {"type": "string"}}
+      },
+      "additionalProperties": true
+    },
+    "refs": {"type": "array", "minItems": 16, "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

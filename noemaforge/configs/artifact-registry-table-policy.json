@@ -1,0 +1,103 @@
+{
+  "apiVersion": "noemaforge.artifact-registry-table/v1",
+  "kind": "ArtifactRegistryTablePolicy",
+  "id": "artifact-registry-table-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "artifact_registry_table_contract",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "closed_todo_refs": [
+      "Add artifact registry table for outputs/reviews/graph patches."
+    ],
+    "required_tables": [
+      "outputs",
+      "reviews",
+      "graph_patches"
+    ],
+    "required_columns": [
+      "artifact_id",
+      "table",
+      "artifact_type",
+      "path",
+      "sha256",
+      "trace_id",
+      "producer",
+      "review_state",
+      "graph_patch_ref",
+      "created_at"
+    ],
+    "allowed_artifact_types": [
+      "pipeline_output",
+      "review_record",
+      "graph_patch",
+      "provenance_bundle",
+      "metrics_summary",
+      "wiki_patch_bundle"
+    ],
+    "allowed_review_states": [
+      "not_required",
+      "pending",
+      "approved",
+      "rejected",
+      "blocked"
+    ],
+    "controls": {
+      "sha256_required": true,
+      "relative_paths_only": true,
+      "trace_id_required": true,
+      "review_rows_require_reviewer": true,
+      "graph_patch_rows_require_graph_patch_ref": true,
+      "no_live_filesystem_mutation": true,
+      "docs_changelog_trace_required": true
+    },
+    "summary_fields": [
+      "record_count",
+      "table_counts",
+      "review_state_counts",
+      "graph_patch_records",
+      "hashed_records"
+    ],
+    "required_outputs": [
+      "artifact_registry_table_summary",
+      "artifact_registry_records",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/artifact-registry-table-policy.json",
+      "noemaforge/contracts/artifact_registry_table.schema.json",
+      "noemaforge/src/artifact_registry_table_runtime.py",
+      "prelaunch/governance/artifact_registry_table.example.json",
+      "noemaforge/src/artifact_card_affordance_runtime.py",
+      "noemaforge/src/graph_patch_provenance_runtime.py",
+      "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/artifact-registry-table-policy.json",
+    "noemaforge/contracts/artifact_registry_table.schema.json",
+    "noemaforge/src/artifact_registry_table_runtime.py",
+    "noemaforge/tests/test_artifact_registry_table_runtime.py",
+    "noemaforge/tests/test_artifact_registry_table_qa.py",
+    "noemaforge/tests/test_artifact_registry_table_performance.py",
+    "prelaunch/governance/artifact_registry_table.example.json",
+    "noemaforge/src/artifact_card_affordance_runtime.py",
+    "noemaforge/src/graph_patch_provenance_runtime.py",
+    "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

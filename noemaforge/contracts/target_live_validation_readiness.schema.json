@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.target-live-validation-readiness.schema.json",
+  "title": "NoemaForge Target Live Validation Readiness Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.target-live-validation-readiness/v1" },
+    "kind": { "const": "TargetLiveValidationReadinessPolicy" },
+    "id": { "const": "target-live-validation-readiness-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "completion_state",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_no_live_execution",
+        "blocked_todo_refs",
+        "required_safety_controls",
+        "required_checks",
+        "required_outputs",
+        "required_refs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "nvidia_gdm_llm_live_evidence_readiness" },
+        "completion_state": { "const": "blocked_until_target_machine_evidence" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_execution": { "const": true },
+        "blocked_todo_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "required_safety_controls": {
+          "type": "object",
+          "additionalProperties": { "type": "boolean" }
+        },
+        "required_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "live_target_required", "requires_operator_approval", "commands", "evidence", "completion_gates"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+              "title": { "type": "string", "minLength": 1 },
+              "live_target_required": { "const": true },
+              "requires_operator_approval": { "type": "boolean" },
+              "commands": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+              "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+              "completion_gates": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
+        "required_outputs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "required_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

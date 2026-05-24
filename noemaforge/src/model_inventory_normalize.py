@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_inventory_normalize.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -112,6 +112,88 @@ def paths_from_report(obj: Any) -> list[str]:
             elif isinstance(item, dict) and item.get("path"):
                 out.append(str(item["path"]))
     return out
+
+
+def _record_path(record: dict[str, Any]) -> str:
+    for key in ("source_path", "canonical_path", "artifact_path", "path", "head", "canonical"):
+        value = str(record.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def normalize_inventory_models(inventory: dict[str, Any], *, require_complete: bool = False) -> dict[str, Any]:
+    """Filter inventory model records through the canonical GGUF normalizer.
+
+    Firstboot scoring consumes rich inventory records, not just path lists. This
+    helper keeps the original records and metadata, but removes non-head shard
+    records before they can reach eligibility, scoring, ModelStore staging or
+    scorecard proposal code.
+    """
+    models_in = inventory.get("models") if isinstance(inventory, dict) else []
+    models = [dict(m) for m in models_in if isinstance(m, dict)]
+    gguf_paths = [
+        _record_path(m)
+        for m in models
+        if _record_path(m).lower().endswith(".gguf")
+    ]
+    normalized = normalize_paths(gguf_paths, require_complete=require_complete)
+    accepted_by_path = {str(item.get("path") or ""): item for item in normalized.get("candidates", []) if item.get("path")}
+    rejected_by_path = {str(item.get("path") or ""): item for item in normalized.get("rejected", []) if item.get("path")}
+
+    kept: list[dict[str, Any]] = []
+    rejected_models: list[dict[str, Any]] = []
+    for model in models:
+        path = _record_path(model)
+        if not path.lower().endswith(".gguf"):
+            kept.append(model)
+            continue
+        accepted = accepted_by_path.get(path)
+        if not accepted:
+            rejected = rejected_by_path.get(path) or {}
+            rejected_models.append({
+                "model_id": model.get("model_id"),
+                "path": path,
+                "reason": rejected.get("reason") or "not_accepted_by_normalizer",
+                "normalizer": rejected,
+            })
+            continue
+        rec = dict(model)
+        rec.setdefault("source_path", path)
+        rec["normalization"] = {
+            "applied": True,
+            "reason": accepted.get("reason"),
+            "sharded": bool(accepted.get("sharded")),
+            "shard_index": accepted.get("shard_index"),
+            "shard_count": accepted.get("shard_count"),
+            "complete_shard_set": accepted.get("complete_shard_set"),
+        }
+        kept.append(rec)
+
+    doc = dict(inventory)
+    summary = dict(doc.get("summary") or {})
+    summary.update({
+        "normalizer_applied": True,
+        "normalizer_input_models": len(models),
+        "normalizer_kept_models": len(kept),
+        "normalizer_rejected_models": len(rejected_models),
+    })
+    doc["summary"] = summary
+    doc["models"] = kept
+    doc["normalization"] = {
+        "apiVersion": "noemaforge.modelinventorynormalization/v1",
+        "kind": "ModelInventoryNormalization",
+        "applied_to": "firstboot_scoring_inventory",
+        "require_complete": bool(require_complete),
+        "candidate_count": len(kept),
+        "rejected_count": len(rejected_models),
+        "rejected_models": rejected_models,
+        "path_normalizer": {
+            "candidate_count": normalized.get("candidate_count"),
+            "rejected_count": normalized.get("rejected_count"),
+        },
+    }
+    return doc
 
 
 def main(argv: list[str] | None = None) -> int:

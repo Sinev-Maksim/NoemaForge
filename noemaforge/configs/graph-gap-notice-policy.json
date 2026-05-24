@@ -1,0 +1,128 @@
+{
+  "apiVersion": "noemaforge.graph-gap-notice/v1",
+  "kind": "GraphGapNoticePolicy",
+  "id": "graph-gap-notice-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "explicit_graph_miss_notice",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Graph-gap Administrator answers are explicit: when the hypergraph cannot answer, Administrator returns a knowledge_gap_notice, says local grounded knowledge cannot support the answer, proposes ingest or research next steps, and never improvises a supported claim.",
+    "grounded_administrator_policy_ref": "configs/grounded-administrator-policy.json",
+    "hypergraph_first_policy_ref": "configs/hypergraph-first-administrator-policy.json",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "grounded_answer_runtime_ref": "src/knowledge/grounded_administrator.py",
+    "required_algorithms": [
+      "graph_miss_detection",
+      "knowledge_gap_notice_mode",
+      "grounded_false_on_gap",
+      "empty_citations_on_gap",
+      "ingest_or_research_followup",
+      "no_improvised_supported_claim"
+    ],
+    "gap_order": [
+      "query_hypergraph",
+      "detect_zero_supported_claims",
+      "emit_knowledge_gap_notice",
+      "propose_ingest_or_research"
+    ],
+    "required_gap_followups": [
+      "ingest_relevant_source",
+      "ask_narrower_scope",
+      "propose_research"
+    ],
+    "required_static_tokens": {
+      "src/knowledge/grounded_administrator.py": [
+        "'mode': 'knowledge_gap_notice'",
+        "'grounded': False",
+        "Local grounded knowledge does not currently contain a supported answer",
+        "'citations': []",
+        "Ingest a relevant source",
+        "Propose research"
+      ],
+      "src/grounded_administrator_runtime.py": [
+        "graph_gap_emits_unknown",
+        "gap_followup_suggests_ingest_or_research",
+        "no_improvised_answer_on_gap",
+        "scenario_gap_answer_not_gap_notice",
+        "scenario_gap_followup_missing"
+      ],
+      "prelaunch/governance/grounded_administrator.example.json": [
+        "knowledge_gap_notice",
+        "ingest_relevant_source",
+        "propose_research",
+        "improvise when graph has no answer"
+      ]
+    },
+    "controls": {
+      "graph_miss_emits_gap_notice": true,
+      "gap_answer_grounded_false": true,
+      "citations_empty_on_gap": true,
+      "ingest_or_research_followup_required": true,
+      "no_improvised_supported_claim": true,
+      "fallback_trace_records_graph_miss": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "knowledge_gap_notice",
+      "grounded_false",
+      "citations_empty",
+      "followup",
+      "graph_miss_trace",
+      "blocked_improvisation"
+    ],
+    "blocked_answer_claims": [
+      "improvise when graph has no answer",
+      "return supported answer on graph miss",
+      "attach citations to unknown gap",
+      "omit ingest or research followup"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/graph_gap_notice.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/graph-gap-notice-policy.json",
+    "noemaforge/contracts/graph_gap_notice.schema.json",
+    "noemaforge/configs/grounded-administrator-policy.json",
+    "noemaforge/configs/hypergraph-first-administrator-policy.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/graph_gap_notice_runtime.py",
+    "noemaforge/src/knowledge/grounded_administrator.py",
+    "noemaforge/src/grounded_administrator_runtime.py",
+    "noemaforge/tests/test_graph_gap_notice_runtime.py",
+    "noemaforge/tests/test_graph_gap_notice_qa.py",
+    "noemaforge/tests/test_graph_gap_notice_performance.py",
+    "prelaunch/governance/graph_gap_notice.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

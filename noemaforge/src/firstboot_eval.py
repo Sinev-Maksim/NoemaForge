@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/firstboot_eval.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Coordinate first-start model inventory, tournament, staffing and epoch safety checks.
@@ -76,16 +76,35 @@ import time
 import uuid
 from typing import Any, Dict, List, Tuple
 
-import yaml
+try:
+    import yaml  # type: ignore
+except Exception:  # pragma: no cover
+    yaml = None  # type: ignore
 
-import model_registry
-import model_scorecards
-import model_installer_plan
+try:
+    import model_registry  # type: ignore
+except Exception:  # pragma: no cover
+    model_registry = None  # type: ignore
+
+try:
+    import model_scorecards  # type: ignore
+except Exception:  # pragma: no cover
+    model_scorecards = None  # type: ignore
+
+try:
+    import model_installer_plan  # type: ignore
+except Exception:  # pragma: no cover
+    model_installer_plan = None  # type: ignore
 
 try:
     import runtime_safety
 except Exception:  # pragma: no cover
     runtime_safety = None  # type: ignore
+
+try:
+    import model_inventory_normalize  # type: ignore
+except Exception:  # pragma: no cover
+    model_inventory_normalize = None  # type: ignore
 
 try:
     from seclog import append as sel_append
@@ -105,6 +124,36 @@ def _role_eval_dataset_candidates() -> List[str]:
     return [DEFAULT_ROLE_DATASETS, here]
 
 
+def _load_role_eval_surface_doc(path: str) -> Dict[str, Any]:
+    with open(path, "r", encoding="utf-8") as f:
+        text = f.read()
+    if yaml is not None:
+        loaded = yaml.safe_load(text) or {}
+        return loaded if isinstance(loaded, dict) else {}
+    roles: Dict[str, Dict[str, Any]] = {}
+    section = ""
+    current_role = ""
+    for raw in text.splitlines():
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        indent = len(raw) - len(raw.lstrip(" "))
+        line = raw.strip()
+        if indent == 0 and line.endswith(":"):
+            section = line[:-1]
+            current_role = ""
+            continue
+        if section != "roles":
+            continue
+        if indent == 2 and line.endswith(":"):
+            current_role = line[:-1]
+            roles[current_role] = {}
+            continue
+        if current_role and indent == 4 and ":" in line:
+            key, value = line.split(":", 1)
+            roles[current_role][key.strip()] = value.strip().strip("\"'")
+    return {"roles": roles}
+
+
 def default_eval_surface() -> List[Tuple[str, str]]:
     """Return the default first-boot role surface for model selection.
 
@@ -115,8 +164,7 @@ def default_eval_surface() -> List[Tuple[str, str]]:
         try:
             if not os.path.exists(cand):
                 continue
-            with open(cand, 'r', encoding='utf-8') as f:
-                doc = yaml.safe_load(f) or {}
+            doc = _load_role_eval_surface_doc(cand)
             roles = []
             for key in sorted((doc.get('roles') or {}).keys()):
                 if '/' not in str(key):
@@ -229,6 +277,26 @@ def _systemctl(args: List[str]) -> bool:
         return False
 
 
+def _normalize_registry_models_for_scoring(registry_models: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Apply GGUF shard normalization before legacy firstboot scorecards run."""
+    models: List[Dict[str, Any]] = []
+    for item in registry_models:
+        if not isinstance(item, dict):
+            continue
+        rec = dict(item)
+        artifact = str(rec.get("artifact_path") or rec.get("source_path") or rec.get("canonical_path") or "").strip()
+        if artifact and not rec.get("source_path"):
+            rec["source_path"] = artifact
+        if rec.get("format") and not rec.get("artifact_format"):
+            rec["artifact_format"] = rec.get("format")
+        models.append(rec)
+    doc = {"apiVersion": "noemaforge.modelregistry/v1", "kind": "FirstbootScoringRegistryView", "models": models, "summary": {"source": "model_registry"}}
+    if model_inventory_normalize is None:
+        doc["normalization"] = {"applied_to": "firstboot_scoring_inventory", "available": False, "rejected_count": 0, "rejected_models": []}
+        return doc
+    return model_inventory_normalize.normalize_inventory_models(doc, require_complete=False)
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: run(marker_path: str = DEFAULT_MARKER, registry_path: str = '/var/lib/modelstore/model_registry.json', scorecards_dir: str = '/var/lib/noemaforge/model_scorecards', gateway_sock: str = '/run/noemaforge/llm/gateway.sock', outbox_dir: str = DEFAULT_OUTBOX_DIR, requests_dir: str = DEFAULT_REQUESTS_DIR, eval_all_models: bool = True, top_k: int = 2)
 # Purpose: Implement the routine 'run'.
@@ -280,9 +348,15 @@ def run(
     changed, summary = model_registry.update_registry(registry_path=registry_path, emit_sel=True)
     reg = model_registry.load_registry(registry_path)
 
-    raw_models = [str(m.get("model_id") or "") for m in (reg.get("models") or []) if str(m.get("model_id") or "").strip()]
+    registry_models = [m for m in (reg.get("models") or []) if isinstance(m, dict) and str(m.get("model_id") or "").strip()]
+    normalized_registry = _normalize_registry_models_for_scoring(registry_models)
+    normalization_report = normalized_registry.get("normalization") or {}
+    raw_models = [str(m.get("model_id") or "") for m in (normalized_registry.get("models") or []) if str(m.get("model_id") or "").strip()]
     models: List[str] = []
     blocked_models: List[Dict[str, Any]] = []
+    for rec in normalization_report.get("rejected_models") or []:
+        if isinstance(rec, dict):
+            blocked_models.append({"model_id": rec.get("model_id"), "reason": f"normalizer_rejected:{rec.get('reason')}", "meta": rec})
     for mid in raw_models:
         if runtime_safety is not None:
             ok_safe, reason, meta = runtime_safety.validate_modelstore_backend("/var/lib/modelstore", mid)
@@ -291,7 +365,7 @@ def run(
                 continue
         models.append(mid)
 
-    _evt("firstboot_eval_registry", "model registry refreshed", {"changed": changed, "models": models, "blocked_models": blocked_models})
+    _evt("firstboot_eval_registry", "model registry refreshed", {"changed": changed, "models": models, "blocked_models": blocked_models, "normalization": normalization_report})
 
     # 2) Ensure baseline backend
     _systemctl(["start", "noemaforge-llama@main.service"])
@@ -382,6 +456,8 @@ def run(
     return {
         "ok": True,
         "models": models,
+        "normalization": normalization_report,
+        "blocked_models": blocked_models,
         "ran": ran,
         "request_outbox": req_path,
         "request_queue": q_path,

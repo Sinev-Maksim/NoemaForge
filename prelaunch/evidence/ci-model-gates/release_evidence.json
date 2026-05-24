@@ -1,0 +1,46 @@
+{
+  "apiVersion": "noemaforge.ci-model-gates/v1",
+  "kind": "ReleaseEvidence",
+  "id": "edge-model-ci-gate-release-evidence",
+  "created_at": "2026-05-19T00:00:00Z",
+  "gate_id": "edge-model-ci-gate",
+  "model_ref": "model:model-registry-local:0.31.13.alpha-patched1",
+  "checks": [
+    {
+      "id": "accuracy_regression",
+      "status": "passed",
+      "baseline_accuracy": 0.91,
+      "candidate_accuracy": 0.91,
+      "max_regression": 0.0
+    },
+    {
+      "id": "latency",
+      "status": "passed",
+      "p95_latency_ms": 36.5,
+      "threshold_ms": 50.0
+    },
+    {
+      "id": "memory",
+      "status": "passed",
+      "peak_memory_mb": 96.0,
+      "threshold_mb": 128.0
+    },
+    {
+      "id": "schema_compatibility",
+      "status": "passed",
+      "compatible": true
+    },
+    {
+      "id": "signature",
+      "status": "passed",
+      "scheme": "sha256-selftest",
+      "verified": true
+    },
+    {
+      "id": "golden_replay",
+      "status": "passed",
+      "cases_total": 3,
+      "cases_passed": 3
+    }
+  ]
+}

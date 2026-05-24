@@ -1,0 +1,106 @@
+{
+  "apiVersion": "noemaforge.evidence/v1",
+  "kind": "EpochCardTargetReadiness",
+  "id": "epoch-card-target-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "principle": "A current Epoch Card may be generated only from target model-selection evidence, not from aspirational roadmap notes.",
+  "policy": {
+    "mode": "offline_target_evidence_contract",
+    "target_model_selection_required": true,
+    "local_validator_only": true,
+    "generate_card_without_target_evidence": false,
+    "required_fields": [
+      "selected_model",
+      "role_map",
+      "staffing_state",
+      "scorecards",
+      "rollback_plan",
+      "approval_evidence"
+    ],
+    "required_artifacts": [
+      "model_selection_decision",
+      "scorecard_bundle",
+      "role_assignment_map",
+      "rollback_manifest",
+      "operator_approval_record"
+    ],
+    "redaction_required": true,
+    "hashes_required": true,
+    "docs_trace_required": true
+  },
+  "example_cases": [
+    {
+      "name": "complete_target_epoch_card_input",
+      "target_model_selection_evidence": true,
+      "selected_model": {
+        "model_id": "local-model-main",
+        "artifact_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "role_map": {
+        "administrator": "local-model-main",
+        "surgeon": "local-model-main"
+      },
+      "staffing_state": {
+        "filled_roles": 2,
+        "unfilled_roles": 0
+      },
+      "scorecards": [
+        {
+          "suite": "first-start",
+          "score": 0.91,
+          "hash": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "rollback_plan": {
+        "previous_model": "local-model-previous",
+        "rollback_manifest": "rollback/epoch-card-example.json"
+      },
+      "approval_evidence": {
+        "operator": "local-operator",
+        "approved_at": "2026-05-21T00:00:00Z",
+        "approval_hash": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      "expected": "ready"
+    },
+    {
+      "name": "missing_target_selection",
+      "target_model_selection_evidence": false,
+      "selected_model": {
+        "model_id": "local-model-main",
+        "artifact_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "role_map": {
+        "administrator": "local-model-main"
+      },
+      "staffing_state": {
+        "filled_roles": 1,
+        "unfilled_roles": 1
+      },
+      "scorecards": [],
+      "rollback_plan": {
+        "previous_model": "local-model-previous",
+        "rollback_manifest": "rollback/epoch-card-example.json"
+      },
+      "approval_evidence": null,
+      "expected": "blocked",
+      "expected_failures": [
+        "target_model_selection_evidence_required",
+        "scorecards_required",
+        "approval_evidence_required"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/epoch-card-target-readiness.json",
+    "helpers/epoch_card_target_readiness.mjs",
+    "helpers/epoch_card_target_readiness.qa.test.mjs",
+    "helpers/epoch_card_target_readiness.performance.test.mjs",
+    "noemaforge/docs/wiki/evaluation/epoch-card-target-readiness.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/CURRENT_0.32.1_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}

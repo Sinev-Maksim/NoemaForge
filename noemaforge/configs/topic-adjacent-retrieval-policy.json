@@ -1,0 +1,130 @@
+{
+  "apiVersion": "noemaforge.topic-adjacent-retrieval/v1",
+  "kind": "TopicAdjacentRetrievalPolicy",
+  "id": "topic-adjacent-retrieval-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "topic_adjacency_first_retrieval",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.",
+    "prep_pipeline_ref": "src/knowledge/prep_pipeline.py",
+    "prep_store_ref": "src/knowledge/prep_store.py",
+    "architecture_ref": "docs/architecture/ARCHITECTURE.md",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "required_algorithms": [
+      "sentence_topic_maps",
+      "topic_signature_overlap",
+      "chapter_section_locality",
+      "adjacency_groups",
+      "split_tree",
+      "in_memory_leaf_chunks"
+    ],
+    "retrieval_order": [
+      "best_matching_coherent_chunk",
+      "highest_coherence_subchunks",
+      "adjacent_support_chunks_if_budget_remains",
+      "knowledge_gap_notice"
+    ],
+    "locality_fields": [
+      "chapter_id",
+      "section_id",
+      "sentence_start_id",
+      "sentence_end_id",
+      "adjacency_group_id"
+    ],
+    "required_static_tokens": {
+      "src/knowledge/prep_pipeline.py": [
+        "_topic_overlap",
+        "label_sentence_topic",
+        "add_adjacency_group",
+        "bind_adjacency_group",
+        "add_split_node",
+        "topic_adjacency_v1"
+      ],
+      "src/knowledge/prep_store.py": [
+        "add_sentence_topic_map",
+        "add_adjacency_group",
+        "add_split_node",
+        "list_book_adjacency_groups",
+        "bind_adjacency_group",
+        "iter_leaf_chunk_bodies"
+      ],
+      "docs/architecture/ARCHITECTURE.md": [
+        "Topic-adjacency grouping",
+        "Why this is better than naive fixed windows",
+        "best-matching coherent chunk or subchunk",
+        "adjacent support chunks only if budget remains"
+      ]
+    },
+    "controls": {
+      "topic_signature_overlap_required": true,
+      "chapter_section_locality_required": true,
+      "naive_fixed_windows_blocked": true,
+      "budget_first_support_chunks": true,
+      "lineage_preserved_on_split": true,
+      "chunk_bodies_in_memory_only": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "primary_chunk",
+      "coherence_score",
+      "adjacent_support_chunks",
+      "budget_remaining",
+      "chunk_parent_id",
+      "chunk_split_reason",
+      "retrieval_trace"
+    ],
+    "blocked_retrieval_claims": [
+      "use naive fixed windows first",
+      "merge distant chunks by label only",
+      "add adjacent support chunks without budget",
+      "drop chunk lineage on split"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/topic_adjacent_retrieval.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/topic-adjacent-retrieval-policy.json",
+    "noemaforge/contracts/topic_adjacent_retrieval.schema.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/topic_adjacent_retrieval_runtime.py",
+    "noemaforge/src/knowledge/prep_pipeline.py",
+    "noemaforge/src/knowledge/prep_store.py",
+    "noemaforge/tests/test_topic_adjacent_retrieval_runtime.py",
+    "noemaforge/tests/test_topic_adjacent_retrieval_qa.py",
+    "noemaforge/tests/test_topic_adjacent_retrieval_performance.py",
+    "prelaunch/governance/topic_adjacent_retrieval.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

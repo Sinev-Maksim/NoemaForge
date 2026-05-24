@@ -1,0 +1,31 @@
+{
+  "apiVersion": "noemaforge.docs/v1",
+  "kind": "StaleWikiCanonicalCopyPlan",
+  "id": "stale-wiki-canonical-copy-plan-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "principle": "Exact duplicate versioned wiki pages may be consolidated only after a canonical topic copy exists and every trash target is verified inside the project trash root.",
+  "policy": {
+    "mode": "offline_docs_canonical_copy_contract",
+    "source_duplicate_plan": "stale-wiki-exact-duplicate-plan-core",
+    "canonical_copy_report": "noemaforge/docs/quality/STALE_WIKI_CANONICAL_COPY_PLAN_0.32.1.md",
+    "max_groups_per_pulse": 3,
+    "trash_batch_prefix": "stale-wiki-exact-duplicates",
+    "copy_retained_source_to_canonical": true,
+    "move_duplicate_sources_to_trash": true,
+    "retain_review_source_active": true,
+    "active_todo_must_remain_open": true
+  },
+  "refs": [
+    "noemaforge/configs/stale-wiki-canonical-copy-plan.json",
+    "helpers/stale_wiki_canonical_copy_plan.mjs",
+    "helpers/stale_wiki_canonical_copy_plan.qa.test.mjs",
+    "helpers/stale_wiki_canonical_copy_plan.performance.test.mjs",
+    "noemaforge/docs/quality/STALE_WIKI_CANONICAL_COPY_PLAN_0.32.1.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/CURRENT_0.32.1_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}

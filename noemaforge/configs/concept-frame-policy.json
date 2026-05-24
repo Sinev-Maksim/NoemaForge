@@ -1,0 +1,63 @@
+{
+  "apiVersion": "noemaforge.concept-frame/v1",
+  "kind": "ConceptFramePolicy",
+  "id": "concept-frame-governance-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_trace_id": true,
+    "require_role": true,
+    "require_context": true,
+    "require_options": true,
+    "require_risks": true,
+    "require_recommendation": true,
+    "dangerous_actions_require_admin_approval": true,
+    "pipeline_mutation_requires_rfc": true,
+    "persistence_export_requires_privacy_filter": true,
+    "internet_research_requires_research_packet": true,
+    "uncertainty_requires_honesty_state": true,
+    "allowed_roles": [
+      "admin",
+      "architect"
+    ],
+    "allowed_decision_types": [
+      "control_plane_task",
+      "architecture_decision",
+      "pipeline_mutation",
+      "persistence_export",
+      "internet_research",
+      "operator_question"
+    ],
+    "allowed_honesty_states": [
+      "sufficient_evidence",
+      "unknown",
+      "need_research",
+      "error_attribution"
+    ],
+    "dangerous_actions": [
+      "apply_change",
+      "pipeline_mutation",
+      "privileged_job",
+      "delete_data",
+      "export_data",
+      "network_research"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/concept_frame.admin_architect.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/concept-frame-policy.json",
+    "noemaforge/contracts/concept_frame.schema.json",
+    "noemaforge/src/concept_frame_runtime.py",
+    "noemaforge/tests/test_concept_frame_runtime.py",
+    "noemaforge/tests/test_concept_frame_qa.py",
+    "noemaforge/tests/test_concept_frame_performance.py",
+    "prelaunch/governance/concept_frame.admin_architect.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

@@ -1,0 +1,74 @@
+{
+  "apiVersion": "noemaforge.telemetry-card-truthfulness/v1",
+  "kind": "TelemetryCardTruthfulnessPolicy",
+  "id": "telemetry-card-truthfulness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "hardware_runtime_product_telemetry_no_creative_quality_overclaim",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_hardware_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_ui_files": [
+      "noemaforge/templates/pipeline-dashboard/index.html",
+      "noemaforge/templates/pipeline-dashboard/app.js"
+    ],
+    "required_telemetry_sections": [
+      "hardware",
+      "runtime",
+      "product"
+    ],
+    "required_runtime_tokens": [
+      "def telemetry_status",
+      "hardware",
+      "runtime",
+      "product",
+      "creative_media",
+      "not_measured_without_explicit_evaluator",
+      "metadata_and_review_required",
+      "creative-media quality is not claimed"
+    ],
+    "required_ui_tokens": [
+      "Hardware",
+      "Runtime",
+      "Product metrics",
+      "hardware-metrics",
+      "runtime-metrics",
+      "product-metrics",
+      "creative_media"
+    ],
+    "forbidden_product_quality_claim_tokens": [
+      "creative_quality_score",
+      "media_quality_score",
+      "quality_status: 'ok'",
+      "quality_status:\"ok\"",
+      "quality: 'good'",
+      "quality:\"good\"",
+      "production_ready_quality"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/telemetry-card-truthfulness-policy.json",
+    "noemaforge/src/telemetry_card_truthfulness_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/tests/test_telemetry_card_truthfulness_runtime.py",
+    "noemaforge/tests/test_telemetry_card_truthfulness_qa.py",
+    "noemaforge/tests/test_telemetry_card_truthfulness_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

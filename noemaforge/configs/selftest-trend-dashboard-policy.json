@@ -1,0 +1,49 @@
+{
+  "apiVersion": "noemaforge.selftest-trend-dashboard/v1",
+  "kind": "SelfTestTrendDashboardPolicy",
+  "id": "selftest-trend-dashboard-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "selftest_trend_dashboard",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_selftest_commands": ["trend"],
+    "required_outputs": ["selftest-trend.json", "index.html"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/selftest_runtime.py",
+      "contract_runtime": "src/selftest_trend_dashboard_runtime.py"
+    },
+    "controls": {
+      "multi_report_series": true,
+      "case_status_regression_warnings": true,
+      "duration_and_rss_spike_warnings": true,
+      "static_html_export": true,
+      "json_export": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/selftest_trend_dashboard.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/selftest-trend-dashboard-policy.json",
+    "noemaforge/contracts/selftest_trend_dashboard.schema.json",
+    "noemaforge/src/selftest_runtime.py",
+    "noemaforge/src/selftest_trend_dashboard_runtime.py",
+    "noemaforge/tests/test_selftest_trend_dashboard_runtime.py",
+    "noemaforge/tests/test_selftest_trend_dashboard_qa.py",
+    "noemaforge/tests/test_selftest_trend_dashboard_performance.py",
+    "prelaunch/governance/selftest_trend_dashboard.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

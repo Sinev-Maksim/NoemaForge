@@ -1,0 +1,65 @@
+{
+  "apiVersion": "noemaforge.artifact-card-affordance/v1",
+  "kind": "ArtifactCardAffordancePolicy",
+  "id": "artifact-card-affordance-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "local_first_default": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_guarded_path_resolution": true,
+    "required_api_paths": [
+      "/api/artifacts/open",
+      "/api/artifacts/download"
+    ],
+    "required_runtime_tokens": [
+      "def artifact_open",
+      "def artifact_download_payload",
+      "def resolve_artifact_path",
+      "def artifact_allowed_roots",
+      "enrich_artifact_card"
+    ],
+    "required_frontend_tokens": [
+      "artifactPreviewUrl",
+      "artifactDownloadUrl",
+      "data-artifact-open",
+      "artifact-affordances.css",
+      "download"
+    ],
+    "allowed_root_tokens": [
+      "data_root",
+      "state",
+      "model_selection_state",
+      "evolution_state",
+      "dev_team_state"
+    ],
+    "required_docs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/artifact-card-affordance-policy.json",
+    "noemaforge/contracts/artifact_card_affordance.schema.json",
+    "noemaforge/src/artifact_card_affordance_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/templates/pipeline-dashboard/artifact-affordances.css",
+    "noemaforge/tests/test_artifact_card_affordance_runtime.py",
+    "noemaforge/tests/test_artifact_card_affordance_qa.py",
+    "noemaforge/tests/test_artifact_card_affordance_performance.py",
+    "prelaunch/governance/artifact_card_affordance.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,123 @@
+{
+  "apiVersion": "noemaforge.runtime/v1",
+  "kind": "NoemaForgeRuntimePolicy",
+  "id": "multios-runtime-host-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "linux_reference_required": true,
+    "preserve_linux_systemd_launch": true,
+    "windows_control_only_by_default": true,
+    "macos_control_only_by_default": true,
+    "remote_http_disabled_by_default": true,
+    "forbid_new_required_first_start_dependencies": true,
+    "host_detection_smoke_required": true,
+    "alpha_gate_required": true,
+    "allowed_host_os": ["linux", "windows", "macos", "remote"],
+    "allowed_roles": ["reference_runtime", "control_host", "runtime_connector"],
+    "required_profiles": [
+      "linux-reference-systemd",
+      "windows-control-host",
+      "macos-control-host",
+      "remote-http-runtime"
+    ]
+  },
+  "profiles": [
+    {
+      "id": "linux-reference-systemd",
+      "host_os": "linux",
+      "role": "reference_runtime",
+      "connector": "local_systemd",
+      "launcher": "systemd_existing",
+      "enabled": true,
+      "optional": false,
+      "required_for_first_start": true,
+      "allow_heavy_local_inference": true,
+      "preserve_existing_launch": true,
+      "refs": [
+        "systemd/noemaforge-llm-gateway.service",
+        "systemd/noemaforge-llama@.service",
+        "systemd/noemaforge-toolproxy.service"
+      ]
+    },
+    {
+      "id": "windows-control-host",
+      "host_os": "windows",
+      "role": "control_host",
+      "connector": "remote_http",
+      "launcher": "prelaunch/multios/windows_host_control_launcher.json",
+      "enabled": false,
+      "optional": true,
+      "required_for_first_start": false,
+      "allow_heavy_local_inference": false,
+      "preserve_existing_launch": false,
+      "refs": [
+        "prelaunch/multios/windows_host_control_launcher.json",
+        "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "id": "macos-control-host",
+      "host_os": "macos",
+      "role": "control_host",
+      "connector": "remote_http",
+      "launcher": "prelaunch/multios/macos_host_control_launcher.json",
+      "enabled": false,
+      "optional": true,
+      "required_for_first_start": false,
+      "allow_heavy_local_inference": false,
+      "preserve_existing_launch": false,
+      "refs": [
+        "prelaunch/multios/macos_host_control_launcher.json",
+        "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "id": "remote-http-runtime",
+      "host_os": "remote",
+      "role": "runtime_connector",
+      "connector": "remote_http",
+      "launcher": "disabled_by_default",
+      "enabled": false,
+      "optional": true,
+      "required_for_first_start": false,
+      "allow_heavy_local_inference": false,
+      "preserve_existing_launch": false,
+      "health_report_required": true,
+      "live_network_check_default": false,
+      "refs": [
+        "prelaunch/multios/runtime_health_report.example.json",
+        "noemaforge/runtime/connectors/remote_http.py"
+      ]
+    }
+  ],
+  "health_report": {
+    "kind": "RuntimeHealthReport",
+    "example_ref": "prelaunch/multios/runtime_health_report.example.json",
+    "required_fields": ["profile_id", "ok", "status", "mode", "checks"]
+  },
+  "refs": [
+    "noemaforge/configs/noemaforge.runtime.yaml",
+    "noemaforge/contracts/noemaforge_runtime.schema.json",
+    "noemaforge/src/multios_runtime_contract.py",
+    "noemaforge/runtime/__init__.py",
+    "noemaforge/runtime/base.py",
+    "noemaforge/runtime/os_probe.py",
+    "noemaforge/runtime/hardware_probe.py",
+    "noemaforge/runtime/registry.py",
+    "noemaforge/runtime/selector.py",
+    "noemaforge/runtime/connectors/__init__.py",
+    "noemaforge/runtime/connectors/remote_http.py",
+    "noemaforge/tests/test_multios_runtime_contract.py",
+    "noemaforge/tests/test_multios_runtime_qa.py",
+    "noemaforge/tests/test_multios_runtime_performance.py",
+    "prelaunch/multios/windows_host_control_launcher.json",
+    "prelaunch/multios/macos_host_control_launcher.json",
+    "prelaunch/multios/runtime_health_report.example.json",
+    "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

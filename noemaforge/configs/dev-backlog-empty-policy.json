@@ -1,0 +1,57 @@
+{
+  "apiVersion": "noemaforge.dev-backlog-empty/v1",
+  "kind": "DevBacklogEmptyPolicy",
+  "id": "dev-backlog-empty-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "empty_dev_backlog_seed_plan_only",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "forbid_auto_apply": true,
+    "require_admin_approval": true,
+    "max_steps_bound": 5,
+    "time_budget_minutes_bound": 30,
+    "required_dev_team_tokens": [
+      "def build_empty_backlog_seed_self_optimization_plan",
+      "def cmd_seed_self_improvement_plan",
+      "seed-self-improvement-plan",
+      "plan_only_no_auto_apply",
+      "draft_review_required",
+      "requires_admin_approval",
+      "auto_apply",
+      "forbidden_actions"
+    ],
+    "required_plan_fields": [
+      "seed_created",
+      "plan_status",
+      "auto_apply",
+      "applied",
+      "requires_admin_approval",
+      "execution_policy",
+      "improvement_budget",
+      "actions",
+      "forbidden_actions"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/dev-backlog-empty-policy.json",
+    "noemaforge/src/dev_backlog_empty_policy_runtime.py",
+    "noemaforge/src/dev_team_runtime.py",
+    "noemaforge/tests/test_dev_backlog_empty_policy_runtime.py",
+    "noemaforge/tests/test_dev_backlog_empty_policy_qa.py",
+    "noemaforge/tests/test_dev_backlog_empty_policy_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

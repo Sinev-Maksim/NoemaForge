@@ -1,0 +1,16 @@
+{
+  "apiVersion": "noemaforge.release-artifact-name-guard/v1",
+  "kind": "ReleaseArtifactNameGuardReport",
+  "id": "release-artifact-name-guard-core",
+  "version": "0.31.21.alpha",
+  "ok": true,
+  "canonical_changelog_ref": "noemaforge/docs/history/CHANGELOG.md",
+  "metrics": {
+    "active_files": 0,
+    "forbidden_filename_hits": 0,
+    "forbidden_patterns": 6,
+    "resolved_policy_refs": 13,
+    "resolved_docs": 6
+  },
+  "forbidden_filename_hits": []
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/git_exchange_quarantine.schema.json",
+  "title": "GitExchangePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.git-exchange/v1"},
+    "kind": {"const": "GitExchangePolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "role_kernel_policy_ref",
+        "roleflow_policy_ref",
+        "quarantine_root",
+        "allowed_pack_kinds",
+        "mandatory_stages",
+        "blocked_activation_states",
+        "promotion_requirements",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "quarantine_first"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "role_kernel_policy_ref": {"type": "string"},
+        "roleflow_policy_ref": {"type": "string"},
+        "quarantine_root": {"type": "string"},
+        "allowed_pack_kinds": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "mandatory_stages": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 7,
+          "uniqueItems": true
+        },
+        "blocked_activation_states": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "promotion_requirements": {
+          "type": "object",
+          "required": [
+            "signed_manifest",
+            "sha256_manifest",
+            "provenance_required",
+            "scary_verdict_required",
+            "surgeon_recommendation_required",
+            "admin_approval_required",
+            "quarantine_evidence_retained",
+            "model_delta_lab_only"
+          ],
+          "properties": {
+            "signed_manifest": {"const": true},
+            "sha256_manifest": {"const": true},
+            "provenance_required": {"const": true},
+            "scary_verdict_required": {"const": true},
+            "surgeon_recommendation_required": {"const": true},
+            "admin_approval_required": {"const": true},
+            "quarantine_evidence_retained": {"const": true},
+            "model_delta_lab_only": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,15 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/artifact-affordances.css
+Zone: gui/shell
+Version: 0.31.21.alpha
+Created: 2026-05-20
+Modified: 2026-05-20
+Purpose: Artifact-card open and download controls for the local Admin GUI.
+Inputs: Artifact card markup emitted by templates/pipeline-dashboard/app.js.
+Outputs: Compact responsive artifact action row styling.
+Tests: artifact-card-affordance runtime, QA and performance tests.
+=== End NoemaForge File Header ===
+*/
+.artifact-actions{display:flex;gap:6px;flex-wrap:wrap}
+.artifact-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}

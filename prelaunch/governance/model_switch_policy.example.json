@@ -1,0 +1,74 @@
+{
+  "apiVersion": "noemaforge.model-switch-policy/v1",
+  "kind": "ModelSwitchPolicyExampleSet",
+  "id": "model-switch-policy-core-examples",
+  "version": "0.31.21.alpha",
+  "model_inventory": [
+    {
+      "model_id": "local:qwen2.5-7b-instruct",
+      "backend": "local",
+      "status": "available",
+      "health": "pass",
+      "approved": true
+    },
+    {
+      "model_id": "local:phi-3-mini",
+      "backend": "local",
+      "status": "available",
+      "health": "pass",
+      "approved": true
+    },
+    {
+      "model_id": "local:qwen2.5-14b-instruct",
+      "backend": "local",
+      "status": "missing",
+      "health": "unknown",
+      "approved": false
+    },
+    {
+      "model_id": "remote:frontier-research",
+      "backend": "remote",
+      "status": "available",
+      "health": "pass",
+      "approved": true
+    },
+    {
+      "model_id": "local:main",
+      "backend": "local",
+      "status": "available",
+      "health": "pass",
+      "approved": true
+    }
+  ],
+  "cases": [
+    {
+      "role": "administrator",
+      "remote_approved": false,
+      "expected_model_id": "local:qwen2.5-7b-instruct",
+      "expected_decision": "selected"
+    },
+    {
+      "role": "researcher",
+      "remote_approved": true,
+      "expected_model_id": "remote:frontier-research",
+      "expected_decision": "selected"
+    },
+    {
+      "role": "scary",
+      "remote_approved": false,
+      "expected_model_id": "local:phi-3-mini",
+      "expected_decision": "selected"
+    },
+    {
+      "role": "unknown_role",
+      "remote_approved": false,
+      "expected_model_id": "N/A",
+      "expected_decision": "role_unmapped"
+    }
+  ],
+  "required_outputs": [
+    "model_switch_policy_summary",
+    "role_resolution_matrix",
+    "fallback_decisions"
+  ]
+}

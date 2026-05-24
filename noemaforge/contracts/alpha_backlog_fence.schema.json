@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/alpha_backlog_fence.schema.json",
+  "title": "AlphaBacklogFencePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.alpha-backlog/v1"
+    },
+    "kind": {
+      "const": "AlphaBacklogFencePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "allow_auto_promotion",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_no_live_dependency",
+        "promotion_blocked_until",
+        "required_pipeline_ref",
+        "protected_refs",
+        "required_gate_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "activation_state": {
+          "const": "backlog_only"
+        },
+        "allow_auto_promotion": {
+          "const": false
+        },
+        "require_trace_id": {
+          "const": true
+        },
+        "require_registry_attachment": {
+          "const": true
+        },
+        "require_docs_and_changelog_refs": {
+          "const": true
+        },
+        "require_no_live_dependency": {
+          "const": true
+        },
+        "promotion_blocked_until": {
+          "const": "manual_alpha_gate_stability_review"
+        },
+        "required_pipeline_ref": {
+          "type": "string"
+        },
+        "protected_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["ref", "allowed_statuses", "blocked_statuses", "reason"],
+            "properties": {
+              "ref": {
+                "type": "string"
+              },
+              "allowed_statuses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "blocked_statuses": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "uniqueItems": true
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required_gate_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

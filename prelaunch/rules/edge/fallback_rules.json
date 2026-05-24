@@ -1,0 +1,18 @@
+{
+  "apiVersion": "noemaforge.edge-rules-engine/v1",
+  "kind": "EdgeFallbackRules",
+  "id": "edge-whitebox-fallback-rules",
+  "version": "0.31.21.alpha",
+  "rules": [
+    {
+      "id": "whitebox-temperature-fallback",
+      "mode": "whitebox_only",
+      "description": "Route high temperature readings to deterministic fallback before any model score is considered."
+    },
+    {
+      "id": "guarded-ml-score-postcheck",
+      "mode": "ml_guarded",
+      "description": "Allow model score only after deterministic pre-guard and post-guard checks are present."
+    }
+  ]
+}

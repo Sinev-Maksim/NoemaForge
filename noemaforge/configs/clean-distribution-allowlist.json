@@ -1,0 +1,86 @@
+{
+  "apiVersion": "noemaforge.clean-distribution/v1",
+  "kind": "CleanDistributionAllowlistPolicy",
+  "id": "clean-distribution-allowlist-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "allowlist_public_seed",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "core_seed_channel": "public_core_seed",
+    "build_policy": {
+      "allowlist_only": true,
+      "deny_by_default": true,
+      "split_optional_material": true,
+      "split_hf_material": true,
+      "split_community_material": true,
+      "split_history_material": true,
+      "split_quarantine_material": true,
+      "include_dev_tests_in_core": false,
+      "include_transient_artifacts": false,
+      "delete_during_plan": false
+    },
+    "required_core_refs": [
+      "VERSION",
+      "README.md",
+      "TODO.md",
+      "noemaforge/configs/unified-registry.json",
+      "noemaforge/src/firstboot_eval.py",
+      "noemaforge/src/model_selection_runtime.py"
+    ],
+    "category_rules": [
+      {
+        "category": "hf",
+        "destination_lane": "optional_hf",
+        "included_in_core": false,
+        "reason": "HFBridge metadata and future Hugging Face material stay outside the minimal public core seed."
+      },
+      {
+        "category": "community",
+        "destination_lane": "optional_community",
+        "included_in_core": false,
+        "reason": "Community exchange packs stay reviewed and optional."
+      },
+      {
+        "category": "history",
+        "destination_lane": "history_archive",
+        "included_in_core": false,
+        "reason": "Large historical notes and changelog archives are split from the core seed."
+      },
+      {
+        "category": "quarantine",
+        "destination_lane": "quarantine_archive",
+        "included_in_core": false,
+        "reason": "Quarantine and trash material never ship in the core seed."
+      }
+    ],
+    "excluded_prefixes": {
+      "hf": ["optional/hf/", "vault/hf/", "noemaforge/configs/hfbridge-", "noemaforge/src/hfbridge_"],
+      "community": ["optional/community/", "community/", "noemaforge/configs/git-exchange-", "noemaforge/src/git_exchange_"],
+      "history": ["docs/history/", "noemaforge/docs/history/", "CHANGELOG_"],
+      "quarantine": ["trash/", "quarantine/", "noemaforge/quarantine/", "__pycache__/"]
+    },
+    "required_example_sets": [
+      "prelaunch/governance/clean_distribution_allowlist.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/clean-distribution-allowlist.json",
+    "noemaforge/contracts/clean_distribution_allowlist.schema.json",
+    "noemaforge/src/clean_distribution_allowlist_runtime.py",
+    "noemaforge/tests/test_clean_distribution_allowlist_runtime.py",
+    "noemaforge/tests/test_clean_distribution_allowlist_qa.py",
+    "noemaforge/tests/test_clean_distribution_allowlist_performance.py",
+    "prelaunch/governance/clean_distribution_allowlist.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

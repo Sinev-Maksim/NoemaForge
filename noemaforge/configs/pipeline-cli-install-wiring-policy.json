@@ -1,0 +1,137 @@
+{
+  "apiVersion": "noemaforge.pipeline-cli-install-wiring/v1",
+  "kind": "PipelineCliInstallWiringPolicy",
+  "id": "pipeline-cli-install-wiring-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "pipeline_cli_installer_wiring_contract",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "closed_todo_refs": [
+      "Wire pipeline CLI into installed /usr/local/bin/noemaforge during installer/apply step."
+    ],
+    "required_public_entrypoint": "/usr/local/bin/noemaforge",
+    "canonical_cli_target": "/opt/noemaforge/bin/noemaforge",
+    "required_scripts": [
+      {
+        "id": "root_setup",
+        "ref": "setup.sh",
+        "role": "front_door_selftest"
+      },
+      {
+        "id": "promoted_installer",
+        "ref": "install_noemaforge_0.31.21.alpha_mvp.sh",
+        "role": "apply_step"
+      },
+      {
+        "id": "package_cli",
+        "ref": "bin/noemaforge",
+        "role": "pipeline_command_surface"
+      }
+    ],
+    "required_install_symlinks": [
+      {
+        "public_path": "/usr/local/bin/noemaforge",
+        "target_path": "/opt/noemaforge/bin/noemaforge"
+      },
+      {
+        "public_path": "/usr/local/sbin/noemaforge",
+        "target_path": "/opt/noemaforge/bin/noemaforge"
+      },
+      {
+        "public_path": "/usr/bin/noemaforge",
+        "target_path": "/opt/noemaforge/bin/noemaforge"
+      },
+      {
+        "public_path": "/bin/noemaforge",
+        "target_path": "/opt/noemaforge/bin/noemaforge"
+      }
+    ],
+    "required_pipeline_commands": [
+      "catalog",
+      "run",
+      "approve",
+      "advance",
+      "pause",
+      "resume",
+      "fail",
+      "cancel",
+      "artifact",
+      "worktree",
+      "doctor",
+      "gate",
+      "repair",
+      "readiness",
+      "template-import",
+      "template-append",
+      "context-lint",
+      "compact",
+      "queue",
+      "metrics",
+      "schema-validate",
+      "event-log",
+      "lease",
+      "executor-step",
+      "member",
+      "policy",
+      "export",
+      "list",
+      "show",
+      "snapshot",
+      "dashboard-state",
+      "patterns",
+      "validate"
+    ],
+    "controls": {
+      "copy_payload_before_symlink": true,
+      "public_cli_symlink_required": true,
+      "dry_run_prints_link_without_writing": true,
+      "setup_selftest_checks_cli": true,
+      "cli_self_resolves_to_canonical_root": true,
+      "no_public_wrapper_as_canonical_self": true,
+      "pipeline_runtime_dispatch_required": true,
+      "no_live_install_execution": true,
+      "docs_changelog_trace_required": true
+    },
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "summary_fields": [
+      "public_symlink_count",
+      "pipeline_command_count",
+      "setup_selftest_cli",
+      "dry_run_link_plan",
+      "canonical_self_guard",
+      "pipeline_runtime_dispatch"
+    ],
+    "required_outputs": [
+      "PipelineCliInstallWiringValidationReport",
+      "PipelineCliInstallWiringSummary"
+    ],
+    "required_refs": [
+      "configs/pipeline-cli-install-wiring-policy.json",
+      "contracts/pipeline_cli_install_wiring.schema.json",
+      "src/pipeline_cli_install_wiring_runtime.py",
+      "tests/test_pipeline_cli_install_wiring_runtime.py",
+      "tests/test_pipeline_cli_install_wiring_qa.py",
+      "tests/test_pipeline_cli_install_wiring_performance.py",
+      "prelaunch/governance/pipeline_cli_install_wiring.example.json",
+      "setup.sh",
+      "install_noemaforge_0.31.21.alpha_mvp.sh",
+      "bin/noemaforge",
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "configs/pipeline-cli-install-wiring-policy.json",
+    "contracts/pipeline_cli_install_wiring.schema.json",
+    "src/pipeline_cli_install_wiring_runtime.py",
+    "prelaunch/governance/pipeline_cli_install_wiring.example.json"
+  ]
+}
+

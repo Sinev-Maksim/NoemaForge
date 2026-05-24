@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/pipeline_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Manage NoemaForge pipeline catalog, runs, gates, artifacts and state.
@@ -22,7 +22,7 @@ pipelines. It targets switchable LLMs, not simultaneous multi-model teams.
 Stage-to-stage handoff is done with markdown context packets:
 `task_<task_id>_project_<project_id>_<stage>_context.md`.
 
-0.31.13.alpha includes pipeline member cells: each participant can be standalone or a sequential multi-model cell with proposal/consensus/unique artifacts.
+0.31.13.alpha-patched1 includes pipeline member cells: each participant can be standalone or a sequential multi-model cell with proposal/consensus/unique artifacts.
 
 0.30.0 MVP/MWP scope:
 - durable local SQLite run/event/artifact registry;
@@ -34,13 +34,15 @@ Stage-to-stage handoff is done with markdown context packets:
 - 0.30.05 pattern catalog / persona catalog validation hooks.
 - 0.30.09 readiness, run-repair, stage gates and template import helpers.
 - 0.30.21 P1 typed event/state core, LLM leases, schema validation and metrics exporters.
-- 0.31.13.alpha carries forward self-improvement testbench/wiki-patch integration hooks.
-- 0.31.13.alpha includes member-cell pipeline subcommands and code analyzer/visualizer handoff artifacts.
+- 0.31.13.alpha-patched1 carries forward self-improvement testbench/wiki-patch integration hooks.
+- 0.31.13.alpha-patched1 includes member-cell pipeline subcommands and code analyzer/visualizer handoff artifacts.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
 import datetime as dt
+import io
 import json
 import os
 import re
@@ -51,17 +53,70 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+
+import production_ai_contracts
 
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
 DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-RUNTIME_VERSION = "0.31.13.alpha"
+RUNTIME_VERSION = "0.32.0.alpha"
 FINISHED_STATUSES = {"done", "completed", "cancelled", "failed", "archived"}
 PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}
+EVOLUTION_WORKTREE_BRANCH_PREFIX = "noemaforge/evolution/"
+WORKTREE_REF_RE = re.compile(r"^[A-Za-z0-9._/@+-]{1,180}$")
+TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.31.13.alpha-patched1"
+TOOLPROXY_CAPABILITY_SCHEMA_REF = "contracts/capability_token.schema.json"
+TOOLPROXY_BASE_ACTIONS = [
+    "llm.chat",
+    "llm.embed",
+    "fs.read",
+    "vstore.query",
+    "task.get",
+    "task.output",
+    "plan.status",
+    "roadmap.list",
+]
+TOOLPROXY_MUTATING_ACTIONS = {"fs.write", "task.create", "task.update", "vstore.upsert", "roadmap.record", "worktree.enter"}
+TOOLPROXY_SANDBOXED_ACTIONS = {"exec.run"}
+TOOLPROXY_BLOCKED_BY_STAGE_DEFAULT = [
+    "db.write",
+    "team_memory.import",
+    "worktree.promote",
+    "localgw.discover",
+    "voice.capture_live",
+]
+TOOLPROXY_WRITE_STAGE_TERMS = {
+    "development",
+    "drafting",
+    "docs_update",
+    "changelog",
+    "graph_patch",
+    "relation_mapping",
+    "entity_extraction",
+    "integration_edit",
+}
+TOOLPROXY_EXEC_STAGE_TERMS = {
+    "testing",
+    "test",
+    "smoke",
+    "validation",
+    "optimization",
+    "fact_check",
+    "inventory",
+}
+TOOLPROXY_REVIEW_STAGE_TERMS = {
+    "review",
+    "admin_review",
+    "merge_plan",
+    "publish_plan",
+    "archive_plan",
+    "export_plan",
+}
 
 DEFAULT_PIPELINES: Dict[str, Dict[str, Any]] = {
     "public_mwp": {
@@ -149,6 +204,138 @@ def safe_id(value: str) -> str:
     return value or "task"
 
 
+def build_toolproxy_stage_binding(pipeline_id: str, stage: str, permission_mode: str = "plan_only") -> Dict[str, Any]:
+    """Build the ToolProxy action contract that a pipeline stage may request."""
+    stage_id = safe_id(stage)
+    stage_key = stage_id.lower()
+    allowed = set(TOOLPROXY_BASE_ACTIONS)
+    mutating_allowed: List[str] = []
+
+    if any(term in stage_key for term in TOOLPROXY_WRITE_STAGE_TERMS) and permission_mode != "guided_readmostly":
+        mutating_allowed.extend(["fs.write", "task.create", "task.update", "vstore.upsert"])
+    if any(term in stage_key for term in TOOLPROXY_EXEC_STAGE_TERMS):
+        allowed.add("exec.run")
+    if any(term in stage_key for term in TOOLPROXY_REVIEW_STAGE_TERMS):
+        mutating_allowed.extend(["task.update", "roadmap.record"])
+    if str(pipeline_id) == "evolution" and stage_key in {"development", "review", "merge_plan"}:
+        mutating_allowed.append("worktree.enter")
+
+    allowed.update(mutating_allowed)
+    allowed_actions = sorted(allowed)
+    mutating = sorted(action for action in allowed_actions if action in TOOLPROXY_MUTATING_ACTIONS)
+    sandboxed = sorted(action for action in allowed_actions if action in TOOLPROXY_SANDBOXED_ACTIONS)
+    approval_required = bool(mutating or permission_mode == "ask_before_write")
+    return {
+        "apiVersion": "noemaforge.pipeline.toolproxy-stage-binding/v1",
+        "policy_ref": TOOLPROXY_POLICY_REF,
+        "capability_schema_ref": TOOLPROXY_CAPABILITY_SCHEMA_REF,
+        "pipeline_id": str(pipeline_id),
+        "stage": stage_id,
+        "scope": f"pipeline:{safe_id(str(pipeline_id))}:stage:{stage_id}",
+        "capability_token_required": True,
+        "approval_required": approval_required,
+        "sandbox_required": bool(sandboxed),
+        "network_allowed": False,
+        "allowed_actions": allowed_actions,
+        "mutating_actions": mutating,
+        "sandboxed_actions": sandboxed,
+        "blocked_actions": list(TOOLPROXY_BLOCKED_BY_STAGE_DEFAULT),
+        "issue_hint": f"noemaforge toolproxy token issue --scope pipeline:{safe_id(str(pipeline_id))}:stage:{stage_id}",
+    }
+
+
+def build_toolproxy_stage_bindings(pipeline: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    pipeline_id = str(pipeline.get("id") or "unknown")
+    permission_mode = str(pipeline.get("permission_mode") or "plan_only")
+    return {
+        str(stage): build_toolproxy_stage_binding(pipeline_id, str(stage), permission_mode)
+        for stage in list(pipeline.get("stages") or [])
+    }
+
+
+def path_is_under(child: Path, parent: Path) -> bool:
+    child_resolved = child.resolve()
+    parent_resolved = parent.resolve()
+    try:
+        child_resolved.relative_to(parent_resolved)
+        return True
+    except ValueError:
+        return False
+
+
+def validate_worktree_ref(value: str, *, field: str) -> str:
+    ref = str(value or "").strip()
+    if not ref:
+        raise SystemExit(f"missing_{field}")
+    if (
+        not WORKTREE_REF_RE.match(ref)
+        or ".." in ref
+        or ref.startswith("/")
+        or ref.endswith("/")
+        or ref.endswith(".lock")
+        or "@{" in ref
+    ):
+        raise SystemExit(f"unsafe_{field}: {ref}")
+    return ref
+
+
+def safe_evolution_worktree_branch(run: Dict[str, Any], requested: str = "") -> str:
+    task_id = safe_id(str(run.get("task_id") or "task")).replace("_", "-")
+    if requested:
+        branch = validate_worktree_ref(requested, field="branch")
+        if not branch.startswith(EVOLUTION_WORKTREE_BRANCH_PREFIX):
+            raise SystemExit(f"unsafe_branch_namespace: expected {EVOLUTION_WORKTREE_BRANCH_PREFIX}")
+        return branch
+    return f"{EVOLUTION_WORKTREE_BRANCH_PREFIX}{task_id}"
+
+
+def build_evolution_worktree_plan(
+    run: Dict[str, Any],
+    *,
+    repo: str,
+    branch: str = "",
+    base: str = "HEAD",
+    path: str = "",
+    cwd: Optional[Path] = None,
+) -> Dict[str, Any]:
+    if str(run.get("pipeline_id") or "") != "evolution":
+        raise SystemExit("worktree_requires_evolution_pipeline")
+    repo_path = Path(repo or str(cwd or Path.cwd())).resolve()
+    if not ((repo_path / ".git").is_dir() or (repo_path / ".git").is_file()):
+        raise SystemExit(f"not a git worktree/repo: {repo_path}")
+    base_ref = validate_worktree_ref(base or "HEAD", field="base_ref")
+    branch_name = safe_evolution_worktree_branch(run, branch)
+    run_dir = Path(str(run["run_dir"])).resolve()
+    dest_root = run_dir / "worktrees"
+    if path:
+        requested = Path(path)
+        dest = requested.resolve() if requested.is_absolute() else (dest_root / requested).resolve()
+    else:
+        dest = (dest_root / branch_name.replace("/", "-")).resolve()
+    if not path_is_under(dest, dest_root):
+        raise SystemExit(f"worktree_path_outside_run_dir: {dest}")
+    cmd = ["git", "-C", str(repo_path), "worktree", "add", "-B", branch_name, str(dest), base_ref]
+    return {
+        "ok": True,
+        "run_id": run["run_id"],
+        "repo": str(repo_path),
+        "branch": branch_name,
+        "path": str(dest),
+        "base": base_ref,
+        "command": cmd,
+        "applied": False,
+        "safety": {
+            "pipeline_id": run.get("pipeline_id"),
+            "branch_namespace": EVOLUTION_WORKTREE_BRANCH_PREFIX,
+            "destination_root": str(dest_root.resolve()),
+            "destination_under_run_dir": True,
+            "plan_default": True,
+            "apply_requires_flag": True,
+            "subprocess_uses_argv": True,
+        },
+    }
+
+
 def read_text_if_exists(path: Path, limit: int = 24000) -> str:
     try:
         return path.read_text(encoding="utf-8", errors="replace")[:limit]
@@ -175,7 +362,7 @@ def json_dumps(data: Any, *, pretty: bool = True) -> str:
 def atomic_write_text(path: Path, text: str) -> None:
     """Write text atomically enough for local operator state files."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(f".{path.name}.tmp")
+    tmp = path.with_name(".tmp")
     tmp.write_text(text, encoding="utf-8")
     os.replace(tmp, path)
 
@@ -535,6 +722,13 @@ def write_stage_packet(run_dir: Path, pipeline: Dict[str, Any], team: Dict[str, 
     roles = list(team.get("roles", []))
     role_hint = team.get("coordinator", "coordinator") if stage in ("intake", "review", "admin_review", "merge_plan", "publish_plan", "export_plan") else ", ".join(roles)
     deliverables = "\n".join(f"- `{item}`" for item in pipeline.get("deliverables", [])) or "- stage output artifact"
+    toolproxy_binding = build_toolproxy_stage_binding(
+        str(pipeline.get("id", "unknown")),
+        stage,
+        str(pipeline.get("permission_mode", "plan_only")),
+    )
+    toolproxy_allowed = ", ".join(f"`{item}`" for item in toolproxy_binding["allowed_actions"])
+    toolproxy_blocked = ", ".join(f"`{item}`" for item in toolproxy_binding["blocked_actions"])
     content = f"""# NoemaForge Pipeline Context Packet
 
 - task_id: `{task_id}`
@@ -546,6 +740,9 @@ def write_stage_packet(run_dir: Path, pipeline: Dict[str, Any], team: Dict[str, 
 - max_active_llms: `1`
 - permission_mode: `{pipeline.get('permission_mode', 'plan_only')}`
 - suggested_role_or_team: `{role_hint}`
+- toolproxy_policy_ref: `{toolproxy_binding['policy_ref']}`
+- toolproxy_stage_scope: `{toolproxy_binding['scope']}`
+- toolproxy_capability_token_required: `true`
 
 ## Operator request
 
@@ -569,6 +766,16 @@ Every task must pass through:
 ## Expected deliverables
 
 {deliverables}
+
+## ToolProxy stage binding
+
+This stage may request only its declared ToolProxy actions. Capability tokens must be issued for `{toolproxy_binding['scope']}` and tied to the current run/stage before sensitive tool calls are attempted.
+
+- allowed_actions: {toolproxy_allowed}
+- blocked_actions: {toolproxy_blocked}
+- approval_required: `{str(toolproxy_binding['approval_required']).lower()}`
+- sandbox_required: `{str(toolproxy_binding['sandbox_required']).lower()}`
+- network_allowed: `false`
 
 ## Previous stage summary
 
@@ -602,6 +809,7 @@ Then update `decisions.md` with:
         "llm_policy": {"mode": "switchable", "max_active_llms": 1},
         "permission_mode": pipeline.get("permission_mode", "plan_only"),
         "suggested_role_or_team": role_hint,
+        "toolproxy_stage_binding": toolproxy_binding,
         "request": request.strip(),
         "previous_stage_summary": previous or "",
         "output_contract": {"artifact_dir": "outputs", "register_command": f"noemaforge pipeline artifact add <run_id> --stage {stage} --type <type> --path <path> --status draft"},
@@ -618,6 +826,7 @@ def write_run_files(root: Path, run_dir: Path, pipeline: Dict[str, Any], team: D
         (run_dir / d).mkdir(parents=True, exist_ok=True)
     context_md = context_root(root)
     atomic_write_text(run_dir / "project_context_snapshot.md", context_md)
+    atomic_write_text(run_dir / "toolproxy_stage_bindings.json", json_dumps(build_toolproxy_stage_bindings(pipeline)) + "\n")
     previous = None
     packet_paths: List[str] = []
     for stage in pipeline.get("stages", []):
@@ -677,6 +886,7 @@ def create_run(args: argparse.Namespace) -> None:
     team = teams.get(pipeline.get("team", ""), {"coordinator": "administrator", "roles": []})
     task_id = safe_id(args.task_id or f"{pipeline_id}_{dt.datetime.now().strftime('%Y%m%d_%H%M%S')}")
     project_id = safe_id(args.project or pipeline.get("project_id", "noemaforge"))
+    trace_id = str(getattr(args, "trace_id", "") or os.environ.get("NOEMAFORGE_TRACE_ID") or production_ai_contracts.new_trace_id("pipeline"))
     run_id = safe_id(args.run_id or f"run_{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%dT%H%M%SZ')}_{pipeline_id}_{task_id}")
     run_dir = state / "runs" / run_id
     if run_dir.exists() and not args.allow_existing:
@@ -685,6 +895,7 @@ def create_run(args: argparse.Namespace) -> None:
     packet_paths, _ = write_run_files(root, run_dir, pipeline, team, task_id, project_id, request)
     manifest = {
         "run_id": run_id,
+        "trace_id": trace_id,
         "pipeline_id": pipeline_id,
         "task_id": task_id,
         "project_id": project_id,
@@ -697,6 +908,7 @@ def create_run(args: argparse.Namespace) -> None:
         "team": team,
         "context_packet_pattern": "task_<task_id>_project_<project_id>_<stage>_context.md",
         "context_packets": packet_paths,
+        "toolproxy_stage_bindings": build_toolproxy_stage_bindings(pipeline),
     }
     atomic_write_text(run_dir / "manifest.json", json_dumps(manifest))
     conn = db_connect(state)
@@ -705,8 +917,9 @@ def create_run(args: argparse.Namespace) -> None:
     conn.commit()
     upsert_stage_states(conn, run_id, list(pipeline.get("stages", [])), str(manifest["current_stage"]), str(manifest["status"]))
     register_task_contexts(conn, run_id, packet_paths)
-    emit(conn, run_id, "pipeline_created", {"run_dir": str(run_dir), "dry_run": bool(args.dry_run), "packet_count": len(packet_paths), "typed_contexts": len(packet_paths)})
-    print(json_dumps({"ok": True, "run_id": run_id, "run_dir": str(run_dir), "status": manifest["status"], "next": f"noemaforge pipeline approve {run_id}"}))
+    emit(conn, run_id, "pipeline_created", {"trace_id": trace_id, "run_dir": str(run_dir), "dry_run": bool(args.dry_run), "packet_count": len(packet_paths), "typed_contexts": len(packet_paths)})
+    conn.close()
+    print(json_dumps({"ok": True, "trace_id": trace_id, "run_id": run_id, "run_dir": str(run_dir), "status": manifest["status"], "next": f"noemaforge pipeline approve {run_id}"}))
 
 
 def catalog(args: argparse.Namespace) -> None:
@@ -741,6 +954,21 @@ def show_run(args: argparse.Namespace) -> None:
     data["events"] = _event_rows(conn, args.run_id, limit=args.events)
     data["artifacts"] = _artifact_rows(conn, args.run_id)
     print(json_dumps(data))
+
+
+def toolproxy_policy_cmd(args: argparse.Namespace) -> None:
+    state = Path(args.state).resolve() if args.state else DEFAULT_STATE
+    conn = db_connect(state)
+    run = get_run(conn, args.run_id)
+    stage = args.stage or str(run.get("current_stage") or "")
+    assert_stage(run, str(stage))
+    manifest = run.get("manifest") or {}
+    bindings = manifest.get("toolproxy_stage_bindings") if isinstance(manifest.get("toolproxy_stage_bindings"), dict) else {}
+    binding = bindings.get(str(stage))
+    if not isinstance(binding, dict):
+        pipeline = manifest.get("pipeline") if isinstance(manifest.get("pipeline"), dict) else {}
+        binding = build_toolproxy_stage_binding(str(run.get("pipeline_id") or pipeline.get("id") or "unknown"), str(stage), str(pipeline.get("permission_mode") or "plan_only"))
+    print(json_dumps({"ok": True, "run_id": args.run_id, "stage": stage, "toolproxy_stage_binding": binding}))
 
 
 def snapshot(args: argparse.Namespace) -> None:
@@ -791,8 +1019,10 @@ def pause_run(args: argparse.Namespace) -> None:
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     conn = db_connect(state)
     run = get_run(conn, args.run_id)
-    update_run(conn, run, status="paused", stage=args.stage or run["current_stage"], note=args.note or "paused by operator", event_type="pipeline_paused")
-    print(json_dumps({"ok": True, "run_id": args.run_id, "status": "paused"}))
+    stage = args.stage or run["current_stage"]
+    assert_stage(run, str(stage))
+    update_run(conn, run, status="paused", stage=str(stage), note=args.note or "paused by operator", event_type="pipeline_paused")
+    print(json_dumps({"ok": True, "run_id": args.run_id, "status": "paused", "stage": stage}))
 
 
 def resume_run(args: argparse.Namespace) -> None:
@@ -810,8 +1040,10 @@ def fail_or_cancel_run(args: argparse.Namespace, status: str, event_type: str) -
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     conn = db_connect(state)
     run = get_run(conn, args.run_id)
-    update_run(conn, run, status=status, stage=args.stage or run["current_stage"], note=args.reason or args.note or status, event_type=event_type)
-    print(json_dumps({"ok": True, "run_id": args.run_id, "status": status}))
+    stage = args.stage or run["current_stage"]
+    assert_stage(run, str(stage))
+    update_run(conn, run, status=status, stage=str(stage), note=args.reason or args.note or status, event_type=event_type)
+    print(json_dumps({"ok": True, "run_id": args.run_id, "status": status, "stage": stage}))
 
 
 def next_run(args: argparse.Namespace) -> None:
@@ -888,16 +1120,19 @@ def worktree_cmd(args: argparse.Namespace) -> None:
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     conn = db_connect(state)
     run = get_run(conn, args.run_id)
-    repo = Path(args.repo or os.getcwd()).resolve()
-    if not (repo / ".git").exists() and not (repo.parent / ".git").exists():
-        raise SystemExit(f"not a git worktree/repo: {repo}")
-    branch = safe_id(args.branch or f"noemaforge/{run['pipeline_id']}/{run['task_id']}").replace("_", "-")
-    dest = Path(args.path).resolve() if args.path else Path(str(run["run_dir"])) / "worktrees" / branch.replace("/", "-")
-    cmd = ["git", "-C", str(repo), "worktree", "add", "-B", branch, str(dest), args.base]
-    plan = {"ok": True, "run_id": args.run_id, "repo": str(repo), "branch": branch, "path": str(dest), "base": args.base, "command": cmd, "applied": False}
+    plan = build_evolution_worktree_plan(
+        run,
+        repo=args.repo or os.getcwd(),
+        branch=args.branch or "",
+        base=args.base,
+        path=args.path or "",
+        cwd=Path.cwd(),
+    )
     if args.apply:
         if not shutil.which("git"):
             raise SystemExit("git not found")
+        dest = Path(str(plan["path"]))
+        cmd = list(plan["command"])
         dest.parent.mkdir(parents=True, exist_ok=True)
         completed = subprocess.run(cmd, text=True, capture_output=True)
         plan["applied"] = completed.returncode == 0
@@ -906,10 +1141,10 @@ def worktree_cmd(args: argparse.Namespace) -> None:
         if completed.returncode != 0:
             print(json_dumps(plan))
             raise SystemExit(completed.returncode)
-        register_artifact(conn, args.run_id, str(run["current_stage"]), "worktree", dest, "created", {"branch": branch, "repo": str(repo)})
-        emit(conn, args.run_id, "worktree_created", {"repo": str(repo), "branch": branch, "path": str(dest)})
+        register_artifact(conn, args.run_id, str(run["current_stage"]), "worktree", dest, "created", {"branch": plan["branch"], "repo": plan["repo"], "destination_root": plan["safety"]["destination_root"]})
+        emit(conn, args.run_id, "worktree_created", {"repo": plan["repo"], "branch": plan["branch"], "path": str(dest), "destination_root": plan["safety"]["destination_root"]})
     else:
-        emit(conn, args.run_id, "worktree_plan", {"repo": str(repo), "branch": branch, "path": str(dest), "base": args.base})
+        emit(conn, args.run_id, "worktree_plan", {"repo": plan["repo"], "branch": plan["branch"], "path": plan["path"], "base": plan["base"], "destination_root": plan["safety"]["destination_root"]})
     print(json_dumps(plan))
 
 
@@ -1525,6 +1760,170 @@ def _stage_paths(run: Dict[str, Any], stage: str) -> Dict[str, Path]:
     }
 
 
+def validate_stage_artifacts(run: Dict[str, Any], artifacts: List[Dict[str, Any]], stage: str) -> Dict[str, Any]:
+    """Validate one pipeline stage using only local run artifacts and sidecars."""
+    paths = _stage_paths(run, stage)
+    packet_text = read_text_if_exists(paths["packet"], limit=50000)
+    output_quality = stage_output_quality(paths["output"])
+    contract = _pipeline_stage_contract(stage)
+    stage_artifacts = [art for art in artifacts if str(art.get("stage") or "") == stage]
+    contract_artifacts = [
+        art
+        for art in stage_artifacts
+        if str(art.get("artifact_type") or "") in set(contract.get("artifact_types") or [])
+    ]
+    sidecar = paths["packet"].with_suffix(".json")
+    checksum = sidecar.with_suffix(sidecar.suffix + ".sha256")
+    sidecar_ok = False
+    sidecar_problem = ""
+    sidecar_envelope: Dict[str, Any] = {}
+    if sidecar.exists():
+        try:
+            sidecar_envelope = json.loads(sidecar.read_text(encoding="utf-8", errors="replace"))
+            required = ["apiVersion", "task_id", "project_id", "pipeline_id", "stage", "llm_policy", "output_contract"]
+            missing = [key for key in required if key not in sidecar_envelope]
+            if missing:
+                sidecar_problem = f"typed sidecar missing fields: {missing}"
+            elif sidecar_envelope.get("stage") != stage:
+                sidecar_problem = f"typed sidecar stage mismatch: {sidecar_envelope.get('stage')} != {stage}"
+            else:
+                sidecar_ok = True
+        except Exception as exc:
+            sidecar_problem = f"typed sidecar parse error: {exc}"
+    else:
+        sidecar_problem = "missing typed context sidecar"
+    checksum_ok = False
+    if sidecar.exists() and checksum.exists():
+        expected = checksum.read_text(encoding="utf-8", errors="replace").split()[0]
+        actual = hashlib.sha256(sidecar.read_bytes()).hexdigest()
+        checksum_ok = expected == actual
+        if not checksum_ok:
+            sidecar_ok = False
+            sidecar_problem = "typed sidecar checksum mismatch"
+    elif sidecar.exists():
+        sidecar_problem = sidecar_problem or "missing typed sidecar checksum"
+    binding = sidecar_envelope.get("toolproxy_stage_binding") if isinstance(sidecar_envelope.get("toolproxy_stage_binding"), dict) else {}
+    manifest_bindings = (run.get("manifest") or {}).get("toolproxy_stage_bindings")
+    manifest_binding = manifest_bindings.get(stage) if isinstance(manifest_bindings, dict) and isinstance(manifest_bindings.get(stage), dict) else {}
+    smoke_cases = [
+        {"id": "context_packet_present", "ok": paths["packet"].exists(), "detail": str(paths["packet"])},
+        {"id": "typed_sidecar_valid", "ok": sidecar_ok, "detail": sidecar_problem or str(sidecar)},
+        {"id": "typed_sidecar_checksum", "ok": checksum_ok, "detail": str(checksum)},
+        {"id": "output_non_placeholder", "ok": output_quality["exists"] and not output_quality["looks_placeholder"], "detail": str(paths["output"])},
+        {"id": "contract_artifact_registered", "ok": bool(contract_artifacts), "detail": f"{len(contract_artifacts)} matching artifacts"},
+        {"id": "toolproxy_binding_present", "ok": bool(binding) and bool(manifest_binding), "detail": str(binding.get("scope") or "")},
+        {"id": "no_live_host_required", "ok": True, "detail": "offline filesystem and SQLite checks only"},
+        {"id": "no_llm_autostart", "ok": True, "detail": "validator does not call model or ToolProxy sockets"},
+    ]
+    problems = [case["id"] for case in smoke_cases if not case["ok"] and case["id"] not in {"output_non_placeholder", "contract_artifact_registered"}]
+    warnings = [case["id"] for case in smoke_cases if not case["ok"] and case["id"] in {"output_non_placeholder", "contract_artifact_registered"}]
+    ready = output_quality["exists"] and not output_quality["looks_placeholder"] and bool(contract_artifacts)
+    return {
+        "stage": stage,
+        "packet": str(paths["packet"]),
+        "packet_exists": paths["packet"].exists(),
+        "packet_bytes": len(packet_text.encode("utf-8")),
+        "typed_context_sidecar": str(sidecar),
+        "typed_context_sidecar_exists": sidecar.exists(),
+        "typed_context_sidecar_ok": sidecar_ok,
+        "typed_context_sidecar_checksum_ok": checksum_ok,
+        "typed_context_sidecar_problem": sidecar_problem,
+        "output": output_quality,
+        "stage_contract": contract,
+        "artifact_count": len(stage_artifacts),
+        "contract_artifact_count": len(contract_artifacts),
+        "toolproxy_stage_binding": binding,
+        "manifest_toolproxy_stage_binding": manifest_binding,
+        "smoke_cases": smoke_cases,
+        "ready_to_advance": ready,
+        "warnings": warnings,
+        "problems": problems,
+        "ok": not problems,
+    }
+
+
+def stage_validate_cmd(args: argparse.Namespace) -> None:
+    state = Path(args.state).resolve() if args.state else DEFAULT_STATE
+    conn = db_connect(state)
+    run = get_run(conn, args.run_id)
+    manifest = run.get("manifest") or {}
+    stages = list(((manifest.get("pipeline") or {}).get("stages") or []))
+    selected = [args.stage] if args.stage else stages
+    for stage in selected:
+        assert_stage(run, str(stage))
+    artifacts = _artifact_rows(conn, args.run_id)
+    reports = [validate_stage_artifacts(run, artifacts, str(stage)) for stage in selected]
+    strict_ready_failures = [report["stage"] for report in reports if not report["ready_to_advance"]]
+    problems = [f"{report['stage']}:{item}" for report in reports for item in report.get("problems", [])]
+    warnings = [f"{report['stage']}:{item}" for report in reports for item in report.get("warnings", [])]
+    result = {
+        "ok": not problems and (not args.strict or not strict_ready_failures),
+        "run_id": args.run_id,
+        "stage_count": len(reports),
+        "strict_ready_failures": strict_ready_failures,
+        "warnings": warnings,
+        "problems": problems,
+        "stages": reports,
+        "offline_only": True,
+        "no_llm_autostart": True,
+    }
+    conn.close()
+    print(json_dumps(result))
+    if not result["ok"]:
+        raise SystemExit(1)
+
+
+def stage_smoke_cmd(args: argparse.Namespace) -> None:
+    root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
+    with tempfile.TemporaryDirectory(prefix="noemaforge_stage_smoke_") as raw:
+        state = Path(raw) / "state"
+        run_id = safe_id(args.run_id or "run_stage_validator_smoke")
+        pipeline = args.pipeline or "public_mwp"
+        create_args = argparse.Namespace(
+            root=str(root),
+            state=str(state),
+            pipeline=pipeline,
+            task_id="stage_validator_smoke",
+            project="noemaforge",
+            request="offline stage validator smoke",
+            dry_run=False,
+            run_id=run_id,
+            trace_id="trace:pipeline:stage-validator-smoke",
+            allow_existing=False,
+            allow_degraded=False,
+        )
+        with contextlib.redirect_stdout(io.StringIO()):
+            create_run(create_args)
+        conn = db_connect(state)
+        run = get_run(conn, run_id)
+        stage = args.stage or str(run.get("current_stage") or "orient")
+        assert_stage(run, stage)
+        unready = validate_stage_artifacts(run, _artifact_rows(conn, run_id), stage)
+        output = Path(str(run["run_dir"])) / "outputs" / f"{safe_id(stage)}.md"
+        atomic_write_text(output, f"# {stage}\n\nDecision: smoke pass.\n\nRisk: low.\n\nNext handoff: continue.\n\nEvidence: offline stage validator smoke.\n")
+        register_artifact(conn, run_id, stage, (_pipeline_stage_contract(stage)["artifact_types"][0]), output, "draft", {"smoke": True})
+        ready = validate_stage_artifacts(run, _artifact_rows(conn, run_id), stage)
+        result = {
+            "ok": bool((not unready["ready_to_advance"]) and ready["ready_to_advance"] and ready["ok"]),
+            "pipeline_id": pipeline,
+            "stage": stage,
+            "state_dir": str(state),
+            "smoke_cases": [
+                {"id": "unready_stage_is_not_advanceable", "ok": not unready["ready_to_advance"]},
+                {"id": "ready_stage_is_advanceable", "ok": ready["ready_to_advance"]},
+                {"id": "typed_sidecar_smoke_valid", "ok": ready["typed_context_sidecar_ok"]},
+                {"id": "contract_artifact_smoke_registered", "ok": ready["contract_artifact_count"] == 1},
+                {"id": "offline_only", "ok": True},
+            ],
+            "unready": unready,
+            "ready": ready,
+        }
+        conn.close()
+        print(json_dumps(result))
+        if not result["ok"]:
+            raise SystemExit(1)
+
+
 def context_lint_cmd(args: argparse.Namespace) -> None:
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     conn = db_connect(state)
@@ -1755,6 +2154,9 @@ def template_append_cmd(args: argparse.Namespace) -> None:
         additions = {safe_id(k): v for k, v in raw.items() if isinstance(v, dict)}
     else:
         raise SystemExit("draft must be an object or a template-import result")
+    if not additions:
+        print(json_dumps({"ok": False, "problems": ["draft contains no pipeline templates"]}))
+        raise SystemExit(1)
     if not args.approve:
         print(json_dumps({"ok": False, "ready_to_append": True, "requires": "--approve", "pipelines": sorted(additions)}))
         raise SystemExit(1)
@@ -2062,9 +2464,11 @@ def executor_step_cmd(args: argparse.Namespace) -> None:
     stage = args.stage or str(run.get("current_stage"))
     assert_stage(run, stage)
     paths = _stage_paths(run, stage)
+    contract = _pipeline_stage_contract(stage)
     quality = stage_output_quality(paths["output"])
     artifacts = [a for a in _artifact_rows(conn, args.run_id) if a.get("stage") == stage]
-    ready = bool(paths["packet"].exists() and paths["output"].exists() and not quality.get("looks_placeholder") and artifacts)
+    contract_artifacts = [a for a in artifacts if str(a.get("artifact_type") or "") in set(contract.get("artifact_types") or [])]
+    ready = bool(paths["packet"].exists() and paths["output"].exists() and not quality.get("looks_placeholder") and contract_artifacts)
     next_stage = next_stage_for(run.get("manifest") or {}, stage)
     action = "wait"
     new_status = run.get("status")
@@ -2079,9 +2483,12 @@ def executor_step_cmd(args: argparse.Namespace) -> None:
         "action": action,
         "apply": bool(args.apply),
         "next_stage": next_stage,
+        "worker_contract_version": "noemaforge.pipeline.executor-stage-worker/v1",
+        "stage_contract": contract,
         "quality": quality,
         "artifact_count": len(artifacts),
-        "warnings": [] if ready else ["stage is not ready: needs non-placeholder output and at least one registered artifact"],
+        "contract_artifact_count": len(contract_artifacts),
+        "warnings": [] if ready else ["stage is not ready: needs non-placeholder output and at least one contract-matching registered artifact"],
     }
     if args.apply and ready:
         target_stage = next_stage or stage
@@ -2110,6 +2517,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--request", default="")
     run.add_argument("--dry-run", action="store_true")
     run.add_argument("--run-id")
+    run.add_argument("--trace-id", default="")
     run.add_argument("--allow-existing", action="store_true")
     run.add_argument("--allow-degraded", action="store_true", help="explicit admin override for degraded_readonly firstboot state")
     run.set_defaults(func=create_run)
@@ -2123,6 +2531,11 @@ def build_parser() -> argparse.ArgumentParser:
     show.add_argument("run_id")
     show.add_argument("--events", type=int, default=12)
     show.set_defaults(func=show_run)
+
+    tp = sub.add_parser("toolproxy-policy")
+    tp.add_argument("run_id")
+    tp.add_argument("--stage")
+    tp.set_defaults(func=toolproxy_policy_cmd)
 
     nextp = sub.add_parser("next")
     nextp.add_argument("run_id")
@@ -2280,6 +2693,18 @@ def build_parser() -> argparse.ArgumentParser:
     lint.add_argument("--strict", action="store_true")
     lint.set_defaults(func=context_lint_cmd)
 
+    stageval = sub.add_parser("stage-validate")
+    stageval.add_argument("run_id")
+    stageval.add_argument("--stage")
+    stageval.add_argument("--strict", action="store_true")
+    stageval.set_defaults(func=stage_validate_cmd)
+
+    smoke = sub.add_parser("stage-smoke")
+    smoke.add_argument("--pipeline", default="public_mwp")
+    smoke.add_argument("--stage")
+    smoke.add_argument("--run-id")
+    smoke.set_defaults(func=stage_smoke_cmd)
+
     comp = sub.add_parser("compact")
     comp.add_argument("run_id")
     comp.add_argument("--out")
@@ -2392,3 +2817,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/media_wiki_patch.schema.json",
+  "title": "MediaWikiPatchPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.media-wiki-patch/v1"},
+    "kind": {"const": "MediaWikiPatchPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_first_default",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_wiki_patch_runtime_extension",
+        "required_create_flags",
+        "required_bundle_outputs",
+        "required_media_adapters",
+        "required_artifact_fields",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "local_first_default": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_wiki_patch_runtime_extension": {"const": true},
+        "required_create_flags": {
+          "type": "array",
+          "items": {"enum": ["--media-capability-report", "--artifact-manifest"]},
+          "minItems": 2,
+          "uniqueItems": true
+        },
+        "required_bundle_outputs": {
+          "type": "array",
+          "items": {"enum": ["media_capability_delta.json", "generated_artifacts.json", "functional_delta.md", "wiki_patch_manifest.json"]},
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "required_media_adapters": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "voice_generation",
+              "music_generation",
+              "photo_generation",
+              "video_generation",
+              "image_analysis",
+              "camera_mask_bridge"
+            ]
+          },
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "required_artifact_fields": {
+          "type": "array",
+          "items": {"enum": ["artifact_id", "pipeline_id", "kind", "path", "sha256", "review_status"]},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "required_example_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

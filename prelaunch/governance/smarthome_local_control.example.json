@@ -1,0 +1,69 @@
+{
+  "apiVersion": "noemaforge.smarthome/v1",
+  "kind": "SmartHomeLocalControlSet",
+  "id": "smarthome-local-control-examples",
+  "version": "0.31.21.alpha",
+  "device_registry": {
+    "apiVersion": "noemaforge.smarthome/v1",
+    "kind": "SmartHomeDeviceRegistry",
+    "id": "home-lab-registry",
+    "version": "0.31.21.alpha",
+    "privacy_principle": "Value your privacy: local telemetry stays on the NoemaForge home server by default.",
+    "rooms": [
+      {"id": "kitchen", "name": "Kitchen", "privacy_zone": "shared"},
+      {"id": "hall", "name": "Hall", "privacy_zone": "shared"},
+      {"id": "utility", "name": "Utility", "privacy_zone": "utility"}
+    ],
+    "devices": [
+      {"id": "plug-kettle", "type": "smart_plug", "room_id": "kitchen", "adapter": "mqtt", "source_label": "trusted", "visible_privacy_state": true},
+      {"id": "switch-hall", "type": "smart_switch", "room_id": "hall", "adapter": "zigbee", "source_label": "trusted", "visible_privacy_state": true},
+      {"id": "vacuum-main", "type": "vacuum", "room_id": "hall", "adapter": "home_assistant", "source_label": "trusted", "visible_privacy_state": true},
+      {"id": "camera-door", "type": "camera", "room_id": "hall", "adapter": "matter", "source_label": "trusted", "visible_privacy_state": true, "camera": true, "microphone": false},
+      {"id": "sensor-utility", "type": "sensor", "room_id": "utility", "adapter": "z_wave", "source_label": "trusted", "visible_privacy_state": true}
+    ]
+  },
+  "automation_rules": [
+    {
+      "id": "pause-all-on-emergency",
+      "trigger": "emergency_pause",
+      "action": "pause_automations",
+      "local_only": true,
+      "requires_review": true
+    }
+  ],
+  "actions": [
+    {
+      "apiVersion": "noemaforge.smarthome/v1",
+      "kind": "SmartHomeAction",
+      "id": "turn-on-kettle-plug",
+      "trace_id": "trace:smarthome:turn-on-kettle-plug",
+      "device_id": "plug-kettle",
+      "action": "power_on",
+      "requires_approval": false,
+      "emergency_pause_checked": true,
+      "human_override_allowed": true,
+      "audit_required": true,
+      "sr_ssr_review": {"required": false, "reason": "Low-risk smart plug action with visible local audit."}
+    },
+    {
+      "apiVersion": "noemaforge.smarthome/v1",
+      "kind": "SmartHomeAction",
+      "id": "start-vacuum-main",
+      "trace_id": "trace:smarthome:start-vacuum-main",
+      "device_id": "vacuum-main",
+      "action": "start_cleaning",
+      "requires_approval": true,
+      "emergency_pause_checked": true,
+      "human_override_allowed": true,
+      "audit_required": true,
+      "sr_ssr_review": {"required": true, "reason": "Mobile device action crosses rooms and must remain reviewable."}
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/smarthome-local-control-policy.json",
+    "noemaforge/contracts/smarthome_local_control.schema.json",
+    "noemaforge/contracts/smarthome_device_registry.schema.json",
+    "noemaforge/contracts/smarthome_action_contract.schema.json",
+    "docs/wiki/smarthome/local-first-smart-home-control-0.31.13.alpha-patched1.md"
+  ]
+}

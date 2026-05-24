@@ -1,0 +1,103 @@
+{
+  "apiVersion": "noemaforge.public-autonomy-boundary/v1",
+  "kind": "PublicAutonomyBoundaryPolicy",
+  "id": "public-autonomy-boundary-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "refs": [
+    "configs/public-autonomy-boundary-policy.json",
+    "contracts/public_autonomy_boundary.schema.json",
+    "configs/self-improvement-policy.json",
+    "configs/alpha-backlog-fence.json",
+    "src/public_autonomy_boundary_runtime.py",
+    "tests/test_public_autonomy_boundary_runtime.py",
+    "tests/test_public_autonomy_boundary_qa.py",
+    "tests/test_public_autonomy_boundary_performance.py",
+    "prelaunch/governance/public_autonomy_boundary.example.json",
+    "README.md",
+    "docs/README.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md"
+  ],
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "alpha_lab_only_not_public_ready",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Self-modification/autonomy is not public-ready",
+    "required_qualifiers": [
+      "alpha/lab-only",
+      "approval-gated",
+      "no automatic apply"
+    ],
+    "required_outputs": [
+      "public_copy_boundary",
+      "alpha_lab_only_qualifier",
+      "operator_approval_required",
+      "no_automatic_apply_claim",
+      "registry_attachment",
+      "docs_changelog_refs"
+    ],
+    "controls": {
+      "self_modification_not_public_ready": true,
+      "autonomy_not_market_claim": true,
+      "lab_only_boundary_documented": true,
+      "operator_approval_required": true,
+      "no_auto_apply_public_claims": true,
+      "selftest_before_acceptance": true,
+      "baseline_compare_required": true,
+      "wiki_patch_output_required": true,
+      "no_live_host_required": true
+    },
+    "blocked_public_claims": [
+      "production-ready autonomous self-modification",
+      "public-ready self-modification",
+      "public-ready autonomy",
+      "fully autonomous self-improvement",
+      "autonomous self-modification without approval",
+      "self-improves in production without review"
+    ],
+    "required_self_improvement_policy": {
+      "default_mode": "measured_review",
+      "auto_rollback_enabled_by_default": false,
+      "block_apply_on_failed_cases": true,
+      "block_apply_on_resource_regression": true,
+      "requires_admin_approval": true,
+      "required_rules": [
+        "run selftest before accepting optimization",
+        "compare with baseline",
+        "generate wiki incremental patch",
+        "block apply on failed regression unless admin overrides"
+      ]
+    },
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/public_autonomy_boundary.example.json"
+    ]
+  }
+}
+

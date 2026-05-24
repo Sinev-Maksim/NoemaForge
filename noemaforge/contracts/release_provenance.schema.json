@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/release_provenance.schema.json",
+  "title": "ReleaseProvenancePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.release-provenance/v1"},
+    "kind": {"const": "ReleaseProvenancePolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "required_artifact_kinds",
+        "required_materials",
+        "signing_controls",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "signed_release_provenance"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "required_artifact_kinds": {"type": "array", "items": {"const": "release_archive"}, "minItems": 1, "uniqueItems": true},
+        "required_materials": {
+          "type": "array",
+          "items": {"enum": ["archive", "manifest", "signature", "checksums", "release_notes", "changelog", "install_transcript", "verification_summary"]},
+          "minItems": 8,
+          "uniqueItems": true
+        },
+        "signing_controls": {
+          "type": "object",
+          "required": [
+            "sha256_required",
+            "signature_required",
+            "detached_signature_required",
+            "public_key_fingerprint_required",
+            "plaintext_private_key_allowed",
+            "allowed_signature_schemes"
+          ],
+          "properties": {
+            "sha256_required": {"const": true},
+            "signature_required": {"const": true},
+            "detached_signature_required": {"const": true},
+            "public_key_fingerprint_required": {"const": true},
+            "plaintext_private_key_allowed": {"const": false},
+            "allowed_signature_schemes": {"type": "array", "items": {"enum": ["ed25519", "minisign", "cosign-keyless"]}, "minItems": 1, "uniqueItems": true}
+          },
+          "additionalProperties": false
+        },
+        "required_example_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

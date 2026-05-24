@@ -1,0 +1,52 @@
+{
+  "apiVersion": "noemaforge.setup-modes/v1",
+  "kind": "SetupModeMatrix",
+  "version": "0.32.0.alpha",
+  "modes": {
+    "vm": {
+      "label": "Ubuntu/Debian VM",
+      "platform": "linux-vm",
+      "recommended_first_success": true,
+      "dry_run_default": true,
+      "requires_root_for_apply": true,
+      "writes_privileged_system_files": false,
+      "production_runtime_path": false,
+      "purpose": "No-risk onboarding and validation before host install.",
+      "operator_command": "./setup.sh --mode vm --dry-run --selftest"
+    },
+    "host": {
+      "label": "Linux host",
+      "platform": "linux",
+      "recommended_first_success": false,
+      "dry_run_default": false,
+      "requires_root_for_apply": true,
+      "writes_privileged_system_files": true,
+      "production_runtime_path": true,
+      "purpose": "Native services plus local paths for an explicit Linux install.",
+      "operator_command": "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share"
+    },
+    "macos-dev": {
+      "label": "macOS developer validation",
+      "platform": "macos",
+      "recommended_first_success": false,
+      "dry_run_default": true,
+      "requires_root_for_apply": false,
+      "writes_privileged_system_files": false,
+      "production_runtime_path": false,
+      "purpose": "Non-privileged repository validation and light workflows.",
+      "operator_command": "./setup.sh --mode macos-dev --dry-run --selftest"
+    },
+    "docker-dev": {
+      "label": "Docker development/test",
+      "platform": "container-dev",
+      "recommended_first_success": false,
+      "dry_run_default": true,
+      "requires_root_for_apply": false,
+      "writes_privileged_system_files": false,
+      "production_runtime_path": false,
+      "purpose": "Development and CI tests only; not the full production NoemaForge path.",
+      "operator_command": "./setup.sh --mode docker-dev --dry-run --selftest"
+    }
+  }
+}
+

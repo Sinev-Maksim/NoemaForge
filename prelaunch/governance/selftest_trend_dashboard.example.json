@@ -1,0 +1,46 @@
+{
+  "apiVersion": "noemaforge.selftest-trend-dashboard/v1",
+  "kind": "SelfTestTrendDashboardExampleSet",
+  "id": "selftest-trend-dashboard-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "offline-two-run-regression-trend",
+      "trace_id": "trace:selftest:trend:offline-two-run",
+      "title": "Offline self-test trend dashboard",
+      "min_reports": 2,
+      "expected_outputs": ["selftest-trend.json", "index.html"],
+      "expect_warning_kinds": ["case_status_regression", "failed_count_increase"],
+      "reports": [
+        {
+          "apiVersion": "noemaforge/v1",
+          "kind": "SelfTestReport",
+          "version": "0.31.13.alpha-patched1",
+          "run_id": "selftest_20260519T010000Z",
+          "suite": "core",
+          "started_at": "2026-05-19T01:00:00Z",
+          "finished_at": "2026-05-19T01:00:10Z",
+          "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.2, "duration_max_sec": 0.8, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+          "results": [
+            {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+            {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "pass", "metrics": {"duration_sec": 0.8, "max_rss_kib": 12000, "disk_write_bytes": 32}}
+          ]
+        },
+        {
+          "apiVersion": "noemaforge/v1",
+          "kind": "SelfTestReport",
+          "version": "0.31.13.alpha-patched1",
+          "run_id": "selftest_20260520T010000Z",
+          "suite": "core",
+          "started_at": "2026-05-20T01:00:00Z",
+          "finished_at": "2026-05-20T01:00:12Z",
+          "summary": {"ok": false, "case_count": 2, "passed": 1, "failed": 1, "duration_total_sec": 1.9, "duration_max_sec": 1.5, "max_rss_kib": 22000, "disk_write_bytes_total": 96, "ecc_delta_total": 0},
+          "results": [
+            {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+            {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "fail", "metrics": {"duration_sec": 1.5, "max_rss_kib": 22000, "disk_write_bytes": 64}}
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -24,6 +24,10 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
 STATE_DIR = "/var/lib/noemaforge/bootstrap"
 INVENTORY_PATH = os.path.join(STATE_DIR, "model-inventory.json")
+LEGACY_SHARE_ROOT = "/mnt/brainos-share"
+CANONICAL_SHARE_ROOT = "/mnt/noemaforge-share"
+LEGACY_LAB_ROOT = "/mnt/brainos-share/brainos-lab"
+CANONICAL_LAB_ROOT = "/mnt/noemaforge-share/noemaforge-lab"
 
 # Matches common shard naming variants:
 #   model-00001-of-00005.gguf
@@ -70,28 +74,53 @@ def _realpath(path: str) -> str:
         return str(path)
 
 
-def _canonical_noemaforge_path(path: str) -> str:
-    """Map legacy share paths to canonical NoemaForge paths when possible.
+def canonicalize_noemaforge_path(path: str, *, require_existing: bool = False) -> str:
+    """Map legacy share paths to canonical NoemaForge paths.
 
     After the BrainOS -> NoemaForge rename, ModelStore entries and older
-    Vault indexes can still resolve through /mnt/brainos-share/brainos-lab.
-    Runtime safety should validate the canonical NoemaForge target when it
-    exists, while still refusing non-head shards.
+    Vault indexes can still resolve through /mnt/brainos-share. Launcher paths
+    should always normalize to the NoemaForge mount; artifact validation can ask
+    for existence-gated normalization to avoid masking a missing legacy target.
     """
     s = str(path or "")
     mappings = [
-        ("/mnt/brainos-share/brainos-lab", "/mnt/noemaforge-share/noemaforge-lab"),
-        ("/mnt/brainos-share", "/mnt/noemaforge-share"),
+        (LEGACY_LAB_ROOT, CANONICAL_LAB_ROOT),
+        (LEGACY_SHARE_ROOT, CANONICAL_SHARE_ROOT),
     ]
     for old_root, new_root in mappings:
         if s == old_root or s.startswith(old_root + "/"):
             candidate = new_root + s[len(old_root):]
+            if not require_existing:
+                return candidate
             try:
-                if os.path.exists(candidate):
-                    return candidate
+                return candidate if os.path.exists(candidate) else s
             except Exception:
-                pass
+                return s
     return s
+
+
+def normalize_launcher_paths(*, share_root: str, vault_root: str = "", shortlist_file: str = "") -> Dict[str, Any]:
+    share_in = str(share_root or CANONICAL_SHARE_ROOT).strip() or CANONICAL_SHARE_ROOT
+    vault_in = str(vault_root or "").strip()
+    shortlist_in = str(shortlist_file or "").strip()
+    share_out = canonicalize_noemaforge_path(share_in)
+    vault_out = canonicalize_noemaforge_path(vault_in) if vault_in else ""
+    shortlist_out = canonicalize_noemaforge_path(shortlist_in) if shortlist_in else ""
+    return {
+        "share_root_input": share_in,
+        "vault_root_input": vault_in,
+        "shortlist_file_input": shortlist_in,
+        "share_root": share_out,
+        "vault_root": vault_out,
+        "shortlist_file": shortlist_out,
+        "changed": share_in != share_out or vault_in != vault_out or shortlist_in != shortlist_out,
+        "canonical_share_root": CANONICAL_SHARE_ROOT,
+    }
+
+
+def _canonical_noemaforge_path(path: str) -> str:
+    """Existence-gated canonicalization for artifact validation."""
+    return canonicalize_noemaforge_path(path, require_existing=True)
 
 
 def validate_artifact_path(path: str) -> Tuple[bool, str, Dict[str, Any]]:

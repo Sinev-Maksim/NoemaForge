@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-autostart-safe.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.31.13.alpha-patched1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -12,7 +12,7 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha conditional safe autostart gate.
+# NoemaForge 0.31.13.alpha-patched1 conditional safe autostart gate.
 # GUI mode is timer-driven and non-blocking: if GUI is not ready, record skip and exit 0 by default.
 # GUI default profile: runtime/toolproxy only, no automatic LLM. Heavy LLM is manual-only.
 set -euo pipefail

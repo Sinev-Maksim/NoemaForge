@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.hfbridge/v1",
+  "kind": "HFBridgeMetadataSet",
+  "id": "hfbridge-metadata-examples",
+  "version": "0.31.21.alpha",
+  "queries": [
+    {
+      "apiVersion": "noemaforge.hfbridge/v1",
+      "kind": "HFBridgeMetadataQuery",
+      "id": "hfbridge-model-card-summary",
+      "trace_id": "trace:hfbridge:model-card-summary",
+      "operation": "model_card_summary",
+      "target_ref": "hf://models/example-org/example-model",
+      "network_mode": "offline_cache",
+      "read_scope": "metadata_only",
+      "writes_runtime": false,
+      "downloads_artifacts": false,
+      "activates_runtime": false,
+      "imports_weights": false,
+      "imports_datasets": false,
+      "metadata_fields": ["model_id", "license", "tags", "pipeline_tag", "card_sha256"],
+      "promotion": {
+        "requested": false,
+        "quarantine_first": true,
+        "signed_manifest_required": true,
+        "evaluation_gate_required": true,
+        "admin_approval_required": true
+      },
+      "refs": ["noemaforge/configs/hfbridge-metadata-policy.json", "docs/backlog/ROADMAP_AND_TODO.md"]
+    },
+    {
+      "apiVersion": "noemaforge.hfbridge/v1",
+      "kind": "HFBridgeMetadataQuery",
+      "id": "hfbridge-eval-metadata-snapshot",
+      "trace_id": "trace:hfbridge:eval-metadata-snapshot",
+      "operation": "eval_metadata_snapshot",
+      "target_ref": "hf://datasets/example-org/example-eval",
+      "network_mode": "offline_cache",
+      "read_scope": "metadata_only",
+      "writes_runtime": false,
+      "downloads_artifacts": false,
+      "activates_runtime": false,
+      "imports_weights": false,
+      "imports_datasets": false,
+      "metadata_fields": ["dataset_id", "license", "splits", "card_sha256"],
+      "promotion": {
+        "requested": false,
+        "quarantine_first": true,
+        "signed_manifest_required": true,
+        "evaluation_gate_required": true,
+        "admin_approval_required": true
+      },
+      "refs": ["noemaforge/configs/hfbridge-metadata-policy.json", "docs/backlog/ROADMAP_AND_TODO.md"]
+    }
+  ]
+}

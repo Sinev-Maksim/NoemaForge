@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.full-composite-target-run-readiness/v1",
+  "kind": "FullCompositeTargetRunReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-full-composite-target-run-evidence-readiness",
+      "trace_id": "trace:full-composite:patched10-target",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "patched10-install-baseline",
+        "target-preflight",
+        "full-composite-command-plan",
+        "full-composite-run-transcript",
+        "summary-artifacts",
+        "display-and-abort-recovery",
+        "evidence-archive"
+      ],
+      "expected_outputs": [
+        "full_composite_readiness_summary",
+        "blocked_completion_notice",
+        "target_command_manifest",
+        "artifact_requirements",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

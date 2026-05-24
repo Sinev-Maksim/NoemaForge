@@ -1,0 +1,86 @@
+{
+  "apiVersion": "noemaforge.noemashell/v1",
+  "kind": "NoemaShellLitePolicy",
+  "id": "noemashell-lite-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "primary_operator_shell",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "role_kernel_policy_ref": "configs/role-kernel-policy.json",
+    "roleflow_policy_ref": "configs/roleflow-orchestration-policy.json",
+    "gui_shell_policy_ref": "configs/gui-shell-policy.json",
+    "launch_modes": [
+      "normal_window",
+      "minimal_graphical_session",
+      "local_app_mode"
+    ],
+    "primary_surfaces": [
+      "active_worker",
+      "approvals",
+      "artifacts",
+      "resource_budgets",
+      "safe_mode",
+      "recovery"
+    ],
+    "operator_controls": [
+      "pause",
+      "resume",
+      "stop",
+      "approve",
+      "reject",
+      "recover",
+      "open_artifact",
+      "switch_role"
+    ],
+    "safety_defaults": {
+      "no_hidden_privileged_action": true,
+      "no_heavy_backend_autostart": true,
+      "explicit_approval_required": true,
+      "visible_reason_required": true,
+      "no_destructive_action_without_policy": true
+    },
+    "resource_budget_profiles": [
+      {
+        "id": "low_pressure",
+        "max_active_heavy_workers": 1,
+        "heavy_backend_autostart": false,
+        "requires_operator_confirmation": true
+      },
+      {
+        "id": "balanced",
+        "max_active_heavy_workers": 1,
+        "heavy_backend_autostart": false,
+        "requires_operator_confirmation": true
+      },
+      {
+        "id": "repair_session",
+        "max_active_heavy_workers": 1,
+        "heavy_backend_autostart": false,
+        "requires_operator_confirmation": true
+      }
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/noemashell_lite.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/noemashell-lite-policy.json",
+    "noemaforge/contracts/noemashell_lite.schema.json",
+    "noemaforge/src/noemashell_lite_runtime.py",
+    "noemaforge/tests/test_noemashell_lite_runtime.py",
+    "noemaforge/tests/test_noemashell_lite_qa.py",
+    "noemaforge/tests/test_noemashell_lite_performance.py",
+    "prelaunch/governance/noemashell_lite.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

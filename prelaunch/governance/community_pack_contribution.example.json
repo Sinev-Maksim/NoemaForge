@@ -1,0 +1,90 @@
+{
+  "apiVersion": "noemaforge.community-pack-contribution/v1",
+  "kind": "CommunityPackContributionExampleSet",
+  "id": "community-pack-contribution-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "quarantine-first-community-evalpack",
+      "trace_id": "trace:community-pack-contribution:example:001",
+      "accepted_pack": {
+        "activation_state": "quarantined",
+        "manifest": {
+          "pack_id": "community-smoke-evals",
+          "pack_kind": "EvalPack",
+          "version": "0.1.0",
+          "license": "Apache-2.0",
+          "provenance": "local-review-fixture",
+          "sha256": "7a38f3b3293df4e6b35f4fb77f9fef5e2f7dd9b99f8e9a84fd2828e74f3a1f11",
+          "maintainer": "community-reviewer",
+          "review_policy": "Scary verdict, Surgeon recommendation and Admin approval are required before promotion."
+        },
+        "stages": [
+          "fetch",
+          "manifest_scan",
+          "quarantine_record",
+          "scary_verdict",
+          "surgeon_recommendation",
+          "admin_approval",
+          "promotion_record"
+        ]
+      },
+      "rejected_packs": [
+        {
+          "id": "direct-rolepack-install",
+          "activation_state": "installed",
+          "claim": "install community pack directly into active runtime",
+          "manifest": {
+            "pack_id": "direct-rolepack-install",
+            "pack_kind": "RolePack",
+            "version": "0.1.0",
+            "license": "MIT",
+            "provenance": "example",
+            "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "maintainer": "example",
+            "review_policy": "admin-required"
+          }
+        },
+        {
+          "id": "license-missing-artifact",
+          "activation_state": "quarantined",
+          "claim": "skip quarantine for community pack",
+          "manifest": {
+            "pack_id": "license-missing-artifact",
+            "pack_kind": "ArtifactPack",
+            "version": "0.1.0",
+            "provenance": "example",
+            "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "maintainer": "example",
+            "review_policy": "admin-required"
+          }
+        },
+        {
+          "id": "public-modeldelta",
+          "activation_state": "promoted",
+          "claim": "promote ModelDeltaPack into public core",
+          "manifest": {
+            "pack_id": "public-modeldelta",
+            "pack_kind": "ModelDeltaPack",
+            "version": "0.1.0",
+            "license": "Apache-2.0",
+            "provenance": "example",
+            "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "maintainer": "example",
+            "review_policy": "lab-only"
+          }
+        }
+      ],
+      "expected_outputs": [
+        "quarantine_record",
+        "manifest_scan_report",
+        "license_and_provenance_record",
+        "scary_verdict",
+        "surgeon_recommendation",
+        "admin_approval",
+        "promotion_record",
+        "no_auto_activation"
+      ]
+    }
+  ]
+}

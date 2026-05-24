@@ -1,0 +1,140 @@
+{
+  "apiVersion": "noemaforge.concept-frame/v1",
+  "kind": "ConceptFrameSet",
+  "id": "admin-architect-concept-frame-examples",
+  "version": "0.31.21.alpha",
+  "frames": [
+    {
+      "apiVersion": "noemaforge.concept-frame/v1",
+      "kind": "ConceptFrame",
+      "id": "cf-admin-model-selection-dry-run",
+      "role": "admin",
+      "trace_id": "trace:concept-frame:admin:model-selection-dry-run",
+      "decision_type": "control_plane_task",
+      "intent": "Stage a model-selection follow-up as a dry-run job before any real runtime change.",
+      "context": {
+        "summary": "The operator needs a bounded continuation path that keeps current runtime state intact.",
+        "source_refs": [
+          "docs/backlog/ROADMAP_AND_TODO.md",
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+        ]
+      },
+      "assumptions": [
+        "Dry-run output is sufficient for the next operator review.",
+        "No privileged runtime action is needed to build the plan."
+      ],
+      "constraints": [
+        "Do not mutate active model state.",
+        "Do not start network-dependent work."
+      ],
+      "risks": [
+        {
+          "id": "stale-runtime-state",
+          "level": "medium",
+          "mitigation": "Attach trace_id and require a fresh runtime status check before apply."
+        }
+      ],
+      "options": [
+        {
+          "id": "dry-run-plan",
+          "summary": "Create a dry-run job plan and leave apply to explicit approval.",
+          "expected_outcome": "Operator can inspect planned model-selection work.",
+          "risk_level": "low"
+        },
+        {
+          "id": "apply-now",
+          "summary": "Launch the continuation immediately.",
+          "expected_outcome": "Faster execution but higher risk of duplicate active work.",
+          "risk_level": "high"
+        }
+      ],
+      "recommendation": {
+        "selected_option_id": "dry-run-plan",
+        "rationale": "The dry-run plan keeps the control plane deterministic and auditable.",
+        "action": "plan_only"
+      },
+      "gates": {
+        "dangerous_action": false,
+        "approval_required": false,
+        "approval_refs": [],
+        "pipeline_rfc_required": false,
+        "pipeline_rfc_ref": "",
+        "privacy_filter_required": false,
+        "privacy_filter_ref": "",
+        "research_packet_required": false,
+        "research_packet_ref": "",
+        "honesty_state": "sufficient_evidence"
+      },
+      "refs": [
+        "docs/backlog/ROADMAP_AND_TODO.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.concept-frame/v1",
+      "kind": "ConceptFrame",
+      "id": "cf-architect-pipeline-rfc-boundary",
+      "role": "architect",
+      "trace_id": "trace:concept-frame:architect:pipeline-rfc-boundary",
+      "decision_type": "pipeline_mutation",
+      "intent": "Describe a proposed pipeline mutation without applying it.",
+      "context": {
+        "summary": "Pipeline mutation is allowed only as an RFC-backed proposal with rollback and explicit approval.",
+        "source_refs": [
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+        ]
+      },
+      "assumptions": [
+        "The change can be represented as a draft before runtime execution.",
+        "Evaluation and rollback evidence will be produced outside the Concept Frame."
+      ],
+      "constraints": [
+        "No self-development apply path may run from the Concept Frame alone.",
+        "Admin approval is required before mutation."
+      ],
+      "risks": [
+        {
+          "id": "silent-self-modification",
+          "level": "high",
+          "mitigation": "Require Pipeline_RFC plus explicit approval before apply."
+        }
+      ],
+      "options": [
+        {
+          "id": "draft-rfc",
+          "summary": "Draft a Pipeline_RFC and attach eval and rollback requirements.",
+          "expected_outcome": "Change remains reviewable and reversible.",
+          "risk_level": "medium"
+        },
+        {
+          "id": "direct-apply",
+          "summary": "Apply the mutation directly.",
+          "expected_outcome": "Shorter path with unacceptable autonomy increase.",
+          "risk_level": "critical"
+        }
+      ],
+      "recommendation": {
+        "selected_option_id": "draft-rfc",
+        "rationale": "The architecture requires RFC, eval, rollback and explicit approval before pipeline mutation.",
+        "action": "pipeline_mutation"
+      },
+      "gates": {
+        "dangerous_action": true,
+        "approval_required": true,
+        "approval_refs": [
+          "approval:admin:required"
+        ],
+        "pipeline_rfc_required": true,
+        "pipeline_rfc_ref": "draft:Pipeline_RFC:cf-architect-pipeline-rfc-boundary",
+        "privacy_filter_required": false,
+        "privacy_filter_ref": "",
+        "research_packet_required": false,
+        "research_packet_ref": "",
+        "honesty_state": "sufficient_evidence"
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    }
+  ]
+}

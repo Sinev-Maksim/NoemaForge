@@ -1,0 +1,148 @@
+{
+  "apiVersion": "noemaforge.trixie-preflight-target-readiness/v1",
+  "kind": "TrixiePreflightTargetReadinessPolicy",
+  "id": "trixie-preflight-target-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_trixie_preflight_target_readiness",
+    "completion_state": "blocked_until_target_trixie_preflight_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Run `sudo noemaforge trixie-preflight --json` on the target machine."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "read_only_preflight_required": true,
+      "json_output_required": true,
+      "remediation_not_applied": true,
+      "archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "preflight-command-baseline",
+        "title": "Target read-only preflight command",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge trixie-preflight --json",
+          "sudo noemaforge trixie-preflight --json --skip-modelstore"
+        ],
+        "evidence": ["operator_approval_record", "trixie_preflight_json", "skip_modelstore_preflight_json"],
+        "completion_gates": ["operator_approval_recorded", "read_only_command_confirmed", "preflight_json_archived", "evidence_file_archived"]
+      },
+      {
+        "id": "preflight-json-shape",
+        "title": "Preflight JSON parse and required keys",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "python3 -m json.tool noemaforge-trixie-preflight.json >/dev/null"
+        ],
+        "evidence": ["trixie_preflight_json", "json_parse_result", "required_json_keys"],
+        "completion_gates": ["preflight_json_parse_ok", "required_keys_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "distro-kernel-baseline",
+        "title": "Target distro, kernel and Secure Boot baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "cat /etc/os-release",
+          "uname -a",
+          "mokutil --sb-state || true"
+        ],
+        "evidence": ["distro_release", "kernel_release", "secure_boot_state"],
+        "completion_gates": ["distro_recorded", "kernel_recorded", "secure_boot_state_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "dependency-surface",
+        "title": "Preflight dependency surface",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "command -v llama-server || true",
+          "ldd \"$(command -v llama-server)\" || true"
+        ],
+        "evidence": ["llama_server_path", "llama_libs_state", "missing_dependencies"],
+        "completion_gates": ["llama_server_path_recorded", "llama_libs_state_recorded", "missing_dependencies_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "runtime-socket-snapshot",
+        "title": "Gateway and ToolProxy socket snapshot",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge status --json",
+          "systemctl is-active noemaforge-llm-gateway.service || true",
+          "systemctl is-active noemaforge-toolproxy.service || true"
+        ],
+        "evidence": ["status_json", "gateway_socket_state", "toolproxy_socket_state"],
+        "completion_gates": ["status_json_recorded", "gateway_socket_recorded", "toolproxy_socket_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "preflight-evidence-archive",
+        "title": "Trixie preflight evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-install-validation"
+        ],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "trixie_preflight_summary",
+      "blocked_completion_notice",
+      "target_preflight_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/trixie-preflight-target-readiness-policy.json",
+      "noemaforge/contracts/trixie_preflight_target_readiness.schema.json",
+      "noemaforge/src/trixie_preflight_target_readiness_runtime.py",
+      "prelaunch/governance/trixie_preflight_target_readiness.example.json",
+      "noemaforge/configs/target-live-validation-readiness-policy.json",
+      "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+      "noemaforge/src/target_live_validation_readiness_runtime.py",
+      "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+      "noemaforge/tools/prep/noemaforge-trixie-preflight.sh",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/trixie-preflight-target-readiness-policy.json",
+    "noemaforge/contracts/trixie_preflight_target_readiness.schema.json",
+    "noemaforge/src/trixie_preflight_target_readiness_runtime.py",
+    "noemaforge/tests/test_trixie_preflight_target_readiness_runtime.py",
+    "noemaforge/tests/test_trixie_preflight_target_readiness_qa.py",
+    "noemaforge/tests/test_trixie_preflight_target_readiness_performance.py",
+    "prelaunch/governance/trixie_preflight_target_readiness.example.json",
+    "noemaforge/configs/target-live-validation-readiness-policy.json",
+    "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+    "noemaforge/src/target_live_validation_readiness_runtime.py",
+    "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+    "noemaforge/tools/prep/noemaforge-trixie-preflight.sh",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

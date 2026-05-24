@@ -1,0 +1,41 @@
+{
+  "apiVersion": "noemaforge.cross-platform-prep/v1",
+  "kind": "CrossPlatformPrepCoreExampleSet",
+  "id": "cross-platform-prep-core-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "linux-macos-firstboot-staging",
+      "platform": "linux_or_macos",
+      "repo_root": "noemaforge",
+      "lab_root": "noemaforge-lab",
+      "commands": [
+        "python3 tools/prep/noemaforge_prep_core.py verify-seed --repo-root .",
+        "python3 tools/prep/noemaforge_prep_core.py check --repo-root .",
+        "python3 tools/prep/noemaforge_prep_core.py lab --repo-root . --lab-root ../noemaforge-lab --auto-manifest",
+        "python3 tools/prep/noemaforge_prep_core.py firstboot --repo-root . --lab-root ../noemaforge-lab --model-profile minimal --auto-manifest",
+        "python3 tools/prep/noemaforge_prep_core.py export-vault-metadata --repo-root . --vault-root ../noemaforge-lab/data/Vault --out-dir ../noemaforge-lab/outbox/metadata"
+      ],
+      "expected_capabilities": [
+        "vault_scan",
+        "inbox_processing",
+        "metadata_export",
+        "firstboot_staging",
+        "windows_not_required"
+      ],
+      "windows_required": false
+    },
+    {
+      "id": "windows-thin-wrapper-parity",
+      "platform": "windows",
+      "commands": [
+        "tools\\windows\\run_verify.cmd",
+        "tools\\windows\\run_check.cmd",
+        "tools\\windows\\run_lab.cmd",
+        "tools\\windows\\run_firstboot.cmd"
+      ],
+      "delegates_to": "tools/prep/noemaforge_prep_core.py",
+      "windows_required_for_core_prep": false
+    }
+  ]
+}

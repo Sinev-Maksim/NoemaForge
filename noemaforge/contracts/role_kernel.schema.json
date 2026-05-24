@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/role_kernel.schema.json",
+  "title": "RoleKernelPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.role-kernel/v1"},
+    "kind": {"const": "RoleKernelPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "persona_catalog_ref",
+        "role_catalog_ref",
+        "default_roles",
+        "optional_rolepacks",
+        "active_nn_manager",
+        "evolve_boundary",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "protected_kernel"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "persona_catalog_ref": {"type": "string"},
+        "role_catalog_ref": {"type": "string"},
+        "default_roles": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "object",
+            "required": ["id", "role_key", "display_name", "role_class", "installed_by_default", "always_present", "heavy_worker"],
+            "properties": {
+              "id": {"type": "string"},
+              "role_key": {"type": "string"},
+              "display_name": {"type": "string"},
+              "role_class": {"type": "string"},
+              "installed_by_default": {"const": true},
+              "always_present": {"type": "boolean"},
+              "heavy_worker": {"type": "boolean"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "optional_rolepacks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role_key", "pack_id", "activation"],
+            "properties": {
+              "role_key": {"type": "string"},
+              "pack_id": {"type": "string"},
+              "activation": {"const": "inactive"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "active_nn_manager": {
+          "type": "object",
+          "required": ["max_active_heavy_workers", "allow_parallel_heavy_workers", "durable_baton_required", "sleep_wake_baton_required"],
+          "properties": {
+            "max_active_heavy_workers": {"const": 1},
+            "allow_parallel_heavy_workers": {"const": false},
+            "durable_baton_required": {"const": true},
+            "sleep_wake_baton_required": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "evolve_boundary": {
+          "type": "object",
+          "required": ["mutation_scope", "production_weight_mutation", "promotion_path"],
+          "properties": {
+            "mutation_scope": {"const": "lab_only"},
+            "production_weight_mutation": {"const": false},
+            "promotion_path": {
+              "type": "array",
+              "minItems": 3,
+              "items": {"type": "string"}
+            }
+          },
+          "additionalProperties": false
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

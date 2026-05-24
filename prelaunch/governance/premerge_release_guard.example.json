@@ -1,0 +1,67 @@
+{
+  "apiVersion": "noemaforge.premerge-release-guard/v1",
+  "kind": "PremergeReleaseGuardExampleSet",
+  "id": "premerge-release-guard-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "clean-premerge-allows",
+      "trace_id": "trace:premerge-release-guard:allow",
+      "expected_decision": "allow",
+      "baseline": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.31.13.alpha-patched1",
+        "run_id": "baseline_clean",
+        "suite": "core",
+        "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+          {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "pass", "metrics": {"duration_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes": 32}}
+        ]
+      },
+      "current": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.31.13.alpha-patched1",
+        "run_id": "candidate_clean",
+        "suite": "core",
+        "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+          {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "pass", "metrics": {"duration_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes": 32}}
+        ]
+      }
+    },
+    {
+      "id": "failed-case-blocks",
+      "trace_id": "trace:premerge-release-guard:block",
+      "expected_decision": "block",
+      "expected_blocker_kinds": ["current_summary_not_ok", "required_case_not_passing", "current_case_not_passing", "baseline_regression"],
+      "baseline": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.31.13.alpha-patched1",
+        "run_id": "baseline_pass",
+        "suite": "core",
+        "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+          {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "pass", "metrics": {"duration_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes": 32}}
+        ]
+      },
+      "current": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.31.13.alpha-patched1",
+        "run_id": "candidate_fail",
+        "suite": "core",
+        "summary": {"ok": false, "case_count": 2, "passed": 1, "failed": 1, "duration_total_sec": 1.5, "duration_max_sec": 1.1, "max_rss_kib": 13000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.4, "max_rss_kib": 9000, "disk_write_bytes": 32}},
+          {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "fail", "metrics": {"duration_sec": 1.1, "max_rss_kib": 13000, "disk_write_bytes": 32}}
+        ]
+      }
+    }
+  ]
+}

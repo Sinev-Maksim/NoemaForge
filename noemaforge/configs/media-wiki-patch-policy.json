@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.media-wiki-patch/v1",
+  "kind": "MediaWikiPatchPolicy",
+  "id": "media-wiki-patch-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "local_first_default": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_wiki_patch_runtime_extension": true,
+    "required_create_flags": [
+      "--media-capability-report",
+      "--artifact-manifest"
+    ],
+    "required_bundle_outputs": [
+      "media_capability_delta.json",
+      "generated_artifacts.json",
+      "functional_delta.md",
+      "wiki_patch_manifest.json"
+    ],
+    "required_media_adapters": [
+      "voice_generation",
+      "music_generation",
+      "photo_generation",
+      "video_generation",
+      "image_analysis",
+      "camera_mask_bridge"
+    ],
+    "required_artifact_fields": [
+      "artifact_id",
+      "pipeline_id",
+      "kind",
+      "path",
+      "sha256",
+      "review_status"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/media_wiki_patch.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/media-wiki-patch-policy.json",
+    "noemaforge/contracts/media_wiki_patch.schema.json",
+    "noemaforge/src/media_wiki_patch_runtime.py",
+    "noemaforge/src/wiki_patch_runtime.py",
+    "noemaforge/tests/test_media_wiki_patch_runtime.py",
+    "noemaforge/tests/test_media_wiki_patch_qa.py",
+    "noemaforge/tests/test_media_wiki_patch_performance.py",
+    "prelaunch/governance/media_wiki_patch.example.json",
+    "noemaforge/configs/media-pipeline-catalog.json",
+    "noemaforge/configs/media-adapter-telemetry-policy.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

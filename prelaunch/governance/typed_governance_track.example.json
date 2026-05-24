@@ -1,0 +1,100 @@
+{
+  "apiVersion": "noemaforge.typed-governance/v1",
+  "kind": "TypedGovernanceTrackSet",
+  "id": "typed-governance-track-examples",
+  "version": "0.31.21.alpha",
+  "tracks": [
+    {
+      "apiVersion": "noemaforge.typed-governance/v1",
+      "kind": "TypedGovernanceTrack",
+      "id": "typed-governance-track-main",
+      "trace_id": "trace:typed-governance:main",
+      "status": "ready",
+      "pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+      "stage_order": [
+        "concept_frame",
+        "sense_state_privacy",
+        "drive_state",
+        "honesty_protocol",
+        "slop_critic",
+        "detection_verdict",
+        "research_packet",
+        "pipeline_rfc"
+      ],
+      "stages": [
+        {
+          "stage": "concept_frame",
+          "eval_pack_ref": "eval-pack:concept-frame-governance-core:0.31.21.alpha",
+          "depends_on": [],
+          "required_refs_present": true
+        },
+        {
+          "stage": "sense_state_privacy",
+          "eval_pack_ref": "eval-pack:sense-privacy-governance-core:0.31.21.alpha",
+          "depends_on": [
+            "concept_frame"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "drive_state",
+          "eval_pack_ref": "eval-pack:drive-state-governance-core:0.31.21.alpha",
+          "depends_on": [
+            "sense_state_privacy"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "honesty_protocol",
+          "eval_pack_ref": "eval-pack:honesty-protocol-governance-core:0.31.21.alpha",
+          "depends_on": [
+            "concept_frame"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "slop_critic",
+          "eval_pack_ref": "eval-pack:slop-critic-governance-core:0.31.21.alpha",
+          "depends_on": [
+            "honesty_protocol"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "detection_verdict",
+          "eval_pack_ref": "eval-pack:provenance-watermark-verdict-core:0.31.21.alpha",
+          "depends_on": [
+            "slop_critic"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "research_packet",
+          "eval_pack_ref": "eval-pack:research-packet-scouting-core:0.31.21.alpha",
+          "depends_on": [
+            "detection_verdict"
+          ],
+          "required_refs_present": true
+        },
+        {
+          "stage": "pipeline_rfc",
+          "eval_pack_ref": "eval-pack:pipeline-rfc-mutation-core:0.31.21.alpha",
+          "depends_on": [
+            "research_packet"
+          ],
+          "required_refs_present": true
+        }
+      ],
+      "finalization": {
+        "dependency_order_checked": true,
+        "registry_attachment_checked": true,
+        "docs_and_changelog_checked": true
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+        "docs/backlog/ROADMAP_AND_TODO.md",
+        "prelaunch/governance/pipeline_rfc.example.json"
+      ]
+    }
+  ]
+}

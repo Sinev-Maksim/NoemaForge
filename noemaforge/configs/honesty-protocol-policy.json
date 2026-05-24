@@ -1,0 +1,73 @@
+{
+  "apiVersion": "noemaforge.honesty-protocol/v1",
+  "kind": "HonestyProtocolPolicy",
+  "id": "honesty-protocol-governance-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_trace_id": true,
+    "require_honesty_state": true,
+    "require_uncertainty_reason": true,
+    "require_next_action": true,
+    "require_error_attribution": true,
+    "require_repair_action_for_errors": true,
+    "forbid_confident_unknowns": true,
+    "forbid_fabricated_citations": true,
+    "forbid_blame_shift": true,
+    "max_uncertain_confidence": 0.49,
+    "honesty_states": [
+      "sufficient_evidence",
+      "unknown",
+      "need_research",
+      "insufficient_evidence",
+      "policy_blocked",
+      "error_attribution"
+    ],
+    "uncertain_states": [
+      "unknown",
+      "need_research",
+      "insufficient_evidence",
+      "policy_blocked"
+    ],
+    "required_template_states": [
+      "unknown",
+      "need_research",
+      "error_attribution"
+    ],
+    "allowed_actions": [
+      "answer",
+      "ask_clarification",
+      "request_research",
+      "defer",
+      "correct_error",
+      "block"
+    ],
+    "error_classes": [
+      "model_error",
+      "source_error",
+      "data_missing",
+      "policy_block",
+      "external_constraint",
+      "operator_input_ambiguous",
+      "tool_error"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/honesty_protocol.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/honesty-protocol-policy.json",
+    "noemaforge/contracts/honesty_protocol.schema.json",
+    "noemaforge/src/honesty_protocol_runtime.py",
+    "noemaforge/tests/test_honesty_protocol_runtime.py",
+    "noemaforge/tests/test_honesty_protocol_qa.py",
+    "noemaforge/tests/test_honesty_protocol_performance.py",
+    "prelaunch/governance/honesty_protocol.example.json",
+    "prelaunch/governance/concept_frame.admin_architect.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

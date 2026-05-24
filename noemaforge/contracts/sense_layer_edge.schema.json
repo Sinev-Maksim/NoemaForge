@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/sense_layer_edge.schema.json",
+  "title": "SenseLayerEdgePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "adapters", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.sense-layer-edge/v1"
+    },
+    "kind": {
+      "const": "SenseLayerEdgePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_mqtt_adapter",
+        "require_serial_adapter",
+        "require_system_metrics_adapter",
+        "require_normalized_schema",
+        "require_explicit_source_trust",
+        "require_no_live_io_in_adapters",
+        "allowed_protocols",
+        "allowed_trust_levels",
+        "required_metric_fields"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_mqtt_adapter": {
+          "const": true
+        },
+        "require_serial_adapter": {
+          "const": true
+        },
+        "require_system_metrics_adapter": {
+          "const": true
+        },
+        "require_normalized_schema": {
+          "const": true
+        },
+        "require_explicit_source_trust": {
+          "const": true
+        },
+        "require_no_live_io_in_adapters": {
+          "const": true
+        },
+        "allowed_protocols": {
+          "type": "array",
+          "items": {
+            "enum": ["mqtt", "serial", "system_metrics"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_trust_levels": {
+          "type": "array",
+          "items": {
+            "enum": ["trusted", "simulated", "unverified"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_metric_fields": {
+          "type": "array",
+          "items": {
+            "enum": ["metric_id", "source_id", "source_trust", "timestamp", "value", "unit"]
+          },
+          "minItems": 6,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "adapters": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "protocol",
+          "source_id",
+          "source_trust",
+          "ingress",
+          "normalizer",
+          "schema_ref",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["draft", "shadow", "stable", "retired"]
+          },
+          "protocol": {
+            "enum": ["mqtt", "serial", "system_metrics"]
+          },
+          "source_id": {
+            "type": "string"
+          },
+          "source_trust": {
+            "enum": ["trusted", "simulated", "unverified"]
+          },
+          "ingress": {
+            "type": "object",
+            "required": ["live_io"],
+            "properties": {
+              "topic": {
+                "type": "string"
+              },
+              "device": {
+                "type": "string"
+              },
+              "collector": {
+                "type": "string"
+              },
+              "live_io": {
+                "const": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "normalizer": {
+            "type": "string"
+          },
+          "schema_ref": {
+            "type": "string"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,64 @@
+{
+  "apiVersion": "noemaforge.cgroup-aware-stop/v1",
+  "kind": "CgroupAwareStopPolicy",
+  "id": "cgroup-aware-stop-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "stop_reboot_safe_cgroup_aware",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "required_outputs": [
+      "unit_control_group_discovery",
+      "cgroup_proc_drain",
+      "legacy_pkill_fallback_only_after_cgroup_drain",
+      "reboot_safe_cgroup_audit",
+      "dry_run_cgroup_plan"
+    ],
+    "required_common_functions": [
+      "noemaforge_unit_control_group",
+      "noemaforge_cgroup_pids",
+      "noemaforge_drain_unit_cgroups",
+      "noemaforge_print_unit_cgroups",
+      "noemaforge_ops_unit_control_group",
+      "noemaforge_ops_cgroup_pids",
+      "noemaforge_ops_drain_unit_cgroups"
+    ],
+    "required_stop_helpers": [
+      "helpers/noemaforge-stop",
+      "helpers/noemaforge-service-stop",
+      "helpers/noemaforge-llm-stop"
+    ],
+    "required_reboot_helpers": [
+      "helpers/noemaforge-reboot-safe"
+    ],
+    "required_ops_helpers": [
+      "noemaforge/tools/ops/noemaforge-op-common.sh",
+      "noemaforge/tools/ops/noemaforge-op-llm-stop.sh"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/cgroup-aware-stop-policy.json",
+    "noemaforge/src/cgroup_aware_stop_runtime.py",
+    "noemaforge/tests/test_cgroup_aware_stop_runtime.py",
+    "noemaforge/tests/test_cgroup_aware_stop_qa.py",
+    "noemaforge/tests/test_cgroup_aware_stop_performance.py",
+    "lib/noemaforge-common.sh",
+    "helpers/noemaforge-stop",
+    "helpers/noemaforge-service-stop",
+    "helpers/noemaforge-llm-stop",
+    "helpers/noemaforge-reboot-safe",
+    "noemaforge/tools/ops/noemaforge-op-common.sh",
+    "noemaforge/tools/ops/noemaforge-op-llm-stop.sh",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

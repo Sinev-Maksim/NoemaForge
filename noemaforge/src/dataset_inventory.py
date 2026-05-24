@@ -12,6 +12,7 @@ import argparse
 import datetime as dt
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -30,6 +31,14 @@ except Exception:  # pragma: no cover
 DEFAULT_STATE = "/var/lib/noemaforge/bootstrap/dataset-inventory.json"
 DEFAULT_PACK_ROOT = "/var/lib/noemaforge/eval-packs/first-start-light"
 DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
+DEFAULT_ROLE_EVAL_DATASET_ROOT = os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", "/opt/noemaforge/datasets/role_eval_cases")
+PACKAGE_ROLE_EVAL_DATASET_ROOT = str(Path(__file__).resolve().parents[1] / "datasets" / "role_eval_cases")
+REQUIRED_ROLE_EVAL_FILES = [
+    "administrator_smoke.jsonl",
+    "dev_work_smoke.jsonl",
+    "system_guard_smoke.jsonl",
+    "writing_story_smoke.jsonl",
+]
 
 
 def now() -> str:
@@ -66,6 +75,125 @@ def scan_datasets(share_root: str = "/mnt/noemaforge-share", vault_root: str = "
         "vault_root": vault,
         "summary": {"datasets": len(datasets), "by_capability_hint": by_cap, "by_role_hint": by_role},
         "datasets": datasets,
+    }
+
+
+def _jsonl_report(root: str) -> Dict[str, Any]:
+    path = Path(root)
+    files = sorted(path.glob("*.jsonl")) if path.is_dir() else []
+    errors: List[Dict[str, Any]] = []
+    records = 0
+    for file_path in files:
+        try:
+            with file_path.open("r", encoding="utf-8") as f:
+                for line_no, line in enumerate(f, 1):
+                    text = line.strip()
+                    if not text:
+                        continue
+                    records += 1
+                    obj = json.loads(text)
+                    if not isinstance(obj, dict) or not str(obj.get("id") or "").strip():
+                        errors.append({"file": str(file_path), "line": line_no, "reason": "missing_id"})
+        except Exception as exc:
+            errors.append({"file": str(file_path), "reason": repr(exc)})
+    missing = [name for name in REQUIRED_ROLE_EVAL_FILES if not (path / name).is_file()]
+    return {
+        "root": str(path),
+        "exists": path.is_dir(),
+        "file_count": len(files),
+        "record_count": records,
+        "required_files": REQUIRED_ROLE_EVAL_FILES,
+        "missing_required_files": missing,
+        "errors": errors,
+        "ok": path.is_dir() and len(files) > 0 and not missing and not errors,
+    }
+
+
+def _copy_seed_datasets(source_root: str, target_root: str) -> List[Dict[str, str]]:
+    source = Path(source_root)
+    target = Path(target_root)
+    copied: List[Dict[str, str]] = []
+    if not source.is_dir():
+        return copied
+    target.mkdir(parents=True, exist_ok=True)
+    for src in sorted(source.glob("*.jsonl")):
+        dst = target / src.name
+        if dst.exists():
+            continue
+        shutil.copy2(src, dst)
+        copied.append({"source": str(src), "target": str(dst)})
+    return copied
+
+
+def _write_builtin_seed(target_root: str) -> List[Dict[str, str]]:
+    target = Path(target_root)
+    target.mkdir(parents=True, exist_ok=True)
+    mapping = {
+        "administrator_smoke.jsonl": BASE_TASKS["admin_ops_light_10"],
+        "dev_work_smoke.jsonl": BASE_TASKS["dev_code_light_10"],
+        "system_guard_smoke.jsonl": BASE_TASKS["admin_ops_light_10"],
+        "writing_story_smoke.jsonl": BASE_TASKS["writing_light_10"],
+    }
+    written: List[Dict[str, str]] = []
+    for filename, tasks in mapping.items():
+        dst = target / filename
+        if dst.exists():
+            continue
+        with dst.open("w", encoding="utf-8") as f:
+            for index, task in enumerate(tasks[:10], 1):
+                rec = dict(task)
+                rec.setdefault("ordinal", index)
+                rec.setdefault("source", "noemaforge_builtin_dataset_assurance")
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        written.append({"target": str(dst), "source": "builtin"})
+    return written
+
+
+def assure_role_eval_dataset(
+    target_root: str = DEFAULT_ROLE_EVAL_DATASET_ROOT,
+    *,
+    source_root: str = PACKAGE_ROLE_EVAL_DATASET_ROOT,
+    allow_builtin_seed: bool = True,
+) -> Dict[str, Any]:
+    """Ensure firstboot role-eval JSONL datasets exist before scoring."""
+    before = _jsonl_report(target_root)
+    copied: List[Dict[str, str]] = []
+    written: List[Dict[str, str]] = []
+    if not before["ok"]:
+        try:
+            if os.path.realpath(source_root) != os.path.realpath(target_root):
+                copied = _copy_seed_datasets(source_root, target_root)
+            if allow_builtin_seed:
+                after_copy = _jsonl_report(target_root)
+                if not after_copy["ok"]:
+                    written = _write_builtin_seed(target_root)
+        except Exception as exc:
+            after_error = _jsonl_report(target_root)
+            return {
+                "apiVersion": "noemaforge.datasetassurance/v1",
+                "kind": "RoleEvalDatasetAssurance",
+                "updated_at": now(),
+                "ok": False,
+                "target_root": target_root,
+                "source_root": source_root,
+                "before": before,
+                "after": after_error,
+                "copied": copied,
+                "written": written,
+                "error": repr(exc),
+            }
+    after = _jsonl_report(target_root)
+    return {
+        "apiVersion": "noemaforge.datasetassurance/v1",
+        "kind": "RoleEvalDatasetAssurance",
+        "updated_at": now(),
+        "ok": bool(after["ok"]),
+        "target_root": target_root,
+        "source_root": source_root,
+        "before": before,
+        "after": after,
+        "copied": copied,
+        "written": written,
     }
 
 
@@ -203,6 +331,13 @@ def write_dataset_inventory(doc: Dict[str, Any], path: str = DEFAULT_STATE) -> N
         f.write("\n")
 
 
+def write_dataset_assurance(doc: Dict[str, Any], path: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(doc, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="NoemaForge dataset inventory and first-start light eval-pack builder")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -214,6 +349,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p.add_argument("--role-catalog", default=DEFAULT_ROLE_CATALOG)
     p.add_argument("--out-root", default=DEFAULT_PACK_ROOT)
     p.add_argument("--dataset-inventory", default=DEFAULT_STATE)
+    p = sub.add_parser("assure")
+    p.add_argument("--target-root", default=DEFAULT_ROLE_EVAL_DATASET_ROOT)
+    p.add_argument("--source-root", default=PACKAGE_ROLE_EVAL_DATASET_ROOT)
+    p.add_argument("--json-out", default="")
+    p.add_argument("--no-builtin-seed", action="store_true")
     args = ap.parse_args(argv)
     if args.cmd == "scan":
         doc = scan_datasets(args.share_root, args.vault_root)
@@ -224,6 +364,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         index = build_eval_packs(args.role_catalog, args.out_root, args.dataset_inventory)
         print(json.dumps({"ok": True, "eval_pack_index": os.path.join(args.out_root, "index.json"), "packs": len(index.get("packs") or [])}, ensure_ascii=False, indent=2))
         return 0
+    if args.cmd == "assure":
+        doc = assure_role_eval_dataset(args.target_root, source_root=args.source_root, allow_builtin_seed=not bool(args.no_builtin_seed))
+        if args.json_out:
+            write_dataset_assurance(doc, args.json_out)
+        print(json.dumps(doc, ensure_ascii=False, indent=2))
+        return 0 if doc.get("ok") else 74
     return 2
 
 

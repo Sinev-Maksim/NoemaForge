@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.first-start-summary/v1",
+  "kind": "FirstStartSummaryExampleSet",
+  "id": "first-start-summary-examples",
+  "version": "0.31.21.alpha",
+  "events": [
+    {"ts": "2026-05-20T01:00:00Z", "step": "start", "state": "running", "message": "first run started", "extra": {"run_id": "run-pass"}},
+    {"ts": "2026-05-20T01:00:02Z", "step": "inventory", "state": "complete", "message": "vault inventory complete", "extra": {"selection_mode": "gui"}},
+    {"ts": "2026-05-20T01:00:05Z", "step": "complete", "state": "selection_ready_no_apply", "message": "candidate selection ready", "extra": {"selection_mode": "gui"}},
+    {"ts": "2026-05-20T01:10:00Z", "step": "start", "state": "running", "message": "second run started", "extra": {"run_id": "run-warn"}},
+    {"ts": "2026-05-20T01:10:02Z", "step": "staffing", "state": "warning", "message": "optional roles degraded", "extra": {"selection_mode": "gui"}},
+    {"ts": "2026-05-20T01:10:05Z", "step": "complete", "state": "degraded_selected", "message": "core ready with degraded optional roles", "extra": {"selection_mode": "gui"}},
+    {"ts": "2026-05-20T01:20:00Z", "step": "start", "state": "running", "message": "third run started", "extra": {"run_id": "run-fail"}},
+    {"ts": "2026-05-20T01:20:02Z", "step": "staffing", "state": "blocked_no_models", "message": "no mandatory model available", "extra": {"selection_mode": "gui"}},
+    {"ts": "2026-05-20T01:20:05Z", "step": "complete", "state": "blocked_no_models", "message": "selection blocked", "extra": {"selection_mode": "gui"}}
+  ],
+  "staffing": {
+    "staffing_state": "blocked_no_models",
+    "missing_mandatory_core_roles": ["Admin"],
+    "selected_model_count": 0,
+    "degraded_roles": ["Writer"],
+    "unstaffed_roles": ["Admin"]
+  },
+  "status": {"state": "blocked_no_models"},
+  "decision": {"selected": false, "reason": "no mandatory model available"},
+  "refs": [
+    "noemaforge/configs/first-start-summary-policy.json",
+    "noemaforge/contracts/first_start_summary.schema.json",
+    "noemaforge/src/first_start_summary.py",
+    "noemaforge/src/first_start_summary_contract_runtime.py"
+  ]
+}

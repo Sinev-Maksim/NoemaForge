@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.full-composite-ssh-readiness/v1",
+  "kind": "FullCompositeSshReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-full-composite-ssh-evidence-readiness",
+      "trace_id": "trace:full-composite:ssh-target",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "ssh-service-baseline",
+        "secure-access-plan",
+        "full-composite-ssh-watch",
+        "ssh-abort-recovery",
+        "ssh-evidence-archive"
+      ],
+      "expected_outputs": [
+        "ssh_readiness_summary",
+        "blocked_completion_notice",
+        "target_ssh_command_manifest",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

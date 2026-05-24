@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.public-showcase-guided-scenario.schema.json",
+  "title": "NoemaForge Public Showcase Guided Scenario",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "policy"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.public-showcase-guided-scenario/v1"
+    },
+    "kind": {
+      "const": "PublicShowcaseGuidedScenarioPolicy"
+    },
+    "id": {
+      "const": "public-showcase-guided-scenario-core"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "shadow",
+        "stable",
+        "retired"
+      ]
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "selected_showcase",
+        "scenario_id",
+        "scenario_endpoint",
+        "live_backend_demo_enabled",
+        "requires_live_target",
+        "requires_packaging",
+        "no_hidden_backend_start",
+        "no_auto_apply",
+        "final_target_replay_required",
+        "required_step_ids"
+      ],
+      "properties": {
+        "selected_showcase": {
+          "const": "polished_admin_gui_guided_scenario"
+        },
+        "scenario_id": {
+          "const": "admin_gui_guided_scenario"
+        },
+        "scenario_endpoint": {
+          "const": "/api/public-showcase/scenario"
+        },
+        "live_backend_demo_enabled": {
+          "const": false
+        },
+        "requires_live_target": {
+          "const": false
+        },
+        "requires_packaging": {
+          "const": false
+        },
+        "no_hidden_backend_start": {
+          "const": true
+        },
+        "no_auto_apply": {
+          "const": true
+        },
+        "final_target_replay_required": {
+          "const": true
+        },
+        "required_step_ids": {
+          "type": "array",
+          "minItems": 5,
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

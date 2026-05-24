@@ -1,0 +1,304 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/signed_model_manifest.schema.json",
+  "title": "SignedModelManifestContract",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/policy"
+    },
+    {
+      "$ref": "#/$defs/manifest"
+    }
+  ],
+  "$defs": {
+    "safeRef": {
+      "type": "string",
+      "minLength": 1
+    },
+    "policy": {
+      "type": "object",
+      "required": ["apiVersion", "kind", "id", "version", "status", "policy", "manifest_refs", "refs"],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.signed-model-manifest/v1"
+        },
+        "kind": {
+          "const": "SignedModelManifestPolicy"
+        },
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["draft", "shadow", "stable", "retired"]
+        },
+        "policy": {
+          "type": "object",
+          "required": [
+            "mode",
+            "require_sha256",
+            "require_signature",
+            "require_input_contract",
+            "require_output_contract",
+            "require_resource_budgets",
+            "require_whitebox_fallback",
+            "require_rollout_state",
+            "require_independent_qa_gate",
+            "require_qa_can_block_release",
+            "allowed_runtimes",
+            "allowed_signature_schemes",
+            "allowed_rollouts",
+            "allowed_fallbacks",
+            "deployable_rollouts",
+            "qa_approved_statuses"
+          ],
+          "properties": {
+            "mode": {
+              "const": "offline_contract"
+            },
+            "require_sha256": {
+              "const": true
+            },
+            "require_signature": {
+              "const": true
+            },
+            "require_input_contract": {
+              "const": true
+            },
+            "require_output_contract": {
+              "const": true
+            },
+            "require_resource_budgets": {
+              "const": true
+            },
+            "require_whitebox_fallback": {
+              "const": true
+            },
+            "require_rollout_state": {
+              "const": true
+            },
+            "require_independent_qa_gate": {
+              "const": true
+            },
+            "require_qa_can_block_release": {
+              "const": true
+            },
+            "allowed_runtimes": {
+              "type": "array",
+              "items": {
+                "enum": ["onnx", "tflm", "llama.cpp", "python", "mock"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "allowed_signature_schemes": {
+              "type": "array",
+              "items": {
+                "enum": ["sha256-selftest", "cosign", "minisign", "pgp"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "allowed_rollouts": {
+              "type": "array",
+              "items": {
+                "enum": ["shadow", "canary", "stable"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "allowed_fallbacks": {
+              "type": "array",
+              "items": {
+                "enum": ["whitebox", "previous_model", "manual_review"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "deployable_rollouts": {
+              "type": "array",
+              "items": {
+                "enum": ["canary", "stable"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            },
+            "qa_approved_statuses": {
+              "type": "array",
+              "items": {
+                "enum": ["approved_shadow", "approved_canary", "approved_stable"]
+              },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "manifest_refs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "ref"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "ref": {
+                "$ref": "#/$defs/safeRef"
+              }
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safeRef"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "manifest": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "id",
+        "model_id",
+        "version",
+        "status",
+        "target_type",
+        "model_ref",
+        "runtime",
+        "artifact_uri",
+        "sha256",
+        "signature",
+        "signature_scheme",
+        "input_contract",
+        "output_contract",
+        "budgets",
+        "fallback",
+        "rollout",
+        "qa_gate",
+        "refs"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.signed-model-manifest/v1"
+        },
+        "kind": {
+          "const": "SignedModelManifest"
+        },
+        "id": {
+          "type": "string"
+        },
+        "model_id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "enum": ["draft", "shadow", "canary", "stable", "retired"]
+        },
+        "target_type": {
+          "enum": ["edge", "gateway", "local_model"]
+        },
+        "model_ref": {
+          "type": "string"
+        },
+        "runtime": {
+          "enum": ["onnx", "tflm", "llama.cpp", "python", "mock"]
+        },
+        "artifact_uri": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[A-Fa-f0-9]{64}$"
+        },
+        "signature": {
+          "type": "string"
+        },
+        "signature_scheme": {
+          "enum": ["sha256-selftest", "cosign", "minisign", "pgp"]
+        },
+        "input_contract": {
+          "type": "string"
+        },
+        "output_contract": {
+          "type": "string"
+        },
+        "budgets": {
+          "type": "object",
+          "required": ["latency_budget_ms", "memory_budget_mb", "max_artifact_bytes"],
+          "properties": {
+            "latency_budget_ms": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "memory_budget_mb": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "max_artifact_bytes": {
+              "type": "integer",
+              "exclusiveMinimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "fallback": {
+          "enum": ["whitebox", "previous_model", "manual_review"]
+        },
+        "rollout": {
+          "enum": ["shadow", "canary", "stable"]
+        },
+        "qa_gate": {
+          "type": "object",
+          "required": ["required", "reviewer_role", "developer_role", "independent_from_developer", "can_block_release", "review_required", "status", "review_ref"],
+          "properties": {
+            "required": {
+              "const": true
+            },
+            "reviewer_role": {
+              "const": "qa"
+            },
+            "developer_role": {
+              "type": "string"
+            },
+            "independent_from_developer": {
+              "const": true
+            },
+            "can_block_release": {
+              "const": true
+            },
+            "review_required": {
+              "const": true
+            },
+            "status": {
+              "enum": ["pending", "approved_shadow", "approved_canary", "approved_stable", "blocked"]
+            },
+            "review_ref": {
+              "$ref": "#/$defs/safeRef"
+            }
+          },
+          "additionalProperties": false
+        },
+        "refs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/safeRef"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

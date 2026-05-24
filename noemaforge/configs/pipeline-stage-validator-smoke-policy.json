@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.pipeline-stage-validator-smoke/v1",
+  "kind": "PipelineStageValidatorSmokePolicy",
+  "id": "pipeline-stage-validator-smoke-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "stage_validator_and_smoke_commands",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_policy_schema_runtime_tests": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_commands": [
+      "stage-validate",
+      "stage-smoke",
+      "context-lint",
+      "executor-step"
+    ],
+    "required_outputs": [
+      "typed_sidecar_valid",
+      "typed_sidecar_checksum",
+      "output_non_placeholder",
+      "contract_artifact_registered",
+      "toolproxy_binding_present",
+      "no_live_host_required",
+      "no_llm_autostart"
+    ],
+    "controls": {
+      "offline_only": true,
+      "sidecar_checksum_required": true,
+      "contract_artifact_gate_required": true,
+      "toolproxy_binding_smoke_required": true,
+      "strict_mode_blocks_unready_stage": true,
+      "smoke_uses_temp_state": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_runtime_tokens": [
+      "validate_stage_artifacts",
+      "stage_validate_cmd",
+      "stage_smoke_cmd",
+      "stage-validate",
+      "stage-smoke"
+    ],
+    "required_docs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/pipeline_stage_validator_smoke.example.json"
+    ]
+  }
+}
+

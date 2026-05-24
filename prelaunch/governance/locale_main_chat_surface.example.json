@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.locale-main-chat-surface/v1",
+  "kind": "LocaleMainChatSurfaceExampleSet",
+  "id": "locale-main-chat-surface-examples",
+  "version": "0.31.21.alpha",
+  "examples": [
+    {
+      "name": "ru_main_chat_surface",
+      "request": {"method": "GET", "path": "/api/locales"},
+      "expect": {
+        "messages": {
+          "ru": {
+            "section.main_chat": "Основной чат",
+            "chat.send": "Отправить",
+            "artifact.download": "Скачать",
+            "pipeline.dock": "Док пайплайнов",
+            "role.user": "Пользователь"
+          }
+        },
+        "frontend": ["applyLocaleMessages", "speakerLabel", "setPlaceholder"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,68 @@
+{
+  "apiVersion": "noemaforge.git-exchange/v1",
+  "kind": "GitExchangePolicy",
+  "id": "git-exchange-quarantine-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "quarantine_first",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "role_kernel_policy_ref": "configs/role-kernel-policy.json",
+    "roleflow_policy_ref": "configs/roleflow-orchestration-policy.json",
+    "quarantine_root": "quarantine/git_exchange",
+    "allowed_pack_kinds": [
+      "RolePack",
+      "RoleFlow",
+      "EvalPack",
+      "KnowledgeGraphPack",
+      "ArtifactPack",
+      "ModelDeltaPack"
+    ],
+    "mandatory_stages": [
+      "fetch",
+      "manifest_scan",
+      "quarantine_record",
+      "scary_verdict",
+      "surgeon_recommendation",
+      "admin_approval",
+      "promotion_record"
+    ],
+    "blocked_activation_states": [
+      "active",
+      "installed",
+      "promoted"
+    ],
+    "promotion_requirements": {
+      "signed_manifest": true,
+      "sha256_manifest": true,
+      "provenance_required": true,
+      "scary_verdict_required": true,
+      "surgeon_recommendation_required": true,
+      "admin_approval_required": true,
+      "quarantine_evidence_retained": true,
+      "model_delta_lab_only": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/git_exchange_quarantine.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/git-exchange-quarantine-policy.json",
+    "noemaforge/contracts/git_exchange_quarantine.schema.json",
+    "noemaforge/src/git_exchange_quarantine_runtime.py",
+    "noemaforge/tests/test_git_exchange_quarantine_runtime.py",
+    "noemaforge/tests/test_git_exchange_quarantine_qa.py",
+    "noemaforge/tests/test_git_exchange_quarantine_performance.py",
+    "prelaunch/governance/git_exchange_quarantine.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

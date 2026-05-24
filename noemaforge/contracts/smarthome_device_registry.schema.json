@@ -1,13 +1,51 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/smarthome_device_registry.schema.json",
   "title": "NoemaForge SmartHome Device Registry",
   "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "privacy_principle", "rooms", "devices"],
   "properties": {
-    "devices": {
-      "type": "array"
-    },
+    "apiVersion": {"const": "noemaforge.smarthome/v1"},
+    "kind": {"const": "SmartHomeDeviceRegistry"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
     "privacy_principle": {
-      "type": "string"
+      "type": "string",
+      "minLength": 1
+    },
+    "rooms": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "privacy_zone"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "privacy_zone": {"enum": ["private", "shared", "utility", "external"]}
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "devices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "room_id", "adapter", "source_label", "visible_privacy_state"],
+        "properties": {
+          "id": {"type": "string"},
+          "type": {"type": "string"},
+          "room_id": {"type": "string"},
+          "adapter": {"type": "string"},
+          "source_label": {"enum": ["trusted", "simulated", "unverified"]},
+          "visible_privacy_state": {"type": "boolean"},
+          "camera": {"type": "boolean"},
+          "microphone": {"type": "boolean"}
+        },
+        "additionalProperties": false
+      },
+      "minItems": 1
     }
-  }
+  },
+  "additionalProperties": false
 }

@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/premerge_release_guard.schema.json",
+  "title": "NoemaForge PremergeReleaseGuardDecision",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "ok", "decision", "blockers", "warnings", "comparison", "artifact_status", "rollback_plan"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.premerge-release-guard/v1"},
+    "kind": {"const": "PremergeReleaseGuardDecision"},
+    "version": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string"},
+    "ok": {"type": "boolean"},
+    "decision": {"enum": ["allow", "block"]},
+    "baseline_run_id": {"type": ["string", "null"]},
+    "current_run_id": {"type": ["string", "null"]},
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {"type": "string"},
+          "case_id": {"type": "string"},
+          "metric": {"type": "string"},
+          "severity": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {"type": "string"},
+          "case_id": {"type": "string"},
+          "metric": {"type": "string"},
+          "severity": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "comparison": {"type": "object"},
+    "artifact_status": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "required", "present"],
+        "properties": {
+          "id": {"type": "string"},
+          "required": {"type": "boolean"},
+          "present": {"type": "boolean"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "rollback_plan": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "additionalProperties": true
+}

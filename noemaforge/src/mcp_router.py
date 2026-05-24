@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/mcp_router.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -58,12 +58,79 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import yaml
+try:
+    import yaml  # type: ignore
+except Exception:
+    yaml = None  # type: ignore
 
 
 DEFAULT_CATALOG_PATH = "/opt/noemaforge/configs/mcp-adapters.yaml"
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 _DEFAULT_SEARCH_EXTS = {".md", ".txt", ".rst", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1"}
+
+
+def _parse_scalar(value: str) -> Any:
+    text = str(value or "").strip()
+    if text.lower() == "true":
+        return True
+    if text.lower() == "false":
+        return False
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        return text[1:-1]
+    return text
+
+
+def _load_simple_catalog_yaml(text: str) -> Dict[str, Any]:
+    doc: Dict[str, Any] = {}
+    adapters: List[Dict[str, Any]] = []
+    in_adapters = False
+    current: Optional[Dict[str, Any]] = None
+    current_list_key = ""
+
+    for raw_line in text.splitlines():
+        line = raw_line.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        stripped = line.strip()
+
+        if not in_adapters:
+            if ":" not in stripped:
+                continue
+            key, value = stripped.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if key == "adapters" and not value:
+                in_adapters = True
+                doc["adapters"] = adapters
+            else:
+                doc[key] = _parse_scalar(value)
+            continue
+
+        if stripped.startswith("- "):
+            item = stripped[2:].strip()
+            if ":" in item:
+                current = {}
+                adapters.append(current)
+                key, value = item.split(":", 1)
+                current[key.strip()] = _parse_scalar(value)
+                current_list_key = ""
+            elif current is not None and current_list_key:
+                current.setdefault(current_list_key, []).append(_parse_scalar(item))
+            continue
+
+        if current is not None and ":" in stripped:
+            key, value = stripped.split(":", 1)
+            key = key.strip()
+            value = value.strip()
+            if value:
+                current[key] = _parse_scalar(value)
+                current_list_key = ""
+            else:
+                current[key] = []
+                current_list_key = key
+
+    doc["adapters"] = adapters
+    return doc
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -79,7 +146,10 @@ _DEFAULT_SEARCH_EXTS = {".md", ".txt", ".rst", ".py", ".json", ".yaml", ".yml", 
 # === End NoemaForge Autodoc Function Header ===
 def _load_yaml(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
-        obj = yaml.safe_load(f) or {}
+        if yaml is None:
+            obj = _load_simple_catalog_yaml(f.read())
+        else:
+            obj = yaml.safe_load(f) or {}
     return obj if isinstance(obj, dict) else {}
 
 

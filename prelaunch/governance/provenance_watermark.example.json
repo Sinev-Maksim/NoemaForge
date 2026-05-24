@@ -1,0 +1,279 @@
+{
+  "apiVersion": "noemaforge.provenance-watermark/v1",
+  "kind": "ProvenanceWatermarkSet",
+  "id": "provenance-watermark-examples",
+  "version": "0.31.21.alpha",
+  "cases": [
+    {
+      "apiVersion": "noemaforge.provenance-watermark/v1",
+      "kind": "ProvenanceWatermarkCase",
+      "id": "provenance-watermark-clean-local",
+      "trace_id": "trace:provenance-watermark:clean-local",
+      "artifact": {
+        "modality": "text",
+        "content_hash": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "source_manifest_ref": "prelaunch/governance/slop_critic.example.json",
+        "source_type": "human_reviewed_local",
+        "signature": {
+          "present": true,
+          "verified": true,
+          "algorithm": "ed25519"
+        },
+        "watermark": {
+          "hook": "watermark:heuristic-local",
+          "present": true,
+          "verified": true,
+          "confidence": 0.91
+        },
+        "consistency": {
+          "content_hash_match": true,
+          "manifest_subject_match": true
+        },
+        "hooks": [
+          {
+            "type": "manifest",
+            "status": "verified"
+          },
+          {
+            "type": "signature",
+            "status": "verified"
+          },
+          {
+            "type": "watermark",
+            "status": "verified"
+          },
+          {
+            "type": "content_hash",
+            "status": "verified"
+          }
+        ]
+      },
+      "aggregated_detection_verdict": {
+        "decision": "clean",
+        "confidence": 0.95,
+        "risk_score": 0.0,
+        "action": "allow",
+        "advisory": true,
+        "single_detector_decision": false,
+        "aggregated_from": [
+          "provenance_manifest",
+          "signature_check",
+          "watermark_signal",
+          "content_consistency"
+        ],
+        "reasons": [
+          "manifest_ref_present",
+          "signature_verified",
+          "watermark_verified",
+          "content_consistent"
+        ],
+        "summary": "Manifest, signature, watermark and content consistency hooks agree."
+      },
+      "finalization": {
+        "hooks_required": true,
+        "critic_aggregation_complete": true,
+        "final_without_critic_aggregation": false
+      },
+      "refs": [
+        "prelaunch/governance/slop_critic.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.provenance-watermark/v1",
+      "kind": "ProvenanceWatermarkCase",
+      "id": "provenance-watermark-manipulated-mismatch",
+      "trace_id": "trace:provenance-watermark:manipulated-mismatch",
+      "artifact": {
+        "modality": "text",
+        "content_hash": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "source_manifest_ref": "prelaunch/governance/slop_critic.example.json",
+        "source_type": "unknown",
+        "signature": {
+          "present": true,
+          "verified": false,
+          "algorithm": "ed25519"
+        },
+        "watermark": {
+          "hook": "watermark:heuristic-local",
+          "present": false,
+          "verified": false,
+          "confidence": 0.18
+        },
+        "consistency": {
+          "content_hash_match": false,
+          "manifest_subject_match": false
+        },
+        "hooks": [
+          {
+            "type": "manifest",
+            "status": "present"
+          },
+          {
+            "type": "signature",
+            "status": "failed"
+          },
+          {
+            "type": "watermark",
+            "status": "absent"
+          },
+          {
+            "type": "content_hash",
+            "status": "failed"
+          }
+        ]
+      },
+      "aggregated_detection_verdict": {
+        "decision": "advisory_manipulated",
+        "confidence": 0.75,
+        "risk_score": 0.75,
+        "action": "escalate",
+        "advisory": true,
+        "single_detector_decision": false,
+        "aggregated_from": [
+          "provenance_manifest",
+          "signature_check",
+          "watermark_signal",
+          "content_consistency"
+        ],
+        "reasons": [
+          "signature_invalid",
+          "watermark_unverified",
+          "content_mismatch"
+        ],
+        "summary": "Multiple hooks disagree, so the aggregate verdict escalates without claiming detector certainty."
+      },
+      "finalization": {
+        "hooks_required": true,
+        "critic_aggregation_complete": true,
+        "final_without_critic_aggregation": false
+      },
+      "refs": [
+        "prelaunch/governance/slop_critic.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    }
+  ],
+  "scoring_cases": [
+    {
+      "id": "aggregate-clean-allows",
+      "artifact": {
+        "source_manifest_ref": "prelaunch/governance/slop_critic.example.json",
+        "signature": {
+          "present": true,
+          "verified": true
+        },
+        "watermark": {
+          "present": true,
+          "verified": true,
+          "confidence": 0.9
+        },
+        "consistency": {
+          "content_hash_match": true,
+          "manifest_subject_match": true
+        },
+        "hooks": [
+          {
+            "type": "manifest",
+            "status": "verified"
+          },
+          {
+            "type": "signature",
+            "status": "verified"
+          },
+          {
+            "type": "watermark",
+            "status": "verified"
+          },
+          {
+            "type": "content_hash",
+            "status": "verified"
+          }
+        ]
+      },
+      "expected_max_score": 0.0,
+      "expected_action": "allow",
+      "expected_decision": "clean"
+    },
+    {
+      "id": "aggregate-missing-manifest-revises",
+      "artifact": {
+        "source_manifest_ref": "",
+        "signature": {
+          "present": true,
+          "verified": true
+        },
+        "watermark": {
+          "present": true,
+          "verified": true,
+          "confidence": 0.9
+        },
+        "consistency": {
+          "content_hash_match": true,
+          "manifest_subject_match": true
+        },
+        "hooks": [
+          {
+            "type": "manifest",
+            "status": "absent"
+          },
+          {
+            "type": "signature",
+            "status": "verified"
+          },
+          {
+            "type": "watermark",
+            "status": "verified"
+          },
+          {
+            "type": "content_hash",
+            "status": "verified"
+          }
+        ]
+      },
+      "expected_min_score": 0.25,
+      "expected_action": "revise",
+      "expected_decision": "unknown"
+    },
+    {
+      "id": "aggregate-mismatch-escalates",
+      "artifact": {
+        "source_manifest_ref": "prelaunch/governance/slop_critic.example.json",
+        "signature": {
+          "present": true,
+          "verified": false
+        },
+        "watermark": {
+          "present": false,
+          "verified": false,
+          "confidence": 0.2
+        },
+        "consistency": {
+          "content_hash_match": false,
+          "manifest_subject_match": false
+        },
+        "hooks": [
+          {
+            "type": "manifest",
+            "status": "present"
+          },
+          {
+            "type": "signature",
+            "status": "failed"
+          },
+          {
+            "type": "watermark",
+            "status": "absent"
+          },
+          {
+            "type": "content_hash",
+            "status": "failed"
+          }
+        ]
+      },
+      "expected_min_score": 0.7,
+      "expected_action": "escalate",
+      "expected_decision": "advisory_manipulated"
+    }
+  ]
+}

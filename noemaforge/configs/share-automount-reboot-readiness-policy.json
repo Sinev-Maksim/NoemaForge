@@ -1,0 +1,138 @@
+{
+  "apiVersion": "noemaforge.share-automount-reboot-readiness/v1",
+  "kind": "ShareAutomountRebootReadinessPolicy",
+  "id": "share-automount-reboot-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_share_automount_reboot_readiness",
+    "completion_state": "blocked_until_target_share_reboot_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Confirm share automount lines do not re-enter emergency mode after reboot."
+    ],
+    "required_safety_controls": {
+      "no_auto_reboot_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "nofail_automount_required": true,
+      "emergency_mode_absence_required": true,
+      "post_reboot_share_access_required": true,
+      "forensics_archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "share-mount-baseline",
+        "title": "Share mount and automount baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "findmnt /mnt/noemaforge-share || true",
+          "grep -E '/mnt/noemaforge-share|x-systemd.automount|nofail' /etc/fstab",
+          "systemctl status mnt-noemaforge\\x2dshare.automount --no-pager -l || true"
+        ],
+        "evidence": ["canonical_share_findmnt", "fstab_share_line", "nofail_option", "x_systemd_automount_option", "automount_unit_state"],
+        "completion_gates": ["canonical_share_recorded", "nofail_option_recorded", "automount_option_recorded", "automount_unit_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "operator-approved-reboot-plan",
+        "title": "Operator-approved reboot plan",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo systemctl reboot"
+        ],
+        "evidence": ["operator_approval_record", "planned_reboot_command", "pre_reboot_boot_id", "pre_reboot_system_state"],
+        "completion_gates": ["operator_approval_recorded", "pre_reboot_state_recorded", "reboot_command_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "post-reboot-emergency-guard",
+        "title": "Post-reboot emergency-mode guard",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-system-running || true",
+          "systemctl is-active emergency.target || true",
+          "systemctl is-active rescue.target || true",
+          "systemctl --failed --no-pager"
+        ],
+        "evidence": ["post_reboot_boot_id", "system_running_state", "emergency_target_state", "rescue_target_state", "failed_units"],
+        "completion_gates": ["boot_id_changed_after_reboot", "emergency_target_inactive", "rescue_target_inactive", "failed_units_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "post-reboot-share-access",
+        "title": "Post-reboot share access",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "findmnt /mnt/noemaforge-share || true",
+          "systemctl status mnt-noemaforge\\x2dshare.automount --no-pager -l || true",
+          "ls -la /mnt/noemaforge-share 2>/dev/null || true"
+        ],
+        "evidence": ["post_reboot_share_findmnt", "post_reboot_automount_state", "post_reboot_share_listing", "no_boot_block_from_share"],
+        "completion_gates": ["share_path_reachable_after_reboot", "automount_state_recorded_after_reboot", "no_boot_block_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "share-reboot-evidence-archive",
+        "title": "Share reboot evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-install-validation"
+        ],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "share_reboot_readiness_summary",
+      "blocked_completion_notice",
+      "target_reboot_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/share-automount-reboot-readiness-policy.json",
+      "noemaforge/contracts/share_automount_reboot_readiness.schema.json",
+      "noemaforge/src/share_automount_reboot_readiness_runtime.py",
+      "prelaunch/governance/share_automount_reboot_readiness.example.json",
+      "noemaforge/configs/clean-install-share-readiness-policy.json",
+      "noemaforge/configs/nologin-recovery-readiness-policy.json",
+      "noemaforge/src/clean_install_share_readiness_runtime.py",
+      "noemaforge/src/nologin_recovery_readiness_runtime.py",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/share-automount-reboot-readiness-policy.json",
+    "noemaforge/contracts/share_automount_reboot_readiness.schema.json",
+    "noemaforge/src/share_automount_reboot_readiness_runtime.py",
+    "noemaforge/tests/test_share_automount_reboot_readiness_runtime.py",
+    "noemaforge/tests/test_share_automount_reboot_readiness_qa.py",
+    "noemaforge/tests/test_share_automount_reboot_readiness_performance.py",
+    "prelaunch/governance/share_automount_reboot_readiness.example.json",
+    "noemaforge/configs/clean-install-share-readiness-policy.json",
+    "noemaforge/configs/nologin-recovery-readiness-policy.json",
+    "noemaforge/src/clean_install_share_readiness_runtime.py",
+    "noemaforge/src/nologin_recovery_readiness_runtime.py",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

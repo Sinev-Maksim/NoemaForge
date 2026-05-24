@@ -1,0 +1,169 @@
+{
+  "apiVersion": "noemaforge.clean-install-share-readiness/v1",
+  "kind": "CleanInstallShareReadinessPolicy",
+  "id": "clean-install-share-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "clean_install_with_canonical_share_readiness",
+    "completion_state": "blocked_until_target_clean_install_evidence",
+    "canonical_share_root": "/mnt/noemaforge-share",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Validate NoemaForge clean install on NoemaForge with `/mnt/noemaforge-share`.",
+      "Confirm share automount lines do not re-enter emergency mode after reboot.",
+      "Run `sudo noemaforge trixie-preflight --json` on the target machine."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_install": true,
+      "target_machine_required": true,
+      "share_root_canonical": true,
+      "nofail_automount_required": true,
+      "dry_run_before_host_install": true,
+      "previous_install_archive_only": true,
+      "evidence_archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "setup-dry-run-selftest",
+        "title": "Setup dry-run and selftest before host install",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "./setup.sh --mode vm --dry-run --selftest",
+          "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share --dry-run"
+        ],
+        "evidence": ["setup_dry_run_log", "selftest_summary", "installer_version"],
+        "completion_gates": ["dry_run_passed", "selftest_passed", "evidence_file_archived"]
+      },
+      {
+        "id": "host-clean-install",
+        "title": "Host clean install with canonical share",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share"
+        ],
+        "evidence": ["install_transcript", "root_approval_record", "installed_cli_version"],
+        "completion_gates": ["operator_approval_recorded", "install_exit_zero", "evidence_file_archived"]
+      },
+      {
+        "id": "share-mount-normalization",
+        "title": "Canonical share mount normalization",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "findmnt /mnt/noemaforge-share || true",
+          "grep -E '[[:space:]]/mnt/noemaforge-share[[:space:]]' /etc/fstab || true",
+          "systemctl status mnt-noemaforge\\x2dshare.automount --no-pager -l || true"
+        ],
+        "evidence": ["findmnt_output", "fstab_share_line", "automount_unit_state"],
+        "completion_gates": ["share_path_is_canonical", "nofail_automount_present", "evidence_file_archived"]
+      },
+      {
+        "id": "previous-install-detached",
+        "title": "Previous install context detached from active runtime",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge status --json",
+          "noemaforge previous-install context --json || true"
+        ],
+        "evidence": ["active_root_summary", "previous_install_context", "migration_context"],
+        "completion_gates": ["active_roots_are_current", "backup_context_archive_only", "evidence_file_archived"]
+      },
+      {
+        "id": "post-install-preflight",
+        "title": "Post-install Trixie preflight",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge trixie-preflight --json",
+          "noemaforge help",
+          "noemaforge profiles recommend"
+        ],
+        "evidence": ["trixie_preflight_json", "cli_help_output", "profile_recommendation"],
+        "completion_gates": ["preflight_json_parse_ok", "cli_available", "evidence_file_archived"]
+      },
+      {
+        "id": "emergency-mode-guard",
+        "title": "Emergency mode and login guard",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-system-running || true",
+          "test ! -e /run/nologin",
+          "journalctl -b -p err --no-pager | tail -200"
+        ],
+        "evidence": ["system_running_state", "run_nologin_state", "boot_error_excerpt"],
+        "completion_gates": ["no_run_nologin_block", "share_did_not_trigger_emergency_mode", "evidence_file_archived"]
+      },
+      {
+        "id": "evidence-archive",
+        "title": "Clean install evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-install-validation"
+        ],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "clean_install_readiness_summary",
+      "blocked_completion_notice",
+      "target_command_manifest",
+      "share_mount_requirements",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/clean-install-share-readiness-policy.json",
+      "noemaforge/contracts/clean_install_share_readiness.schema.json",
+      "noemaforge/src/clean_install_share_readiness_runtime.py",
+      "prelaunch/governance/clean_install_share_readiness.example.json",
+      "setup.sh",
+      "install_noemaforge_0.31.21.alpha_mvp.sh",
+      "noemaforge/configs/production-gui-installer-policy.json",
+      "noemaforge/configs/previous-install-context-policy.json",
+      "noemaforge/src/production_gui_installer_runtime.py",
+      "noemaforge/src/previous_install_context_runtime.py",
+      "noemaforge/docs/onboarding/PRODUCTION_INSTALL_TRIXIE.md",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/clean-install-share-readiness-policy.json",
+    "noemaforge/contracts/clean_install_share_readiness.schema.json",
+    "noemaforge/src/clean_install_share_readiness_runtime.py",
+    "noemaforge/tests/test_clean_install_share_readiness_runtime.py",
+    "noemaforge/tests/test_clean_install_share_readiness_qa.py",
+    "noemaforge/tests/test_clean_install_share_readiness_performance.py",
+    "prelaunch/governance/clean_install_share_readiness.example.json",
+    "setup.sh",
+    "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "noemaforge/configs/production-gui-installer-policy.json",
+    "noemaforge/configs/previous-install-context-policy.json",
+    "noemaforge/src/production_gui_installer_runtime.py",
+    "noemaforge/src/previous_install_context_runtime.py",
+    "noemaforge/docs/onboarding/PRODUCTION_INSTALL_TRIXIE.md",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

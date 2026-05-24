@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "SelfTestCaseCatalog",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "invariant": {
     "llm_mode": "switchable",
     "max_active_llms": 1,
@@ -23,6 +23,14 @@
     "pipeline": [
       "pipeline_run_public_mwp",
       "pipeline_template_import"
+    ],
+    "media_adapters": [
+      "media_adapter_telemetry_camera_mask_bridge",
+      "media_adapter_telemetry_image_analysis",
+      "media_adapter_telemetry_music_generation",
+      "media_adapter_telemetry_photo_generation",
+      "media_adapter_telemetry_video_generation",
+      "media_adapter_telemetry_voice_generation"
     ],
     "full_safe": [
       "cli_status_json",
@@ -2777,6 +2785,120 @@
       "live": false
     },
     {
+      "id": "media_adapter_telemetry_camera_mask_bridge",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for camera mask bridge media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "camera_mask_bridge",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"camera_mask_bridge\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "media_adapter_telemetry_image_analysis",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for image analysis media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "image_analysis",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"image_analysis\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "media_adapter_telemetry_music_generation",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for music generation media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "music_generation",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"music_generation\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "media_adapter_telemetry_photo_generation",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for photo generation media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "photo_generation",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"photo_generation\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "media_adapter_telemetry_video_generation",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for video generation media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "video_generation",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"video_generation\""
+        ]
+      },
+      "live": false
+    },
+    {
+      "id": "media_adapter_telemetry_voice_generation",
+      "module": "media_adapter_telemetry",
+      "tier": "integration_offline",
+      "description": "Plan-only telemetry selftest for voice generation media adapter",
+      "command": [
+        "__media_adapter_telemetry__",
+        "voice_generation",
+        "plan_only_smoke"
+      ],
+      "expect": {
+        "exit_code": 0,
+        "stdout_contains": [
+          "\"ok\": true",
+          "\"adapter\": \"voice_generation\""
+        ]
+      },
+      "live": false
+    },
+    {
       "id": "code_qa_team_select",
       "module": "code_qa",
       "tier": "unit",
@@ -2923,9 +3045,10 @@
       "command": [
         "test",
         "-s",
-        "{{root}}/../docs/USER_TEST_CASE_0.31.13.alpha.md"
+        "{{root}}/../docs/USER_TEST_CASE_0.31.13.alpha-patched1.md"
       ],
       "timeout_seconds": 10
     }
   ]
 }
+

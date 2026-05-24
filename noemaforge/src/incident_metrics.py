@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/incident_metrics.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Collect or report NoemaForge telemetry and metric snapshots.

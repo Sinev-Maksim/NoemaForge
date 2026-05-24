@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.pipeline.executor-stage-worker/v1",
+  "kind": "ExecutorStageWorkerPolicy",
+  "id": "executor-stage-worker-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "contract_driven_executor_step",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_commands": ["run", "artifact add", "executor-step", "event-log"],
+    "required_outputs": ["stage_contract", "contract_artifact_gate", "pipeline_executor_step_event", "pipeline_executor_wait_event"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/pipeline_runtime.py",
+      "contract_runtime": "src/executor_stage_worker_runtime.py"
+    },
+    "controls": {
+      "context_packet_required": true,
+      "non_placeholder_output_required": true,
+      "contract_matching_artifact_required": true,
+      "apply_advances_stage_only_when_ready": true,
+      "wait_event_when_not_ready": true,
+      "degraded_mutation_guard": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/executor_stage_worker.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/executor-stage-worker-policy.json",
+    "noemaforge/contracts/executor_stage_worker.schema.json",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/executor_stage_worker_runtime.py",
+    "noemaforge/tests/test_executor_stage_worker_runtime.py",
+    "noemaforge/tests/test_executor_stage_worker_qa.py",
+    "noemaforge/tests/test_executor_stage_worker_performance.py",
+    "prelaunch/governance/executor_stage_worker.example.json",
+    "docs/README.md",
+    "noemaforge/docs/README.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

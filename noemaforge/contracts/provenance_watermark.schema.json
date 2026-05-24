@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/provenance_watermark.schema.json",
+  "title": "ProvenanceWatermarkPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.provenance-watermark/v1"
+    },
+    "kind": {
+      "const": "ProvenanceWatermarkPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "advisory_by_default",
+        "no_single_detector_truth",
+        "require_trace_id",
+        "require_source_manifest",
+        "require_watermark_hooks",
+        "require_aggregated_detection_verdict",
+        "require_critic_aggregation_before_final",
+        "hook_types",
+        "signal_inputs",
+        "risk_weights",
+        "thresholds",
+        "actions",
+        "verdict_decisions",
+        "minimum_watermark_confidence",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "advisory_by_default": {
+          "const": true
+        },
+        "no_single_detector_truth": {
+          "const": true
+        },
+        "require_trace_id": {
+          "const": true
+        },
+        "require_source_manifest": {
+          "const": true
+        },
+        "require_watermark_hooks": {
+          "const": true
+        },
+        "require_aggregated_detection_verdict": {
+          "const": true
+        },
+        "require_critic_aggregation_before_final": {
+          "const": true
+        },
+        "hook_types": {
+          "type": "array",
+          "items": {
+            "enum": ["manifest", "signature", "watermark", "content_hash"]
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "signal_inputs": {
+          "type": "array",
+          "items": {
+            "enum": ["provenance_manifest", "signature_check", "watermark_signal", "content_consistency"]
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "risk_weights": {
+          "type": "object",
+          "required": ["manifest_missing", "signature_invalid", "watermark_unverified", "content_mismatch"],
+          "properties": {
+            "manifest_missing": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "signature_invalid": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "watermark_unverified": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "content_mismatch": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "thresholds": {
+          "type": "object",
+          "required": ["allow_max", "revise_max", "abstain_max"],
+          "properties": {
+            "allow_max": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "revise_max": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "abstain_max": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "enum": ["allow", "revise", "abstain", "escalate"]
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "verdict_decisions": {
+          "type": "array",
+          "items": {
+            "enum": ["clean", "advisory_ai_likely", "advisory_manipulated", "unknown"]
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "minimum_watermark_confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

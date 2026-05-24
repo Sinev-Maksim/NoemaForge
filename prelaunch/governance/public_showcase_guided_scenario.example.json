@@ -1,0 +1,63 @@
+{
+  "apiVersion": "noemaforge.public-showcase-guided-scenario/v1",
+  "kind": "PublicShowcaseGuidedScenarioExample",
+  "scenario_id": "admin_gui_guided_scenario",
+  "selected_showcase": "polished_admin_gui_guided_scenario",
+  "trace_id": "trace:public-showcase:guided-scenario:001",
+  "live_backend_demo_enabled": false,
+  "requires_live_target": false,
+  "requires_packaging": false,
+  "steps": [
+    {
+      "id": "health",
+      "endpoint": "/api/health",
+      "surface": "topbar",
+      "request": "Show local health without starting a backend."
+    },
+    {
+      "id": "admin_greeting",
+      "endpoint": "/api/admin/message",
+      "surface": "main_chat",
+      "request": "Првиет!"
+    },
+    {
+      "id": "routed_pipeline",
+      "endpoint": "/api/pipeline/run",
+      "surface": "pipeline_dock",
+      "pipeline_id": "public_mwp",
+      "request": "Запусти public_mwp по стандартному сценарию"
+    },
+    {
+      "id": "dev_team_plan",
+      "endpoint": "/api/admin/message",
+      "surface": "main_chat",
+      "request": "доработай код через dev team: summarize the next safe patch"
+    },
+    {
+      "id": "model_evolution_plan",
+      "endpoint": "/api/admin/message",
+      "surface": "main_chat",
+      "request": "проведи эволюцию модели для ревью кода"
+    }
+  ],
+  "expected_ui_surfaces": [
+    "topbar",
+    "main_chat",
+    "pipeline_dock",
+    "artifacts",
+    "jobs",
+    "runtime_cards"
+  ],
+  "expected_outputs": [
+    "public_showcase_plan",
+    "reviewable_pipeline_run",
+    "dev_team_plan",
+    "model_evolution_review_context"
+  ],
+  "safety": {
+    "no_network_required": true,
+    "no_hidden_backend_start": true,
+    "no_auto_apply": true,
+    "final_target_replay_required": true
+  }
+}

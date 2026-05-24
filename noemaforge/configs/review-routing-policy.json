@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.review/v1",
   "kind": "ReviewRoutingPolicy",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "message_review": {
     "conversation_messages": "SR",
     "system_mutations": "SSR",
@@ -13,3 +13,4 @@
     "ssr": "/var/lib/noemaforge/review/ssr/inbox"
   }
 }
+

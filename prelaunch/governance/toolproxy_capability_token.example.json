@@ -1,0 +1,42 @@
+{
+  "apiVersion": "noemaforge.toolproxy-capability/v1",
+  "kind": "ToolProxyCapabilityTokenExampleSet",
+  "id": "toolproxy-capability-token-examples",
+  "version": "0.31.21.alpha",
+  "flows": [
+    {
+      "id": "offline-issue-list-verify-revoke-smoke",
+      "trace_id": "trace:toolproxy:capability-token-smoke",
+      "commands": ["issue", "list", "verify", "revoke", "smoke"],
+      "issue": {
+        "action": "llm.chat",
+        "ttl_sec": 120,
+        "show_secret": false,
+        "redacted_output": true,
+        "token_output": "tok-example.***",
+        "issued_to": {"role": "operator", "project_id": "noemaforge-toolproxy-smoke", "run_id": "smoke"}
+      },
+      "record": {
+        "token_id": "tok-example",
+        "secret_sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "issued_to": {"role": "operator", "project_id": "noemaforge-toolproxy-smoke", "run_id": "smoke"},
+        "epoch_id": "epoch-example",
+        "expires_at": "2026-05-20T01:48:44Z",
+        "caps": [{"action": "llm.chat"}],
+        "trace_id": "trace:toolproxy:capability-token-smoke",
+        "issued_at": "2026-05-20T01:46:44Z"
+      },
+      "verify": {"ok": true, "reason": "ok"},
+      "revoke": {"ok": true, "moves_to_revoked": true},
+      "post_revoke_verify": {"ok": false, "reason": "unknown_token"},
+      "smoke": {"live_llm_required": false, "offline_issue_verify_required": true},
+      "refs": [
+        "noemaforge/configs/toolproxy-capability-token-policy.json",
+        "noemaforge/contracts/toolproxy_capability_token.schema.json",
+        "noemaforge/contracts/capability_token.schema.json",
+        "noemaforge/src/caps.py",
+        "noemaforge/src/noemaforge_toolproxy_diag.py"
+      ]
+    }
+  ]
+}

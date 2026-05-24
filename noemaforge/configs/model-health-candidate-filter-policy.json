@@ -1,0 +1,58 @@
+{
+  "apiVersion": "noemaforge.model-health-candidate-filter/v1",
+  "kind": "ModelHealthCandidateFilterPolicy",
+  "id": "model-health-candidate-filter-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "filtered_candidate_map_excludes_failed_runtime_models",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_model_dependency": true,
+    "candidate_map_artifact": "role-candidate-map.filtered.json",
+    "health_registry_artifact": "model-health-registry.json",
+    "failure_report_artifact": "model-failure-report.json",
+    "exclude_health_states": [
+      "failed_runtime",
+      "failed_any_reason"
+    ],
+    "selected_model_paths": [
+      "unique_selected_model_ids",
+      "roles.*.selected[].model_id",
+      "roles.*.chosen.model_id"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/role_tournament.py"
+    ],
+    "required_runtime_tokens": [
+      "role-candidate-map.filtered.json",
+      "excluded_models =",
+      "exclude_from_selection",
+      "candidate_map_filtered"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/model-health-candidate-filter-policy.json",
+    "noemaforge/contracts/model_health_candidate_filter.schema.json",
+    "noemaforge/src/model_health_candidate_filter_runtime.py",
+    "noemaforge/src/role_tournament.py",
+    "noemaforge/tests/test_model_health_candidate_filter_runtime.py",
+    "noemaforge/tests/test_model_health_candidate_filter_qa.py",
+    "noemaforge/tests/test_model_health_candidate_filter_performance.py",
+    "prelaunch/governance/model_health_candidate_filter.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

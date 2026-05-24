@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/privileged_gui_job_runner.schema.json",
+  "title": "NoemaForge Privileged GUI Job Runner Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "ok", "validated_at", "failures", "metrics"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.privileged-gui-job-runner/v1"},
+    "kind": {"const": "PrivilegedGuiJobRunnerValidationReport"},
+    "id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "validated_at": {"type": "string", "minLength": 1},
+    "failures": {"type": "array", "items": {"type": "string"}},
+    "metrics": {
+      "type": "object",
+      "required": ["refs", "resolved_refs", "examples", "passing_examples", "registry_entries", "checked_allowed_jobs"],
+      "properties": {
+        "refs": {"type": "integer", "minimum": 0},
+        "resolved_refs": {"type": "integer", "minimum": 0},
+        "examples": {"type": "integer", "minimum": 0},
+        "passing_examples": {"type": "integer", "minimum": 0},
+        "registry_entries": {"type": "integer", "minimum": 0},
+        "checked_allowed_jobs": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

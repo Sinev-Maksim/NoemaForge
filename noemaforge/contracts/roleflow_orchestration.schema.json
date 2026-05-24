@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/roleflow_orchestration.schema.json",
+  "title": "RoleFlowPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.roleflow/v1"},
+    "kind": {"const": "RoleFlowPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "role_kernel_policy_ref",
+        "role_catalog_ref",
+        "allowed_node_kinds",
+        "required_flow_features",
+        "edge_kinds",
+        "guard_requirements",
+        "baton_requirements",
+        "approval_roles",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "protected_orchestration"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "role_kernel_policy_ref": {"type": "string"},
+        "role_catalog_ref": {"type": "string"},
+        "allowed_node_kinds": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "required_flow_features": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "edge_kinds": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 5,
+          "uniqueItems": true
+        },
+        "guard_requirements": {
+          "type": "object",
+          "required": [
+            "guard_edges_require_condition",
+            "branch_edges_require_condition",
+            "approval_edges_require_approver_role",
+            "rollback_edges_require_target"
+          ],
+          "properties": {
+            "guard_edges_require_condition": {"const": true},
+            "branch_edges_require_condition": {"const": true},
+            "approval_edges_require_approver_role": {"const": true},
+            "rollback_edges_require_target": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "baton_requirements": {
+          "type": "object",
+          "required": ["durable", "sleep_wake", "required_fields"],
+          "properties": {
+            "durable": {"const": true},
+            "sleep_wake": {"const": true},
+            "required_fields": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 5,
+              "uniqueItems": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "approval_roles": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.clean-install-share-readiness/v1",
+  "kind": "CleanInstallShareReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "clean-install-canonical-share-target-evidence-readiness",
+      "trace_id": "trace:clean-install:/mnt/noemaforge-share",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "setup-dry-run-selftest",
+        "host-clean-install",
+        "share-mount-normalization",
+        "previous-install-detached",
+        "post-install-preflight",
+        "emergency-mode-guard",
+        "evidence-archive"
+      ],
+      "expected_outputs": [
+        "clean_install_readiness_summary",
+        "blocked_completion_notice",
+        "target_command_manifest",
+        "share_mount_requirements",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "apiVersion": "noemaforge.docs.reconciliation/v1",
+  "kind": "ProductionAiPatternsReconciliationManifest",
+  "runtime_base_version": "0.31.13.alpha-patched1",
+  "documentation_overlay_version": "0.31.21.alpha-docs-integrated",
+  "generated_at": "2026-05-18T20:33:59Z",
+  "counts": {
+    "code_files": 357,
+    "config_files": 109,
+    "contract_files": 112,
+    "personas": 23,
+    "pipelines": 90,
+    "pipeline_teams": 24,
+    "media_pipelines": 6,
+    "pipeline_team_missing": 0,
+    "portrait_missing": 0
+  },
+  "integrated_patterns": [
+    "Unified Registry",
+    "Trace-first observability",
+    "EvaluationGate",
+    "Safe Rollout",
+    "Production RAG",
+    "Calibration/Abstention",
+    "Data-centric error loop",
+    "Model/Prompt/Pipeline/Epoch Cards",
+    "Trajectory-level agent evaluation",
+    "MCP/A2A zero-trust boundaries",
+    "Agent loop budgets"
+  ],
+  "reports": [
+    "docs/quality/PRODUCTION_AI_PATTERNS_INTEGRATION_0.31.21.alpha.md",
+    "docs/quality/CODE_DOC_PATH_ROLE_RECONCILIATION_0.31.21.alpha.md",
+    "docs/quality/ROLE_PIPELINE_NAMING_AUDIT_0.31.21.alpha.md",
+    "docs/quality/MERGED_CODE_DOCUMENTATION_AUDIT_0.31.21.alpha.md"
+  ]
+}

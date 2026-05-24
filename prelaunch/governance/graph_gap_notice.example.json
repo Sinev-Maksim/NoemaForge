@@ -1,0 +1,63 @@
+{
+  "apiVersion": "noemaforge.graph-gap-notice/v1",
+  "kind": "GraphGapNoticeExampleSet",
+  "id": "graph-gap-notice-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "administrator-graph-miss-states-unknown",
+      "trace_id": "trace:graph-gap-notice:example:001",
+      "query_surface": "operator.admin/administrator",
+      "graph_claim_origin_count": 0,
+      "gap_order": [
+        "query_hypergraph",
+        "detect_zero_supported_claims",
+        "emit_knowledge_gap_notice",
+        "propose_ingest_or_research"
+      ],
+      "gap_answer": {
+        "mode": "knowledge_gap_notice",
+        "grounded": false,
+        "answer": "Local grounded knowledge does not currently contain a supported answer for this question.",
+        "citations": [],
+        "followup": [
+          "ingest_relevant_source",
+          "ask_narrower_scope",
+          "propose_research"
+        ]
+      },
+      "graph_miss_trace": {
+        "trace_id": "trace:graph-gap-notice:example:001",
+        "first_retrieval_surface": "hypergraph_claim_origins",
+        "graph_claim_origin_count": 0,
+        "fallback_allowed": true
+      },
+      "rejected_answers": [
+        {
+          "claim": "improvise when graph has no answer",
+          "reason": "Graph misses must return a knowledge_gap_notice."
+        },
+        {
+          "claim": "return supported answer on graph miss",
+          "reason": "A supported answer requires graph-backed claim origins."
+        },
+        {
+          "claim": "attach citations to unknown gap",
+          "reason": "Unknown gap notices have empty citations."
+        },
+        {
+          "claim": "omit ingest or research followup",
+          "reason": "Gap notices must propose ingest/research next steps."
+        }
+      ],
+      "expected_outputs": [
+        "knowledge_gap_notice",
+        "grounded_false",
+        "citations_empty",
+        "followup",
+        "graph_miss_trace",
+        "blocked_improvisation"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "apiVersion": "noemaforge.gateway-inference-service/v1",
+  "kind": "GatewayInferenceServicePolicy",
+  "id": "gateway-inference-service-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_inference_endpoint": true,
+    "require_manifest_only_model_loading": true,
+    "require_signed_model_manifest": true,
+    "require_health_endpoint": true,
+    "require_ready_endpoint": true,
+    "require_metrics_endpoint": true,
+    "require_edge_rules_fallback": true,
+    "forbid_direct_model_path": true,
+    "forbid_direct_control_decisions": true,
+    "allowed_protocols": [
+      "rest",
+      "mqtt"
+    ],
+    "allowed_model_sources": [
+      "signed_manifest"
+    ],
+    "allowed_endpoint_kinds": [
+      "inference",
+      "health",
+      "ready",
+      "metrics"
+    ]
+  },
+  "services": [
+    {
+      "id": "gateway-floor-inference-shadow",
+      "version": "0.32.0",
+      "state": "shadow",
+      "containerized": true,
+      "image": "noemaforge/gateway-inference-service:0.31.21-alpha",
+      "model_source": "signed_manifest",
+      "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+      "tinyml_node_policy_ref": "noemaforge/configs/tinyml-node-policy.json",
+      "edge_rules_ref": "noemaforge/configs/edge-rules-engine-policy.json",
+      "direct_control_decisions": false,
+      "endpoints": [
+        {
+          "id": "rest-infer",
+          "kind": "inference",
+          "protocol": "rest",
+          "method": "POST",
+          "path": "/infer",
+          "enabled": true
+        },
+        {
+          "id": "mqtt-infer",
+          "kind": "inference",
+          "protocol": "mqtt",
+          "topic": "noemaforge/gateway/infer",
+          "enabled": true
+        },
+        {
+          "id": "health",
+          "kind": "health",
+          "protocol": "rest",
+          "method": "GET",
+          "path": "/health",
+          "enabled": true
+        },
+        {
+          "id": "ready",
+          "kind": "ready",
+          "protocol": "rest",
+          "method": "GET",
+          "path": "/ready",
+          "enabled": true
+        },
+        {
+          "id": "metrics",
+          "kind": "metrics",
+          "protocol": "rest",
+          "method": "GET",
+          "path": "/metrics",
+          "enabled": true
+        }
+      ],
+      "refs": [
+        "gateway/inference_service/app.py",
+        "gateway/inference_service/model_loader.py",
+        "gateway/inference_service/health.py",
+        "gateway/inference_service/Dockerfile",
+        "prelaunch/manifests/models/example_edge_model.manifest.json",
+        "noemaforge/configs/tinyml-node-policy.json",
+        "noemaforge/configs/edge-rules-engine-policy.json"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/gateway-inference-service.json",
+    "noemaforge/contracts/gateway_inference_service.schema.json",
+    "noemaforge/src/gateway_inference_service_runtime.py",
+    "noemaforge/tests/test_gateway_inference_service_runtime.py",
+    "noemaforge/tests/test_gateway_inference_service_qa.py",
+    "noemaforge/tests/test_gateway_inference_service_performance.py",
+    "gateway/inference_service/app.py",
+    "gateway/inference_service/model_loader.py",
+    "gateway/inference_service/health.py",
+    "gateway/inference_service/Dockerfile",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "noemaforge/configs/tinyml-node-policy.json",
+    "noemaforge/configs/edge-rules-engine-policy.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

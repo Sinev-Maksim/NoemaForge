@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.share-automount-reboot-readiness/v1",
+  "kind": "ShareAutomountRebootReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-share-automount-reboot-evidence-readiness",
+      "trace_id": "trace:share:automount-reboot",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "share-mount-baseline",
+        "operator-approved-reboot-plan",
+        "post-reboot-emergency-guard",
+        "post-reboot-share-access",
+        "share-reboot-evidence-archive"
+      ],
+      "expected_outputs": [
+        "share_reboot_readiness_summary",
+        "blocked_completion_notice",
+        "target_reboot_command_manifest",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

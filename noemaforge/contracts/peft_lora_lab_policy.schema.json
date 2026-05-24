@@ -1,0 +1,313 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/peft_lora_lab_policy.schema.json",
+  "title": "PEFTLoRALabPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "labs", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.peft-lora-lab/v1"
+    },
+    "kind": {
+      "const": "PEFTLoRALabPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["disabled", "draft", "shadow", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "default_state",
+        "network",
+        "training_enabled",
+        "weight_mutation_enabled",
+        "require_evaluation_gate",
+        "require_release_evidence_before_training",
+        "require_rollback_manifest",
+        "require_dataset_manifest",
+        "require_operator_review",
+        "require_trace_id",
+        "require_resource_guard",
+        "allowed_artifact_formats",
+        "allowed_adapter_methods",
+        "max_adapter_rank",
+        "baseline_eval_pack_refs"
+      ],
+      "properties": {
+        "mode": {
+          "const": "readiness_only"
+        },
+        "default_state": {
+          "const": "disabled"
+        },
+        "network": {
+          "const": "deny"
+        },
+        "training_enabled": {
+          "const": false
+        },
+        "weight_mutation_enabled": {
+          "const": false
+        },
+        "require_evaluation_gate": {
+          "const": true
+        },
+        "require_release_evidence_before_training": {
+          "const": true
+        },
+        "require_rollback_manifest": {
+          "const": true
+        },
+        "require_dataset_manifest": {
+          "const": true
+        },
+        "require_operator_review": {
+          "const": true
+        },
+        "require_trace_id": {
+          "const": true
+        },
+        "require_resource_guard": {
+          "const": true
+        },
+        "allowed_artifact_formats": {
+          "type": "array",
+          "items": {
+            "enum": ["json", "safetensors"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_adapter_methods": {
+          "type": "array",
+          "items": {
+            "enum": ["lora", "qlora"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "max_adapter_rank": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 64
+        },
+        "baseline_eval_pack_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "labs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "target_model_ref",
+          "adapter_method",
+          "adapter_rank",
+          "network",
+          "training_plan",
+          "dataset_manifest",
+          "evaluation_gate",
+          "resource_guard",
+          "rollback_manifest",
+          "review",
+          "release_evidence",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["disabled", "draft", "shadow", "canary", "enabled", "retired"]
+          },
+          "target_model_ref": {
+            "type": "string"
+          },
+          "adapter_method": {
+            "enum": ["lora", "qlora"]
+          },
+          "adapter_rank": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 64
+          },
+          "network": {
+            "const": "deny"
+          },
+          "training_plan": {
+            "type": "object",
+            "required": ["enabled", "mode", "writes_production_weights", "writes_adapter_artifact", "output_format"],
+            "properties": {
+              "enabled": {
+                "const": false
+              },
+              "mode": {
+                "const": "dry_run"
+              },
+              "writes_production_weights": {
+                "const": false
+              },
+              "writes_adapter_artifact": {
+                "const": false
+              },
+              "output_format": {
+                "enum": ["json", "safetensors"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "dataset_manifest": {
+            "type": "object",
+            "required": ["required", "dataset_ref", "classification", "approved_for_training"],
+            "properties": {
+              "required": {
+                "const": true
+              },
+              "dataset_ref": {
+                "type": "string"
+              },
+              "classification": {
+                "const": "eval_only"
+              },
+              "approved_for_training": {
+                "const": false
+              }
+            },
+            "additionalProperties": false
+          },
+          "evaluation_gate": {
+            "type": "object",
+            "required": ["required", "domain", "eval_pack_refs"],
+            "properties": {
+              "required": {
+                "const": true
+              },
+              "domain": {
+                "const": "model"
+              },
+              "eval_pack_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "resource_guard": {
+            "type": "object",
+            "required": ["required", "single_active_llm", "gpu_policy", "max_training_minutes"],
+            "properties": {
+              "required": {
+                "const": true
+              },
+              "single_active_llm": {
+                "const": true
+              },
+              "gpu_policy": {
+                "const": "explicit_only"
+              },
+              "max_training_minutes": {
+                "const": 0
+              }
+            },
+            "additionalProperties": false
+          },
+          "rollback_manifest": {
+            "type": "object",
+            "required": ["required", "restore_target", "steps"],
+            "properties": {
+              "required": {
+                "const": true
+              },
+              "restore_target": {
+                "type": "string"
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "review": {
+            "type": "object",
+            "required": ["required", "route", "reviewers"],
+            "properties": {
+              "required": {
+                "const": true
+              },
+              "route": {
+                "type": "string"
+              },
+              "reviewers": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": false
+          },
+          "release_evidence": {
+            "type": "object",
+            "required": ["required_before_training", "evidence_ref"],
+            "properties": {
+              "required_before_training": {
+                "const": true
+              },
+              "evidence_ref": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

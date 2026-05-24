@@ -1,0 +1,36 @@
+{
+  "apiVersion": "noemaforge.setup-front-door/v1",
+  "kind": "SetupFrontDoorExampleSet",
+  "id": "setup-front-door-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "root-setup-wraps-firstboot-progress",
+      "trace_id": "trace:setup-front-door:root-wrapper",
+      "setup_contract": {
+        "script": "setup.sh",
+        "modes": ["vm", "host", "docker-dev", "macos-dev"],
+        "flags": ["--mode", "--install-root", "--data-root", "--model-profile", "--with-share", "--offline-after-setup"],
+        "wrapper_markers": ["bootstrap", "firstboot_orchestrator", "progress_output"],
+        "phase_markers": [
+          "seed_copy",
+          "host_preflight",
+          "vault_scan",
+          "inbox_normalize",
+          "candidate_staging",
+          "role_staffing",
+          "epoch_apply",
+          "reboot_pending"
+        ],
+        "non_dry_run_requires_root": true,
+        "installer_calls_setup_back": false
+      },
+      "expected": {
+        "ok": true,
+        "required_modes": 3,
+        "required_flags": 6,
+        "phase_markers": 8
+      }
+    }
+  ]
+}

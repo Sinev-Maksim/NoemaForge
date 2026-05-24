@@ -1,0 +1,229 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/edge_rules_engine.schema.json",
+  "title": "EdgeRulesEnginePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "rules", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.edge-rules-engine/v1"
+    },
+    "kind": {
+      "const": "EdgeRulesEnginePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_whitebox_only_mode",
+        "require_rule_guard_before_ml",
+        "require_rule_guard_after_ml",
+        "require_thresholds",
+        "require_anomaly_route",
+        "require_drift_flags",
+        "require_signed_model_manifest",
+        "default_fallback",
+        "allowed_modes",
+        "allowed_actions",
+        "allowed_fallbacks"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_whitebox_only_mode": {
+          "const": true
+        },
+        "require_rule_guard_before_ml": {
+          "const": true
+        },
+        "require_rule_guard_after_ml": {
+          "const": true
+        },
+        "require_thresholds": {
+          "const": true
+        },
+        "require_anomaly_route": {
+          "const": true
+        },
+        "require_drift_flags": {
+          "const": true
+        },
+        "require_signed_model_manifest": {
+          "const": true
+        },
+        "default_fallback": {
+          "const": "whitebox"
+        },
+        "allowed_modes": {
+          "type": "array",
+          "items": {
+            "enum": ["whitebox_only", "ml_guarded", "shadow"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "enum": ["allow", "fallback_whitebox", "route_anomaly", "block", "review"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_fallbacks": {
+          "type": "array",
+          "items": {
+            "enum": ["whitebox", "manual_review", "previous_rule"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "state",
+          "mode",
+          "stage",
+          "rule_guard_required",
+          "applies_before_ml",
+          "applies_after_ml",
+          "model_score_may_apply",
+          "fallback",
+          "thresholds",
+          "anomaly_route",
+          "drift_flags",
+          "signed_model_manifest_ref",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "state": {
+            "enum": ["draft", "shadow", "stable", "retired"]
+          },
+          "mode": {
+            "enum": ["whitebox_only", "ml_guarded", "shadow"]
+          },
+          "stage": {
+            "enum": ["pre_ml", "post_ml", "pre_and_post_ml"]
+          },
+          "rule_guard_required": {
+            "const": true
+          },
+          "applies_before_ml": {
+            "type": "boolean"
+          },
+          "applies_after_ml": {
+            "type": "boolean"
+          },
+          "model_score_may_apply": {
+            "type": "boolean"
+          },
+          "fallback": {
+            "enum": ["whitebox", "manual_review", "previous_rule"]
+          },
+          "thresholds": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["metric", "op", "value", "action"],
+              "properties": {
+                "metric": {
+                  "type": "string"
+                },
+                "op": {
+                  "enum": ["gt", "gte", "lt", "lte", "eq", "neq"]
+                },
+                "value": {
+                  "type": "number"
+                },
+                "action": {
+                  "enum": ["allow", "fallback_whitebox", "route_anomaly", "block", "review"]
+                }
+              },
+              "additionalProperties": false
+            }
+          },
+          "anomaly_route": {
+            "type": "object",
+            "required": ["enabled", "route", "action"],
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "route": {
+                "type": "string"
+              },
+              "action": {
+                "enum": ["route_anomaly", "review", "block"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "drift_flags": {
+            "type": "object",
+            "required": ["enabled", "metrics", "action"],
+            "properties": {
+              "enabled": {
+                "const": true
+              },
+              "metrics": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "action": {
+                "enum": ["review", "block", "fallback_whitebox"]
+              }
+            },
+            "additionalProperties": false
+          },
+          "signed_model_manifest_ref": {
+            "type": "string"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

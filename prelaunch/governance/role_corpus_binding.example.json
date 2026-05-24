@@ -1,0 +1,34 @@
+{
+  "apiVersion": "noemaforge.role-corpus-binding/v1",
+  "kind": "RoleCorpusBindingExampleSet",
+  "id": "role-corpus-binding-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "seed-jsonl-and-missing-library",
+      "trace_id": "trace:role-corpus-binding:seed-and-missing",
+      "catalog": {
+        "apiVersion": "noemaforge.roleeval/v1",
+        "kind": "RoleEvalDatasets",
+        "profiles": {
+          "internal_jsonl": {
+            "type": "seed_jsonl",
+            "available_when": [{"path": "datasets/role_eval_cases", "kind": "dir"}]
+          },
+          "writer_library": {
+            "type": "external_library",
+            "available_when": [{"path": "missing/library", "kind": "dir"}]
+          }
+        },
+        "roles": {
+          "operator.admin/administrator": {"suite": "full", "dataset_profile": "internal_jsonl"},
+          "writing.story/writer": {"suite": "full", "dataset_profile": "writer_library"}
+        }
+      },
+      "expected": {
+        "operator.admin/administrator": {"binding_status": "available"},
+        "writing.story/writer": {"binding_status": "N/A", "reason": "dataset_missing"}
+      }
+    }
+  ]
+}

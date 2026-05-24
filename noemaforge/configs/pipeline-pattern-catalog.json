@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.ai/v0.30.09",
   "kind": "PipelinePatternCatalog",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "invariant": {
     "llm_mode": "switchable",
     "max_active_llms": 1
@@ -9291,3 +9291,4 @@
     }
   ]
 }
+

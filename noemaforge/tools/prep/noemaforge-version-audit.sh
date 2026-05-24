@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-version-audit.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.31.13.alpha-patched1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -59,7 +59,7 @@ expected = sys.argv[2]
 fmt = sys.argv[3]
 verbose = sys.argv[4] == "1"
 strict_all = sys.argv[5] == "1"
-version_re = re.compile(r"(?<![A-Za-z0-9_.-])0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha)?(?![A-Za-z0-9_.-])")
+version_re = re.compile(r"(?<![A-Za-z0-9_.-])0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha(?:-patched\d+)?)?(?![A-Za-z0-9_.-])")
 problems=[]
 warnings=[]
 warning_keys=set()
@@ -147,7 +147,7 @@ for sub in ['bin','tools/prep','tools/ops','helpers']:
             seen.append({'path':str(p),'shell_version':v})
         # cmd_version fallback, only for noemaforge CLI.
         if p.name == 'noemaforge':
-            for m in re.finditer(r'echo\s+["\'](0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha)?)["\']', text):
+            for m in re.finditer(r'echo\s+["\'](0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha(?:-patched\d+)?)?)["\']', text):
                 v=m.group(1)
                 if v != expected: add_problem('cmd_version_fallback_mismatch', p, v, expected)
                 seen.append({'path':str(p),'cmd_version_fallback':v})

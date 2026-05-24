@@ -1,0 +1,31 @@
+{
+  "apiVersion": "noemaforge.pipeline-stage-validator-smoke.examples/v1",
+  "kind": "PipelineStageValidatorSmokeExamples",
+  "id": "pipeline-stage-validator-smoke-core",
+  "examples": [
+    {
+      "id": "public-orient-unready-warning",
+      "pipeline_id": "public_mwp",
+      "stage": "orient",
+      "expect_unready_warning": "contract_artifact_registered",
+      "expect_strict_failure": true,
+      "expect_offline_only": true
+    },
+    {
+      "id": "public-orient-ready-smoke",
+      "pipeline_id": "public_mwp",
+      "stage": "orient",
+      "artifact_type": "note",
+      "expect_ready_to_advance": true,
+      "expect_smoke_cases": [
+        "typed_sidecar_valid",
+        "typed_sidecar_checksum",
+        "output_non_placeholder",
+        "contract_artifact_registered",
+        "toolproxy_binding_present",
+        "no_live_host_required",
+        "no_llm_autostart"
+      ]
+    }
+  ]
+}

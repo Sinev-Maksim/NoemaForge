@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/memory_budgeted_retrieval.schema.json",
+  "title": "NoemaForge Memory-Budgeted Retrieval Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "refs", "policy"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.memory-budgeted-retrieval/v1"},
+    "kind": {"const": "MemoryBudgetedRetrievalPolicy"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_.:/-]{1,220}$"},
+    "version": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_pipeline_ref",
+        "boundary_phrase",
+        "topic_adjacent_policy_ref",
+        "prep_pipeline_ref",
+        "prep_store_ref",
+        "architecture_ref",
+        "required_algorithms",
+        "degradation_order",
+        "required_lineage_fields",
+        "required_static_tokens",
+        "controls",
+        "required_outputs",
+        "blocked_retrieval_claims",
+        "required_boundary_refs",
+        "scan_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "graceful_memory_budget_degradation"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_live_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 1},
+        "topic_adjacent_policy_ref": {"type": "string", "minLength": 1},
+        "prep_pipeline_ref": {"type": "string", "minLength": 1},
+        "prep_store_ref": {"type": "string", "minLength": 1},
+        "architecture_ref": {"type": "string", "minLength": 1},
+        "required_algorithms": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "degradation_order": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_lineage_fields": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_static_tokens": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "minItems": 1
+          }
+        },
+        "controls": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "blocked_retrieval_claims": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_boundary_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "scan_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

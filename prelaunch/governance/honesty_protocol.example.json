@@ -1,0 +1,146 @@
+{
+  "apiVersion": "noemaforge.honesty-protocol/v1",
+  "kind": "HonestyProtocolSet",
+  "id": "honesty-protocol-examples",
+  "version": "0.31.21.alpha",
+  "cases": [
+    {
+      "apiVersion": "noemaforge.honesty-protocol/v1",
+      "kind": "HonestyCase",
+      "id": "honesty-unknown-no-evidence",
+      "trace_id": "trace:honesty:unknown-no-evidence",
+      "state": "unknown",
+      "trigger": "Question asks for an answer not supported by available local evidence.",
+      "confidence": 0.2,
+      "uncertainty_reason": "No local evidence ref supports the requested claim.",
+      "evidence_refs": [],
+      "error_attribution": {
+        "class": "data_missing",
+        "owned_by": "system",
+        "summary": "The local evidence set is insufficient."
+      },
+      "response_template": {
+        "summary": "State the unknown plainly and avoid unsupported detail.",
+        "user_message": "I do not have enough evidence to answer that reliably from the local project context.",
+        "next_action": "ask_clarification",
+        "repair_action": "Request a source, scope, or permission to research."
+      },
+      "guards": {
+        "fabricated_citations": false,
+        "blame_shift": false,
+        "can_proceed_without_evidence": false
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.honesty-protocol/v1",
+      "kind": "HonestyCase",
+      "id": "honesty-need-research-freshness",
+      "trace_id": "trace:honesty:need-research-freshness",
+      "state": "need_research",
+      "trigger": "Question depends on time-sensitive information not available in local docs.",
+      "confidence": 0.35,
+      "uncertainty_reason": "Freshness-sensitive answer requires research before claiming a fact.",
+      "evidence_refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ],
+      "error_attribution": {
+        "class": "data_missing",
+        "owned_by": "external",
+        "summary": "The missing evidence is outside the offline package."
+      },
+      "response_template": {
+        "summary": "Declare research need before answering.",
+        "user_message": "This needs fresh verification before I can answer it responsibly.",
+        "next_action": "request_research",
+        "repair_action": "Run a sourced research step or defer until evidence is available."
+      },
+      "guards": {
+        "fabricated_citations": false,
+        "blame_shift": false,
+        "can_proceed_without_evidence": false
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.honesty-protocol/v1",
+      "kind": "HonestyCase",
+      "id": "honesty-error-attribution-tool-timeout",
+      "trace_id": "trace:honesty:error-attribution-tool-timeout",
+      "state": "error_attribution",
+      "trigger": "A local validator command timed out before producing a complete report.",
+      "confidence": 0.9,
+      "uncertainty_reason": "The error source is known, but the failed validation result is incomplete.",
+      "evidence_refs": [
+        "prelaunch/governance/concept_frame.admin_architect.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ],
+      "error_attribution": {
+        "class": "tool_error",
+        "owned_by": "system",
+        "summary": "The validator timed out; the answer must not pretend validation succeeded."
+      },
+      "response_template": {
+        "summary": "Attribute the tool failure and describe a repair path.",
+        "user_message": "The local validator timed out, so I cannot claim the validation completed.",
+        "next_action": "correct_error",
+        "repair_action": "Rerun the validator with a narrower target or larger timeout and report the result."
+      },
+      "guards": {
+        "fabricated_citations": false,
+        "blame_shift": false,
+        "can_proceed_without_evidence": false
+      },
+      "refs": [
+        "prelaunch/governance/concept_frame.admin_architect.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    }
+  ],
+  "classification_cases": [
+    {
+      "id": "classify-low-evidence-unknown",
+      "input": {
+        "trace_id": "trace:honesty:classify-low-evidence",
+        "confidence": 0.18,
+        "evidence_refs": [],
+        "freshness_required": false
+      },
+      "expected_state": "unknown",
+      "expected_next_action": "ask_clarification"
+    },
+    {
+      "id": "classify-freshness-need-research",
+      "input": {
+        "trace_id": "trace:honesty:classify-freshness",
+        "confidence": 0.4,
+        "evidence_refs": [
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+        ],
+        "freshness_required": true
+      },
+      "expected_state": "need_research",
+      "expected_next_action": "request_research"
+    },
+    {
+      "id": "classify-tool-error-attribution",
+      "input": {
+        "trace_id": "trace:honesty:classify-tool-error",
+        "confidence": 0.8,
+        "error": {
+          "class": "tool_error",
+          "summary": "validator timeout"
+        },
+        "evidence_refs": [
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+        ]
+      },
+      "expected_state": "error_attribution",
+      "expected_next_action": "correct_error"
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.toolproxy-capability-live-smoke-readiness/v1",
+  "kind": "ToolProxyCapabilityLiveSmokeReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-target-toolproxy-capability-live-smoke-evidence-readiness",
+      "trace_id": "trace:patched10:toolproxy-capability-live-smoke",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "target-toolproxy-baseline",
+        "operator-approval",
+        "capability-issue-live",
+        "capability-verify-live",
+        "token-redaction-and-revocation",
+        "live-smoke-archive"
+      ],
+      "expected_outputs": [
+        "toolproxy_capability_live_smoke_summary",
+        "blocked_completion_notice",
+        "target_toolproxy_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

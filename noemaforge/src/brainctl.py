@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/brainctl.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -120,6 +120,7 @@ import model_registry
 import model_scorecards
 import model_installer_plan
 import firstboot_eval
+import production_ai_contracts
 
 # Incidents
 import incidents
@@ -168,6 +169,21 @@ def sh(cmd: list[str]) -> None:
 def _load_yaml(path: str) -> Any:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
+
+
+def _active_production_registry_refs(epoch_dir: str = "") -> List[str]:
+    candidates = []
+    if epoch_dir:
+        candidates.append(os.path.join(epoch_dir, "unified-registry.json"))
+    candidates.append(os.path.join(CONFIG_DIR, "unified-registry.json"))
+    for path in candidates:
+        try:
+            if os.path.exists(path):
+                registry = production_ai_contracts.load_contract_doc(path)
+                return production_ai_contracts.active_registry_refs(registry)
+        except Exception:
+            continue
+    return []
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1095,6 +1111,28 @@ def cmd_prestart_apply(args: argparse.Namespace) -> int:
         return 2
 
     # Switch
+    trace_id = str(getattr(args, "trace_id", "") or scary.get("trace_id") or build_report.get("trace_id") or production_ai_contracts.new_trace_id("epoch-apply"))
+    try:
+        release_evidence = production_ai_contracts.build_epoch_release_evidence(
+            args.epoch_id,
+            build_report,
+            scary,
+            build_report_path=build_report_path,
+            scary_report_path=scary_path,
+            registry_refs=_active_production_registry_refs(ep_dir),
+            trace_id=trace_id,
+            actor="brainctl",
+        )
+        if not (release_evidence.get("gate") or {}).get("ok") or not (release_evidence.get("rollout") or {}).get("ok"):
+            print("Refusing: release evidence gate/rollout is not passing", file=sys.stderr)
+            return 2
+        release_evidence_path = os.path.join(ep_dir, "release_evidence.json")
+        with open(release_evidence_path, "w", encoding="utf-8") as f:
+            json.dump(release_evidence, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Refusing: failed to write release evidence: {e!r}", file=sys.stderr)
+        return 2
+
     switch_current_epoch(args.epoch_id, args.contracts_root)
 
     # Mark requests applied (only those recorded as applied in the build report)
@@ -1102,6 +1140,8 @@ def cmd_prestart_apply(args: argparse.Namespace) -> int:
     mark_requests_applied(all_reqs, applied_epoch_id=args.epoch_id, only_request_ids=applied_ids)
 
     print(f"current_epoch_switched: {args.epoch_id}")
+    print(f"trace_id: {trace_id}")
+    print(f"release_evidence: {release_evidence_path}")
     return 0
 
 
@@ -1446,6 +1486,7 @@ def main(argv: list[str]) -> int:
     p_a.add_argument("--suite", default="auto", choices=["auto", "smoke", "full"], help="canary suite (auto=Scary minimum)")
     p_a.add_argument("--override-runtime", action="store_true", help="break-glass: allow canary while runtime mode is detected")
     p_a.add_argument("--i-mean-it", action="store_true", help="required together with --override-runtime")
+    p_a.add_argument("--trace-id", default="", help="optional trace id to carry into release_evidence.json")
 
 
 

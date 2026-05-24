@@ -1,0 +1,79 @@
+{
+  "apiVersion": "noemaforge.sense-privacy/v1",
+  "kind": "SensePrivacySet",
+  "id": "sense-privacy-examples",
+  "version": "0.31.21.alpha",
+  "states": [
+    {
+      "apiVersion": "noemaforge.sense-privacy/v1",
+      "kind": "SenseState",
+      "id": "sense-state-coarse-host-ok",
+      "trace_id": "trace:sense-privacy:coarse-host-ok",
+      "source": "host_coarse",
+      "privacy": {
+        "filtered": true,
+        "local_only": true,
+        "raw_process_metadata_stored": false,
+        "raw_paths_stored": false,
+        "raw_usernames_stored": false,
+        "raw_environment_stored": false,
+        "raw_cmdline_stored": false
+      },
+      "metrics": {
+        "cpu": {
+          "pressure": "medium",
+          "usage_percent": 57.2
+        },
+        "memory": {
+          "pressure": "high",
+          "used_percent": 81.4
+        },
+        "disk": {
+          "pressure": "low",
+          "used_percent": 44.0
+        },
+        "network": {
+          "state": "degraded",
+          "rx_kbps": 12.4,
+          "tx_kbps": 3.1
+        },
+        "load": {
+          "pressure": "medium",
+          "one_min": 1.4
+        },
+        "runtime": {
+          "backend": "healthy",
+          "gateway": "healthy",
+          "toolproxy": "healthy"
+        }
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+      ]
+    }
+  ],
+  "filter_cases": [
+    {
+      "id": "redact-user-path-env-cmdline",
+      "input": {
+        "cpu": {
+          "usage_percent": 63.0
+        },
+        "username": "alice",
+        "path": "C:\\Users\\alice\\NoemaForge\\run.ps1",
+        "env": {
+          "OPENAI_API_KEY": "secret-value"
+        },
+        "cmdline": "python C:\\Users\\alice\\NoemaForge\\tool.py --token abc",
+        "process": {
+          "process_name": "python.exe",
+          "argv": [
+            "python",
+            "C:\\Users\\alice\\NoemaForge\\tool.py"
+          ]
+        }
+      },
+      "expected_redaction_count": 5
+    }
+  ]
+}

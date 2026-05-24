@@ -1,0 +1,21 @@
+{
+  "apiVersion": "noemaforge.runtime-default-safety/v1",
+  "kind": "RuntimeDefaultSafetyExampleSet",
+  "id": "runtime-default-safety-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "offline-default-single-llm-heavy-manual",
+      "trace_id": "trace:runtime-default-safety:offline-policy",
+      "expected_max_active_llms": 1,
+      "expected_runtime_mode": "switchable",
+      "expected_gui_default_profile": "runtime_only",
+      "expected_wogui_default_profile": "bootstrap_cpu_llm",
+      "expected_heavy_llm": "manual_only",
+      "expected_team_member_default_execution": "sequential",
+      "expected_outputs": ["single_active_llm_default", "heavy_llm_manual_only", "gui_runtime_only_default", "wogui_cpu_bootstrap_only", "sequential_team_member_default"],
+      "expect_no_live_host": true,
+      "expect_no_llm_autostart": true
+    }
+  ]
+}

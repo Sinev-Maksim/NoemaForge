@@ -2,15 +2,15 @@
 # === NoemaForge File Header ===
 # File: tools/prep/noemaforge-first-launch.sh
 # Zone: prep/spinal
-# Purpose: Aggregate first-start command for the real Debian host: package checks, safe GGUF selection, optional soft headless switch, firstboot orchestration, service/timer reconciliation, and smoke tests.
+# Purpose: Aggregate first-start command for the real Debian host: package checks, safe GGUF selection, explicit-opt-in soft headless switch, firstboot orchestration, service/timer reconciliation, and smoke tests.
 # Callers: bin/noemaforge first-start, operator shell after bootstrap.
-# Inputs: --share-root, --vault-root, --top-k, --candidate-limit, optional shortlist/mirror flags, optional --soft-headless.
+# Inputs: --share-root, --vault-root, --top-k, --candidate-limit, optional shortlist/mirror flags, optional --soft-headless plus required --allow-display-stop.
 # Outputs: bootstrap JSON reports under /var/lib/noemaforge/bootstrap and bootreports under /workspace/outbox/bootreports.
 # Safety notes:
-#   - GUI sessions should use `sudo noemaforge first-start`; it rehomes the work into systemd before stopping display-manager.
+#   - GUI sessions keep display-manager running by default; display stop requires explicit --allow-display-stop.
 #   - Fails early before starting services when mount/model/runtime prerequisites are absent.
 #   - Uses safe GGUF discovery; non-head shards are rejected.
-#   - Soft headless mode keeps GNOME installed and is reversible with `sudo noemaforge headless off`.
+#   - Soft headless mode is explicit opt-in only and is reversible with `sudo noemaforge first-start abort`.
 # === End NoemaForge File Header ===
 set -euo pipefail
 
@@ -18,10 +18,13 @@ SHARE_ROOT="/mnt/noemaforge-share"
 VAULT_ROOT=""
 TOP_K="2"
 CANDIDATE_LIMIT="0"
+MODEL_PROFILE="minimal"
 SHORTLIST_FILE=""
 INCLUDE_DOWNLOAD_MIRROR="0"
 ALLOW_INCOMPLETE_SHARDS="0"
 ALLOW_GRAPHICAL="0"
+ALLOW_DISPLAY_STOP="0"
+KEEP_DISPLAY="${NOEMAFORGE_FIRST_START_KEEP_DISPLAY:-1}"
 SKIP_PACKAGES="0"
 REBOOT_AFTER_APPLY="0"
 SOFT_HEADLESS="0"
@@ -51,16 +54,20 @@ Options:
   --vault-root PATH              Vault root. Auto-detects Vault and noemaforge-lab/data/Vault.
   --top-k N                      Number of role candidates to keep. Default: 2
   --candidate-limit N            Compatibility GGUF discovery limit. Default: 0/all; first-start selects top-8 per role after tests.
+  --model-profile NAME           minimal|balanced|writer|research|gpu-heavy profile; writes a profile manifest and keeps downloads manual.
   --shortlist-file PATH          Optional text shortlist filter.
   --include-download-mirror      Also scan Vault/download-mirror/**/models*.
   --allow-incomplete-shards      Unsafe fallback: allow first shard even if other shards are missing.
-  --soft-headless                After prep succeeds, set default target to multi-user and stop display-manager.
-  --allow-graphical              Do not refuse GUI session. Not recommended unless also using --soft-headless via noemaforge CLI.
+  --soft-headless                Request soft headless mode. Requires --allow-display-stop.
+  --allow-display-stop           Explicitly permit display-manager stop. Dangerous; not used by default.
+  --allow-headless-display-stop  Alias for --allow-display-stop.
+  --keep-display                 Preserve display-manager/GDM; this is the default.
+  --allow-graphical              Do not refuse GUI session. Patched1 preserves GUI by default.
   --skip-packages                Skip apt package installation/check block.
   --reboot-after-apply           Allow firstboot orchestrator to schedule reboot after epoch apply.
   --from-noemaforge-cli             Internal marker used by /opt/noemaforge/bin/noemaforge.
 
-Selection modes for 0.31.13.alpha:
+Selection modes for 0.31.13.alpha-patched1:
   --fast                         First valid measured candidate per role; no composite testing.
   --normal                       Keep at least two candidates per role where available; choose best; no composite testing.
   --full                         Evaluate all runnable models; choose best per role; no composite testing.
@@ -89,13 +96,16 @@ while [[ $# -gt 0 ]]; do
     --vault-root) VAULT_ROOT="$2"; shift 2 ;;
     --top-k) TOP_K="$2"; shift 2 ;;
     --candidate-limit) CANDIDATE_LIMIT="$2"; shift 2 ;;
+    --model-profile) MODEL_PROFILE="$2"; shift 2 ;;
     --shortlist-file) SHORTLIST_FILE="$2"; shift 2 ;;
     --include-download-mirror) INCLUDE_DOWNLOAD_MIRROR="1"; shift ;;
     --allow-incomplete-shards) ALLOW_INCOMPLETE_SHARDS="1"; shift ;;
     --allow-graphical) ALLOW_GRAPHICAL="1"; shift ;;
     --skip-packages) SKIP_PACKAGES="1"; shift ;;
     --reboot-after-apply) REBOOT_AFTER_APPLY="1"; shift ;;
-    --soft-headless) SOFT_HEADLESS="1"; shift ;;
+    --soft-headless) SOFT_HEADLESS="1"; KEEP_DISPLAY="0"; shift ;;
+    --allow-display-stop|--allow-headless-display-stop) ALLOW_DISPLAY_STOP="1"; KEEP_DISPLAY="0"; shift ;;
+    --keep-display|--no-display-stop) KEEP_DISPLAY="1"; SOFT_HEADLESS="0"; ALLOW_DISPLAY_STOP="0"; shift ;;
     --from-noemaforge-cli) FROM_NOEMAFORGE_CLI="1"; shift ;;
     --fast) SELECTION_MODE="fast"; shift ;;
     --normal) SELECTION_MODE="normal"; shift ;;
@@ -116,6 +126,19 @@ while [[ $# -gt 0 ]]; do
     *) echo "[noemaforge-first-launch][ERROR] unknown argument: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
+
+case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) echo "[noemaforge-first-launch][ERROR] unsupported model profile: $MODEL_PROFILE" >&2; exit 2 ;; esac
+
+# Patched1 display safety: model selection must not blank the local monitor by
+# default. A display stop is allowed only when the operator explicitly passes
+# --allow-display-stop together with --soft-headless.
+if [[ "${KEEP_DISPLAY}" == "1" ]]; then
+  SOFT_HEADLESS="0"
+fi
+if [[ "${SOFT_HEADLESS}" == "1" && "${ALLOW_DISPLAY_STOP}" != "1" ]]; then
+  echo "[noemaforge-first-launch][ERROR] --soft-headless now requires explicit --allow-display-stop; default first-start preserves Debian GUI/display-manager." >&2
+  exit 22
+fi
 
 log(){ printf '[noemaforge-first-launch] %s\n' "$*"; }
 fail(){ printf '[noemaforge-first-launch][ERROR] %s\n' "$*" >&2; exit 1; }
@@ -268,23 +291,92 @@ This script refuses direct graphical sessions by default.
 Use the simple wrapper instead:
   sudo noemaforge first-start
 
-The wrapper moves the long-running work into a systemd job, then softly stops
-the display manager only after preparation/model discovery succeeds.
+The wrapper moves long-running work into a systemd job while preserving
+the display manager by default. Display stop requires explicit --allow-display-stop.
 EOF
     exit 20
   fi
 }
 
+noemaforge_detect_distro_family() {
+  local os_id="" os_id_like="" id_like
+  if [[ -r /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    . /etc/os-release
+    os_id="${ID:-}"
+    os_id_like="${ID_LIKE:-}"
+  fi
+  id_like=" ${os_id,,} ${os_id_like,,} "
+  case "$id_like" in
+    *" debian "*|*" ubuntu "*|*" linuxmint "*|*" raspbian "*) printf 'debian\n' ;;
+    *" fedora "*|*" rhel "*|*" centos "*|*" rocky "*|*" almalinux "*) printf 'fedora\n' ;;
+    *" arch "*|*" manjaro "*) printf 'arch\n' ;;
+    *" opensuse "*|*" suse "*|*" sles "*) printf 'suse\n' ;;
+    *) printf 'unknown\n' ;;
+  esac
+}
+
+noemaforge_package_manager_for_family() {
+  case "$1" in
+    debian) command -v apt-get >/dev/null 2>&1 && printf 'apt-get\n' ;;
+    fedora)
+      if command -v dnf >/dev/null 2>&1; then
+        printf 'dnf\n'
+      elif command -v yum >/dev/null 2>&1; then
+        printf 'yum\n'
+      fi
+      ;;
+    arch) command -v pacman >/dev/null 2>&1 && printf 'pacman\n' ;;
+    suse) command -v zypper >/dev/null 2>&1 && printf 'zypper\n' ;;
+    *) printf '\n' ;;
+  esac
+}
+
+noemaforge_packages_for_family() {
+  case "$1" in
+    debian)
+      printf '%s\n' 'jq curl git rsync ca-certificates procps findutils coreutils util-linux python3 python3-yaml python3-venv bubblewrap ffmpeg alsa-utils pipewire pipewire-bin pipewire-audio wireplumber v4l-utils golang-go build-essential cmake ntfs-3g'
+      ;;
+    fedora)
+      printf '%s\n' 'jq curl git rsync ca-certificates procps-ng findutils coreutils util-linux python3 python3-pyyaml bubblewrap ffmpeg alsa-utils pipewire wireplumber v4l-utils golang gcc gcc-c++ make cmake ntfs-3g'
+      ;;
+    arch)
+      printf '%s\n' 'jq curl git rsync ca-certificates procps-ng findutils coreutils util-linux python python-yaml bubblewrap ffmpeg alsa-utils pipewire wireplumber v4l-utils go base-devel cmake ntfs-3g'
+      ;;
+    suse)
+      printf '%s\n' 'jq curl git rsync ca-certificates procps findutils coreutils util-linux python3 python3-PyYAML python3-venv bubblewrap ffmpeg alsa-utils pipewire wireplumber v4l-utils go gcc gcc-c++ make cmake ntfs-3g'
+      ;;
+    *) printf '\n' ;;
+  esac
+}
+
 install_packages() {
   [[ "$SKIP_PACKAGES" == "0" ]] || { log "Package block skipped."; return 0; }
-  command -v apt-get >/dev/null 2>&1 || fail "apt-get not found; unsupported host."
-  log "Installing/checking required host packages."
-  DEBIAN_FRONTEND=noninteractive apt-get update -y
-  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    jq curl git rsync ca-certificates procps findutils coreutils util-linux \
-    python3 python3-yaml python3-venv bubblewrap \
-    ffmpeg alsa-utils pipewire pipewire-bin pipewire-audio wireplumber v4l-utils \
-    golang-go build-essential cmake ntfs-3g
+  local family manager packages
+  family="$(noemaforge_detect_distro_family)"
+  manager="$(noemaforge_package_manager_for_family "$family")"
+  packages="$(noemaforge_packages_for_family "$family")"
+  [[ -n "$manager" && -n "$packages" ]] || fail "supported package manager not found for distro_family=${family}; run noemaforge trixie-preflight --remediation-plan for manual dependency remediation."
+  log "Installing/checking required host packages with ${manager} for distro_family=${family}."
+  case "$manager" in
+    apt-get)
+      DEBIAN_FRONTEND=noninteractive apt-get update -y
+      DEBIAN_FRONTEND=noninteractive apt-get install -y $packages
+      ;;
+    dnf|yum)
+      "$manager" install -y $packages
+      ;;
+    pacman)
+      pacman -Sy --noconfirm $packages
+      ;;
+    zypper)
+      zypper --non-interactive refresh
+      zypper --non-interactive install $packages
+      ;;
+    *)
+      fail "unsupported package manager for first-launch dependency remediation: ${manager}"
+      ;;
+  esac
 }
 
 find_vault_root() {
@@ -316,15 +408,38 @@ ensure_share_mount() {
   [[ -r "$SHARE_ROOT" ]] || fail "$SHARE_ROOT is not readable."
 }
 
+validate_llama_server_runtime() {
+  local bin="$1" ldd_out="" ldd_rc=0
+  [[ -x "$bin" ]] || fail "llama-server is not executable: $bin"
+  command -v ldd >/dev/null 2>&1 || fail "ldd not found; cannot verify llama-server shared-library readiness."
+  ldd_out="$(ldd "$bin" 2>&1)" || ldd_rc=$?
+  if printf '%s\n' "$ldd_out" | grep -q 'not found'; then
+    fail "llama-server has unresolved shared libraries: $(printf '%s\n' "$ldd_out" | grep 'not found' | head -n 3 | tr '\n' '; ')"
+  fi
+  if [[ "$ldd_rc" -ne 0 ]] && ! printf '%s\n' "$ldd_out" | grep -Eqi 'not a dynamic executable|statically linked'; then
+    fail "llama-server shared-library inspection failed with ldd rc=${ldd_rc}: $(printf '%s\n' "$ldd_out" | head -n 3 | tr '\n' '; ')"
+  fi
+  log "llama-server binary/shared-library gate passed: $bin"
+}
+
 ensure_llama_server() {
-  if [[ -x /opt/noemaforge/bin/llama-server ]]; then log "llama-server present: /opt/noemaforge/bin/llama-server"; return 0; fi
+  if [[ -x /opt/noemaforge/bin/llama-server ]]; then
+    log "llama-server present: /opt/noemaforge/bin/llama-server"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
+    return 0
+  fi
   if [[ "$DRY_RUN" == "1" ]]; then
     fail "dry-run selection requires /opt/noemaforge/bin/llama-server to already exist; refusing to install or copy binaries in dry-run mode."
   fi
   log "llama-server missing in /opt/noemaforge/bin; searching local disks/share."
   local cand=""
   cand="$(find "$SHARE_ROOT" /srv /home/cat -type f -name 'llama-server' -perm -111 -print -quit 2>/dev/null || true)"
-  if [[ -n "$cand" ]]; then install -m 0755 "$cand" /opt/noemaforge/bin/llama-server; log "Installed llama-server from: $cand"; return 0; fi
+  if [[ -n "$cand" ]]; then
+    install -m 0755 "$cand" /opt/noemaforge/bin/llama-server
+    log "Installed llama-server from: $cand"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
+    return 0
+  fi
   cat >&2 <<'EOF'
 [noemaforge-first-launch][ERROR]
 /opt/noemaforge/bin/llama-server is required but was not found.
@@ -391,19 +506,20 @@ role_aware_preflight() {
 }
 
 apply_soft_headless_if_requested() {
-  [[ "$SOFT_HEADLESS" == "1" ]] || return 0
+  [[ "$SOFT_HEADLESS" == "1" ]] || { log "Display-manager preserved; soft headless not requested."; return 0; }
+  [[ "$ALLOW_DISPLAY_STOP" == "1" ]] || fail "display stop denied: rerun with --allow-display-stop only if you intentionally want headless mode."
   if [[ "$DRY_RUN" == "1" ]]; then
     log "Dry-run requested; skipping soft headless switch."
     return 0
   fi
-  log "Preparation checks passed; switching to soft headless mode before runtime start."
-  log "GNOME/display-manager will be stopped, but packages remain installed. Restore later with: sudo noemaforge headless off"
+  log "Preparation checks passed; switching to explicit soft headless mode before runtime start."
+  log "GNOME/display-manager will be stopped because --allow-display-stop was supplied. Restore later with: sudo noemaforge first-start abort"
   /opt/noemaforge/tools/prep/noemaforge-headless.sh on --reason first-start
 }
 
 run_firstboot_orchestrator() {
   local safe_shortlist="/var/lib/noemaforge/bootstrap/noemaforge-firstboot-shortlist.safe.txt"
-  local args=(--share-root "$SHARE_ROOT" --vault-root "$VAULT_ROOT" --candidate-limit "$CANDIDATE_LIMIT" --top-k "$TOP_K" --shortlist-file "$safe_shortlist" --selection-mode "$SELECTION_MODE" --composite-top-n "$COMPOSITE_TOP_N")
+  local args=(--share-root "$SHARE_ROOT" --vault-root "$VAULT_ROOT" --candidate-limit "$CANDIDATE_LIMIT" --top-k "$TOP_K" --shortlist-file "$safe_shortlist" --model-profile "$MODEL_PROFILE" --selection-mode "$SELECTION_MODE" --composite-top-n "$COMPOSITE_TOP_N")
   [[ "$INCLUDE_DOWNLOAD_MIRROR" == "1" ]] && args+=(--include-download-mirror)
   [[ "$ALLOW_INCOMPLETE_SHARDS" == "1" ]] && args+=(--allow-incomplete-shards)
   [[ "$REBOOT_AFTER_APPLY" == "0" ]] && args+=(--no-reboot)
@@ -442,7 +558,7 @@ write_summary() {
   local out="/workspace/outbox/bootreports/first-launch-summary.txt"
   {
     echo "NoemaForge first launch summary"; date -Is
-    echo "share_root=$SHARE_ROOT"; echo "vault_root=$VAULT_ROOT"; echo "top_k=$TOP_K"; echo "candidate_limit=$CANDIDATE_LIMIT"; echo "soft_headless=$SOFT_HEADLESS"; echo "selection_mode=$SELECTION_MODE"; echo "composite_top_n=$COMPOSITE_TOP_N"; echo "dry_run=$DRY_RUN"; echo "per_model_timeout=$PER_MODEL_TIMEOUT"; echo "total_timeout=$TOTAL_TIMEOUT"; echo "include_unverified=$INCLUDE_UNVERIFIED"; echo "retry_failed_models=$RETRY_FAILED_MODELS"; echo "clear_model_health=$CLEAR_MODEL_HEALTH"; echo "strict_any_fail=$STRICT_ANY_FAIL"
+    echo "share_root=$SHARE_ROOT"; echo "vault_root=$VAULT_ROOT"; echo "top_k=$TOP_K"; echo "candidate_limit=$CANDIDATE_LIMIT"; echo "model_profile=$MODEL_PROFILE"; echo "soft_headless=$SOFT_HEADLESS"; echo "keep_display=$KEEP_DISPLAY"; echo "allow_display_stop=$ALLOW_DISPLAY_STOP"; echo "selection_mode=$SELECTION_MODE"; echo "composite_top_n=$COMPOSITE_TOP_N"; echo "dry_run=$DRY_RUN"; echo "per_model_timeout=$PER_MODEL_TIMEOUT"; echo "total_timeout=$TOTAL_TIMEOUT"; echo "include_unverified=$INCLUDE_UNVERIFIED"; echo "retry_failed_models=$RETRY_FAILED_MODELS"; echo "clear_model_health=$CLEAR_MODEL_HEALTH"; echo "strict_any_fail=$STRICT_ANY_FAIL"
     echo "candidate_report=/var/lib/noemaforge/bootstrap/model-candidates.safe.json"
     echo "model_inventory=/var/lib/noemaforge/bootstrap/model-inventory.json"
     echo "role_tournament=/var/lib/noemaforge/bootstrap/role-tournament-results.json"

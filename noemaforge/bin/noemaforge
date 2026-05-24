@@ -7,8 +7,8 @@
 # Inputs: subcommands prepare-gui, first-start, status, models, logs, headless, llm-stop, health, safe-mode, gui-status, gui-rescue, start-llm-safe, llm-memory-override, nvidia-preflight, chatgpt-light.
 # Outputs: command output, reports under /var/lib/noemaforge/bootstrap, transient systemd jobs for long/disruptive ops.
 # Safety notes:
-#   - `sudo noemaforge first-start` rehomes work into systemd when launched from a graphical session.
-#   - Long/disruptive commands use systemd-run by default, so they keep running if the terminal/GUI closes.
+#   - `sudo noemaforge first-start` rehomes work into systemd when launched from a graphical session without stopping the display manager by default.
+#   - Long/disruptive commands use systemd-run by default, so they keep running while GUI remains available.
 #   - Legacy command names are installed as wrappers that dispatch back into this CLI.
 # === End NoemaForge File Header ===
 set -euo pipefail
@@ -97,29 +97,33 @@ UX / operator interface:
   noemaforge dev-team run|replace|write-file|set-version  Dev Team code-improvement runner; direct file writes require explicit --apply.
   noemaforge model-evolution run|list|show           Measured model-evolution cycle with baseline, mutation plan, scorecard and rollback gate.
   noemaforge model-selection plan|apply              Chat/GUI model optimization plan; maps fast/normal/full/full_composite to first-start commands.
+  noemaforge privileged-job validate|run             Validate or dry-run approval-gated GUI privileged jobs through the polkit runner contract.
   noemaforge pipeline catalog|run|approve|advance|pause|resume|fail|cancel|artifact|worktree|doctor|gate|repair|readiness|template-import|template-append|context-lint|compact|queue|metrics|schema-validate|event-log|lease|executor-step|member|policy|export|list|show|snapshot|dashboard-state|patterns|validate
   noemaforge qa code team|run|list|show             Legacy code QA wrapper.
   noemaforge member team|run|analyze-code|validate|list|show
                                                     Pipeline member cells: standalone or sequential multi-model; proposal/consensus/unique artifacts and code visualizer.
-  noemaforge selftest catalog|run|compare|metrics|wiki-patch   Test cases, resource telemetry, baseline diff and wiki patch export.
+  noemaforge selftest catalog|run|compare|release-guard|metrics|trend|events|stress|wiki-patch   Test cases, telemetry, pre-merge guard, trend/events, RSS stress, baseline diff and wiki patch export.
   noemaforge wiki-patch create --report REPORT                  Alias for selftest wiki-patch create.
                                                     Switchable-LLM pipeline runner, typed context, LLM leases, gates, repair/readiness and pattern catalog.
   noemaforge testbench catalog|run|report|baseline|metrics
                                                     Self-improvement test matrix with CPU/memory/disk/GPU/ECC telemetry and baseline comparison.
-  noemaforge wiki-patch create|apply|list
-                                                    Incremental wiki patch bundles with functional and metric deltas; no automatic git push.
+  noemaforge wiki-patch create|apply|commit-plan|list
+                                                    Incremental wiki patch bundles with functional and metric deltas; reviewed local commit helper; no automatic git push.
   noemaforge schema validate [--run-id RUN]           Validate P1 NoemaForge-native config/context schemas.
   noemaforge persona list|active|show|activate|evolve|validate|doctor     Role codenames, activation packets and evolving portraits.
-  noemaforge dashboard path|state|serve|start|stop|status  Local Admin GUI dashboard/API; no LLM/media autostart.
+  noemaforge dashboard path|state|serve|start|stop|status|autostart-enable|autostart-disable|autostart-status
+                                                    Local Admin GUI dashboard/API and user-level autostart; no LLM/media autostart.
   noemaforge gui console|dashboard|admin              Start/status local Admin GUI console without starting LLM.
   noemaforge schema validate [--run-id RUN]              Validate NoemaForge pipeline/persona/pattern schemas and typed context sidecars.
   noemaforge boot-mode show|status                     Human-readable conditional autostart status.
   sudo noemaforge boot-mode set manual|gui|wogui        GUI=after GUI, woGUI=instead of GUI.
   sudo noemaforge boot-mode set-profile gui runtime_only|bootstrap_cpu_llm
   noemaforge profiles recommend                       Recommend safe model profile by RAM/VRAM.
+  noemaforge prep-core verify-seed|check|lab|firstboot|export-vault-metadata
+                                           Cross-platform prep source of truth; Windows and shell wrappers delegate here.
   noemaforge normalize-models [PATH...]               Reject non-head shards; print runtime-safe candidates.
   noemaforge eval run --role dev.work/dev                Small role smoke tests.
-  noemaforge trixie-preflight [--json]                  Read-only Trixie launcher preflight.
+  noemaforge trixie-preflight [--json] [--remediation-plan]  Trixie launcher preflight and dependency remediation plan.
   sudo noemaforge forensics [--dry-run]                 Collect safe support bundle, no model/Vault data.
   sudo noemaforge firstboot-archive                     Archive accepted firstboot baseline artifacts.
   sudo noemaforge forensic-bundle [OUT_DIR]              Create no-weights support bundle.
@@ -199,6 +203,7 @@ High-risk commands, avoid until the safe-start/smoke/manager path is clean:
   sudo noemaforge first-start abort              Stop active first-start, stop model backends and restore Debian GUI.
   sudo noemaforge first-start diagnostics [OUT]  Collect pre-launch/recovery diagnostics bundle.
   noemaforge first-start summary [--latest|--all|--json]  Grouped color first-start summary.
+  noemaforge first-start progress [--json]       Human-readable firstboot phase progress and next actions.
   sudo noemaforge emergency-recover              Minimal no-block Debian GUI recovery; display-manager before GDM.
   sudo noemaforge service-stop                 Stops active llama backend.
 
@@ -331,30 +336,64 @@ split_mode_args() {
 cmd_prepare_gui() { require_root; exec "$GUI_PREP" "$@"; }
 
 cmd_first_start_abort() {
-  require_root
+  local dry_run=0
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --dry-run) dry_run=1; shift ;;
+      -h|--help|help)
+        cat <<'EOF'
+Usage:
+  sudo noemaforge first-start abort [--dry-run]
+
+Stops active first-start work, stops model backends and requests minimal
+non-blocking Debian GUI recovery. Use --dry-run for offline regression checks.
+EOF
+        return 0 ;;
+      *) printf '[noemaforge][ERROR] unknown first-start abort option: %s\n' "$1" >&2; exit 2 ;;
+    esac
+  done
+  [[ "$dry_run" == "1" ]] || require_root
   log "Aborting NoemaForge first-start and restoring Debian GUI via minimal recovery."
-  systemctl stop noemaforge-first-start.service 2>/dev/null || true
-  pkill -TERM -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
-  sleep 5
-  pkill -KILL -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
-  systemctl list-units --type=service --all 'noemaforge-llama@*.service' --no-legend 2>/dev/null | awk '{print $1}' | xargs -r systemctl stop 2>/dev/null || true
+  if [[ "$dry_run" == "1" ]]; then
+    log "dry-run: systemctl stop noemaforge-first-start.service"
+    log "dry-run: pkill TERM/KILL firstboot_orchestrator.py role_tournament.py noemaforge-first-launch llama-server noemaforge-llama-start"
+    log "dry-run: stop noemaforge-llama@*.service units if any"
+  else
+    systemctl stop noemaforge-first-start.service 2>/dev/null || true
+    pkill -TERM -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
+    sleep 5
+    pkill -KILL -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' 2>/dev/null || true
+    systemctl list-units --type=service --all 'noemaforge-llama@*.service' --no-legend 2>/dev/null | awk '{print $1}' | xargs -r systemctl stop 2>/dev/null || true
+  fi
   # patched10: do not use `headless off` first in emergency/degraded states.
   if [[ -x "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" ]]; then
-    "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" --reason first-start-abort 2>/dev/null || true
+    if [[ "$dry_run" == "1" ]]; then
+      "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" --reason first-start-abort --dry-run || true
+    else
+      "$ROOT/tools/prep/noemaforge-gui-recover-minimal.sh" --reason first-start-abort 2>/dev/null || true
+    fi
   else
-    systemctl daemon-reload 2>/dev/null || true
-    systemctl reset-failed 2>/dev/null || true
-    systemctl set-default graphical.target 2>/dev/null || true
-    systemctl start --no-block systemd-user-sessions.service 2>/dev/null || true
-    rm -f /run/nologin 2>/dev/null || true
-    systemctl start --no-block display-manager.service 2>/dev/null || true
-    systemctl start --no-block gdm.service 2>/dev/null || true
-    systemctl start --no-block gdm3.service 2>/dev/null || true
-    systemctl isolate --no-block graphical.target 2>/dev/null || true
+    if [[ "$dry_run" == "1" ]]; then
+      log "dry-run: minimal recovery helper missing; would run fallback non-blocking graphical.target recovery"
+    else
+      systemctl daemon-reload 2>/dev/null || true
+      systemctl reset-failed 2>/dev/null || true
+      systemctl set-default graphical.target 2>/dev/null || true
+      systemctl start --no-block systemd-user-sessions.service 2>/dev/null || true
+      rm -f /run/nologin 2>/dev/null || true
+      systemctl start --no-block display-manager.service 2>/dev/null || true
+      systemctl start --no-block gdm.service 2>/dev/null || true
+      systemctl start --no-block gdm3.service 2>/dev/null || true
+      systemctl isolate --no-block graphical.target 2>/dev/null || true
+    fi
   fi
-  systemctl reset-failed noemaforge-first-start.service noemaforge-autostart-gui.service 2>/dev/null || true
-  echo "NoemaForge first-start abort requested. Default target: $(systemctl get-default 2>/dev/null || true)"
-  systemctl status display-manager.service gdm.service gdm3.service --no-pager -l 2>/dev/null || true
+  if [[ "$dry_run" == "1" ]]; then
+    echo "NoemaForge first-start abort dry-run requested."
+  else
+    systemctl reset-failed noemaforge-first-start.service noemaforge-autostart-gui.service 2>/dev/null || true
+    echo "NoemaForge first-start abort requested. Default target: $(systemctl get-default 2>/dev/null || true)"
+    systemctl status display-manager.service gdm.service gdm3.service --no-pager -l 2>/dev/null || true
+  fi
 }
 
 cmd_first_start_diagnostics() {
@@ -393,6 +432,7 @@ cmd_first_start() {
     abort|cancel|stop|rescue) shift || true; cmd_first_start_abort "$@"; return 0 ;;
     diagnostics|diagnose|diag|support-bundle) shift || true; cmd_first_start_diagnostics "$@"; return 0 ;;
     summary|summarize|report) shift || true; exec /usr/bin/python3 "$ROOT/src/first_start_summary.py" "$@" ;;
+    progress|watch|tui) shift || true; exec /usr/bin/python3 "$ROOT/src/firstboot_progress_runtime.py" "$@" ;;
   esac
 
   local dry_run=0
@@ -418,20 +458,19 @@ cmd_first_start() {
     cat <<'EOF'
 [noemaforge]
 First start was invoked from a graphical session.
-NoemaForge will now continue as a systemd job so it is not killed when GNOME stops.
-The GUI will be softly disabled only after package checks and safe model discovery pass.
-Nothing is uninstalled; restore later with:
-  sudo noemaforge first-start abort
+NoemaForge will continue as a systemd job, but patched1 keeps Debian GUI/display-manager running by default.
+The display will NOT be stopped unless you explicitly pass --allow-display-stop.
 
-Follow progress from a TTY/SSH with:
+Follow progress without losing the monitor:
   sudo journalctl -fu noemaforge-first-start.service
 
-Abort/recovery from another TTY or SSH:
+Abort/recovery from GUI, TTY or SSH:
   sudo noemaforge first-start abort
 EOF
     sleep "${NOEMAFORGE_FIRST_START_COUNTDOWN:-8}"
     systemd-run --unit=noemaforge-first-start --description="NoemaForge first start" --collect \
       --setenv=NOEMAFORGE_FIRST_START_SYSTEMD=1 \
+      --setenv=NOEMAFORGE_FIRST_START_KEEP_DISPLAY="${NOEMAFORGE_FIRST_START_KEEP_DISPLAY:-1}" \
       --setenv=NOEMAFORGE_RESTORE_GUI_AFTER_FIRST_START="${NOEMAFORGE_RESTORE_GUI_AFTER_FIRST_START:-1}" \
       --setenv=NOEMAFORGE_FIRST_START_TTY_STATUS="${NOEMAFORGE_FIRST_START_TTY_STATUS:-1}" \
       --setenv=NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL="${NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL:-20}" \
@@ -441,11 +480,11 @@ EOF
       --property=WorkingDirectory=/ \
       --property=StandardOutput=journal+console \
       --property=StandardError=journal+console \
-      "$FIRST_LAUNCH" --soft-headless --from-noemaforge-cli "$@"
-    log "Started $UNIT. Current terminal may close when display-manager stops."
+      "$FIRST_LAUNCH" --allow-graphical --from-noemaforge-cli "$@"
+    log "Started $UNIT with display-manager preserved by default."
     return 0
   fi
-  exec "$FIRST_LAUNCH" --soft-headless --from-noemaforge-cli "$@"
+  exec "$FIRST_LAUNCH" --allow-graphical --from-noemaforge-cli "$@"
 }
 
 cmd_status() {
@@ -1021,6 +1060,10 @@ cmd_model_selection() {
   NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/model_selection_runtime.py" "$@"
 }
 
+cmd_privileged_job() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/privileged_gui_job_runner.py" "$@"
+}
+
 cmd_schema() {
   local action="${1:-validate}"
   case "$action" in
@@ -1073,7 +1116,7 @@ cmd_version() {
   elif [[ -f "$ROOT/../VERSION" ]]; then
     cat "$ROOT/../VERSION"
   else
-    echo "0.31.13.alpha"
+    echo "0.32.0.alpha"
   fi
 }
 
@@ -1268,6 +1311,18 @@ cmd_model_advisor() {
   _exec_helper noemaforge-model-advisor "$@"
 }
 
+cmd_prep_core() {
+  local py="${NOEMAFORGE_PYTHON:-}"
+  if [[ -z "$py" ]]; then
+    if command -v python3 >/dev/null 2>&1; then
+      py="python3"
+    else
+      py="python"
+    fi
+  fi
+  exec "$py" "$ROOT/tools/prep/noemaforge_prep_core.py" "$@" --repo-root "$ROOT"
+}
+
 cmd="${1:-}"
 [[ -n "$cmd" ]] || { usage; exit 2; }
 shift || true
@@ -1288,6 +1343,7 @@ case "$cmd" in
   dev-team|devteam|development-team) cmd_dev_team "$@" ;;
   model-evolution|evolve-model|model-evolve|evolution-model) cmd_model_evolution "$@" ;;
   model-selection|select-model|model-select|optimize-model|model-optimization) cmd_model_selection "$@" ;;
+  privileged-job|privileged-jobs|job-runner) cmd_privileged_job "$@" ;;
   member|team-member|member-cell|cell) cmd_member "$@" ;;
   qa|code-qa|quality|review-code) cmd_qa "$@" ;;
   pipeline|pipelines) cmd_pipeline "$@" ;;
@@ -1296,6 +1352,7 @@ case "$cmd" in
   selftest|self-test|tests|telemetry-tests|testbench) cmd_selftest "$@" ;;
   wiki-patch|wikipatch|wiki_patch|wiki-delta) cmd_wiki_patch "$@" ;;
   profiles|model-profiles|profile) cmd_profiles "$@" ;;
+  prep-core|prep|cross-platform-prep) cmd_prep_core "$@" ;;
   normalize-models|model-normalize|canonical-models) cmd_normalize_models "$@" ;;
   eval|role-eval|evaluate) cmd_eval "$@" ;;
   toolproxy) cmd_toolproxy_diag "$@" ;;
@@ -1361,3 +1418,4 @@ case "$cmd" in
   -h|--help|help) usage ;;
   *) printf "[noemaforge][ERROR] unknown command: %s\n\n" "$cmd" >&2; usage >&2; exit 2 ;;
 esac
+

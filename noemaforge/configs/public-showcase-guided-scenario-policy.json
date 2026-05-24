@@ -1,0 +1,75 @@
+{
+  "apiVersion": "noemaforge.public-showcase-guided-scenario/v1",
+  "kind": "PublicShowcaseGuidedScenarioPolicy",
+  "id": "public-showcase-guided-scenario-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "refs": [
+    "configs/public-showcase-guided-scenario-policy.json",
+    "contracts/public_showcase_guided_scenario.schema.json",
+    "src/public_showcase_guided_scenario_runtime.py",
+    "src/admin_gui_server.py",
+    "templates/pipeline-dashboard/index.html",
+    "templates/pipeline-dashboard/app.js",
+    "templates/pipeline-dashboard/pipeline-editor.css",
+    "tests/test_public_showcase_guided_scenario_runtime.py",
+    "tests/test_public_showcase_guided_scenario_qa.py",
+    "tests/test_public_showcase_guided_scenario_performance.py",
+    "prelaunch/governance/public_showcase_guided_scenario.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md"
+  ],
+  "policy": {
+    "selected_showcase": "polished_admin_gui_guided_scenario",
+    "scenario_id": "admin_gui_guided_scenario",
+    "scenario_endpoint": "/api/public-showcase/scenario",
+    "live_backend_demo_enabled": false,
+    "requires_live_target": false,
+    "requires_packaging": false,
+    "no_hidden_backend_start": true,
+    "no_auto_apply": true,
+    "final_target_replay_required": true,
+    "required_step_ids": [
+      "health",
+      "admin_greeting",
+      "routed_pipeline",
+      "dev_team_plan",
+      "model_evolution_plan"
+    ],
+    "required_server_tokens": [
+      "build_public_showcase_scenario",
+      "/api/public-showcase/scenario",
+      "polished_admin_gui_guided_scenario",
+      "live_backend_demo_enabled"
+    ],
+    "required_frontend_tokens": [
+      "loadPublicShowcase",
+      "renderPublicShowcase",
+      "fillShowcaseStep",
+      "public-showcase"
+    ],
+    "required_style_tokens": [
+      ".public-showcase",
+      ".showcase-step",
+      ".showcase-step-actions"
+    ],
+    "required_runtime_scripts": [
+      "src/public_showcase_guided_scenario_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_public_showcase_guided_scenario_policy",
+      "public-showcase-guided-scenario-core"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  }
+}
+

@@ -1,0 +1,694 @@
+{
+  "name": "noemaforge_0.31.21.alpha_docs_reconciled_checked",
+  "version": "0.31.21.alpha-docs-reconciled-checked",
+  "base_archive": "user-supplied noemaforge_0.31.21.alpha_docs_reconciled.tar.gz",
+  "created_at_utc": "2026-05-18T13:50:00Z",
+  "tracking_scope": "all package files except MANIFEST.json, MANIFEST.sha256 and SHA256SUMS, which are regenerated from this manifest",
+  "files_count": 134,
+  "files_total_bytes": 1336087,
+  "policy": "curated markdown/wiki documentation reconciliation; no raw deep-research dumps; codebase coverage compared against 0.31.13.alpha-patched1 runtime artifact available in workspace",
+  "key_docs": [
+    "context.md",
+    "noemaforge/context.md",
+    "noemaforge/docs/quality/DOCUMENTATION_AUDIT_0.31.21.alpha_checked.md",
+    "noemaforge/docs/quality/CODEBASE_COVERAGE_REPORT_0.31.21.alpha.md",
+    "noemaforge/docs/quality/TASK_STATUS_RECONCILIATION_0.31.21.alpha.md",
+    "noemaforge/docs/quality/MANIFEST_COMPLETENESS_RECONCILIATION_0.31.21.alpha.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/wiki/WIKI.md"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 5709,
+      "sha256": "a8b4da0cefb1dff14984c2fe3697a736d97ef9071e935813322841be92e34268"
+    },
+    {
+      "path": "context.md",
+      "bytes": 22544,
+      "sha256": "53948676afb18dccf21d02deb2575f93e3e9bc366f3390df5bda837d4162a4da"
+    },
+    {
+      "path": "noemaforge/VERSION",
+      "bytes": 38,
+      "sha256": "598273144028bbba27d7568e3ab6f6179b7162a5594845188ecc778a4e789ba6"
+    },
+    {
+      "path": "noemaforge/context.md",
+      "bytes": 23541,
+      "sha256": "5b86869612d84d9013b4d09c2ec5434cdcf8d093dae672e85c9f8ab9a742395a"
+    },
+    {
+      "path": "noemaforge/docs/CONTEXT_SOURCES_MATRIX_0.31.18.alpha.md",
+      "bytes": 1463,
+      "sha256": "3664de598d1a4e3b7aaccb3bc9a9911fa5681418305e8148e2e8cf413399d65a"
+    },
+    {
+      "path": "noemaforge/docs/CONTEXT_SOURCES_MATRIX_0.31.19.alpha_dialog_reconciliation.md",
+      "bytes": 2314,
+      "sha256": "f7c49acf1f9adc02100f7bf86b90676cc51382c3f35a6fb5716d4f3655721986"
+    },
+    {
+      "path": "noemaforge/docs/Manifest.md",
+      "bytes": 21124,
+      "sha256": "0095e6cc99e10a5ece766ffdc682cc2a7a5b64d6f075f7481c238ca3911ce84a"
+    },
+    {
+      "path": "noemaforge/docs/README.md",
+      "bytes": 17358,
+      "sha256": "f08b723bdf8da0476ad37e735397a5389366807fadc83dc40fe948f5b60fc10e"
+    },
+    {
+      "path": "noemaforge/docs/TODO.md",
+      "bytes": 40674,
+      "sha256": "9a6c8f09fe7259ac67ebbdb02b3c8534f01e72a637b43986acb7229808f6898a"
+    },
+    {
+      "path": "noemaforge/docs/architecture/ARCHITECTURE.md",
+      "bytes": 105513,
+      "sha256": "e67b923294c6b80ac4aba02e4843aa4ad42ba8328212155f26616e9036d8325b"
+    },
+    {
+      "path": "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "bytes": 38538,
+      "sha256": "5295a0882ae61a0c92fa61a1ad56825df60a64cebae2b2480f0e16a7ef2636a6"
+    },
+    {
+      "path": "noemaforge/docs/developer/DEVELOPER_NOTES.md",
+      "bytes": 20304,
+      "sha256": "53860a1c4acef0157bcdf8aa91582b02f3c7af7ab6bf744a2ec0b7906f60d203"
+    },
+    {
+      "path": "noemaforge/docs/history/0.31.17.alpha-pre_documentation_reconciliation.md",
+      "bytes": 611,
+      "sha256": "3ca01b6622bfa3de881d51e31c82153df79acb4ea1cd56d12448c790201222d1"
+    },
+    {
+      "path": "noemaforge/docs/history/CHANGELOG.md",
+      "bytes": 108744,
+      "sha256": "9d9797f89dc30df420c2ad75bd06b97d6decbfe7f5b8160c871175d19028828e"
+    },
+    {
+      "path": "noemaforge/docs/i18n/LOCALIZED_GUIDES.md",
+      "bytes": 71957,
+      "sha256": "a447c2b5d633bd4032a1d9c35870b9c1f6753e015cd57a63ac8899fa7f19618c"
+    },
+    {
+      "path": "noemaforge/docs/operations/OPERATOR_GUIDE.md",
+      "bytes": 57785,
+      "sha256": "b5ed7b0d34b608d17d1cff28c01d232c60c3b5c5e46d41d329c663ca96fd3885"
+    },
+    {
+      "path": "noemaforge/docs/policies/POLICIES.md",
+      "bytes": 25508,
+      "sha256": "e3d27b6ca1d472324653463391432debe60281bfa152203178afc8d41d035c1f"
+    },
+    {
+      "path": "noemaforge/docs/quality/BRAINOS_MANIFEST_AUTHORITY_AND_WIKI_SYNCHRONIZATION_REPORT.md",
+      "bytes": 6357,
+      "sha256": "dca4fcf48c19d1e75d62fb9d9aa5509fd98fc7c88dba781522761814e876d711"
+    },
+    {
+      "path": "noemaforge/docs/quality/CODEBASE_COVERAGE_REPORT_0.31.21.alpha.md",
+      "bytes": 27969,
+      "sha256": "61a349be14302a9012686f70ba4638f87cffc5113a98111ad4184c5051296724"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.14.alpha.md",
+      "bytes": 7794,
+      "sha256": "ec9642bd1291c3cfe88bd35aca22bf9f2138a619210eb6fdbdefcc5dfaaf6711"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.15.alpha.md",
+      "bytes": 7765,
+      "sha256": "41b0ef9bc6aa939428596391f801c5752b4c4624e246d9fe5f3e4a45d09b573d"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.16.alpha.md",
+      "bytes": 4680,
+      "sha256": "03f72a4b57298c2892100ecf5a170cbf17e974a8e370cee121959da343bfa3cd"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.17.alpha_provider_product_reconciliation.md",
+      "bytes": 5956,
+      "sha256": "7c4159b2fa42d9ed6722d38d0ac9edaab65185c54d0a52dc35971aee2ad6926c"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.17.alpha_vector_memory_reconciliation.md",
+      "bytes": 5668,
+      "sha256": "951823864d8a289d42b4b77bab5231b4ab96528fe232008986778f95730521c0"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.18.alpha_live_runtime_debug_reconciliation.md",
+      "bytes": 2991,
+      "sha256": "58b9692de5a4b20c45d49091307b5717e0f21f113b42b76ec488e48a0d971abb"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.18.alpha_runtime_recovery.md",
+      "bytes": 2392,
+      "sha256": "3716c5b2414b1e6fdb8f218afe71fed1ed0d2d66bf27001fde4f9e4673d9fe04"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.20.alpha_hf_gguf_unified_download_reconciliation.md",
+      "bytes": 7592,
+      "sha256": "ac7664ad4feb9f7c95f4aa83156f40f3f49f4240f0627fd674488a0d26ae5773"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.20.alpha_legal_corpus_and_windows_pipeline.md",
+      "bytes": 5815,
+      "sha256": "b4b5c0f9764394940be44bbc7bd200d011adb230c4257853b881947e6fc5eaa6"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.20.alpha_role_bundle_and_windows_safe_reconciliation.md",
+      "bytes": 5832,
+      "sha256": "b3e04046b403bed84453c4ba820d51c173ee8d723035370cb246272e21f267fb"
+    },
+    {
+      "path": "noemaforge/docs/quality/COMPLETENESS_REPORT_0.31.20.alpha_voice_admin_and_hf_cli_reconciliation.md",
+      "bytes": 6331,
+      "sha256": "697516c6ed69c3ce07795c30012c7ddef784e29e27d9be9c0c1f4dfb2797ec24"
+    },
+    {
+      "path": "noemaforge/docs/quality/DEEP_RESEARCH_DISTILLATION_COMPLETENESS_REPORT_0.31.14.alpha.md",
+      "bytes": 7500,
+      "sha256": "dcf4d582dfe4c072130ec3ab4d4ccc58272414476598dc7fa3f6b10a97981862"
+    },
+    {
+      "path": "noemaforge/docs/quality/DEEP_RESEARCH_DISTILLATION_COMPLETENESS_REPORT_0.31.17.alpha.md",
+      "bytes": 7099,
+      "sha256": "16c2095b7a979b4ae3e46ffb121ba3eb1ef7ae8eed7c4b33563b97821742548e"
+    },
+    {
+      "path": "noemaforge/docs/quality/DEEP_RESEARCH_DISTILLATION_COMPLETENESS_REPORT_0.31.18.alpha_runtime_recovery.md",
+      "bytes": 2176,
+      "sha256": "bd5374034c762b29df323d526430e2ba4187f8f7b4868164e0af9653a239d7db"
+    },
+    {
+      "path": "noemaforge/docs/quality/DIALOG_RECONCILIATION_COMPLETENESS_REPORT_0.31.19.alpha.md",
+      "bytes": 7551,
+      "sha256": "c95cf5430700aee2a76fb7e8a8606be98f71b4b86c44f7d29af11feb0a938593"
+    },
+    {
+      "path": "noemaforge/docs/quality/DOCUMENTATION_AUDIT_0.31.21.alpha_checked.md",
+      "bytes": 2381,
+      "sha256": "9e0980766cf3661eae7ddc83bd991b6c6c4d492bec5102dc34e81a58c94071db"
+    },
+    {
+      "path": "noemaforge/docs/quality/DOCUMENTATION_RECONCILIATION_REPORT_0.31.16.alpha.md",
+      "bytes": 1896,
+      "sha256": "511b16fddcefbb376a1fe015445e44cbcdda7820ff7a56decb359c61809541ab"
+    },
+    {
+      "path": "noemaforge/docs/quality/DOCUMENTATION_REPAIR_REPORT_0.31.14.alpha_multios.md",
+      "bytes": 2325,
+      "sha256": "a1e02b1932ece66327f37642b831355cee0dd1339b3f6f086e6b71dda6c39ecb"
+    },
+    {
+      "path": "noemaforge/docs/quality/EDGE_TINYML_OTA_INTEGRATION_REPORT.md",
+      "bytes": 3356,
+      "sha256": "d61f9f8d6d249454cd70f6842b6fdb30f98b6db752d9d37e09b012dc7b60dfb0"
+    },
+    {
+      "path": "noemaforge/docs/quality/MANIFEST_COMPLETENESS_RECONCILIATION_0.31.21.alpha.md",
+      "bytes": 2410,
+      "sha256": "87969444f42e308c15611300f18249278641bcfeb7d1d51304119f1bc4de64bb"
+    },
+    {
+      "path": "noemaforge/docs/quality/MULTIOS_RUNTIME_INTEGRATION_REPORT.md",
+      "bytes": 3809,
+      "sha256": "b6ce0902f188f178939cbae4bbc2b8eaecb29a64663e4f5277fae9d20666f047"
+    },
+    {
+      "path": "noemaforge/docs/quality/PUBLIC_STRATEGY_LEGAL_ECOSYSTEM_COMPLETENESS_REPORT_0.31.14.alpha.md",
+      "bytes": 8661,
+      "sha256": "1899fc2ec2beeabb725f23bd4c46ee40608f44cca38a7245746bcb6a3f6d9e34"
+    },
+    {
+      "path": "noemaforge/docs/quality/TASK_STATUS_RECONCILIATION_0.31.21.alpha.md",
+      "bytes": 4310,
+      "sha256": "6e1ea7d2ed161fa602cd258494c0e89c0f0259ed334ee49b675f8469cbc1e231"
+    },
+    {
+      "path": "noemaforge/docs/quality/TRUST_ADAPTIVE_GOVERNANCE_SYNC_REPORT.md",
+      "bytes": 5051,
+      "sha256": "bfae5e5de27e3f543e8f3f63f69b9a1cd02677c0147eebadfae5a75497325ac8"
+    },
+    {
+      "path": "noemaforge/docs/quality/VERIFICATION_AND_AUDIT.md",
+      "bytes": 80966,
+      "sha256": "a29c9f25c3bbdc649889ddd162b8d852f11532d12c1d08032e3cf7fe3aa01bfc"
+    },
+    {
+      "path": "noemaforge/docs/reference/KNOWLEDGE_BASE.md",
+      "bytes": 6297,
+      "sha256": "06f5b44402408a3baca18b9ae4f6bf7884824764578ae943340ddc1eac523309"
+    },
+    {
+      "path": "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "bytes": 37702,
+      "sha256": "ad1a1b3093521700eab13c65c167c8caa98bd7859ed517ee97a4003b82dc3642"
+    },
+    {
+      "path": "noemaforge/docs/wiki/WIKI.md",
+      "bytes": 18375,
+      "sha256": "4fe9b481beca445eae12024eb143e7884a27d45d15ccbb90fabc7a7f7ff3400f"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/cloud-provider-catalog-and-routing.md",
+      "bytes": 6646,
+      "sha256": "924f41623fa66cfb6314630c687291b762374268f3e4d3133f6f9bbc34e82b84"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/langgraph-like-runtime-vs-in-context.md",
+      "bytes": 2979,
+      "sha256": "9be7dd65ca6648756c1db6c85996f9b95450c027a035f968acaa2d580ef452c0"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/memory-router-and-retrieval-orchestration.md",
+      "bytes": 7576,
+      "sha256": "202ff356b1638d8f3e785cf3462cbd486b565c33c27d932e9c8222263acf16de"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/multi-agent-cognitive-pipeline.md",
+      "bytes": 688,
+      "sha256": "81a9e2256c639be46d453456491b876a0d6f1eda08f69dbb674a9895833bb34d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/multios-runtime-and-launchers.md",
+      "bytes": 14132,
+      "sha256": "4f971fa8383732433e7d3863bbb2695e662a87d6ea9911836ba4bcdd602e6f17"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/mvp-kernel-shell-roleflow-git-exchange.md",
+      "bytes": 8827,
+      "sha256": "92c1831e9cced9e79cb62709878159ddcfd0078f736995bbe1be3a03b7694c00"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/nn-sleep-wake-and-role-concurrency.md",
+      "bytes": 4798,
+      "sha256": "bb58d72fc3b82249b2edcc3320804ab25dd264b5acc51832342f3fccb550b9ff"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/runtime-model-and-zones.md",
+      "bytes": 5323,
+      "sha256": "9b825dbfac12734ae4a0439053eca501c2243038c8107f1a9cfab503cbd7486e"
+    },
+    {
+      "path": "noemaforge/docs/wiki/architecture/single-active-local-llm-runtime.md",
+      "bytes": 2080,
+      "sha256": "a34e7efc7b67a0703ee490abcb73fe99d2551a139a1a26ba693aa643fa6858e2"
+    },
+    {
+      "path": "noemaforge/docs/wiki/ecosystem/brainos-hub-and-pack-economy.md",
+      "bytes": 4907,
+      "sha256": "cb01fe3be29752f07e712c6f0b1b7b7c87cc35415be497d974edf603c79db748"
+    },
+    {
+      "path": "noemaforge/docs/wiki/ecosystem/contribution-and-sponsorship-model.md",
+      "bytes": 5537,
+      "sha256": "42d4e8ba0cd8d4a3e1d5fb214517dc48227d5d33cb799c90cd6cd622c88bfcdc"
+    },
+    {
+      "path": "noemaforge/docs/wiki/ecosystem/git-exchange-flowpacks-and-artifact-protocol.md",
+      "bytes": 4554,
+      "sha256": "a4c13579b896c0614597a1243da91e14c514c35e00fcc0199db269280ef8c66f"
+    },
+    {
+      "path": "noemaforge/docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha.md",
+      "bytes": 13652,
+      "sha256": "105c8e9af4337584f357206e64e69b7df98de7ad5fba71cc500be21daa94bb3a"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evaluation/cpu-gpu-dual-evaluation-and-canonical-gguf.md",
+      "bytes": 2554,
+      "sha256": "88f3a4d2e21dea24ca2c271d82e4c7aa32b014e61c9e67c068260c2a287c8c17"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evaluation/eval-observability-testbench-and-wiki-patches.md",
+      "bytes": 3563,
+      "sha256": "8220c2f520f44f4c83e7a866e2aac34e26b39d3835ad80e2c04a234754e8f998"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evaluation/local-model-sizing-and-quantization-advisor.md",
+      "bytes": 2240,
+      "sha256": "3b6abd35d3035edff3c610ae382b70a18f5aad84eea6bc699617181c4b2c5ec9"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evaluation/role-profile-bundles-and-1tb-manifest.md",
+      "bytes": 13418,
+      "sha256": "a8c6f0536e023162c9bc62999bb9399eaabc25febdb34e9becd8f9012e5686d1"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evaluation/voice-first-admin-role-benchmark-stack.md",
+      "bytes": 7890,
+      "sha256": "e9f3d48406d873efaa50b99319e316ef3a5efd5715b716ecc2bf0cd3212261b2"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evolution/agentlife-creatures-and-personality-evolution.md",
+      "bytes": 3274,
+      "sha256": "f1bcb6ad7ef669bde5ad68df0b70138dbd6fd3e1cece5e249c683e5bd247377d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evolution/evolve-lab-and-promotion-gates.md",
+      "bytes": 4766,
+      "sha256": "9239b47aebf24167a456d1b4fb9b237bdb1b06d7d56c2233e5b55463312e8d55"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evolution/hfbridge-rolepacks-and-dataset-recommender.md",
+      "bytes": 5263,
+      "sha256": "97011a74c94a27f9ba2c90eb72eed410865e9f941880b0ce1f63e9ea9bfa7703"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evolution/sr-ssr-evolution-boundary.md",
+      "bytes": 3359,
+      "sha256": "99faf912181a19841ef0cc23984a8d49c414959d899259fd7b8a1174cb438660"
+    },
+    {
+      "path": "noemaforge/docs/wiki/evolution/surgeon-scary-evolver-roadmap.md",
+      "bytes": 5617,
+      "sha256": "e564df4b3117578d7e7b79e8203f0d2d9059250a9bfb966e2d3b0a65de7c460b"
+    },
+    {
+      "path": "noemaforge/docs/wiki/firstboot/bootstrap-quality-gate-and-staffing.md",
+      "bytes": 4326,
+      "sha256": "42cb959967354c2703462e864dca30fc97efbbe87b6b4fe5dc1e3d86223f2a83"
+    },
+    {
+      "path": "noemaforge/docs/wiki/foundations/manifest-authority-and-values.md",
+      "bytes": 843,
+      "sha256": "8f981a3f96072f712b2746549e2820070a14f37544b7e8d6d854b68eff61366c"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/adversarial-generators-and-critics.md",
+      "bytes": 5813,
+      "sha256": "a985e11181f63a5a70f873da6c149fc989fa11c9296b2e2c37fe5dbe8dff189f"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/ai-slop-filter-and-quality-gates.md",
+      "bytes": 5597,
+      "sha256": "3def1f71483d956a9debdcaed9231d6c89ab97cfbfe7121e0b3b2d34458137e7"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/concept-thinking-admin-architect.md",
+      "bytes": 5175,
+      "sha256": "b6dc304f1bf28e105333ba314fcade4cbde817a3f651ec365b64e3ff517b8b30"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/failure-philosophy-and-uncertainty.md",
+      "bytes": 373,
+      "sha256": "da37ddcf40b36bb878a159615d805f625f7c1166dc9c225d796a63d0023e06c5"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/honesty-protocol-error-unknowns.md",
+      "bytes": 4669,
+      "sha256": "be068162502e6e36d263906ec9eedfaa2fbcd2acdaabebd1bb6e57b3643d92d4"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/internet-scout-and-research-packets.md",
+      "bytes": 5497,
+      "sha256": "8f3a379ea0d41818d6a44dad4b9527ea6d808bbdcdcd97d7d94574f9f7630244"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/neuroteam-metrics-and-visualizations.md",
+      "bytes": 515,
+      "sha256": "d958a6426f748778ef66622db6c7899ee6b68733ad2a6962bd6d45040bb78aef"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/open-research-and-code-map.md",
+      "bytes": 20367,
+      "sha256": "c26dd352e34be6405c1c08f9fe00fe41dff9a6e1c0209cd1dbf0f6949c85f5e6"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/pipeline-rfc-self-development.md",
+      "bytes": 5393,
+      "sha256": "4ad67d60d71d81107704cf4e86d105095e4004546a9c9fecc0eaf415c43a1844"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/sense-layer-drive-adapter.md",
+      "bytes": 6908,
+      "sha256": "7f8c76879e0594039361be0f7d1ebaba85a0a3ae69e2c248d049f80e6fd457de"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/trust-adaptive-layer.md",
+      "bytes": 5845,
+      "sha256": "35d3eb0a308c0e4784cbb72c2f53c9056a32d709fce7490e08070503a586d75a"
+    },
+    {
+      "path": "noemaforge/docs/wiki/governance/unified-role-prompts.md",
+      "bytes": 665,
+      "sha256": "b4035550d8429bcdcb78507e70a9b1ff0aaa1fe2e33600360d8a014386bd94ec"
+    },
+    {
+      "path": "noemaforge/docs/wiki/gui/persona-portraits-dashboard-and-autostart.md",
+      "bytes": 3315,
+      "sha256": "3e743ef2986484aa39dece61cbcd2bcf34c1eb576a77bb551028e5c9596e9f18"
+    },
+    {
+      "path": "noemaforge/docs/wiki/history/brainos-0.28-to-0.29-recovery-lineage.md",
+      "bytes": 2457,
+      "sha256": "4fee90c68df4e2d9890135cfdda5ee6e0d9f9ecbb5fec7b1f72690849df90341"
+    },
+    {
+      "path": "noemaforge/docs/wiki/history/version-lineage-and-deferred-releases.md",
+      "bytes": 2446,
+      "sha256": "2c155c24155da7bebae86c27d0e00da861515daa0f6b2546f1fe20aa7937e399"
+    },
+    {
+      "path": "noemaforge/docs/wiki/knowledge/knowledge-hypergraph-and-memory-substrate.md",
+      "bytes": 11028,
+      "sha256": "c41ad4fca29f287033ef38db7e22775707bec1893d5a6def4f0615b20c784c39"
+    },
+    {
+      "path": "noemaforge/docs/wiki/knowledge/source-grounded-notebooks-and-studio-artifacts.md",
+      "bytes": 5379,
+      "sha256": "bd165e5ccd88c2ac713d204d6e7e06956850f09865c4d6a899f0e5b84d456e3e"
+    },
+    {
+      "path": "noemaforge/docs/wiki/knowledge/vector-search-embeddings-and-memory-architecture.md",
+      "bytes": 13714,
+      "sha256": "fbebf6015bef341d19abac9908fbef1651ddaae4780fe8781d26e082e52bca9b"
+    },
+    {
+      "path": "noemaforge/docs/wiki/maintenance/release-cleanup-distribution-hygiene.md",
+      "bytes": 4473,
+      "sha256": "3428ef511eab36cbe521ccb4d2e6f396b4fa6944d63e830cde2c7ba756499249"
+    },
+    {
+      "path": "noemaforge/docs/wiki/multimodal/multimodal-vault-model-adapters-and-media-pipelines.md",
+      "bytes": 9629,
+      "sha256": "74de26cee05574170461f86d6efdf54b73da8f717e72b13cb305fe33002e7b4f"
+    },
+    {
+      "path": "noemaforge/docs/wiki/multimodal/voice-dictation-transcripts-and-personal-dictionary.md",
+      "bytes": 4754,
+      "sha256": "e34ea35d45793354df990e31cbe31c75f75cee39a1c0ffb60921edb9d2f85300"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/action-skills-approvals-and-channel-runtime.md",
+      "bytes": 4928,
+      "sha256": "6b62927b01c6b1394a304307042b55056f1f4130ac0c61a9380ca37886ed685d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/bca-freeze-unfreeze-and-capsules.md",
+      "bytes": 7693,
+      "sha256": "a0a6dfd4f58e17dbc12f2ff3b3c26695a5eba83edea831b9802e00b0c5cb6562"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/brainos-runtime-recovery-stop-and-reboot-safety.md",
+      "bytes": 6490,
+      "sha256": "cf0d82dd04093ceaf31a637e83f49564a3ab4dc3be90bda0651c29c978c7a742"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/browser-memory-and-chatgpt-light-profile.md",
+      "bytes": 2845,
+      "sha256": "fa15e81f21b3c6abfb6fc43f19749fc7e6d5bc3d5fccd82ea08b686e893c5fdb"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/daily-tasks-sla-and-verification.md",
+      "bytes": 4402,
+      "sha256": "590c2f76c0f8ac60636d0ff71c768a9d811fa13a9d28271f719c6d2f07180570"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/first-run-runner-version-audit-and-recursion-safety.md",
+      "bytes": 5975,
+      "sha256": "52b6355e11525239fea9be7c8549ae9738c14e407c5c873b742d363e18993ae6"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/gui-timer-autostart-gdm-readiness-and-gui-start.md",
+      "bytes": 4476,
+      "sha256": "bfffd6f3a20a7df4d9602b165dbe9cae75a1818c3f4b50bf48bbb64d2b1ab92b"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/launcher-phases-and-forensics.md",
+      "bytes": 3202,
+      "sha256": "6a91c9a9e5f6c68727030395e5d3da4f96af08f608f814939a929226204f4d80"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/legal-corpus-ingest-windows-launchers-and-source-backoff.md",
+      "bytes": 10093,
+      "sha256": "3c6c836345e9f67d9b5684fbae6c09cceb2a22f0a2985dfee28200e33feb53e7"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/local-llm-manual-start-stop-and-wrapper.md",
+      "bytes": 3429,
+      "sha256": "1a8b35439c1dfac2264eae881918ef4f216fbfd56759d0eb3b87c18fc9e360bc"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/prompt-injection-firewall-and-gloves.md",
+      "bytes": 4603,
+      "sha256": "760b62e43be61951c0e0d3abe7922cfd4bf029070e6a72673ed80076303047ac"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/runtime-stabilization-and-safe-mode.md",
+      "bytes": 3554,
+      "sha256": "ba299e2a21b541865427cc7410916b9870fe24cb9d9183b2e802d4993735edfa"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/tool-plugin-supply-chain-policy.md",
+      "bytes": 3305,
+      "sha256": "93b44307bfa3f5856c22cf1c660e3339f9f0f227d113db556acd8a981544760d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/toolproxy-sel-and-capability-recovery.md",
+      "bytes": 3486,
+      "sha256": "d9ac157da222189d8e1d2836e6bd41c872924900714de04e26db5e39ebfe1d81"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/toolproxy-sel-bootdoctor-secureboot.md",
+      "bytes": 3987,
+      "sha256": "84b72373fd743e1fe312725d83932487753740ea825e3302cd4210b6e4611970"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/trixie-boot-gdm-gpu-recovery.md",
+      "bytes": 4415,
+      "sha256": "c5647b4192a40e087e6e632519b3c9a812f9017966d00ba4955dd7bd7930e104"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/vault-model-dataset-ingest-and-provider-checks.md",
+      "bytes": 11869,
+      "sha256": "53af935e27ad6bac1f9c94c81bcf8e22486a33086c67ed9497415d0f2672293a"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/vault-ntfs-and-modelstore-recovery.md",
+      "bytes": 3013,
+      "sha256": "20f1c782ada0bd8f9505b72b368211af7e3ba23cfa241a9c36aa78b320ea8e64"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/webgw-localgw-and-personal-streams.md",
+      "bytes": 4923,
+      "sha256": "06367ae569a25dc407bc22539e2decfb62f8cb0130612bfe6d407ef0921a0e27"
+    },
+    {
+      "path": "noemaforge/docs/wiki/operations/windows-huggingface-gguf-and-unified-download-mirror.md",
+      "bytes": 15222,
+      "sha256": "ac1a93e7a5e0269423a02821a9c763f2a8eb011c4c5f103804d1f256c6f8c35d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/pipelines/pipeline-member-cells-code-qa-and-workflow-catalog.md",
+      "bytes": 3911,
+      "sha256": "b7b4b9abf8713cb08e2171676a98210379aae31a2ae3096d48b0c6142d596f3d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/pipelines/ssr-coordinate-staffing-and-topk-expansion.md",
+      "bytes": 3409,
+      "sha256": "572925a516629166336a70dd08501909557032226eb8d58c5e9d5ccfecfb7160"
+    },
+    {
+      "path": "noemaforge/docs/wiki/policies/licensing-strategy-mpl-agpl.md",
+      "bytes": 6237,
+      "sha256": "3bf5f42311662c355faf1d8ce90524622d549121bc84ae80768ba8e27dd36952"
+    },
+    {
+      "path": "noemaforge/docs/wiki/policies/regulatory-and-legal-framework.md",
+      "bytes": 8855,
+      "sha256": "90fe1b0f6fb9ae2d9ea0c7874931c5925ab4982fe8faa25fc242b9b4d9cfc4e3"
+    },
+    {
+      "path": "noemaforge/docs/wiki/product/control-plane-observability-and-admin-surface.md",
+      "bytes": 2580,
+      "sha256": "da9dfccf8a2c358bc526dfb3edd79e484096d6da4c1ca3681e78fe93993072c3"
+    },
+    {
+      "path": "noemaforge/docs/wiki/product/first-public-article-and-visuals.md",
+      "bytes": 5436,
+      "sha256": "51c9202412758d301aa505cf826aa2058af6966bc6cbea2f0354f626d1effc4d"
+    },
+    {
+      "path": "noemaforge/docs/wiki/product/mvp-asap-community-release-plan.md",
+      "bytes": 3980,
+      "sha256": "1f7266647123866be24c4a6905880e4b53231cb806079e13c5c26f0e74bac249"
+    },
+    {
+      "path": "noemaforge/docs/wiki/product/noemashell-lite-visual-shell-and-daemon-quiescence.md",
+      "bytes": 6608,
+      "sha256": "e26ec4a71f2d8ed4ba79862032669fd6c6782cdf1fc19ff80fe3c156bca82f0a"
+    },
+    {
+      "path": "noemaforge/docs/wiki/product/recovery-first-public-mwp.md",
+      "bytes": 2344,
+      "sha256": "9322ecfa1c620dca58adabefa86e1741a6c6bb58f17a9ceaf743ffe24d99d4da"
+    },
+    {
+      "path": "noemaforge/docs/wiki/research/deep-research-distillation-map.md",
+      "bytes": 15818,
+      "sha256": "d509d7f8a1058663221ba47ddcb424620923cb12a50d55bdac982504ccd7e342"
+    },
+    {
+      "path": "noemaforge/docs/wiki/research/grounded-web-research-and-citation-pipeline.md",
+      "bytes": 5095,
+      "sha256": "1299302d2dd89b6eb70a2ef5342a1c270d2e61c4d7a98a441ef7e4a53577ee63"
+    },
+    {
+      "path": "noemaforge/docs/wiki/strategy/comparative-landscape.md",
+      "bytes": 8197,
+      "sha256": "fffba972be641424d8618356193c772d1178f65597d586559e96d5db8de97df9"
+    },
+    {
+      "path": "noemaforge/docs/wiki/strategy/personal-ai-future-vision.md",
+      "bytes": 5764,
+      "sha256": "8665064dc5fc5b836dda42e556f54de8af6e9c312ec44d4afcb79d945a914dab"
+    },
+    {
+      "path": "noemaforge/docs/wiki/strategy/public-launch-and-targeted-outreach.md",
+      "bytes": 8611,
+      "sha256": "f1e1b2cbe8f38b6240bbdb271973820440651391b8dc6a3e6984d3b8555e4e8a"
+    },
+    {
+      "path": "prelaunch/README.md",
+      "bytes": 1810,
+      "sha256": "c49eeb14fe8ec178feee52bd484ead087204d4b8791593d0a48d9e346000ecb3"
+    },
+    {
+      "path": "prelaunch/tools/README.md",
+      "bytes": 889,
+      "sha256": "b729ac91fffb564c075838b6e39abef51f12e11e72196008b628de2329a0ad05"
+    },
+    {
+      "path": "prelaunch/tools/macos/README.md",
+      "bytes": 537,
+      "sha256": "9495cc45781e97b77847e570941d1d58ef24c09b0f7e37d17627801d5a6fd8f3"
+    },
+    {
+      "path": "prelaunch/tools/source/unified_manifest_download_pack_20260408_hotfix3/README_hotfix3.md",
+      "bytes": 2462,
+      "sha256": "28c676a6dd96e3e8da67ae4ce2a240ee64a6acaff3047f510a99a4410a307a3f"
+    },
+    {
+      "path": "prelaunch/tools/trixie/README.md",
+      "bytes": 298,
+      "sha256": "de3d7b4f22e86df23e4f1e6babd5d91d6e14eb3ad7332723edf285ab5c8d0c0f"
+    },
+    {
+      "path": "prelaunch/tools/windows/README.md",
+      "bytes": 3318,
+      "sha256": "12ed0241c1b228a677970146ece89f382c579bd0dd2e89b2509eddae5aa5cb8d"
+    },
+    {
+      "path": "prelaunch/tools/windows_original/unified_manifest_download_pack_20260408_hotfix3/README_hotfix3.md",
+      "bytes": 2462,
+      "sha256": "28c676a6dd96e3e8da67ae4ce2a240ee64a6acaff3047f510a99a4410a307a3f"
+    }
+  ]
+}

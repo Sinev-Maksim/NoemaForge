@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.media-adapter-telemetry/v1",
+  "kind": "MediaAdapterTelemetryExampleSet",
+  "id": "media-adapter-telemetry-examples",
+  "version": "0.31.21.alpha",
+  "adapters": [
+    {
+      "pipeline_id": "voice_generation",
+      "catalog_id": "audio.tts_generate",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json"]
+    },
+    {
+      "pipeline_id": "music_generation",
+      "catalog_id": "audio.music_generate",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json"]
+    },
+    {
+      "pipeline_id": "photo_generation",
+      "catalog_id": "image.photo_generate",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json"]
+    },
+    {
+      "pipeline_id": "video_generation",
+      "catalog_id": "video.generate",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json"]
+    },
+    {
+      "pipeline_id": "image_analysis",
+      "catalog_id": "image.metadata_and_caption",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json"]
+    },
+    {
+      "pipeline_id": "camera_mask_bridge",
+      "catalog_id": "video_call.masks_virtual_camera",
+      "selftest_cases": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"],
+      "live_backend_required": false,
+      "expected_metrics": ["wall_time_ms", "cpu_time_ms", "max_rss_mb", "disk_read_bytes", "disk_write_bytes", "artifact_bytes", "status"],
+      "refs": ["noemaforge/configs/pipelines.json", "noemaforge/configs/media-pipeline-catalog.json", "noemaforge/configs/media-capture-privacy-policy.json"]
+    }
+  ]
+}

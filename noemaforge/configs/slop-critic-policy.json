@@ -1,0 +1,68 @@
+{
+  "apiVersion": "noemaforge.slop-critic/v1",
+  "kind": "SlopCriticPolicy",
+  "id": "slop-critic-governance-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "advisory_by_default": true,
+    "no_single_detector_truth": true,
+    "require_trace_id": true,
+    "require_slop_score": true,
+    "require_critic_stack": true,
+    "require_detection_verdict": true,
+    "require_critic_aggregation_before_final": true,
+    "bands": [
+      "genericity",
+      "repetition",
+      "unsupportedness",
+      "provenance_gap"
+    ],
+    "band_weights": {
+      "genericity": 0.25,
+      "repetition": 0.2,
+      "unsupportedness": 0.35,
+      "provenance_gap": 0.2
+    },
+    "thresholds": {
+      "allow_max": 0.25,
+      "revise_max": 0.55,
+      "abstain_max": 0.8
+    },
+    "actions": [
+      "allow",
+      "revise",
+      "abstain",
+      "escalate"
+    ],
+    "critic_types": [
+      "text",
+      "provenance",
+      "slop"
+    ],
+    "verdict_decisions": [
+      "clean",
+      "advisory_ai_likely",
+      "advisory_manipulated",
+      "unknown"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/slop_critic.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/slop-critic-policy.json",
+    "noemaforge/contracts/slop_critic.schema.json",
+    "noemaforge/src/slop_critic_runtime.py",
+    "noemaforge/tests/test_slop_critic_runtime.py",
+    "noemaforge/tests/test_slop_critic_qa.py",
+    "noemaforge/tests/test_slop_critic_performance.py",
+    "prelaunch/governance/slop_critic.example.json",
+    "prelaunch/governance/honesty_protocol.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

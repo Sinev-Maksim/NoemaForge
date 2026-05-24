@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/clean_distribution_allowlist.schema.json",
+  "title": "CleanDistributionAllowlistPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.clean-distribution/v1"},
+    "kind": {"const": "CleanDistributionAllowlistPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "core_seed_channel",
+        "build_policy",
+        "required_core_refs",
+        "category_rules",
+        "excluded_prefixes",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "allowlist_public_seed"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "core_seed_channel": {"const": "public_core_seed"},
+        "build_policy": {
+          "type": "object",
+          "required": [
+            "allowlist_only",
+            "deny_by_default",
+            "split_optional_material",
+            "split_hf_material",
+            "split_community_material",
+            "split_history_material",
+            "split_quarantine_material",
+            "include_dev_tests_in_core",
+            "include_transient_artifacts",
+            "delete_during_plan"
+          ],
+          "properties": {
+            "allowlist_only": {"const": true},
+            "deny_by_default": {"const": true},
+            "split_optional_material": {"const": true},
+            "split_hf_material": {"const": true},
+            "split_community_material": {"const": true},
+            "split_history_material": {"const": true},
+            "split_quarantine_material": {"const": true},
+            "include_dev_tests_in_core": {"const": false},
+            "include_transient_artifacts": {"const": false},
+            "delete_during_plan": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "required_core_refs": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "category_rules": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category", "destination_lane", "included_in_core", "reason"],
+            "properties": {
+              "category": {"enum": ["hf", "community", "history", "quarantine"]},
+              "destination_lane": {"type": "string"},
+              "included_in_core": {"const": false},
+              "reason": {"type": "string", "minLength": 1}
+            },
+            "additionalProperties": false
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        },
+        "excluded_prefixes": {"type": "object"},
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/unified_registry_validation.schema.json",
+  "title": "UnifiedRegistryValidationReport",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "ok",
+    "created_at",
+    "metrics",
+    "failures",
+    "missing_refs",
+    "missing_eval_pack_refs"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.production-ai/v1"
+    },
+    "kind": {
+      "const": "UnifiedRegistryValidationReport"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "registry_path": {
+      "type": "string"
+    },
+    "project_root": {
+      "type": "string"
+    },
+    "package_root": {
+      "type": "string"
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missing_required_kinds": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "active_registry_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "entries",
+        "refs",
+        "resolved_refs",
+        "missing_refs",
+        "missing_eval_pack_refs"
+      ],
+      "properties": {
+        "entries": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "resolved_refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unsafe_refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_eval_pack_refs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "eval_pack_refs": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "resolved_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/refResolution"
+      }
+    },
+    "missing_refs": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/refResolution"
+      }
+    },
+    "unsafe_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "registry_ref",
+          "ref"
+        ],
+        "properties": {
+          "registry_ref": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "missing_eval_pack_refs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "registry_ref",
+          "eval_pack_ref"
+        ],
+        "properties": {
+          "registry_ref": {
+            "type": "string"
+          },
+          "eval_pack_ref": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "normalized_registry": {
+      "type": "object"
+    }
+  },
+  "$defs": {
+    "refResolution": {
+      "type": "object",
+      "required": [
+        "registry_ref",
+        "ref",
+        "ok"
+      ],
+      "properties": {
+        "registry_ref": {
+          "type": "string"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "resolved_under": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "checked": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

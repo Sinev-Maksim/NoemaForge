@@ -1,0 +1,74 @@
+{
+  "apiVersion": "noemaforge.pipeline-dragdrop-editor/v1",
+  "kind": "PipelineDragDropEditorPolicy",
+  "id": "pipeline-dragdrop-editor-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "draft_only_drag_drop_pipeline_editor",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_pipeline_activation": true,
+    "draft_endpoint": "/api/pipelines/draft",
+    "required_server_tokens": [
+      "normalize_pipeline_editor_draft",
+      "drag_drop_pipeline_editor",
+      "draft_only",
+      "review_required",
+      "drag_drop_draft_editor",
+      "/api/pipelines/draft"
+    ],
+    "required_frontend_tokens": [
+      "pipeline-editor",
+      "pipelineEditorState",
+      "openPipelineEditor",
+      "renderPipelineEditor",
+      "movePipelineStage",
+      "savePipelineEditorDraft",
+      "draggable=\"true\"",
+      "data-stage-index",
+      "/api/pipelines/draft"
+    ],
+    "required_style_tokens": [
+      ".pipeline-editor",
+      ".pipeline-stage-list",
+      ".editor-stage",
+      ".stage-actions"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/pipeline_dragdrop_editor_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_pipeline_dragdrop_editor_policy",
+      "draft_only_drag_drop_pipeline_editor",
+      "pipeline-dragdrop-editor-core"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-dragdrop-editor-policy.json",
+    "noemaforge/contracts/pipeline_dragdrop_editor.schema.json",
+    "noemaforge/src/pipeline_dragdrop_editor_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/pipeline-editor.css",
+    "noemaforge/tests/test_pipeline_dragdrop_editor_runtime.py",
+    "noemaforge/tests/test_pipeline_dragdrop_editor_qa.py",
+    "noemaforge/tests/test_pipeline_dragdrop_editor_performance.py",
+    "prelaunch/governance/pipeline_dragdrop_editor.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

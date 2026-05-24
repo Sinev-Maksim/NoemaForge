@@ -40,12 +40,14 @@ log(){ printf '[noemaforge-gui-recover] %s\n' "$*"; }
 need_root(){ [[ ${EUID:-$(id -u)} -eq 0 ]] || { echo "[noemaforge-gui-recover][ERROR] Run as root." >&2; exit 1; }; }
 run(){ log "run: $*"; [[ "$DRY_RUN" == "1" ]] || "$@"; }
 
-need_root
+[[ "$DRY_RUN" == "1" ]] || need_root
 log "reason=${REASON}; minimal non-blocking Debian GUI recovery"
 
 # Best effort only; recovery must never hang on remount/loadkeys/systemd details.
-mount -o remount,rw / 2>/dev/null || true
-loadkeys us 2>/dev/null || true
+if [[ "$DRY_RUN" != "1" ]]; then
+  mount -o remount,rw / 2>/dev/null || true
+  loadkeys us 2>/dev/null || true
+fi
 
 run systemctl daemon-reload || true
 run systemctl reset-failed || true
@@ -62,8 +64,8 @@ if [[ "$DO_ISOLATE" == "1" ]]; then
   run systemctl isolate --no-block graphical.target || true
 fi
 
-install -d -m 0755 /var/lib/noemaforge/bootstrap 2>/dev/null || true
 if [[ "$DRY_RUN" != "1" ]]; then
+  install -d -m 0755 /var/lib/noemaforge/bootstrap 2>/dev/null || true
   python3 - "$REASON" <<'PY' 2>/dev/null || true
 import json, datetime, sys
 reason=sys.argv[1]
@@ -82,4 +84,8 @@ PY
 fi
 
 log "GUI recovery requested. If GUI is not back in ~30s, run: systemctl reboot"
-log "status: default=$(systemctl get-default 2>/dev/null || true) dm=$(systemctl is-active display-manager.service 2>/dev/null || systemctl is-active gdm.service 2>/dev/null || true)"
+if [[ "$DRY_RUN" == "1" ]]; then
+  log "status: dry-run skipped systemctl status probes"
+else
+  log "status: default=$(systemctl get-default 2>/dev/null || true) dm=$(systemctl is-active display-manager.service 2>/dev/null || systemctl is-active gdm.service 2>/dev/null || true)"
+fi

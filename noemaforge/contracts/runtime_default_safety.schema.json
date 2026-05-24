@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/runtime_default_safety.schema.json",
+  "title": "NoemaForge RuntimeDefaultSafetyValidationReport",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "ok", "validated_at", "failures", "metrics"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.runtime-default-safety/v1"},
+    "kind": {"const": "RuntimeDefaultSafetyValidationReport"},
+    "id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "validated_at": {"type": "string", "minLength": 1},
+    "failures": {"type": "array", "items": {"type": "string"}},
+    "metrics": {
+      "type": "object",
+      "required": ["refs", "resolved_refs", "scenarios", "passing_scenarios", "registry_entries", "checked_controls"],
+      "properties": {
+        "refs": {"type": "integer", "minimum": 0},
+        "resolved_refs": {"type": "integer", "minimum": 0},
+        "scenarios": {"type": "integer", "minimum": 0},
+        "passing_scenarios": {"type": "integer", "minimum": 0},
+        "registry_entries": {"type": "integer", "minimum": 0},
+        "checked_controls": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

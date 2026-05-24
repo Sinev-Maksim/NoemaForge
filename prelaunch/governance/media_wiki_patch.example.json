@@ -1,0 +1,42 @@
+{
+  "apiVersion": "noemaforge.media-wiki-patch/v1",
+  "kind": "MediaWikiPatchExampleSet",
+  "id": "media-wiki-patch-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "media-capability-delta-with-artifact-manifest",
+      "media_capability_delta": {
+        "adapters": {
+          "voice_generation": {"status": "plan_only", "capability": "tts"},
+          "music_generation": {"status": "plan_only", "capability": "music"},
+          "photo_generation": {"status": "plan_only", "capability": "image"},
+          "video_generation": {"status": "plan_only", "capability": "video"},
+          "image_analysis": {"status": "metadata_ready", "capability": "vision"},
+          "camera_mask_bridge": {"status": "privacy_gated_plan_only", "capability": "segmentation_masks"}
+        }
+      },
+      "generated_artifacts": [
+        {
+          "artifact_id": "artifact:media:voice-plan",
+          "pipeline_id": "voice_generation",
+          "kind": "plan",
+          "path": "state/media/voice-plan.json",
+          "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "review_status": "planned_only"
+        }
+      ],
+      "expected_outputs": [
+        "media_capability_delta.json",
+        "generated_artifacts.json",
+        "functional_delta.md",
+        "wiki_patch_manifest.json"
+      ],
+      "refs": [
+        "noemaforge/src/wiki_patch_runtime.py",
+        "noemaforge/configs/media-pipeline-catalog.json",
+        "noemaforge/configs/media-adapter-telemetry-policy.json"
+      ]
+    }
+  ]
+}

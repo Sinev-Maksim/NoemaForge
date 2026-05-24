@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/pipeline_stage_validator_smoke.schema.json",
+  "title": "NoemaForge pipeline stage validator and smoke report",
+  "type": "object",
+  "required": [
+    "ok",
+    "run_id",
+    "stage_count",
+    "warnings",
+    "problems",
+    "stages",
+    "offline_only",
+    "no_llm_autostart"
+  ],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "run_id": {"type": "string"},
+    "stage_count": {"type": "integer", "minimum": 1},
+    "strict_ready_failures": {"type": "array", "items": {"type": "string"}},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "problems": {"type": "array", "items": {"type": "string"}},
+    "offline_only": {"const": true},
+    "no_llm_autostart": {"const": true},
+    "stages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "stage",
+          "typed_context_sidecar_ok",
+          "typed_context_sidecar_checksum_ok",
+          "output",
+          "stage_contract",
+          "contract_artifact_count",
+          "smoke_cases",
+          "ready_to_advance",
+          "ok"
+        ],
+        "properties": {
+          "stage": {"type": "string"},
+          "typed_context_sidecar_ok": {"type": "boolean"},
+          "typed_context_sidecar_checksum_ok": {"type": "boolean"},
+          "output": {"type": "object"},
+          "stage_contract": {"type": "object"},
+          "contract_artifact_count": {"type": "integer", "minimum": 0},
+          "ready_to_advance": {"type": "boolean"},
+          "ok": {"type": "boolean"},
+          "smoke_cases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["id", "ok"],
+              "properties": {
+                "id": {"type": "string"},
+                "ok": {"type": "boolean"},
+                "detail": {"type": "string"}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true
+}

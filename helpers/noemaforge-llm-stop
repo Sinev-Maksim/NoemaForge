@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-llm-stop
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.31.13.alpha-patched1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
@@ -72,6 +72,16 @@ printf '\n=== stop NoemaForge orchestrators/core ===\n'
 if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] systemctl --no-block stop %s\n' "$NOEMAFORGE_CORE_UNITS"; else systemctl --no-block stop $NOEMAFORGE_CORE_UNITS 2>/dev/null || true; fi
 printf '\n=== stop llama units ===\n'
 if [[ "$DRY_RUN" == "1" ]]; then printf '[noemaforge-stop][dry-run] stop all noemaforge-llama@*.service units\n'; else mapfile -t LLAMA_UNITS < <(noemaforge_all_llama_units); [[ ${#LLAMA_UNITS[@]} -gt 0 ]] && systemctl --no-block stop "${LLAMA_UNITS[@]}" 2>/dev/null || true; fi
+printf '\n=== drain NoemaForge systemd cgroups ===\n'
+if [[ "$DRY_RUN" == "1" ]]; then
+  printf '[noemaforge-stop][dry-run] systemctl show -p ControlGroup --value for core and llama units; TERM/KILL remaining cgroup.procs\n'
+else
+  mapfile -t LLAMA_UNITS_CGROUP < <(noemaforge_all_llama_units)
+  noemaforge_print_unit_cgroups $NOEMAFORGE_CORE_UNITS "${LLAMA_UNITS_CGROUP[@]}"
+  noemaforge_drain_unit_cgroups TERM $NOEMAFORGE_CORE_UNITS "${LLAMA_UNITS_CGROUP[@]}"
+  sleep 2
+  noemaforge_drain_unit_cgroups KILL $NOEMAFORGE_CORE_UNITS "${LLAMA_UNITS_CGROUP[@]}"
+fi
 [[ "$DRY_RUN" == "1" ]] || sleep 3
 printf '\n=== kill stuck NoemaForge llama-server if any ===\n'
 if [[ "$DRY_RUN" == "1" ]]; then

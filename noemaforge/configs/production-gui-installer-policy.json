@@ -1,0 +1,116 @@
+{
+  "apiVersion": "noemaforge.production-gui-installer/v1",
+  "kind": "ProductionGuiInstallerPolicy",
+  "id": "production-gui-installer-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "setup_installer_gui_readiness_contract",
+    "selected_todo": "Production-grade GUI installer.",
+    "require_docs_and_changelog_refs": true,
+    "require_registry_attachment": true,
+    "require_no_live_host_dependency": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_scripts": {
+      "setup": "setup.sh",
+      "installer": "install_noemaforge_0.31.21.alpha_mvp.sh",
+      "cli": "noemaforge/bin/noemaforge"
+    },
+    "required_gui_assets": [
+      "noemaforge/templates/pipeline-dashboard/index.html",
+      "noemaforge/templates/pipeline-dashboard/app.js",
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_gui_units": [
+      "noemaforge/systemd/noemaforge-autostart-gui.service",
+      "noemaforge/systemd/noemaforge-autostart-gui.timer",
+      "noemaforge/systemd/noemaforge-autostart-wogui.service",
+      "noemaforge/systemd/noemaforge-llm-gateway.service",
+      "noemaforge/systemd/noemaforge-toolproxy.service"
+    ],
+    "required_existing_contracts": [
+      "noemaforge/configs/setup-front-door-policy.json",
+      "noemaforge/configs/setup-mode-matrix-policy.json",
+      "noemaforge/configs/package-dry-run-validation-policy.json",
+      "noemaforge/configs/stateful-admin-gui-policy.json",
+      "noemaforge/configs/systemd-happy-path-policy.json",
+      "noemaforge/configs/privileged-gui-job-runner-policy.json"
+    ],
+    "required_setup_tokens": [
+      "--mode vm|host|docker-dev|macos-dev",
+      "--dry-run",
+      "--selftest",
+      "non-dry-run install requires sudo/root",
+      "GUI autostart uses delayed timer"
+    ],
+    "required_installer_tokens": [
+      "noemaforge-autostart-gui.timer",
+      "systemctl enable noemaforge-autostart-gui.timer",
+      "systemctl disable noemaforge-autostart-gui.service",
+      "runtime_only",
+      "bootstrap_cpu_llm",
+      "heavy_llm_autostart=manual_only",
+      "noemaforge/templates/pipeline-dashboard",
+      "gui-rescue",
+      "gui-start"
+    ],
+    "required_cli_tokens": [
+      "noemaforge dashboard path|state|serve|start|stop|status",
+      "noemaforge gui console|dashboard|admin",
+      "GUI console/admin starts only the local Admin GUI dashboard/API and never starts NoemaForge LLM",
+      "sudo noemaforge boot-mode set manual|gui|wogui",
+      "sudo noemaforge gui-start [--wait|--restart|--dry-run]",
+      "sudo noemaforge gui-rescue [--wait|--direct]"
+    ],
+    "required_service_tokens": {
+      "noemaforge/systemd/noemaforge-autostart-gui.service": [
+        "timer-driven",
+        "ExecStart=/opt/noemaforge/tools/prep/noemaforge-autostart-safe.sh --mode gui",
+        "Do not enable this service directly"
+      ],
+      "noemaforge/systemd/noemaforge-autostart-gui.timer": [
+        "OnBootSec=3min",
+        "Unit=noemaforge-autostart-gui.service",
+        "WantedBy=timers.target"
+      ]
+    },
+    "required_example_sets": [
+      "prelaunch/governance/production_gui_installer.example.json"
+    ],
+    "required_doc_refs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "setup.sh",
+    "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/configs/production-gui-installer-policy.json",
+    "noemaforge/contracts/production_gui_installer.schema.json",
+    "noemaforge/configs/alpha-feature-coverage.json",
+    "noemaforge/configs/unified-registry.json",
+    "noemaforge/src/production_gui_installer_runtime.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/systemd/noemaforge-autostart-gui.service",
+    "noemaforge/systemd/noemaforge-autostart-gui.timer",
+    "noemaforge/systemd/noemaforge-autostart-wogui.service",
+    "noemaforge/systemd/noemaforge-llm-gateway.service",
+    "noemaforge/systemd/noemaforge-toolproxy.service",
+    "noemaforge/tests/test_production_gui_installer_runtime.py",
+    "noemaforge/tests/test_production_gui_installer_qa.py",
+    "noemaforge/tests/test_production_gui_installer_performance.py",
+    "prelaunch/governance/production_gui_installer.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

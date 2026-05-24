@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/knowledge_graph_lint.schema.json",
+  "title": "Knowledge Graph Lint Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "ok", "id", "version", "metrics", "failures"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.knowledge-graph-lint/v1"},
+    "kind": {"const": "KnowledgeGraphLintValidationReport"},
+    "ok": {"type": "boolean"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "validated_at": {"type": "string"},
+    "metrics": {
+      "type": "object",
+      "required": ["finding_types", "loop_targets", "target_roles", "scenarios", "passing_scenarios", "resolved_refs"],
+      "properties": {
+        "finding_types": {"type": "integer", "minimum": 5},
+        "loop_targets": {"type": "integer", "minimum": 2},
+        "target_roles": {"type": "integer", "minimum": 2},
+        "scenarios": {"type": "integer", "minimum": 1},
+        "passing_scenarios": {"type": "integer", "minimum": 0},
+        "resolved_refs": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "failures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

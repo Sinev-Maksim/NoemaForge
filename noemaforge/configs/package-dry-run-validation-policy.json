@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.package-dry-run/v1",
+  "kind": "PackageDryRunValidationPolicy",
+  "id": "package-dry-run-validation-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "install_uninstall_dry_run_tests",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_scripts": {
+      "setup": "setup.sh",
+      "installer": "install_noemaforge_0.32.0.alpha_mvp.sh",
+      "uninstall": "uninstall_noemaforge_0.32.0.alpha_mvp.sh"
+    },
+    "required_setup_flags": ["--dry-run", "--selftest", "--install-root", "--data-root", "--model-profile"],
+    "required_uninstall_flags": ["--dry-run", "--selftest"],
+    "dry_run_controls": {
+      "setup_dry_run_exits_before_installer_exec": true,
+      "setup_non_dry_run_requires_root": true,
+      "setup_recursion_guard_required": true,
+      "setup_selftest_checks_install_and_uninstall_syntax": true,
+      "setup_dry_run_no_rm_rf": true,
+      "uninstall_dry_run_required": true,
+      "uninstall_reports_no_destructive_actions": true,
+      "uninstall_dry_run_no_rm_rf": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/package_dry_run_validation.example.json"
+    ]
+  },
+  "refs": [
+    "setup.sh",
+    "install_noemaforge_0.32.0.alpha_mvp.sh",
+    "uninstall_noemaforge_0.32.0.alpha_mvp.sh",
+    "noemaforge/configs/package-dry-run-validation-policy.json",
+    "noemaforge/contracts/package_dry_run_validation.schema.json",
+    "noemaforge/src/package_dry_run_validation_runtime.py",
+    "noemaforge/tests/test_package_dry_run_validation_runtime.py",
+    "noemaforge/tests/test_package_dry_run_validation_qa.py",
+    "noemaforge/tests/test_package_dry_run_validation_performance.py",
+    "noemaforge/tests/test_version_03200_qa.py",
+    "noemaforge/tests/test_version_03200_performance.py",
+    "prelaunch/governance/package_dry_run_validation.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+
+
+

@@ -1,0 +1,70 @@
+{
+  "apiVersion": "noemaforge.pipeline-editor-pack/v1",
+  "kind": "PipelineEditorPackPolicy",
+  "id": "pipeline-editor-pack-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "summary": "Pipeline editor drafts must support drag-and-drop edit events, clone as a new pipeline class and Scary/Architecture/Admin review before activation.",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "draft_clone_review_required",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_gui_dependency": true,
+    "require_drag_drop_event_schema": true,
+    "require_clone_as_new_pipeline_class": true,
+    "forbid_auto_activation": true,
+    "required_review_chain": ["Scary", "Architecture", "Admin"],
+    "allowed_operations": [
+      "add_stage",
+      "rename_stage",
+      "remove_stage",
+      "set_permission_mode",
+      "set_llm_policy",
+      "set_deliverable",
+      "annotate_edge"
+    ],
+    "forbidden_actions": [
+      "activate",
+      "overwrite_source",
+      "bypass_review",
+      "run_privileged_job",
+      "auto_apply"
+    ],
+    "required_runtime_tokens": [
+      "build_pipeline_editor_draft",
+      "validate_pipeline_editor_draft",
+      "clone_as_new_pipeline_class",
+      "drag_drop_events",
+      "Scary",
+      "Architecture",
+      "Admin"
+    ],
+    "required_gui_tokens": [
+      "Draft pipeline editor",
+      "drag&drop pipeline editor planned",
+      "/api/pipelines/draft",
+      "draft_only"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-editor-pack-policy.json",
+    "noemaforge/src/pipeline_editor_pack_runtime.py",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/tests/test_pipeline_editor_pack_runtime.py",
+    "noemaforge/tests/test_pipeline_editor_pack_qa.py",
+    "noemaforge/tests/test_pipeline_editor_pack_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

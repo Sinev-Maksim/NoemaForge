@@ -1,0 +1,107 @@
+{
+  "apiVersion": "noemaforge.hypergraph-error-improvement/v1",
+  "kind": "HypergraphErrorImprovementExampleSet",
+  "id": "hypergraph-error-improvement-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "reviewed-hypergraph-errors-feed-training-and-eval",
+      "trace_id": "trace:hypergraph-error-improvement:reviewed-loop",
+      "processing_runs": [
+        {
+          "run_id": "run:prep-labeler:001",
+          "component": "prep_labeler",
+          "model_id": "nf-prep-labeler-local",
+          "profile_id": "profile:prep-labels:v1"
+        },
+        {
+          "run_id": "run:chunk-planner:001",
+          "component": "chunk_planner",
+          "model_id": "nf-chunk-planner-local",
+          "profile_id": "profile:chunking:v1"
+        },
+        {
+          "run_id": "run:claim-extractor:001",
+          "component": "claim_extractor",
+          "model_id": "nf-claim-extractor-local",
+          "profile_id": "profile:extraction:v1"
+        },
+        {
+          "run_id": "run:entity-linker:001",
+          "component": "entity_linker",
+          "model_id": "nf-entity-linker-local",
+          "profile_id": "profile:linking:v1"
+        }
+      ],
+      "error_events": [
+        {
+          "error_id": "error:source:defective-page",
+          "run_id": "run:claim-extractor:001",
+          "component": "claim_extractor",
+          "defect_class": "source_defect",
+          "source_defect": true,
+          "error_type": "ocr_page_corrupt"
+        },
+        {
+          "error_id": "error:label:role-mismatch",
+          "run_id": "run:prep-labeler:001",
+          "component": "prep_labeler",
+          "defect_class": "labeling_defect",
+          "error_type": "incorrect_prep_label"
+        },
+        {
+          "error_id": "error:chunk:boundary",
+          "run_id": "run:chunk-planner:001",
+          "component": "chunk_planner",
+          "defect_class": "chunking_defect",
+          "error_type": "merged_unrelated_passages"
+        },
+        {
+          "error_id": "error:extract:missed-claim",
+          "run_id": "run:claim-extractor:001",
+          "component": "claim_extractor",
+          "defect_class": "extraction_defect",
+          "error_type": "missed_gold_claim"
+        },
+        {
+          "error_id": "error:link:wrong-node",
+          "run_id": "run:entity-linker:001",
+          "component": "entity_linker",
+          "defect_class": "linking_defect",
+          "error_type": "wrong_entity_link"
+        }
+      ],
+      "corrections": [
+        {
+          "correction_id": "corr:label:role-mismatch",
+          "error_id": "error:label:role-mismatch",
+          "approved_for_training": true,
+          "approved_for_eval": true,
+          "new_value": {"label": "definition"}
+        },
+        {
+          "correction_id": "corr:extract:missed-claim",
+          "error_id": "error:extract:missed-claim",
+          "approved_for_training": true,
+          "approved_for_eval": true,
+          "new_value": {"claim": "local evidence must cite source"}
+        },
+        {
+          "correction_id": "corr:source:defective-page",
+          "error_id": "error:source:defective-page",
+          "approved_for_training": false,
+          "approved_for_eval": true,
+          "new_value": {"source_status": "needs_reingest"}
+        }
+      ],
+      "expected_defect_classes": [
+        "source_defect",
+        "labeling_defect",
+        "chunking_defect",
+        "extraction_defect",
+        "linking_defect"
+      ],
+      "expected_reuse_targets": ["retraining", "evaluation"]
+    }
+  ]
+}

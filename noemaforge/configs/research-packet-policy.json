@@ -1,0 +1,55 @@
+{
+  "apiVersion": "noemaforge.research-packet/v1",
+  "kind": "ResearchPacketPolicy",
+  "id": "research-packet-scouting-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "no_network_during_validation": true,
+    "require_trace_id": true,
+    "source_allowlist_required": true,
+    "freshness_bounded": true,
+    "citations_required": true,
+    "no_uncited_claims": true,
+    "require_primary_or_official_sources": true,
+    "max_source_age_days": 45,
+    "default_freshness_window_days": 30,
+    "min_sources": 2,
+    "allowed_domains": [
+      "docs.python.org",
+      "github.com",
+      "noemaforge.local",
+      "openai.com",
+      "www.openai.com"
+    ],
+    "required_source_kinds": [
+      "official_docs",
+      "repository",
+      "local_evidence"
+    ],
+    "packet_statuses": [
+      "draft",
+      "ready",
+      "needs_refresh",
+      "blocked"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/research_packet.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/research-packet-policy.json",
+    "noemaforge/contracts/research_packet.schema.json",
+    "noemaforge/src/research_packet_runtime.py",
+    "noemaforge/tests/test_research_packet_runtime.py",
+    "noemaforge/tests/test_research_packet_qa.py",
+    "noemaforge/tests/test_research_packet_performance.py",
+    "prelaunch/governance/research_packet.example.json",
+    "prelaunch/governance/provenance_watermark.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

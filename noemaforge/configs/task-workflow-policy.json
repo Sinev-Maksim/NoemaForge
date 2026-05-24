@@ -1,0 +1,68 @@
+{
+  "apiVersion": "noemaforge.task-workflow/v1",
+  "kind": "TaskWorkflowPolicy",
+  "id": "task-workflow-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "admin_chat_and_api_task_workflow",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_gui_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_api_tokens": [
+      "/api/tasks/create",
+      "/api/tasks/update",
+      "/api/tasks/block",
+      "/api/tasks/complete",
+      "/api/tasks/prioritize",
+      "def task_create",
+      "def task_update",
+      "def task_block",
+      "def task_complete",
+      "def task_prioritize"
+    ],
+    "required_chat_tokens": [
+      "def _handle_task_intent",
+      "def _extract_task_id",
+      "def _priority_from_text",
+      "заблок",
+      "заверши задачу",
+      "complete task",
+      "prioritize task"
+    ],
+    "required_workflow_steps": [
+      "add",
+      "edit",
+      "prioritize",
+      "block",
+      "complete"
+    ],
+    "allowed_statuses": [
+      "pending",
+      "blocked",
+      "completed"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/task-workflow-policy.json",
+    "noemaforge/src/task_workflow_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/tests/test_task_workflow_runtime.py",
+    "noemaforge/tests/test_task_workflow_qa.py",
+    "noemaforge/tests/test_task_workflow_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

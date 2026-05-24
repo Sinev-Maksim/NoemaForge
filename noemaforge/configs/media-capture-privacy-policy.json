@@ -1,0 +1,86 @@
+{
+  "apiVersion": "noemaforge.media-capture-privacy/v1",
+  "kind": "MediaCapturePrivacyPolicy",
+  "id": "media-capture-privacy-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "local_first_default": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "capture_defaults": {
+      "microphone_enabled_by_default": false,
+      "camera_enabled_by_default": false,
+      "virtual_camera_enabled_by_default": false
+    },
+    "guarded_actions": [
+      {
+        "action": "voice.capture_live",
+        "source": "microphone",
+        "toolproxy_action": true,
+        "require_operator_consent": true,
+        "require_visible_privacy_state": true,
+        "require_manual_operator_command": true,
+        "autostart": false,
+        "max_seconds": 15
+      },
+      {
+        "action": "voice.transcribe_live",
+        "source": "microphone",
+        "toolproxy_action": true,
+        "require_operator_consent": true,
+        "require_visible_privacy_state": true,
+        "require_manual_operator_command": true,
+        "autostart": false,
+        "max_seconds": 15
+      },
+      {
+        "action": "camera.mask_virtual_camera",
+        "source": "camera",
+        "target": "virtual_camera",
+        "toolproxy_action": false,
+        "require_operator_consent": true,
+        "require_visible_privacy_state": true,
+        "require_manual_operator_command": true,
+        "require_user_selected_target": true,
+        "autostart": false,
+        "max_seconds": 0
+      }
+    ],
+    "required_pipeline_gates": {
+      "voice_generation": ["no_implicit_microphone_capture", "operator_approval_required"],
+      "camera_mask_bridge": ["no_camera_hijack", "no_implicit_capture", "manual_operator_command_required"]
+    },
+    "required_catalog_entries": ["video_call.masks_virtual_camera"],
+    "required_static_tokens": {
+      "admin_runtime": ["no camera hijack", "no implicit capture", "explicit-only"],
+      "admin_gui_server": ["No LLM, media backend, camera, microphone"],
+      "voice_ingest": ["voice_microphone_disabled", "voice.capture_live", "voice.transcribe_live"],
+      "toolproxy": ["voice.capture_live", "voice.transcribe_live"]
+    },
+    "required_example_sets": ["prelaunch/governance/media_capture_privacy.example.json"]
+  },
+  "refs": [
+    "noemaforge/configs/media-capture-privacy-policy.json",
+    "noemaforge/contracts/media_capture_privacy.schema.json",
+    "noemaforge/src/media_capture_privacy_runtime.py",
+    "noemaforge/tests/test_media_capture_privacy_runtime.py",
+    "noemaforge/tests/test_media_capture_privacy_qa.py",
+    "noemaforge/tests/test_media_capture_privacy_performance.py",
+    "prelaunch/governance/media_capture_privacy.example.json",
+    "noemaforge/configs/media-pipeline-catalog.json",
+    "noemaforge/configs/pipelines.json",
+    "noemaforge/configs/voice-backends-policy.yaml",
+    "noemaforge/src/admin_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/src/voice_ingest.py",
+    "noemaforge/src/toolproxy.py",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

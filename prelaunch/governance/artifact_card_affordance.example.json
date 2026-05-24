@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.artifact-card-affordance/v1",
+  "kind": "ArtifactCardAffordanceExampleSet",
+  "id": "artifact-card-affordance-examples",
+  "version": "0.31.21.alpha",
+  "examples": [
+    {
+      "name": "operator_can_open_and_download_json_artifact",
+      "artifact": {
+        "type": "model_selection_artifact",
+        "status": "created",
+        "label": "selection-plan.json",
+        "path": "/var/lib/noemaforge/model-selection/run-001/selection-plan.json"
+      },
+      "expected_affordances": ["open_url", "download_url", "can_download"]
+    },
+    {
+      "name": "outside_path_is_not_served",
+      "artifact": {
+        "type": "unsafe_path_probe",
+        "status": "blocked",
+        "label": "outside.txt",
+        "path": "/etc/passwd"
+      },
+      "expected_result": "artifact path outside allowed roots"
+    }
+  ]
+}

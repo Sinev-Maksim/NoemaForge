@@ -1,0 +1,121 @@
+{
+  "apiVersion": "noemaforge.community-pack-contribution/v1",
+  "kind": "CommunityPackContributionPolicy",
+  "id": "community-pack-contribution-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "quarantine_first_reviewed_contribution_path",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Community-safe pack contributions are quarantine-first, manifest-backed, review-gated and never auto-activated.",
+    "quarantine_policy_ref": "configs/git-exchange-quarantine-policy.json",
+    "clean_distribution_policy_ref": "configs/clean-distribution-allowlist.json",
+    "allowed_pack_kinds": [
+      "RolePack",
+      "RoleFlow",
+      "EvalPack",
+      "KnowledgeGraphPack",
+      "ArtifactPack"
+    ],
+    "lab_only_pack_kinds": [
+      "ModelDeltaPack"
+    ],
+    "required_manifest_fields": [
+      "pack_id",
+      "pack_kind",
+      "version",
+      "license",
+      "provenance",
+      "sha256",
+      "maintainer",
+      "review_policy"
+    ],
+    "mandatory_stages": [
+      "fetch",
+      "manifest_scan",
+      "quarantine_record",
+      "scary_verdict",
+      "surgeon_recommendation",
+      "admin_approval",
+      "promotion_record"
+    ],
+    "blocked_activation_states": [
+      "active",
+      "installed",
+      "promoted"
+    ],
+    "controls": {
+      "quarantine_first_import": true,
+      "manifest_scan_required": true,
+      "provenance_required": true,
+      "license_required": true,
+      "scary_verdict_required": true,
+      "surgeon_recommendation_required": true,
+      "admin_approval_required": true,
+      "no_auto_activation": true,
+      "model_delta_lab_only": true,
+      "clean_distribution_excludes_quarantine": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "quarantine_record",
+      "manifest_scan_report",
+      "license_and_provenance_record",
+      "scary_verdict",
+      "surgeon_recommendation",
+      "admin_approval",
+      "promotion_record",
+      "no_auto_activation"
+    ],
+    "blocked_public_claims": [
+      "auto-activate community pack",
+      "install community pack directly into active runtime",
+      "promote ModelDeltaPack into public core",
+      "skip quarantine for community pack"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/community_pack_contribution.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/community-pack-contribution-policy.json",
+    "noemaforge/contracts/community_pack_contribution.schema.json",
+    "noemaforge/configs/git-exchange-quarantine-policy.json",
+    "noemaforge/configs/clean-distribution-allowlist.json",
+    "noemaforge/src/community_pack_contribution_runtime.py",
+    "noemaforge/tests/test_community_pack_contribution_runtime.py",
+    "noemaforge/tests/test_community_pack_contribution_qa.py",
+    "noemaforge/tests/test_community_pack_contribution_performance.py",
+    "prelaunch/governance/community_pack_contribution.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

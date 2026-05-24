@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.job-progress-stream/v1",
+  "kind": "JobProgressStreamExample",
+  "endpoint": "/api/jobs/stream",
+  "content_type": "text/event-stream",
+  "events": [
+    {
+      "event": "jobs_snapshot",
+      "data": {
+        "stream": "job_progress_sse",
+        "jobs": []
+      }
+    },
+    {
+      "event": "job_progress",
+      "data": {
+        "stream": "job_progress_sse",
+        "job": {
+          "job_id": "job_demo",
+          "status": "running",
+          "progress": {
+            "step": 1,
+            "total": 3
+          }
+        }
+      }
+    }
+  ],
+  "expected_result": "sse_snapshot_stream"
+}

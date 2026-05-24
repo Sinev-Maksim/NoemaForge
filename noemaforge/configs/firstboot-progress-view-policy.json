@@ -1,0 +1,80 @@
+{
+  "apiVersion": "noemaforge.firstboot-progress-view/v1",
+  "kind": "FirstbootProgressViewPolicy",
+  "id": "firstboot-progress-view-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "human_readable_firstboot_progress_view",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_cli_command": "first-start progress",
+    "runtime_ref": "src/firstboot_progress_runtime.py",
+    "status_ref": "src/firstboot_status.py",
+    "summary_ref": "src/first_start_summary.py",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Firstboot progress boundary: Firstboot progress is a human-readable CLI/TUI surface over JSON status/events, shows seed_copy/host_preflight/vault_scan/inbox_normalize/candidate_staging/role_staffing/epoch_apply/reboot_pending phases, and ends with next actions so the operator always knows the current step.",
+    "required_phases": [
+      "seed_copy",
+      "host_preflight",
+      "vault_scan",
+      "inbox_normalize",
+      "candidate_staging",
+      "role_staffing",
+      "epoch_apply",
+      "reboot_pending"
+    ],
+    "required_final_summary_fields": [
+      "state",
+      "current_phase",
+      "completed_phases",
+      "next_actions"
+    ],
+    "required_cli_markers": [
+      "noemaforge first-start progress",
+      "FIRSTBOOT PROGRESS",
+      "Next actions"
+    ],
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/firstboot_progress_view.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/firstboot-progress-view-policy.json",
+    "noemaforge/contracts/firstboot_progress_view.schema.json",
+    "noemaforge/src/firstboot_progress_runtime.py",
+    "noemaforge/src/firstboot_status.py",
+    "noemaforge/src/first_start_summary.py",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/tests/test_firstboot_progress_runtime.py",
+    "noemaforge/tests/test_firstboot_progress_qa.py",
+    "noemaforge/tests/test_firstboot_progress_performance.py",
+    "prelaunch/governance/firstboot_progress_view.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

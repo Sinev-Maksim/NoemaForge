@@ -1,0 +1,90 @@
+{
+  "apiVersion": "noemaforge.role-review-state-machine/v1",
+  "kind": "RoleReviewStateMachineExampleSet",
+  "id": "role-review-state-machine-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "admin-scary-surgeon-guarded-repair",
+      "trace_id": "trace:role-review-state-machine:example:001",
+      "state_machine": {
+        "start_state": "admin_intake",
+        "states": [
+          {"id": "admin_intake", "kind": "start", "role_key": "operator.admin/administrator"},
+          {"id": "scary_risk_review", "kind": "guard", "role_key": "system.guard/scary"},
+          {"id": "admin_decision", "kind": "approval", "role_key": "operator.admin/administrator"},
+          {"id": "surgeon_repair_plan", "kind": "repair", "role_key": "system.guard/surgeon"},
+          {"id": "scary_repair_review", "kind": "guard", "role_key": "system.guard/scary"},
+          {"id": "admin_apply_approval", "kind": "approval", "role_key": "operator.admin/administrator"},
+          {"id": "applied", "kind": "terminal", "role_key": "operator.admin/administrator"},
+          {"id": "rolled_back", "kind": "terminal", "role_key": "operator.admin/administrator"},
+          {"id": "blocked", "kind": "terminal", "role_key": "system.guard/scary"}
+        ],
+        "transitions": [
+          {"from": "admin_intake", "to": "scary_risk_review", "kind": "next"},
+          {"from": "scary_risk_review", "to": "blocked", "kind": "guard_blocked", "condition": "risk_class == 'high'"},
+          {"from": "scary_risk_review", "to": "admin_decision", "kind": "guard_pass", "condition": "risk_class in ['low', 'medium']"},
+          {"from": "admin_decision", "to": "surgeon_repair_plan", "kind": "approval", "approver_role": "operator.admin/administrator"},
+          {"from": "surgeon_repair_plan", "to": "scary_repair_review", "kind": "repair_review"},
+          {"from": "scary_repair_review", "to": "admin_apply_approval", "kind": "guard_pass", "condition": "repair_risk <= medium"},
+          {"from": "admin_apply_approval", "to": "applied", "kind": "approval", "approver_role": "operator.admin/administrator"},
+          {"from": "admin_apply_approval", "to": "rolled_back", "kind": "rollback", "rollback_target": "admin_intake"}
+        ],
+        "batons": [
+          {
+            "id": "baton:role-review:admin-to-surgeon",
+            "from_state": "admin_decision",
+            "to_state": "surgeon_repair_plan",
+            "role_key": "system.guard/surgeon",
+            "durable": true,
+            "sleep_wake": true,
+            "handoff_reason": "admin_approved_guarded_repair",
+            "resume_policy": "resume_from_last_acknowledged_state",
+            "payload": {
+              "trace_id": "trace:role-review-state-machine:example:001",
+              "previous_state": "admin_decision",
+              "rollback_target": "admin_intake"
+            }
+          }
+        ]
+      },
+      "accepted_trace": [
+        "admin_intake",
+        "scary_risk_review",
+        "admin_decision",
+        "surgeon_repair_plan",
+        "scary_repair_review",
+        "admin_apply_approval",
+        "applied"
+      ],
+      "rejected_transitions": [
+        {
+          "from": "admin_intake",
+          "to": "surgeon_repair_plan",
+          "claim": "skip scary review",
+          "reason": "Scary must run the first risk gate before Surgeon receives repair work."
+        },
+        {
+          "from": "surgeon_repair_plan",
+          "to": "applied",
+          "claim": "surgeon applies without admin approval",
+          "reason": "Admin owns final apply approval."
+        },
+        {
+          "from": "scary_repair_review",
+          "to": "applied",
+          "claim": "auto-apply repair plan",
+          "reason": "Guard pass returns to Admin approval before any apply."
+        }
+      ],
+      "expected_outputs": [
+        "state_transition_log",
+        "scary_verdict",
+        "surgeon_repair_plan",
+        "admin_approval",
+        "rollback_record",
+        "terminal_state"
+      ]
+    }
+  ]
+}

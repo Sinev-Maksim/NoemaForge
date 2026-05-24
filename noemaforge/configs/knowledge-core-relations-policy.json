@@ -1,0 +1,93 @@
+{
+  "apiVersion": "noemaforge.knowledge-core-relations/v1",
+  "kind": "KnowledgeCoreRelationsPolicy",
+  "id": "knowledge-core-relations-gates-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "canonical_relation_gate_freeze",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "knowledge_policy_ref": "configs/knowledge-policy.yaml",
+    "gatekeeper_ref": "src/knowledge/gatekeeper.py",
+    "store_ref": "src/knowledge/store.py",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Knowledge core relations boundary: Canonical knowledge relations are frozen as typed links among Source, Passage, Claim, Entity, Concept, Conflict, Trail, TaskContext, Decision and Artifact; publication gates for Passage, Claim, Conflict and Concept must emit auto_publish, review or quarantine decisions before retrieval can treat objects as published.",
+    "frozen_object_types": [
+      "Source",
+      "Passage",
+      "Claim",
+      "Entity",
+      "Concept",
+      "Conflict",
+      "Trail",
+      "TaskContext",
+      "Decision",
+      "Artifact"
+    ],
+    "required_relations": [
+      "passage_cites_source",
+      "claim_extracted_from_passage",
+      "claim_supported_by_evidence",
+      "claim_about_concept",
+      "conflict_between_claims",
+      "concept_defined_by_passage",
+      "trail_step_references_object",
+      "lineage_derives_from"
+    ],
+    "publication_gate_object_kinds": ["passage", "claim", "conflict", "concept"],
+    "publication_decisions": ["auto_publish", "review", "quarantine"],
+    "required_gate_codes": [
+      "passage_missing_source",
+      "passage_bad_anchor",
+      "claim_no_passage",
+      "claim_confidence_below_auto_publish",
+      "conflict_missing_entities",
+      "conflict_bad_status",
+      "conflict_missing_realm",
+      "concept_missing_labels"
+    ],
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/knowledge_core_relations.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/knowledge-core-relations-policy.json",
+    "noemaforge/contracts/knowledge_core_relations.schema.json",
+    "noemaforge/configs/knowledge-policy.yaml",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/knowledge_core_relations_runtime.py",
+    "noemaforge/src/knowledge/gatekeeper.py",
+    "noemaforge/src/knowledge/store.py",
+    "noemaforge/tests/test_knowledge_core_relations_runtime.py",
+    "noemaforge/tests/test_knowledge_core_relations_qa.py",
+    "noemaforge/tests/test_knowledge_core_relations_performance.py",
+    "prelaunch/governance/knowledge_core_relations.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

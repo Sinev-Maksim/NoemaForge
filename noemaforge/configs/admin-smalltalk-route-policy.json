@@ -1,0 +1,68 @@
+{
+  "apiVersion": "noemaforge.admin-smalltalk-route/v1",
+  "kind": "AdminSmalltalkRoutePolicy",
+  "id": "admin-smalltalk-route-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "admin_smalltalk_conversation_no_pipeline_regression",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_gui_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_runtime.py",
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_admin_runtime_tokens": [
+      "def is_conversational_smalltalk",
+      "def has_explicit_control_request",
+      "rid in {\"general\", \"greeting\"} and is_conversational_smalltalk(message)",
+      "result[\"mode\"] = \"conversation\"",
+      "\"execute_mode\": \"conversation\"",
+      "result[\"actions\"] = []",
+      "return 0"
+    ],
+    "required_gui_tokens": [
+      "def _explicit_control_request",
+      "def _conversational",
+      "if self._explicit_control_request(low):",
+      "if self._conversational(low):",
+      "\"mode\": \"conversation\"",
+      "intent=\"conversation\"",
+      "return False"
+    ],
+    "forbidden_smalltalk_tokens": [
+      "\"pipeline_id\": \"public_mwp\"",
+      "create_pipeline_run(root, state, pipeline_id, message"
+    ],
+    "smalltalk_examples": [
+      "спасибо",
+      "как ты",
+      "hello",
+      "thanks"
+    ],
+    "explicit_control_examples": [
+      "run public_mwp",
+      "привет, запусти public_mwp",
+      "hello start gui"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/admin-smalltalk-route-policy.json",
+    "noemaforge/src/admin_smalltalk_route_runtime.py",
+    "noemaforge/src/admin_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/tests/test_admin_smalltalk_route_runtime.py",
+    "noemaforge/tests/test_admin_smalltalk_route_qa.py",
+    "noemaforge/tests/test_admin_smalltalk_route_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,23 @@
+{
+  "apiVersion": "noemaforge.admin-llm-smalltalk/v1",
+  "kind": "AdminLLMSmalltalkExample",
+  "input": {
+    "message": "hello",
+    "locale": "en",
+    "llm_available": false
+  },
+  "expected_result": {
+    "mode": "conversation",
+    "conversation_backend": "deterministic_fallback",
+    "control_plane_preserved": true
+  },
+  "llm_available_result": {
+    "mode": "conversation",
+    "conversation_backend": "llm_chat"
+  },
+  "explicit_control_result": {
+    "message": "run public_mwp",
+    "mode": "control",
+    "explicit_control": true
+  }
+}

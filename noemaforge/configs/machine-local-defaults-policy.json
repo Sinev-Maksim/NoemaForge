@@ -1,0 +1,170 @@
+{
+  "apiVersion": "noemaforge.machine-local-defaults/v1",
+  "kind": "MachineLocalDefaultsPolicy",
+  "id": "machine-local-defaults-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "etc_default_noemaforge_machine_local_overrides",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "defaults": [
+      {
+        "name": "noemaforge-recovery",
+        "source": "policies/noemaforge-recovery.example",
+        "docs": "docs/policies/noemaforge-recovery.example",
+        "package_docs": "noemaforge/docs/policies/noemaforge-recovery.example",
+        "target": "/etc/default/noemaforge-recovery",
+        "required_vars": [
+          "NOEMAFORGE_USER",
+          "NOEMAFORGE_GROUP",
+          "NOEMAFORGE_SHARE_LABEL",
+          "NOEMAFORGE_SHARE_UUID",
+          "NOEMAFORGE_SHARE_MOUNT",
+          "NOEMAFORGE_VAULT_PATH",
+          "NOEMAFORGE_SHARE_UID",
+          "NOEMAFORGE_SHARE_GID",
+          "NOEMAFORGE_RUNTIME_TIMERS",
+          "NOEMAFORGE_CORE_UNITS",
+          "NOEMAFORGE_DEFAULT_RUNTIME_DESIRED_COUNT",
+          "NOEMAFORGE_PREFERRED_BACKEND_ID"
+        ],
+        "absolute_path_vars": [
+          "NOEMAFORGE_SHARE_MOUNT",
+          "NOEMAFORGE_VAULT_PATH"
+        ],
+        "numeric_vars": [
+          "NOEMAFORGE_SHARE_UID",
+          "NOEMAFORGE_SHARE_GID",
+          "NOEMAFORGE_DEFAULT_RUNTIME_DESIRED_COUNT"
+        ]
+      },
+      {
+        "name": "noemaforge-runtime",
+        "source": "policies/noemaforge-runtime.example",
+        "docs": "docs/policies/noemaforge-runtime.example",
+        "package_docs": "noemaforge/docs/policies/noemaforge-runtime.example",
+        "target": "/etc/default/noemaforge-runtime",
+        "required_vars": [
+          "NOEMAFORGE_ROOT",
+          "NOEMAFORGE_STATE",
+          "NOEMAFORGE_MODELSTORE_ROOT",
+          "NOEMAFORGE_GATEWAY_SOCKET",
+          "NOEMAFORGE_TOOLPROXY_SOCKET",
+          "NOEMAFORGE_BACKENDS",
+          "NOEMAFORGE_DEFAULT_MODEL",
+          "NOEMAFORGE_MAX_ACTIVE_LLMS",
+          "NOEMAFORGE_HEAVY_LLM_AUTOSTART",
+          "NOEMAFORGE_MAX_BODY_BYTES",
+          "NOEMAFORGE_LLAMA_SERVER"
+        ],
+        "absolute_path_vars": [
+          "NOEMAFORGE_ROOT",
+          "NOEMAFORGE_STATE",
+          "NOEMAFORGE_MODELSTORE_ROOT",
+          "NOEMAFORGE_GATEWAY_SOCKET",
+          "NOEMAFORGE_TOOLPROXY_SOCKET",
+          "NOEMAFORGE_LLAMA_SERVER"
+        ],
+        "numeric_vars": [
+          "NOEMAFORGE_MAX_ACTIVE_LLMS",
+          "NOEMAFORGE_MAX_BODY_BYTES"
+        ]
+      },
+      {
+        "name": "noemaforge-firstboot",
+        "source": "policies/noemaforge-firstboot.example",
+        "docs": "docs/policies/noemaforge-firstboot.example",
+        "package_docs": "noemaforge/docs/policies/noemaforge-firstboot.example",
+        "target": "/etc/default/noemaforge-firstboot",
+        "required_vars": [
+          "NOEMAFORGE_SHARE_ROOT",
+          "NOEMAFORGE_VAULT_ROOT",
+          "NOEMAFORGE_MODEL_PROFILE",
+          "NOEMAFORGE_FIRSTBOOT_STATE",
+          "NOEMAFORGE_ROLE_EVAL_DATASET",
+          "NOEMAFORGE_TOURNAMENT_PER_MODEL_TIMEOUT",
+          "NOEMAFORGE_TOURNAMENT_TOTAL_TIMEOUT",
+          "NOEMAFORGE_KEEP_DISPLAY",
+          "NOEMAFORGE_ALLOW_DISPLAY_STOP"
+        ],
+        "absolute_path_vars": [
+          "NOEMAFORGE_SHARE_ROOT",
+          "NOEMAFORGE_VAULT_ROOT",
+          "NOEMAFORGE_FIRSTBOOT_STATE",
+          "NOEMAFORGE_ROLE_EVAL_DATASET"
+        ],
+        "numeric_vars": [
+          "NOEMAFORGE_TOURNAMENT_PER_MODEL_TIMEOUT",
+          "NOEMAFORGE_TOURNAMENT_TOTAL_TIMEOUT",
+          "NOEMAFORGE_KEEP_DISPLAY",
+          "NOEMAFORGE_ALLOW_DISPLAY_STOP"
+        ]
+      }
+    ],
+    "required_service_envfiles": [
+      {
+        "service": "systemd/noemaforge-toolproxy.service",
+        "envfiles": ["/etc/default/noemaforge-runtime"]
+      },
+      {
+        "service": "systemd/noemaforge-llm-gateway.service",
+        "envfiles": ["/etc/default/noemaforge-runtime"]
+      },
+      {
+        "service": "systemd/noemaforge-llama@.service",
+        "envfiles": ["/etc/default/noemaforge-runtime"]
+      },
+      {
+        "service": "systemd/noemaforge-memsentinel.service",
+        "envfiles": ["/etc/default/noemaforge-runtime"]
+      },
+      {
+        "service": "systemd/noemaforge-autostart-gui.service",
+        "envfiles": ["/etc/default/noemaforge-runtime", "/etc/default/noemaforge-firstboot"]
+      },
+      {
+        "service": "systemd/noemaforge-autostart-wogui.service",
+        "envfiles": ["/etc/default/noemaforge-runtime", "/etc/default/noemaforge-firstboot"]
+      }
+    ],
+    "required_installer_targets": [
+      "/etc/default/noemaforge-recovery",
+      "/etc/default/noemaforge-runtime",
+      "/etc/default/noemaforge-firstboot"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/machine-local-defaults-policy.json",
+    "noemaforge/src/machine_local_defaults_runtime.py",
+    "noemaforge/tests/test_machine_local_defaults_runtime.py",
+    "noemaforge/tests/test_machine_local_defaults_qa.py",
+    "noemaforge/tests/test_machine_local_defaults_performance.py",
+    "policies/noemaforge-recovery.example",
+    "policies/noemaforge-runtime.example",
+    "policies/noemaforge-firstboot.example",
+    "docs/policies/noemaforge-recovery.example",
+    "docs/policies/noemaforge-runtime.example",
+    "docs/policies/noemaforge-firstboot.example",
+    "noemaforge/docs/policies/noemaforge-recovery.example",
+    "noemaforge/docs/policies/noemaforge-runtime.example",
+    "noemaforge/docs/policies/noemaforge-firstboot.example",
+    "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "systemd/noemaforge-toolproxy.service",
+    "systemd/noemaforge-llm-gateway.service",
+    "systemd/noemaforge-llama@.service",
+    "systemd/noemaforge-memsentinel.service",
+    "systemd/noemaforge-autostart-gui.service",
+    "systemd/noemaforge-autostart-wogui.service",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,17 @@
+{
+  "apiVersion": "noemaforge.pytest-suite-partition/v1",
+  "kind": "PytestSuitePartitionExample",
+  "input_tests": [
+    "noemaforge/tests/test_pipeline_runtime_03009.py",
+    "noemaforge/tests/test_pipeline_template_append_runtime.py",
+    "noemaforge/tests/test_docs_hygiene_runtime.py",
+    "noemaforge/tests/test_unified_registry_runtime.py"
+  ],
+  "forbidden_command": "pytest noemaforge/tests",
+  "accepted_command_shape": "python -B -m unittest <bounded module shard>",
+  "expected_shard_labels": [
+    "pipeline_runtime",
+    "general"
+  ],
+  "timeout_seconds": 120
+}

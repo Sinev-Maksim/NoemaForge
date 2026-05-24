@@ -2,7 +2,7 @@
 === NoemaForge File Header ===
 File: templates/pipeline-dashboard/app.js
 Zone: gui/shell
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-10
 Modified: 2026-05-14
 Purpose: Stateful Admin GUI frontend: backend-owned chat history, persona portraits,
@@ -10,7 +10,7 @@ Purpose: Stateful Admin GUI frontend: backend-owned chat history, persona portra
   safe plan-first actions.
 Inputs: JSON APIs from src/admin_gui_server.py.
 Outputs: DOM updates only; privileged actions are requested as audited jobs/plans.
-Tests: browser smoke + curl /api/gui/state + manual send/refresh/history test.
+Tests: browser smoke + curl dashboard backend + manual send/refresh/history test.
 === End NoemaForge File Header ===
 */
 const el = id => document.getElementById(id);
@@ -20,6 +20,12 @@ let latestRaw = {};
 let pendingAction = null;
 let pipelineCatalog = [];
 let pipelineFilter = 'All';
+let jobStream = null;
+let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
+let publicShowcaseScenario = null;
+let latestArtifacts = [];
+const DASHBOARD_API_ENDPOINT = '/api/dashboard';
+const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
 
 const personaNames = {
   Admin: 'Admin', Optimizer: 'Optimizer', 'Model Evolution': 'Model Evolution', 'Dev Team': 'Dev Team',
@@ -29,6 +35,28 @@ const personaNames = {
 
 function t(key, fallback){ return (allMessages[activeLocale] && allMessages[activeLocale][key]) || fallback || key; }
 function htmlEscape(v){ return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+function setText(id, value){ const node = el(id); if(node) node.textContent = value; }
+function setPlaceholder(id, value){ const node = el(id); if(node) node.placeholder = value; }
+function speakerLabel(who){
+  const text = String(who || '');
+  if(text.toLowerCase() === 'user') return t('role.user', 'User');
+  if(text.toLowerCase() === 'admin') return t('role.admin', 'Admin');
+  return personaNames[text] || text || t('role.admin', 'Admin');
+}
+function speakerClass(who){ return String(who || '').toLowerCase() === 'user' ? 'User' : 'Admin'; }
+function applyLocaleMessages(){
+  setText('main-chat-title', t('section.main_chat', 'Main chat'));
+  setText('chat-status', t('status.ready', 'ready'));
+  setPlaceholder('admin-message', t('chat.placeholder', 'Write to Admin'));
+  setText('admin-send', t('chat.send', 'Send'));
+  setText('depth-steps-label', t('depth.steps', 'Steps'));
+  setText('depth-minutes-label', t('depth.minutes', 'Minutes'));
+  setText('depth-until-stop-label', t('depth.until_stop', 'until stop'));
+  setText('workflow-stop', t('workflow.stop', 'Stop loop'));
+  setText('pipeline-dock-title', t('pipeline.dock', 'Pipeline Dock'));
+  setPlaceholder('pipeline-search', t('pipeline.search', 'Search pipeline...'));
+  setText('pipeline-new', t('pipeline.new', '+ New pipeline'));
+}
 async function api(path, body){
   const opts = body === undefined ? {} : {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)};
   const res = await fetch(path, opts);
@@ -41,8 +69,8 @@ async function api(path, body){
 
 function addMessage(who, text, cls=''){
   const div = document.createElement('div');
-  div.className = `bubble ${who}${cls ? ' '+cls : ''}`;
-  div.innerHTML = `<small>${htmlEscape(who)}</small>${htmlEscape(text || '')}`;
+  div.className = `bubble ${speakerClass(who)}${cls ? ' '+cls : ''}`;
+  div.innerHTML = `<small>${htmlEscape(speakerLabel(who))}</small>${htmlEscape(text || '')}`;
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
@@ -76,13 +104,28 @@ function artifactGroup(type){
   if(String(type).includes('task')) return 'Tasks';
   return 'Other';
 }
+function artifactPath(a){ return String(a?.path || '').trim(); }
+function artifactPreviewUrl(a){ const p = artifactPath(a); return a?.preview_url || a?.open_url || (p ? `/api/artifacts/open?path=${encodeURIComponent(p)}` : ''); }
+function artifactDownloadUrl(a){ const p = artifactPath(a); return a?.download_url || (p ? `/api/artifacts/download?path=${encodeURIComponent(p)}` : ''); }
+async function openArtifact(index){
+  const artifact = latestArtifacts[Number(index)];
+  const url = artifactPreviewUrl(artifact);
+  if(!url) return;
+  try{ showModal(artifact?.label || artifact?.type || 'Artifact', await api(url)); }
+  catch(e){ showModal('Artifact unavailable', {ok:false, error:String(e), path:artifactPath(artifact)}); }
+}
 function renderArtifacts(items){
   const list = items || [];
+  latestArtifacts = list;
   if(!list.length){ el('artifacts').innerHTML = `<p class="muted">${htmlEscape(t('artifact.none','No artifacts yet.'))}</p>`; return; }
   const groups = {};
-  for(const a of list){ (groups[artifactGroup(a.type || a.label)] ||= []).push(a); }
-  el('artifacts').innerHTML = Object.entries(groups).map(([g, arr]) => `<h3 class="muted">${htmlEscape(g)}</h3>` + arr.slice(-8).reverse().map(a => `
-    <div class="artifact"><b>${htmlEscape(a.label || a.type || 'artifact')}</b><span>${htmlEscape(a.status || '')} · ${htmlEscape(a.type || '')}</span><code>${htmlEscape(a.path || a.open_command || '')}</code><button class="ghost small" onclick="navigator.clipboard?.writeText('${htmlEscape(a.path || '')}')">${htmlEscape(t('artifact.copy_path','Copy path'))}</button></div>`).join('')).join('');
+  list.forEach((a, index) => { (groups[artifactGroup(a.type || a.label)] ||= []).push({artifact:a, index}); });
+  el('artifacts').innerHTML = Object.entries(groups).map(([g, arr]) => `<h3 class="muted">${htmlEscape(g)}</h3>` + arr.slice(-8).reverse().map(({artifact:a, index}) => {
+    const downloadUrl = artifactDownloadUrl(a);
+    return `<div class="artifact"><b>${htmlEscape(a.label || a.type || 'artifact')}</b><span>${htmlEscape(a.status || '')} · ${htmlEscape(a.type || '')}</span><code>${htmlEscape(a.path || a.open_command || '')}</code><div class="artifact-actions"><button class="ghost small" data-artifact-open="${index}">${htmlEscape(t('artifact.open','Open'))}</button><a class="ghost small artifact-link" href="${htmlEscape(downloadUrl)}" download>${htmlEscape(t('artifact.download','Download'))}</a><button class="ghost small" data-artifact-copy="${index}">${htmlEscape(t('artifact.copy_path','Copy path'))}</button></div></div>`;
+  }).join('')).join('');
+  el('artifacts').querySelectorAll('[data-artifact-open]').forEach(btn => btn.addEventListener('click', () => openArtifact(btn.dataset.artifactOpen)));
+  el('artifacts').querySelectorAll('[data-artifact-copy]').forEach(btn => btn.addEventListener('click', () => navigator.clipboard?.writeText(artifactPath(latestArtifacts[Number(btn.dataset.artifactCopy)]))));
 }
 function renderInternal(events){
   const arr = events || [];
@@ -110,6 +153,12 @@ function parseModeText(text){
   return null;
 }
 function budgetPayload(){ return { max_steps:Number(el('depth-steps').value || 0), time_budget_minutes:Number(el('depth-minutes').value || 0), until_stop:Boolean(el('depth-until-stop').checked) }; }
+function renderRuntimeObserverCards(cards){
+  const list = Array.isArray(cards) ? cards : [];
+  const target = el('runtime-observer-cards');
+  if(!target) return;
+  target.innerHTML = list.length ? list.map(card => `<div class="observer-card ${htmlEscape(card.status || 'warn')}"><b>${htmlEscape(card.title || card.id)}</b><span>${htmlEscape(card.state || 'unknown')}</span><small>${htmlEscape(card.smoke_affirmation || 'not_affirmed')}</small></div>`).join('') : '<p class="muted">Runtime observers unavailable.</p>';
+}
 
 async function sendAdmin(){
   const input = el('admin-message');
@@ -152,8 +201,9 @@ async function refreshTelemetry(){
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
     el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
     el('hardware-metrics').textContent = JSON.stringify(st.hardware?.memory || {}, null, 2) + '\nGPU: ' + String(st.hardware?.nvidia_smi?.stdout || st.hardware?.nvidia_smi?.stderr || 'n/a').slice(0,220);
+    renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('runtime-metrics').textContent = JSON.stringify({device_policy:st.runtime?.device_policy, sockets:st.runtime?.sockets, model:st.runtime?.main_manifest?.model_id || st.runtime?.main_manifest?.name || 'main'}, null, 2);
-    el('product-metrics').textContent = JSON.stringify(st.product || {}, null, 2).slice(0,500);
+    el('product-metrics').textContent = JSON.stringify({model_selection: st.product?.model_selection || {}, creative_media: st.product?.creative_media || {}, creative_metrics_policy: st.creative_metrics_policy || 'review-required'}, null, 2).slice(0,700);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
 async function refreshTasks(){
@@ -164,13 +214,33 @@ async function refreshTasks(){
     el('tasks').innerHTML = tasks.length ? tasks.slice(-8).reverse().map(x => `<div class="task"><b>${htmlEscape(x.title)}</b><span>${htmlEscape(x.category)} · p=${htmlEscape(x.priority)} · ${htmlEscape(x.status)}</span></div>`).join('') : '<p class="muted">No tasks yet.</p>';
   }catch(e){ el('tasks').innerHTML = `<p class="muted">tasks unavailable</p>`; }
 }
+function renderJobs(jobs){
+  const list = jobs || [];
+  el('job-summary').textContent = `${list.filter(j=>['queued','running','needs_privilege'].includes(j.status)).length} active`;
+  el('jobs').innerHTML = list.length ? list.slice(-6).reverse().map(j => `<div class="job"><b>${htmlEscape(j.kind)}</b><span>${htmlEscape(j.status)} · ${htmlEscape(j.job_id)}</span><code>${htmlEscape(j.command || '')}</code></div>`).join('') : '<p class="muted">No jobs.</p>';
+}
 async function refreshJobs(){
   try{
     const st = await api('/api/jobs');
-    const jobs = st.jobs || [];
-    el('job-summary').textContent = `${jobs.filter(j=>['queued','running','needs_privilege'].includes(j.status)).length} active`;
-    el('jobs').innerHTML = jobs.length ? jobs.slice(-6).reverse().map(j => `<div class="job"><b>${htmlEscape(j.kind)}</b><span>${htmlEscape(j.status)} · ${htmlEscape(j.job_id)}</span><code>${htmlEscape(j.command || '')}</code></div>`).join('') : '<p class="muted">No jobs.</p>';
+    renderJobs(st.jobs || []);
   }catch(e){ el('jobs').innerHTML = '<p class="muted">jobs unavailable</p>'; }
+}
+function connectJobProgressStream(){
+  if(jobStream || typeof EventSource === 'undefined') return;
+  try{
+    jobStream = new EventSource('/api/jobs/stream');
+    jobStream.addEventListener('jobs_snapshot', ev => {
+      try{ const data = JSON.parse(ev.data || '{}'); renderJobs(data.jobs || []); }
+      catch(_){}
+    });
+    jobStream.addEventListener('job_progress', ev => {
+      try{
+        const data = JSON.parse(ev.data || '{}');
+        if(data.job) refreshJobs();
+      }catch(_){}
+    });
+    jobStream.onerror = () => { try{ jobStream.close(); }catch(_){} jobStream = null; };
+  }catch(_){ jobStream = null; }
 }
 async function refreshInactivity(){ try{ const st = await api('/api/inactivity/status'); el('inactivity-status').textContent = st.idle_human || '—'; el('inactivity').textContent = `policy=${st.policy?.mode || 'manual'} · next=${st.policy?.next_idle_action || 'none'} · status=${st.status}`; }catch(e){} }
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
@@ -182,6 +252,33 @@ async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-
 async function loadUsecases(){
   try{ const data = await api('/api/usecases'); const cases = data.usecases || []; el('usecases').innerHTML = cases.map(c => `<button class="usecase" data-help="${htmlEscape(c.example)}"><b>${htmlEscape(c.title)}</b><span>${htmlEscape(c.summary)}</span></button>`).join(''); document.querySelectorAll('[data-help]').forEach(btn => btn.addEventListener('click', ()=>{ el('admin-message').value = `что значит ${btn.getAttribute('data-help') || ''}`; sendAdmin(); })); }catch(_){ el('usecases').innerHTML = '<p class="muted">Usecase help unavailable.</p>'; }
 }
+function renderPublicShowcase(){
+  const box = el('public-showcase');
+  if(!box) return;
+  const steps = Array.isArray(publicShowcaseScenario?.steps) ? publicShowcaseScenario.steps : [];
+  el('public-showcase-status').textContent = publicShowcaseScenario?.status || '—';
+  box.innerHTML = steps.length ? steps.map((step, index) => `<div class="showcase-step"><b>${htmlEscape(step.title || step.id)}</b><span>${htmlEscape(step.surface || '')} · ${htmlEscape(step.endpoint || '')}</span><div class="showcase-step-actions"><button class="ghost small" data-showcase-fill="${index}">Fill</button><button class="ghost small" data-showcase-preview="${index}">Preview</button></div></div>`).join('') : '<p class="muted">No scenario loaded.</p>';
+  box.querySelectorAll('[data-showcase-fill]').forEach(btn => btn.addEventListener('click', () => fillShowcaseStep(Number(btn.dataset.showcaseFill))));
+  box.querySelectorAll('[data-showcase-preview]').forEach(btn => btn.addEventListener('click', () => previewShowcaseStep(Number(btn.dataset.showcasePreview))));
+}
+async function loadPublicShowcase(){
+  try{
+    publicShowcaseScenario = await api('/api/public-showcase/scenario');
+    renderPublicShowcase();
+  }catch(_){
+    el('public-showcase').innerHTML = '<p class="muted">Scenario unavailable.</p>';
+  }
+}
+function fillShowcaseStep(index){
+  const step = publicShowcaseScenario?.steps?.[index];
+  if(!step) return;
+  el('admin-message').value = step.request || '';
+  addSystemLine(`Public scenario step staged: ${step.id || index}`);
+}
+function previewShowcaseStep(index){
+  const step = publicShowcaseScenario?.steps?.[index];
+  if(step) showModal(step.title || 'Public scenario step', step);
+}
 function renderPipelines(){
   const q = (el('pipeline-search').value || '').toLowerCase();
   const filtered = pipelineCatalog.filter(p => (pipelineFilter === 'All' || p.group === pipelineFilter) && (p.id.toLowerCase().includes(q) || String(p.description||'').toLowerCase().includes(q)));
@@ -192,23 +289,74 @@ async function loadPipelines(){
   try{ const data = await api('/api/pipelines/catalog'); pipelineCatalog = data.pipelines || []; const groups = ['All', ...(data.groups || [])]; el('pipeline-groups').innerHTML = groups.map(g => `<button class="ghost small" data-group="${htmlEscape(g)}">${htmlEscape(g)}</button>`).join(''); document.querySelectorAll('[data-group]').forEach(b=>b.addEventListener('click',()=>{ pipelineFilter=b.dataset.group; renderPipelines(); })); renderPipelines(); }catch(e){ el('pipeline-list').innerHTML = '<p class="muted">Pipeline catalog unavailable.</p>'; }
 }
 async function startPipeline(id){ const req = prompt(`Request for pipeline ${id}:`, `Запусти ${id} по стандартному сценарию`); if(req===null) return; absorbResult(await api('/api/pipeline/run', {pipeline:id, request:req, allow_degraded:true})); }
+function pipelineById(id){ return pipelineCatalog.find(p => p.id === id) || {id:id || 'new_pipeline', description:'', stages:['intake','plan','review']}; }
+function movePipelineStage(from, to){
+  const stages = pipelineEditorState.stages;
+  if(from < 0 || to < 0 || from >= stages.length || to >= stages.length || from === to) return;
+  const [item] = stages.splice(from, 1);
+  stages.splice(to, 0, item);
+  renderPipelineEditor();
+}
+function removePipelineStage(index){
+  if(pipelineEditorState.stages.length <= 1) return;
+  pipelineEditorState.stages.splice(index, 1);
+  renderPipelineEditor();
+}
+function addPipelineStage(){
+  const stage = prompt('Stage id:', 'review');
+  if(!stage) return;
+  const clean = stage.trim().replace(/[^A-Za-z0-9_.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0,80);
+  if(clean && !pipelineEditorState.stages.includes(clean)) pipelineEditorState.stages.push(clean);
+  renderPipelineEditor();
+}
+function openPipelineEditor(id=''){
+  const p = pipelineById(id);
+  pipelineEditorState = {pipeline_id:p.id || 'new_pipeline', title:p.id || 'New pipeline', description:p.description || '', stages:Array.isArray(p.stages) && p.stages.length ? [...p.stages] : ['intake','plan','review']};
+  renderPipelineEditor();
+}
+function renderPipelineEditor(){
+  const editor = el('pipeline-editor');
+  editor.classList.remove('hidden');
+  editor.innerHTML = `<div class="pipeline-editor-head"><div class="pipeline-editor-title"><b>${htmlEscape(pipelineEditorState.title)}</b><span>draft only · review required before activation</span></div><button id="pipeline-editor-close" class="ghost small">Close</button></div><div class="pipeline-stage-list">${pipelineEditorState.stages.map((stage, index) => `<div class="editor-stage" draggable="true" data-stage-index="${index}"><span class="stage-grip">drag</span><span>${htmlEscape(stage)}</span><div class="stage-actions"><button class="ghost small" data-stage-up="${index}">Up</button><button class="ghost small" data-stage-down="${index}">Down</button><button class="ghost small" data-stage-remove="${index}">Remove</button></div></div>`).join('')}</div><div class="pipeline-editor-actions"><button id="pipeline-stage-add" class="ghost small">Add stage</button><button id="pipeline-draft-save" class="small">Save draft</button></div>`;
+  editor.querySelector('#pipeline-editor-close').onclick = () => editor.classList.add('hidden');
+  editor.querySelector('#pipeline-stage-add').onclick = addPipelineStage;
+  editor.querySelector('#pipeline-draft-save').onclick = savePipelineEditorDraft;
+  editor.querySelectorAll('[data-stage-up]').forEach(btn => btn.onclick = () => movePipelineStage(Number(btn.dataset.stageUp), Number(btn.dataset.stageUp)-1));
+  editor.querySelectorAll('[data-stage-down]').forEach(btn => btn.onclick = () => movePipelineStage(Number(btn.dataset.stageDown), Number(btn.dataset.stageDown)+1));
+  editor.querySelectorAll('[data-stage-remove]').forEach(btn => btn.onclick = () => removePipelineStage(Number(btn.dataset.stageRemove)));
+  editor.querySelectorAll('.editor-stage').forEach(row => {
+    row.addEventListener('dragstart', ev => { row.classList.add('dragging'); ev.dataTransfer?.setData('text/plain', row.dataset.stageIndex || '0'); });
+    row.addEventListener('dragend', () => row.classList.remove('dragging'));
+    row.addEventListener('dragover', ev => ev.preventDefault());
+    row.addEventListener('drop', ev => { ev.preventDefault(); movePipelineStage(Number(ev.dataTransfer?.getData('text/plain') || 0), Number(row.dataset.stageIndex || 0)); });
+  });
+}
+async function savePipelineEditorDraft(){
+  const result = await api('/api/pipelines/draft', {id:pipelineEditorState.pipeline_id, title:pipelineEditorState.title, description:pipelineEditorState.description, stages:pipelineEditorState.stages, editor_mode:'drag_drop_pipeline_editor', review_required:true});
+  absorbResult(result);
+}
 function showPipelineMenu(e, id){
   const m = el('context-menu');
-  m.innerHTML = `<button data-act="diagram">Open visual diagram</button><button data-act="stats">Show stats</button><button data-act="explain">Explain pipeline</button><button data-act="draft">Clone/edit draft (TODO)</button>`;
+  m.innerHTML = `<button data-act="diagram">Open visual diagram</button><button data-act="stats">Show stats</button><button data-act="explain">Explain pipeline</button><button data-act="draft">Clone/edit draft</button>`;
   m.style.left = `${e.clientX}px`; m.style.top = `${e.clientY}px`; m.classList.remove('hidden');
-  m.querySelectorAll('button').forEach(b => b.onclick = async () => { m.classList.add('hidden'); const act=b.dataset.act; if(act==='diagram') showModal('Pipeline diagram', await api(`/api/pipelines/${encodeURIComponent(id)}/diagram`)); else if(act==='stats') showModal('Pipeline stats', await api(`/api/pipelines/${encodeURIComponent(id)}/stats`)); else if(act==='explain'){ el('admin-message').value = `что значит пайплайн ${id}`; sendAdmin(); } else showModal('Draft pipeline editor', {todo:'drag&drop pipeline editor planned', pipeline:id}); });
+  m.querySelectorAll('button').forEach(b => b.onclick = async () => { m.classList.add('hidden'); const act=b.dataset.act; if(act==='diagram') showModal('Pipeline diagram', await api(`/api/pipelines/${encodeURIComponent(id)}/diagram`)); else if(act==='stats') showModal('Pipeline stats', await api(`/api/pipelines/${encodeURIComponent(id)}/stats`)); else if(act==='explain'){ el('admin-message').value = `что значит пайплайн ${id}`; sendAdmin(); } else openPipelineEditor(id); });
 }
 function showModal(title, obj){ el('modal-title').textContent = title; el('modal-body').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); el('modal').classList.remove('hidden'); }
 async function addTaskDialog(){ const title = prompt('Task title:'); if(!title) return; const cat = prompt('Category:', 'gui') || 'general'; const priority = Number(prompt('Priority 1-100:', '50') || 50); const r = await api('/api/tasks/create', {title, category:cat, priority}); absorbResult(r); refreshTasks(); }
+async function loadDashboardBackendState(){
+  try{ return await api(DASHBOARD_API_ENDPOINT); }
+  catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
+}
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } }catch(e){}
-  try{ const st = await api('/api/gui/state'); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
-  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPipelines()]);
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
+  connectJobProgressStream();
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); }, 10000);
 }
 el('admin-send').addEventListener('click', sendAdmin);
 el('admin-message').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendAdmin(); } });
-el('locale-select').addEventListener('change', e => { activeLocale = e.target.value; });
+el('locale-select').addEventListener('change', e => { activeLocale = e.target.value; applyLocaleMessages(); renderArtifacts(latestArtifacts); });
 el('gui-shutdown').addEventListener('click', async()=>{ try{ await api('/api/shutdown', {reason:'operator'}); addMessage('Admin','GUI shutdown requested.'); }catch(e){} });
 el('epoch-refresh').addEventListener('click', ()=>refreshEpoch(true));
 el('epoch-apply').addEventListener('click', applyEpoch);
@@ -218,8 +366,9 @@ el('workflow-stop').addEventListener('click', stopWorkflow);
 el('device-policy').addEventListener('change', setDevicePolicy);
 el('tasks-refresh').addEventListener('click', refreshTasks);
 el('task-add').addEventListener('click', addTaskDialog);
+el('public-showcase-load').addEventListener('click', loadPublicShowcase);
 el('pipeline-search').addEventListener('input', renderPipelines);
-el('pipeline-new').addEventListener('click', async()=>{ const title = prompt('New pipeline draft title:'); if(!title) return; showModal('New pipeline draft', await api('/api/pipelines/draft', {title, stages:['intake','plan','review']})); });
+el('pipeline-new').addEventListener('click', ()=>{ const title = prompt('New pipeline draft title:', 'new_pipeline'); if(!title) return; pipelineEditorState = {pipeline_id:title, title, description:'', stages:['intake','plan','review']}; renderPipelineEditor(); });
 el('modal-close').addEventListener('click', ()=>el('modal').classList.add('hidden'));
 document.addEventListener('click', e=>{ if(!el('context-menu').contains(e.target)) el('context-menu').classList.add('hidden'); });
 startup();

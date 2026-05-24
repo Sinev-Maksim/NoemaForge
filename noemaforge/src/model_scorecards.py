@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_scorecards.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -71,7 +71,10 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-import yaml
+try:
+    import yaml  # type: ignore
+except Exception:  # pragma: no cover
+    yaml = None  # type: ignore
 
 
 try:
@@ -132,6 +135,7 @@ class UnixHTTPConnection(http.client.HTTPConnection):
 
 DEFAULT_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", "/var/lib/noemaforge/model_scorecards")
 DEFAULT_GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
+SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -180,6 +184,8 @@ def _nowz() -> str:
 # === End NoemaForge Autodoc Function Header ===
 def _load_yaml(path: str) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
+        if yaml is None:
+            raise RuntimeError("PyYAML is required to load model scorecard suites")
         return yaml.safe_load(f) or {}
 
 
@@ -235,11 +241,23 @@ def _save_json(path: str, obj: Any) -> None:
 # Key locals:
 #   - fname, rid, sid
 # === End NoemaForge Autodoc Function Header ===
-def _scorecard_path(model_id: str, stream_id: str, role: str, cap: str, root: str = DEFAULT_SCORECARDS_DIR) -> str:
+def normalize_scorecard_device(runtime_device: str = "") -> str:
+    value = (runtime_device or "").strip().lower()
+    return SCORECARD_DEVICE_ALIASES.get(value, "unspecified")
+
+
+def scorecard_device_root(root: str = DEFAULT_SCORECARDS_DIR, runtime_device: str = "") -> str:
+    device = normalize_scorecard_device(runtime_device)
+    if device in {"cpu", "gpu"}:
+        return os.path.join(root, device)
+    return root
+
+
+def _scorecard_path(model_id: str, stream_id: str, role: str, cap: str, root: str = DEFAULT_SCORECARDS_DIR, runtime_device: str = "") -> str:
     sid = (stream_id or "").replace("/", "_")
     rid = (role or "").replace("/", "_")
     fname = f"{sid}__{rid}__{cap}.json"
-    return os.path.join(root, model_id, fname)
+    return os.path.join(scorecard_device_root(root, runtime_device), model_id, fname)
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -988,6 +1006,7 @@ def run_scorecard(
     suite: str = "smoke",
     gateway_socket: str = DEFAULT_GATEWAY_SOCKET,
     scorecards_dir: str = DEFAULT_SCORECARDS_DIR,
+    runtime_device: str = "",
     emit_sel: bool = True,
 ) -> Dict[str, Any]:
     """Run eval cases and write scorecard JSON.
@@ -997,6 +1016,7 @@ def run_scorecard(
     """
     cap = (cap or "llm").strip().lower()
     suite = (suite or "smoke").strip().lower()
+    runtime_device = normalize_scorecard_device(runtime_device)
     if cap not in ("llm", "embed"):
         cap = "llm"
     if suite not in ("smoke", "full"):
@@ -1090,6 +1110,7 @@ def run_scorecard(
         "role": role,
         "capability": cap,
         "suite": suite,
+        "runtime_device": runtime_device,
         "pass_rate": pass_rate,
         "json_parse_rate": json_rate,
         "avg_latency_ms": avg_ms,
@@ -1097,7 +1118,7 @@ def run_scorecard(
         "cases": results,
     }
 
-    out_path = _scorecard_path(model_id, stream_id, role, cap, root=scorecards_dir)
+    out_path = _scorecard_path(model_id, stream_id, role, cap, root=scorecards_dir, runtime_device=runtime_device)
     _save_json(out_path, card)
 
     if emit_sel and sel_append is not None:
@@ -1110,6 +1131,7 @@ def run_scorecard(
                 "role": role,
                 "capability": cap,
                 "suite": suite,
+                "runtime_device": runtime_device,
                 "pass_rate": pass_rate,
                 "avg_latency_ms": avg_ms,
                 "path": out_path,
@@ -1155,6 +1177,7 @@ def main(argv: List[str]) -> int:
     ap.add_argument("--suite", default="smoke", choices=["smoke", "full"])
     ap.add_argument("--gateway-sock", default=DEFAULT_GATEWAY_SOCKET)
     ap.add_argument("--scorecards-dir", default=DEFAULT_SCORECARDS_DIR)
+    ap.add_argument("--runtime-device", default="", choices=["", "unspecified", "auto", "cpu", "gpu", "cuda"], help="Record scorecard under a device-specific cpu/ or gpu/ namespace when known.")
     ap.add_argument("--no-sel", action="store_true")
     args = ap.parse_args(argv)
 
@@ -1167,6 +1190,7 @@ def main(argv: List[str]) -> int:
         suite=args.suite,
         gateway_socket=args.gateway_sock,
         scorecards_dir=args.scorecards_dir,
+        runtime_device=args.runtime_device,
         emit_sel=not args.no_sel,
     )
     print(json.dumps(res, ensure_ascii=False, indent=2))

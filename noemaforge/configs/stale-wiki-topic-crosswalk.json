@@ -1,0 +1,40 @@
+{
+  "apiVersion": "noemaforge.docs/v1",
+  "kind": "StaleWikiTopicCrosswalk",
+  "id": "stale-wiki-topic-crosswalk-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "principle": "Versioned wiki pages must be mapped to canonical topics before any obsolete source page is moved to project trash.",
+  "policy": {
+    "mode": "offline_docs_crosswalk_contract",
+    "source_inventory": "stale-wiki-version-audit-core",
+    "crosswalk_report": "noemaforge/docs/quality/STALE_WIKI_TOPIC_CROSSWALK_0.32.1.md",
+    "canonical_topic_prefix": "noemaforge/docs/wiki",
+    "required_columns": [
+      "source",
+      "canonical_topic",
+      "action",
+      "status"
+    ],
+    "allowed_actions": [
+      "merge-unique-prose",
+      "keep-as-historical-context",
+      "candidate-trash-after-merge"
+    ],
+    "default_action": "merge-unique-prose",
+    "completion_blocker": "topic_crosswalk_review_and_prose_merge_required",
+    "active_todo_must_remain_open": true
+  },
+  "refs": [
+    "noemaforge/configs/stale-wiki-topic-crosswalk.json",
+    "helpers/stale_wiki_topic_crosswalk.mjs",
+    "helpers/stale_wiki_topic_crosswalk.qa.test.mjs",
+    "helpers/stale_wiki_topic_crosswalk.performance.test.mjs",
+    "noemaforge/docs/quality/STALE_WIKI_TOPIC_CROSSWALK_0.32.1.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/CURRENT_0.32.1_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.runtime/v1",
+  "kind": "RuntimeHealthReport",
+  "profile_id": "remote-http-runtime",
+  "ok": false,
+  "status": "disabled_by_default",
+  "mode": "offline_contract",
+  "endpoint": "",
+  "checks": [
+    {
+      "id": "network_io",
+      "status": "skipped",
+      "reason": "remote connector is optional and must be explicitly configured"
+    },
+    {
+      "id": "auth",
+      "status": "not_configured"
+    },
+    {
+      "id": "model_runtime",
+      "status": "not_checked"
+    }
+  ]
+}

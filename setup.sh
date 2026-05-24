@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: setup.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.0.alpha
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Validate and install the NoemaForge release package on the host.
@@ -12,12 +12,12 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha setup front door.
+# NoemaForge 0.31.21.alpha setup front door.
 # Safe by default: dry-run friendly, one active LLM invariant, no heavy backend autostart.
 set -euo pipefail
 
-# 0.31.13.alpha guard: setup may delegate to the real installer, but it must
-# never be re-entered by that installer. This catches the 0.31.13.alpha loop
+# 0.31.21.alpha guard: setup may delegate to the real installer, but it must
+# never be re-entered by that installer. This catches the 0.31.21.alpha loop
 # class (setup.sh -> install_* -> setup.sh -> ...).
 if [[ "${NOEMAFORGE_SETUP_DEPTH:-0}" -ge 1 ]]; then
   echo "[setup][ERROR] recursive setup invocation detected; use the real installer directly or clear the loop" >&2
@@ -35,6 +35,16 @@ OFFLINE_AFTER_SETUP=0
 DRY_RUN=0
 SELFTEST=0
 APPLY_VM=0
+SETUP_PHASES=(
+  seed_copy
+  host_preflight
+  vault_scan
+  inbox_normalize
+  candidate_staging
+  role_staffing
+  epoch_apply
+  reboot_pending
+)
 
 usage(){ cat <<'USAGE'
 Usage:
@@ -83,12 +93,12 @@ case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) ech
 if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: shell syntax"
   bash -n "$PKG_DIR/setup.sh"
-  bash -n "$PKG_DIR/install_noemaforge_0.31.13.alpha_mvp.sh"
-  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_0.31.13.alpha_mvp.sh"; then
+  bash -n "$PKG_DIR/install_noemaforge_0.32.0.alpha_mvp.sh"
+  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_0.32.0.alpha_mvp.sh"; then
     echo "[setup][ERROR] installer must not exec setup.sh; recursion risk" >&2
     exit 71
   fi
-  bash -n "$PKG_DIR/uninstall_noemaforge_0.31.13.alpha_mvp.sh"
+  bash -n "$PKG_DIR/uninstall_noemaforge_0.32.0.alpha_mvp.sh"
   bash -n "$PKG_DIR/noemaforge/bin/noemaforge"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-version-audit.sh"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-first-run-audit.sh"
@@ -113,11 +123,11 @@ if [[ "$SELFTEST" == 1 ]]; then
     "$PKG_DIR/noemaforge/src/admin_gui_server.py" \
     "$PKG_DIR/noemaforge/src/dev_team_runtime.py" \
     "$PKG_DIR/noemaforge/src/model_evolution_runtime.py"
-  find "$PKG_DIR/noemaforge/src" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
+  echo "[setup] selftest: bytecode writing disabled; no cleanup required"
   echo "[setup] selftest: CLI/API surfaces are covered by targeted verification; package syntax validation passed"
 fi
 cat <<PLAN
-NoemaForge 0.31.13.alpha setup plan
+NoemaForge 0.31.21.alpha setup plan
   mode:                  $MODE
   install_root:          $INSTALL_ROOT
   data_root:             $DATA_ROOT
@@ -128,17 +138,23 @@ NoemaForge 0.31.13.alpha setup plan
   invariant:             max_active_llms=1, gui_llm_profile=runtime_only, wogui_llm_profile=bootstrap_cpu_llm, heavy_llm_autostart=manual_only
 PLAN
 
+echo "[setup] wrapper: bootstrap+firstboot_orchestrator+progress_output=single setup command"
+echo "[setup] phase plan:"
+for phase in "${SETUP_PHASES[@]}"; do
+  echo "[setup][phase] $phase status=planned"
+done
+
 case "$MODE" in
   macos-dev)
     echo "[setup] macOS dev mode: validates repo and writes no privileged system files."
     DRY_RUN=1 ;;
   docker-dev)
-    echo "[setup] Docker/dev mode: package validation only unless --install-root points to a test rootfs." ;;
+    echo "[setup] Docker/dev mode: development/test only, not the full production NoemaForge path; package validation only unless --install-root points to a test rootfs." ;;
   vm)
-    echo "[setup] VM mode: recommended first success path. Non-destructive unless --apply-vm is provided."
+    echo "[setup] VM mode: Ubuntu/Debian VM recommended no-risk onboarding path. Non-destructive unless --apply-vm is provided."
     [[ "$APPLY_VM" == 1 ]] || DRY_RUN=1 ;;
   host)
-    echo "[setup] Host mode: installs operator CLI and safe recovery helpers." ;;
+    echo "[setup] Linux host mode: native services + local paths; installs operator CLI and safe recovery helpers." ;;
 esac
 
 if [[ "$DRY_RUN" == 1 ]]; then
@@ -153,4 +169,5 @@ fi
 
 install_args=(--rootfs "$INSTALL_ROOT" --data-root "$DATA_ROOT" --model-profile "$MODEL_PROFILE")
 if [[ -n "$WITH_SHARE" ]]; then install_args+=(--with-share "$WITH_SHARE"); fi
-exec "$PKG_DIR/install_noemaforge_0.31.13.alpha_mvp.sh" "${install_args[@]}"
+exec "$PKG_DIR/install_noemaforge_0.32.0.alpha_mvp.sh" "${install_args[@]}"
+

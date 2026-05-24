@@ -1,0 +1,134 @@
+{
+  "apiVersion": "noemaforge.topic-adjacent-retrieval/v1",
+  "kind": "TopicAdjacentRetrievalExampleSet",
+  "id": "topic-adjacent-retrieval-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "topic-adjacent-budgeted-retrieval",
+      "trace_id": "trace:topic-adjacent-retrieval:example:001",
+      "query_topic_signature": "knowledge|provenance|administrator",
+      "locality_scope": {
+        "chapter_id": "chapter:knowledge",
+        "section_id": "section:administrator"
+      },
+      "retrieval_order": [
+        "best_matching_coherent_chunk",
+        "highest_coherence_subchunks",
+        "adjacent_support_chunks_if_budget_remains",
+        "knowledge_gap_notice"
+      ],
+      "candidate_chunks": [
+        {
+          "chunk_id": "chunk:knowledge-admin:primary",
+          "chapter_id": "chapter:knowledge",
+          "section_id": "section:administrator",
+          "sentence_start_id": "sentence:001",
+          "sentence_end_id": "sentence:004",
+          "adjacency_group_id": "adj:knowledge-admin:001",
+          "topic_signature": "knowledge|provenance|administrator",
+          "coherence_score": 0.92,
+          "estimated_tokens": 120,
+          "chunk_parent_id": "",
+          "chunk_split_reason": ""
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:support",
+          "chapter_id": "chapter:knowledge",
+          "section_id": "section:administrator",
+          "sentence_start_id": "sentence:005",
+          "sentence_end_id": "sentence:007",
+          "adjacency_group_id": "adj:knowledge-admin:001",
+          "topic_signature": "knowledge|administrator|citation",
+          "coherence_score": 0.77,
+          "estimated_tokens": 80,
+          "chunk_parent_id": "",
+          "chunk_split_reason": ""
+        },
+        {
+          "chunk_id": "chunk:distant-same-label",
+          "chapter_id": "chapter:operations",
+          "section_id": "section:administrator",
+          "sentence_start_id": "sentence:050",
+          "sentence_end_id": "sentence:052",
+          "adjacency_group_id": "adj:ops-admin:002",
+          "topic_signature": "knowledge|administrator|citation",
+          "coherence_score": 0.81,
+          "estimated_tokens": 90,
+          "chunk_parent_id": "",
+          "chunk_split_reason": "",
+          "rejected_reason": "outside chapter/section locality"
+        },
+        {
+          "chunk_id": "chunk:unrelated",
+          "chapter_id": "chapter:knowledge",
+          "section_id": "section:administrator",
+          "sentence_start_id": "sentence:080",
+          "sentence_end_id": "sentence:081",
+          "adjacency_group_id": "adj:knowledge-admin:099",
+          "topic_signature": "drive|scheduler",
+          "coherence_score": 0.18,
+          "estimated_tokens": 60,
+          "chunk_parent_id": "",
+          "chunk_split_reason": "",
+          "rejected_reason": "topic signature miss"
+        }
+      ],
+      "budget": {
+        "max_tokens": 220,
+        "budget_remaining": 20
+      },
+      "selected_chunks": [
+        {
+          "chunk_id": "chunk:knowledge-admin:primary",
+          "role": "primary_chunk"
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:support",
+          "role": "adjacent_support_chunk"
+        }
+      ],
+      "degraded_chain": [
+        {
+          "chunk_id": "chunk:knowledge-admin:primary:a",
+          "chunk_parent_id": "chunk:knowledge-admin:primary",
+          "chunk_split_reason": "active_memory_budget",
+          "coherence_score": 0.88
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:primary:b",
+          "chunk_parent_id": "chunk:knowledge-admin:primary",
+          "chunk_split_reason": "active_memory_budget",
+          "coherence_score": 0.84
+        }
+      ],
+      "rejected_retrievals": [
+        {
+          "claim": "use naive fixed windows first",
+          "reason": "Topic signature overlap and chapter/section locality select candidates before token-window fallback."
+        },
+        {
+          "claim": "merge distant chunks by label only",
+          "reason": "A same-label chunk from another chapter is rejected by locality."
+        },
+        {
+          "claim": "add adjacent support chunks without budget",
+          "reason": "Support chunks are included only after the primary chunk and only while budget remains."
+        },
+        {
+          "claim": "drop chunk lineage on split",
+          "reason": "Oversized chunks retain parent ids and split reasons in the degraded chain."
+        }
+      ],
+      "expected_outputs": [
+        "primary_chunk",
+        "coherence_score",
+        "adjacent_support_chunks",
+        "budget_remaining",
+        "chunk_parent_id",
+        "chunk_split_reason",
+        "retrieval_trace"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "apiVersion": "noemaforge.mcp-adapter-registry/v1",
+  "kind": "MCPAdapterRegistry",
+  "id": "zero-trust-mcp-adapters",
+  "version": "0.32.0.alpha",
+  "policy": {
+    "default_state": "disabled",
+    "default_network": "deny",
+    "require_trace_id": true,
+    "require_capability_token": true,
+    "require_registry_entry": true,
+    "require_operator_review_for_enable": true,
+    "allowed_transports": ["stdio", "unix_socket"],
+    "blocked_transports": ["tcp", "http", "websocket"],
+    "max_tool_risk": "medium"
+  },
+  "adapters": [
+    {
+      "id": "docs.search",
+      "version": "0.32.0",
+      "state": "disabled",
+      "transport": "stdio",
+      "mode": "local",
+      "handler": "mcp_router.docs_search",
+      "risk": "low",
+      "network": "deny",
+      "capability_scopes": ["docs.read", "docs.search"],
+      "tool_allowlist": ["search", "query", "find"],
+      "trace_required": true,
+      "capability_token_required": true,
+      "registry_entry_required": true,
+      "registry_ref": "tool-policy:tool-policy-main:0.31.13.alpha-patched1",
+      "audit_logging": true,
+      "sandbox": {
+        "profile": "read_only_docs",
+        "write": false,
+        "egress": "deny"
+      },
+      "review": {
+        "required": true,
+        "route": "SR/SSR",
+        "reviewers": ["SR", "SSR"]
+      },
+      "rollback_plan": "Disable docs.search in this registry and restore the previous mcp-adapters.yaml catalog before rerunning ToolProxy smoke tests.",
+      "refs": [
+        "configs/mcp-adapters.yaml",
+        "configs/tool-policy.yaml",
+        "configs/tool-registry.yaml",
+        "contracts/capability_token.schema.json",
+        "contracts/mcp_adapters.schema.json",
+        "src/mcp_router.py"
+      ]
+    },
+    {
+      "id": "issue.tracker",
+      "version": "0.32.0",
+      "state": "disabled",
+      "transport": "stdio",
+      "mode": "local",
+      "handler": "mcp_router.issue_tracker",
+      "risk": "low",
+      "network": "deny",
+      "capability_scopes": ["issues.read", "issues.search"],
+      "tool_allowlist": ["list", "search", "get"],
+      "trace_required": true,
+      "capability_token_required": true,
+      "registry_entry_required": true,
+      "registry_ref": "tool-policy:tool-policy-main:0.31.13.alpha-patched1",
+      "audit_logging": true,
+      "sandbox": {
+        "profile": "read_only_issues",
+        "write": false,
+        "egress": "deny"
+      },
+      "review": {
+        "required": true,
+        "route": "SR/SSR",
+        "reviewers": ["SR", "SSR"]
+      },
+      "rollback_plan": "Disable issue.tracker in this registry and restore the previous local issue seed before rerunning ToolProxy smoke tests.",
+      "refs": [
+        "configs/mcp-adapters.yaml",
+        "configs/tool-policy.yaml",
+        "configs/tool-registry.yaml",
+        "contracts/capability_token.schema.json",
+        "contracts/mcp_adapters.schema.json",
+        "seed_data/mcp/issues.sample.json",
+        "src/mcp_router.py"
+      ]
+    },
+    {
+      "id": "docs.rag.local",
+      "version": "0.32.0",
+      "state": "disabled",
+      "transport": "stdio",
+      "mode": "local",
+      "handler": "docs_rag_runtime.query",
+      "risk": "medium",
+      "network": "deny",
+      "capability_scopes": ["docs.read", "rag.query", "citations.emit"],
+      "tool_allowlist": ["query", "retrieve", "answer"],
+      "trace_required": true,
+      "capability_token_required": true,
+      "registry_entry_required": true,
+      "registry_ref": "retriever:knowledge-keyword-retrieval:0.31.13.alpha-patched1",
+      "audit_logging": true,
+      "sandbox": {
+        "profile": "read_only_rag",
+        "write": false,
+        "egress": "deny"
+      },
+      "review": {
+        "required": true,
+        "route": "SR/SSR",
+        "reviewers": ["SR", "SSR"]
+      },
+      "rollback_plan": "Disable docs.rag.local in this registry, keep docs RAG as an internal runtime only, and rerun RAG eval before reconsidering exposure.",
+      "refs": [
+        "configs/docs-rag-policy.json",
+        "configs/rag-eval-suite.json",
+        "contracts/docs_rag_policy.schema.json",
+        "contracts/rag_eval_suite.schema.json",
+        "src/docs_rag_runtime.py",
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
+      ]
+    }
+  ]
+}
+

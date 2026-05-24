@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.gui/v1",
   "kind": "GuiShellPolicy",
-  "version": "0.31.13.alpha",
+  "version": "0.32.0.alpha",
   "stateful": true,
   "conversation_store": "/var/lib/noemaforge/gui/conversation-current.json",
   "sr_ssr_review_inbox": {
@@ -15,3 +15,4 @@
     "plan-first for epoch/system changes"
   ]
 }
+

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/selftest_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge self-test, telemetry and wiki-patch runtime.
 
-0.31.13.alpha scope:
+0.31.13.alpha-patched1 scope:
 - module-level test case catalog runner;
 - resource telemetry per case: wall time, CPU, RSS, proc I/O, optional GPU/VRAM/ECC;
 - baseline comparison and regression classification;
@@ -33,9 +33,9 @@ import argparse
 import datetime as dt
 import difflib
 import hashlib
+import html
 import json
 import os
-import resource
 import shutil
 import sqlite3
 import subprocess
@@ -45,9 +45,22 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+try:
+    import resource  # type: ignore[import-not-found]
+except ImportError:  # pragma: no cover - exercised on Windows hosts.
+    class _ResourceFallback:
+        RUSAGE_CHILDREN = 0
+        RUSAGE_SELF = 1
+
+        @staticmethod
+        def getrusage(_scope: int) -> Any:
+            return type("Usage", (), {"ru_utime": 0.0, "ru_stime": 0.0, "ru_maxrss": 0})()
+
+    resource = _ResourceFallback()  # type: ignore[assignment]
+
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
-RUNTIME_VERSION = "0.31.13.alpha"
+RUNTIME_VERSION = "0.32.0.alpha"
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
 POLICY_REL = Path("configs/selftest-telemetry-policy.json")
 
@@ -82,6 +95,12 @@ def load_json(path: Path, default: Any) -> Any:
     except Exception:
         pass
     return default
+
+
+def _as_string_list(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item or "").strip()]
 
 
 def default_catalog() -> Dict[str, Any]:
@@ -292,9 +311,132 @@ def db_connect(state: Path) -> sqlite3.Connection:
     conn.execute("CREATE TABLE IF NOT EXISTS selftest_case_results (run_id TEXT NOT NULL, case_id TEXT NOT NULL, module TEXT NOT NULL, tier TEXT NOT NULL, status TEXT NOT NULL, exit_code INTEGER, duration_sec REAL, max_rss_kib INTEGER, cpu_user_sec REAL, cpu_system_sec REAL, disk_read_bytes INTEGER, disk_write_bytes INTEGER, gpu_json TEXT NOT NULL DEFAULT '{}', stdout_path TEXT NOT NULL, stderr_path TEXT NOT NULL, result_json TEXT NOT NULL, PRIMARY KEY(run_id, case_id))")
     conn.execute("CREATE TABLE IF NOT EXISTS selftest_metric_samples (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, case_id TEXT NOT NULL, ts TEXT NOT NULL, metric TEXT NOT NULL, value REAL NOT NULL, unit TEXT NOT NULL)")
     conn.execute("CREATE TABLE IF NOT EXISTS selftest_regressions (id INTEGER PRIMARY KEY AUTOINCREMENT, run_id TEXT NOT NULL, case_id TEXT NOT NULL, severity TEXT NOT NULL, metric TEXT NOT NULL, baseline REAL, current REAL, delta_pct REAL, details TEXT NOT NULL)")
+    conn.execute("CREATE TABLE IF NOT EXISTS selftest_test_events (event_id TEXT PRIMARY KEY, run_id TEXT NOT NULL, case_id TEXT NOT NULL DEFAULT '', event_type TEXT NOT NULL, status TEXT NOT NULL, severity TEXT NOT NULL, ts TEXT NOT NULL, summary_json TEXT NOT NULL DEFAULT '{}', metrics_json TEXT NOT NULL DEFAULT '{}', source_json TEXT NOT NULL DEFAULT '{}')")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_selftest_test_events_run ON selftest_test_events(run_id, event_type, status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_selftest_test_events_case ON selftest_test_events(case_id, event_type)")
     conn.execute("CREATE TABLE IF NOT EXISTS wiki_patches (patch_id TEXT PRIMARY KEY, run_id TEXT, created_at TEXT NOT NULL, patch_file TEXT NOT NULL, metadata_json TEXT NOT NULL)")
     conn.commit()
     return conn
+
+
+def _event_id(*parts: Any) -> str:
+    raw = "|".join(str(part or "") for part in parts)
+    return hashlib.sha256(raw.encode("utf-8")).hexdigest()[:32]
+
+
+def _event_severity(status: str, problems: Optional[List[Any]] = None) -> str:
+    normalized = str(status or "").strip().lower()
+    if normalized in {"fail", "failed", "error"}:
+        return "error"
+    if problems:
+        return "warning"
+    return "info"
+
+
+def build_test_events_from_report(report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    run_id = str(report.get("run_id") or "unknown")
+    ts = str(report.get("finished_at") or report.get("started_at") or nowz())
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    run_status = "pass" if summary.get("ok") else "fail"
+    events: List[Dict[str, Any]] = [
+        {
+            "event_id": _event_id(run_id, "", "selftest.run.summary", run_status),
+            "run_id": run_id,
+            "case_id": "",
+            "event_type": "selftest.run.summary",
+            "status": run_status,
+            "severity": _event_severity(run_status),
+            "ts": ts,
+            "summary": summary,
+            "metrics": {
+                "case_count": int(summary.get("case_count") or 0),
+                "passed": int(summary.get("passed") or 0),
+                "failed": int(summary.get("failed") or 0),
+                "duration_total_sec": float(summary.get("duration_total_sec") or 0.0),
+                "max_rss_kib": int(summary.get("max_rss_kib") or 0),
+            },
+            "source": {"kind": str(report.get("kind") or "SelfTestReport"), "suite": str(report.get("suite") or "")},
+        }
+    ]
+    for item in report.get("results") or []:
+        if not isinstance(item, dict):
+            continue
+        case_id = str(item.get("case_id") or "")
+        status = str(item.get("status") or "unknown")
+        problems = item.get("problems") if isinstance(item.get("problems"), list) else []
+        metrics = item.get("metrics") if isinstance(item.get("metrics"), dict) else {}
+        events.append(
+            {
+                "event_id": _event_id(run_id, case_id, "selftest.case.result", status),
+                "run_id": run_id,
+                "case_id": case_id,
+                "event_type": "selftest.case.result",
+                "status": status,
+                "severity": _event_severity(status, problems),
+                "ts": ts,
+                "summary": {"module": item.get("module"), "tier": item.get("tier"), "description": item.get("description"), "problems": problems},
+                "metrics": metrics,
+                "source": {"exit_code": item.get("exit_code"), "stdout_path": item.get("stdout_path"), "stderr_path": item.get("stderr_path")},
+            }
+        )
+    return events
+
+
+def record_test_events_for_report(conn: sqlite3.Connection, report: Dict[str, Any]) -> List[Dict[str, Any]]:
+    events = build_test_events_from_report(report)
+    for event in events:
+        conn.execute(
+            "INSERT OR REPLACE INTO selftest_test_events(event_id,run_id,case_id,event_type,status,severity,ts,summary_json,metrics_json,source_json) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (
+                event["event_id"],
+                event["run_id"],
+                event["case_id"],
+                event["event_type"],
+                event["status"],
+                event["severity"],
+                event["ts"],
+                jdump(event.get("summary") or {}, pretty=False),
+                jdump(event.get("metrics") or {}, pretty=False),
+                jdump(event.get("source") or {}, pretty=False),
+            ),
+        )
+    conn.commit()
+    return events
+
+
+def export_test_events(state: Path, *, run_id: str = "", limit: int = 500) -> Dict[str, Any]:
+    conn = db_connect(state)
+    conn.row_factory = sqlite3.Row
+    try:
+        params: List[Any] = []
+        where = ""
+        if run_id:
+            where = "WHERE run_id = ?"
+            params.append(run_id)
+        params.append(max(1, int(limit)))
+        rows = conn.execute(
+            f"SELECT event_id,run_id,case_id,event_type,status,severity,ts,summary_json,metrics_json,source_json FROM selftest_test_events {where} ORDER BY ts ASC, event_type ASC, case_id ASC LIMIT ?",
+            params,
+        ).fetchall()
+        events = []
+        for row in rows:
+            events.append(
+                {
+                    "event_id": row["event_id"],
+                    "run_id": row["run_id"],
+                    "case_id": row["case_id"],
+                    "event_type": row["event_type"],
+                    "status": row["status"],
+                    "severity": row["severity"],
+                    "ts": row["ts"],
+                    "summary": json.loads(row["summary_json"] or "{}"),
+                    "metrics": json.loads(row["metrics_json"] or "{}"),
+                    "source": json.loads(row["source_json"] or "{}"),
+                }
+            )
+    finally:
+        conn.close()
+    return {"apiVersion": "noemaforge/v1", "kind": "SelfTestEventExport", "version": RUNTIME_VERSION, "ok": True, "run_id": run_id, "event_count": len(events), "events": events}
 
 
 def nvidia_snapshot() -> Dict[str, Any]:
@@ -484,6 +626,41 @@ def run_internal_py_compile(path: str, stdout_path: Path, stderr_path: Path) -> 
     }
 
 
+def run_internal_media_adapter_telemetry(root: Path, adapter: str, case_type: str, stdout_path: Path, stderr_path: Path) -> Dict[str, Any]:
+    usage_before = resource.getrusage(resource.RUSAGE_SELF)
+    start = time.perf_counter()
+    exit_code = 0
+    try:
+        import media_adapter_telemetry_runtime as matr
+
+        policy = matr.load_policy(root / "configs" / "media-adapter-telemetry-policy.json")
+        result = matr.evaluate_adapter_selftest_case(adapter, case_type, policy)
+        stdout_path.write_text(jdump(result) + "\n", encoding="utf-8")
+        stderr_path.write_text("", encoding="utf-8")
+        if not result.get("ok"):
+            exit_code = 1
+    except Exception as exc:
+        exit_code = 1
+        stdout_path.write_text("", encoding="utf-8")
+        stderr_path.write_text(str(exc) + "\n", encoding="utf-8")
+    finish = time.perf_counter()
+    usage_after = resource.getrusage(resource.RUSAGE_SELF)
+    return {
+        "exit_code": exit_code,
+        "timed_out": False,
+        "duration_sec": round(finish - start, 6),
+        "max_rss_kib": int(usage_after.ru_maxrss),
+        "cpu_user_sec": round(usage_after.ru_utime - usage_before.ru_utime, 6),
+        "cpu_system_sec": round(usage_after.ru_stime - usage_before.ru_stime, 6),
+        "disk_read_bytes": 0,
+        "disk_write_bytes": 0,
+        "gpu_before": nvidia_snapshot(),
+        "gpu_after": nvidia_snapshot(),
+        "stdout_path": str(stdout_path),
+        "stderr_path": str(stderr_path),
+    }
+
+
 def select_cases(catalog: Dict[str, Any], suite: str, case_ids: Optional[List[str]], allow_live: bool) -> List[Dict[str, Any]]:
     if suite == "quick":
         suite = "core"
@@ -595,6 +772,8 @@ def run_selftests(args: argparse.Namespace) -> None:
             try:
                 if cmd and cmd[0] == "__py_compile__" and len(cmd) >= 2:
                     result = run_internal_py_compile(cmd[1], stdout, stderr)
+                elif cmd and cmd[0] == "__media_adapter_telemetry__" and len(cmd) >= 3:
+                    result = run_internal_media_adapter_telemetry(root, cmd[1], cmd[2], stdout, stderr)
                 else:
                     result = run_command(cmd, env, root, stdout, stderr, timeout_sec)
             except Exception as exc:
@@ -652,11 +831,13 @@ def run_selftests(args: argparse.Namespace) -> None:
     summary = report.get("summary") or {}
     status = "passed" if summary.get("ok") else "failed"
     conn.execute("UPDATE selftest_runs SET status=?, finished_at=?, report_path=?, summary_json=? WHERE run_id=?", (status, report["finished_at"], str(path), jdump(summary, pretty=False), run_id))
+    record_test_events_for_report(conn, report)
     conn.commit()
     if args.json:
         print(jdump(report))
     else:
         print(f"selftest run_id={run_id} suite={args.suite} status={status} passed={summary.get('passed')} failed={summary.get('failed')} report={path}")
+    conn.close()
     if not summary.get("ok"):
         raise SystemExit(1)
 
@@ -693,6 +874,136 @@ def compare_reports(baseline: Dict[str, Any], current: Dict[str, Any], policy: D
         if isinstance(ecc, int) and ecc >= int(thresholds.get("ecc_delta_fail", 1)):
             regressions.append({"case_id": cid, "severity": "fail", "metric": "ecc_delta_total", "baseline": 0, "current": ecc, "delta_pct": None})
     return {"ok": not [r for r in regressions if r.get("severity") == "fail"], "regressions": regressions, "improvements": improvements, "baseline_run_id": baseline.get("run_id"), "current_run_id": current.get("run_id")}
+
+
+def default_premerge_release_guard_policy() -> Dict[str, Any]:
+    return {
+        "apiVersion": "noemaforge.premerge-release-guard/v1",
+        "kind": "PremergeReleaseGuardPolicy",
+        "version": RUNTIME_VERSION,
+        "release_guard": {
+            "require_baseline_report": True,
+            "require_current_report": True,
+            "block_failed_summary": True,
+            "block_failed_cases": True,
+            "block_failed_regressions": True,
+            "block_warn_regressions_by_default": False,
+            "required_case_ids": ["cli_status_json", "pipeline_validate"],
+            "required_artifacts": ["selftest-report.json"],
+        },
+    }
+
+
+def load_premerge_release_guard_policy(root: Path, policy_path: Optional[Path] = None) -> Dict[str, Any]:
+    merged = default_premerge_release_guard_policy()
+    user = load_json(policy_path or root / "configs" / "premerge-release-guard-policy.json", {})
+    if isinstance(user, dict):
+        for key, value in user.items():
+            if isinstance(value, dict) and isinstance(merged.get(key), dict):
+                merged[key].update(value)
+            else:
+                merged[key] = value
+    return merged
+
+
+def build_premerge_release_guard(
+    baseline: Dict[str, Any],
+    current: Dict[str, Any],
+    telemetry_policy: Dict[str, Any],
+    guard_policy: Optional[Dict[str, Any]] = None,
+    *,
+    fail_on_warn: bool = False,
+) -> Dict[str, Any]:
+    policy = guard_policy or default_premerge_release_guard_policy()
+    guard = policy.get("release_guard") if isinstance(policy.get("release_guard"), dict) else {}
+    blockers: List[Dict[str, Any]] = []
+    warnings: List[Dict[str, Any]] = []
+    baseline_results = baseline.get("results") if isinstance(baseline.get("results"), list) else []
+    current_results = current.get("results") if isinstance(current.get("results"), list) else []
+
+    if guard.get("require_baseline_report", True) and not baseline_results:
+        blockers.append({"kind": "missing_baseline_report", "detail": "baseline report has no case results"})
+    if guard.get("require_current_report", True) and not current_results:
+        blockers.append({"kind": "missing_current_report", "detail": "current report has no case results"})
+
+    summary = current.get("summary") if isinstance(current.get("summary"), dict) else {}
+    if guard.get("block_failed_summary", True) and summary and not bool(summary.get("ok")):
+        blockers.append({"kind": "current_summary_not_ok", "failed": int(summary.get("failed") or 0), "run_id": current.get("run_id")})
+
+    current_by_id = {str(item.get("case_id")): item for item in current_results if isinstance(item, dict)}
+    for case_id in _as_string_list(guard.get("required_case_ids")):
+        item = current_by_id.get(case_id)
+        if not item:
+            blockers.append({"kind": "required_case_missing", "case_id": case_id})
+        elif item.get("status") != "pass":
+            blockers.append({"kind": "required_case_not_passing", "case_id": case_id, "status": item.get("status")})
+
+    if guard.get("block_failed_cases", True):
+        for item in current_results:
+            if isinstance(item, dict) and item.get("status") != "pass":
+                blockers.append({"kind": "current_case_not_passing", "case_id": item.get("case_id"), "status": item.get("status")})
+
+    comparison = compare_reports(baseline, current, telemetry_policy) if baseline_results and current_results else {"ok": False, "regressions": [], "improvements": []}
+    for regression in comparison.get("regressions") or []:
+        severity = str(regression.get("severity") or "")
+        if severity == "fail" and guard.get("block_failed_regressions", True):
+            blockers.append({"kind": "baseline_regression", **regression})
+        elif severity == "warn":
+            target = blockers if (fail_on_warn or guard.get("block_warn_regressions_by_default", False)) else warnings
+            target.append({"kind": "baseline_regression_warning", **regression})
+
+    required_artifacts = _as_string_list(guard.get("required_artifacts"))
+    artifact_status = [
+        {"id": item, "required": True, "present": item == "selftest-report.json" and bool(current_results)}
+        for item in required_artifacts
+    ]
+    for item in artifact_status:
+        if item["required"] and not item["present"]:
+            blockers.append({"kind": "required_artifact_missing", "artifact": item["id"]})
+
+    doc = {
+        "apiVersion": "noemaforge.premerge-release-guard/v1",
+        "kind": "PremergeReleaseGuardDecision",
+        "version": RUNTIME_VERSION,
+        "created_at": nowz(),
+        "ok": not blockers,
+        "decision": "allow" if not blockers else "block",
+        "baseline_run_id": baseline.get("run_id"),
+        "current_run_id": current.get("run_id"),
+        "blockers": blockers,
+        "warnings": warnings,
+        "comparison": comparison,
+        "artifact_status": artifact_status,
+        "rollback_plan": [
+            "Keep the current release candidate out of merge/promotion.",
+            "Review failed cases and baseline regressions.",
+            "Regenerate the current selftest report after fixes and rerun this guard.",
+        ],
+    }
+    return doc
+
+
+def premerge_release_guard_cmd(args: argparse.Namespace) -> None:
+    root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
+    baseline = load_json(Path(args.baseline), {})
+    current_path = Path(args.current or args.report)
+    current = load_json(current_path, {})
+    policy_path = Path(args.policy).resolve() if args.policy else None
+    guard = build_premerge_release_guard(
+        baseline,
+        current,
+        load_policy(root),
+        load_premerge_release_guard_policy(root, policy_path),
+        fail_on_warn=bool(args.fail_on_warn),
+    )
+    if args.out:
+        atomic_write(Path(args.out), jdump(guard))
+    if args.json:
+        print(jdump(guard))
+    else:
+        print(f"premerge-release-guard decision={guard['decision']} blockers={len(guard['blockers'])} warnings={len(guard['warnings'])}")
+    if not guard.get("ok"):
+        raise SystemExit(1)
 
 
 def catalog_cmd(args: argparse.Namespace) -> None:
@@ -744,6 +1055,318 @@ def metrics_cmd(args: argparse.Namespace) -> None:
         print(prometheus_from_report(report), end="")
     else:
         print(jdump({"ok": True, "summary": report.get("summary", {}), "results": report.get("results", [])}))
+
+
+def _parse_report_time(report: Dict[str, Any]) -> str:
+    return str(report.get("finished_at") or report.get("started_at") or report.get("run_id") or "")
+
+
+def _report_summary_row(report: Dict[str, Any]) -> Dict[str, Any]:
+    summary = report.get("summary") if isinstance(report.get("summary"), dict) else {}
+    return {
+        "run_id": str(report.get("run_id") or ""),
+        "suite": str(report.get("suite") or ""),
+        "started_at": str(report.get("started_at") or ""),
+        "finished_at": str(report.get("finished_at") or ""),
+        "ok": bool(summary.get("ok", False)),
+        "case_count": int(summary.get("case_count") or 0),
+        "passed": int(summary.get("passed") or 0),
+        "failed": int(summary.get("failed") or 0),
+        "duration_total_sec": float(summary.get("duration_total_sec") or 0.0),
+        "duration_max_sec": float(summary.get("duration_max_sec") or 0.0),
+        "max_rss_kib": int(summary.get("max_rss_kib") or 0),
+        "disk_write_bytes_total": int(summary.get("disk_write_bytes_total") or 0),
+        "ecc_delta_total": int(summary.get("ecc_delta_total") or 0),
+    }
+
+
+def _case_point(report: Dict[str, Any], result: Dict[str, Any]) -> Dict[str, Any]:
+    metrics = result.get("metrics") if isinstance(result.get("metrics"), dict) else {}
+    return {
+        "run_id": str(report.get("run_id") or ""),
+        "suite": str(report.get("suite") or ""),
+        "finished_at": str(report.get("finished_at") or report.get("started_at") or ""),
+        "status": str(result.get("status") or "unknown"),
+        "duration_sec": float(metrics.get("duration_sec") or 0.0),
+        "max_rss_kib": int(metrics.get("max_rss_kib") or 0),
+        "disk_write_bytes": int(metrics.get("disk_write_bytes") or 0),
+        "module": str(result.get("module") or ""),
+        "tier": str(result.get("tier") or ""),
+    }
+
+
+def build_trend_dashboard(reports: Iterable[Dict[str, Any]], *, title: str = "NoemaForge self-test trend") -> Dict[str, Any]:
+    ordered = sorted([r for r in reports if isinstance(r, dict)], key=_parse_report_time)
+    summary_rows = [_report_summary_row(report) for report in ordered]
+    case_series: Dict[str, List[Dict[str, Any]]] = {}
+    for report in ordered:
+        for result in report.get("results") or []:
+            if not isinstance(result, dict):
+                continue
+            case_id = str(result.get("case_id") or "").strip()
+            if not case_id:
+                continue
+            case_series.setdefault(case_id, []).append(_case_point(report, result))
+
+    warnings: List[Dict[str, Any]] = []
+    for case_id, points in sorted(case_series.items()):
+        if len(points) < 2:
+            continue
+        previous = points[-2]
+        latest = points[-1]
+        if previous.get("status") == "pass" and latest.get("status") != "pass":
+            warnings.append({"kind": "case_status_regression", "case_id": case_id, "from": previous.get("status"), "to": latest.get("status"), "run_id": latest.get("run_id")})
+        old_duration = float(previous.get("duration_sec") or 0.0)
+        new_duration = float(latest.get("duration_sec") or 0.0)
+        if old_duration > 0 and new_duration > old_duration * 1.50:
+            warnings.append({"kind": "case_duration_spike", "case_id": case_id, "from": old_duration, "to": new_duration, "run_id": latest.get("run_id")})
+        old_rss = int(previous.get("max_rss_kib") or 0)
+        new_rss = int(latest.get("max_rss_kib") or 0)
+        if old_rss > 0 and new_rss > int(old_rss * 1.60):
+            warnings.append({"kind": "case_rss_spike", "case_id": case_id, "from": old_rss, "to": new_rss, "run_id": latest.get("run_id")})
+
+    if len(summary_rows) >= 2 and summary_rows[-1]["failed"] > summary_rows[-2]["failed"]:
+        warnings.append({"kind": "failed_count_increase", "from": summary_rows[-2]["failed"], "to": summary_rows[-1]["failed"], "run_id": summary_rows[-1]["run_id"]})
+
+    latest = summary_rows[-1] if summary_rows else {}
+    return {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestTrendDashboard",
+        "version": RUNTIME_VERSION,
+        "title": title,
+        "generated_at": nowz(),
+        "ok": bool(summary_rows),
+        "run_count": len(summary_rows),
+        "case_count": len(case_series),
+        "latest": latest,
+        "summaries": summary_rows,
+        "case_series": case_series,
+        "warnings": warnings,
+    }
+
+
+def render_trend_dashboard_html(dashboard: Dict[str, Any]) -> str:
+    title = html.escape(str(dashboard.get("title") or "NoemaForge self-test trend"))
+    summaries = dashboard.get("summaries") if isinstance(dashboard.get("summaries"), list) else []
+    warnings = dashboard.get("warnings") if isinstance(dashboard.get("warnings"), list) else []
+    cases = dashboard.get("case_series") if isinstance(dashboard.get("case_series"), dict) else {}
+
+    def td(value: Any) -> str:
+        return f"<td>{html.escape(str(value))}</td>"
+
+    summary_rows = "\n".join(
+        "<tr>"
+        + td(row.get("run_id"))
+        + td(row.get("suite"))
+        + td(row.get("finished_at"))
+        + td(row.get("passed"))
+        + td(row.get("failed"))
+        + td(row.get("duration_total_sec"))
+        + td(row.get("max_rss_kib"))
+        + "</tr>"
+        for row in summaries
+    )
+    warning_items = "\n".join(f"<li>{html.escape(json.dumps(item, ensure_ascii=False, sort_keys=True))}</li>" for item in warnings) or "<li>none</li>"
+    case_rows = "\n".join(
+        "<tr>"
+        + td(case_id)
+        + td(points[-1].get("status") if points else "")
+        + td(points[-1].get("duration_sec") if points else "")
+        + td(points[-1].get("max_rss_kib") if points else "")
+        + td(len(points))
+        + "</tr>"
+        for case_id, points in sorted(cases.items())
+    )
+    data_json = html.escape(jdump(dashboard, pretty=False))
+    return f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{title}</title>
+  <style>
+    body {{ font-family: system-ui, sans-serif; margin: 2rem; background: #f7f7f4; color: #202124; }}
+    table {{ border-collapse: collapse; width: 100%; margin: 1rem 0 2rem; background: #fff; }}
+    th, td {{ border: 1px solid #ddd; padding: 0.45rem 0.55rem; text-align: left; font-size: 0.92rem; }}
+    th {{ background: #ece9df; }}
+    code, pre {{ white-space: pre-wrap; }}
+  </style>
+</head>
+<body>
+  <h1>{title}</h1>
+  <p>Generated {html.escape(str(dashboard.get("generated_at") or ""))}; runs: {int(dashboard.get("run_count") or 0)}; cases: {int(dashboard.get("case_count") or 0)}.</p>
+  <h2>Run Summaries</h2>
+  <table><thead><tr><th>Run</th><th>Suite</th><th>Finished</th><th>Passed</th><th>Failed</th><th>Total seconds</th><th>Max RSS KiB</th></tr></thead><tbody>{summary_rows}</tbody></table>
+  <h2>Warnings</h2>
+  <ul>{warning_items}</ul>
+  <h2>Latest Case Points</h2>
+  <table><thead><tr><th>Case</th><th>Status</th><th>Duration</th><th>Max RSS KiB</th><th>Points</th></tr></thead><tbody>{case_rows}</tbody></table>
+  <script type="application/json" id="selftest-trend-data">{data_json}</script>
+</body>
+</html>
+"""
+
+
+def write_trend_dashboard(dashboard: Dict[str, Any], out_dir: Path) -> Dict[str, str]:
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / "selftest-trend.json"
+    html_path = out_dir / "index.html"
+    atomic_write(json_path, jdump(dashboard))
+    atomic_write(html_path, render_trend_dashboard_html(dashboard))
+    return {"json": str(json_path), "html": str(html_path)}
+
+
+def discover_trend_reports(state: Path, limit: int) -> List[Path]:
+    candidates = sorted((state / "runs").glob("*/selftest-report.json"))
+    if limit > 0:
+        candidates = candidates[-limit:]
+    return candidates
+
+
+def trend_cmd(args: argparse.Namespace) -> None:
+    state = Path(args.state).resolve() if args.state else DEFAULT_STATE
+    report_paths = [Path(item).resolve() for item in (args.report or [])]
+    if not report_paths:
+        report_paths = discover_trend_reports(state, int(args.limit or 50))
+    reports = [load_json(path, {}) for path in report_paths if path.exists()]
+    if not reports:
+        raise SystemExit("no selftest reports found; pass --report or run selftest first")
+    dashboard = build_trend_dashboard(reports, title=args.title)
+    outputs: Dict[str, str] = {}
+    if args.out_dir:
+        outputs = write_trend_dashboard(dashboard, Path(args.out_dir).resolve())
+        dashboard["outputs"] = outputs
+    if args.format == "json":
+        print(jdump(dashboard))
+    else:
+        latest = dashboard.get("latest") or {}
+        suffix = f" json={outputs.get('json')} html={outputs.get('html')}" if outputs else ""
+        print(f"selftest trend runs={dashboard.get('run_count')} cases={dashboard.get('case_count')} latest={latest.get('run_id')} failed={latest.get('failed')} warnings={len(dashboard.get('warnings') or [])}{suffix}")
+
+
+def _rss_slope_kib_per_repeat(values: List[int]) -> float:
+    if len(values) < 2:
+        return 0.0
+    xs = [float(i + 1) for i in range(len(values))]
+    ys = [float(value) for value in values]
+    x_mean = sum(xs) / len(xs)
+    y_mean = sum(ys) / len(ys)
+    denom = sum((x - x_mean) ** 2 for x in xs)
+    if denom <= 0:
+        return 0.0
+    return sum((x - x_mean) * (y - y_mean) for x, y in zip(xs, ys)) / denom
+
+
+def _repeat_rss_sequence(result: Dict[str, Any]) -> List[int]:
+    repeats = result.get("repeats") if isinstance(result.get("repeats"), dict) else {}
+    raw = repeats.get("max_rss_kib_sequence") if isinstance(repeats, dict) else []
+    if not isinstance(raw, list):
+        return []
+    values: List[int] = []
+    for value in raw:
+        try:
+            values.append(max(0, int(value)))
+        except Exception:
+            continue
+    return values
+
+
+def build_rss_slope_report(
+    report: Dict[str, Any],
+    *,
+    title: str = "NoemaForge RSS slope stress report",
+    warn_slope_kib: float = 512.0,
+    fail_slope_kib: float = 2048.0,
+    min_repeats: int = 3,
+) -> Dict[str, Any]:
+    cases: List[Dict[str, Any]] = []
+    skipped: List[Dict[str, Any]] = []
+    for result in report.get("results") or []:
+        if not isinstance(result, dict):
+            continue
+        case_id = str(result.get("case_id") or "")
+        sequence = _repeat_rss_sequence(result)
+        if len(sequence) < max(2, int(min_repeats)):
+            skipped.append({"case_id": case_id, "reason": "insufficient_repeat_rss_samples", "sample_count": len(sequence)})
+            continue
+        slope = _rss_slope_kib_per_repeat(sequence)
+        first = sequence[0]
+        last = sequence[-1]
+        delta = last - first
+        delta_pct = round(delta / first, 6) if first > 0 else 0.0
+        repeats = result.get("repeats") if isinstance(result.get("repeats"), dict) else {}
+        explicit_leak = bool(repeats.get("memory_leak_suspect"))
+        severity = "info"
+        if explicit_leak or slope >= float(fail_slope_kib):
+            severity = "fail"
+        elif slope >= float(warn_slope_kib) or (first > 0 and last > int(first * 1.10)):
+            severity = "warn"
+        cases.append(
+            {
+                "case_id": case_id,
+                "module": str(result.get("module") or ""),
+                "tier": str(result.get("tier") or ""),
+                "status": str(result.get("status") or "unknown"),
+                "repeat_count": len(sequence),
+                "max_rss_kib_sequence": sequence,
+                "first_rss_kib": first,
+                "last_rss_kib": last,
+                "peak_rss_kib": max(sequence),
+                "delta_kib": delta,
+                "delta_pct": delta_pct,
+                "slope_kib_per_repeat": round(slope, 6),
+                "memory_leak_suspect": explicit_leak or severity == "fail",
+                "severity": severity,
+            }
+        )
+    findings = [item for item in cases if item.get("severity") in {"warn", "fail"}]
+    failures = [item for item in cases if item.get("severity") == "fail"]
+    max_slope = max([float(item.get("slope_kib_per_repeat") or 0.0) for item in cases], default=0.0)
+    summary = {
+        "run_id": str(report.get("run_id") or ""),
+        "suite": str(report.get("suite") or ""),
+        "analyzed_cases": len(cases),
+        "skipped_cases": len(skipped),
+        "findings": len(findings),
+        "failures": len(failures),
+        "max_slope_kib_per_repeat": round(max_slope, 6),
+        "warn_slope_kib": float(warn_slope_kib),
+        "fail_slope_kib": float(fail_slope_kib),
+        "min_repeats": max(2, int(min_repeats)),
+    }
+    return {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestRssSlopeReport",
+        "version": RUNTIME_VERSION,
+        "title": title,
+        "generated_at": nowz(),
+        "ok": bool(cases) and not failures,
+        "source_run_id": str(report.get("run_id") or ""),
+        "summary": summary,
+        "cases": cases,
+        "findings": findings,
+        "skipped": skipped,
+    }
+
+
+def rss_slope_cmd(args: argparse.Namespace) -> None:
+    source = load_json(Path(args.report).resolve(), {})
+    slope_report = build_rss_slope_report(
+        source,
+        title=args.title,
+        warn_slope_kib=float(args.warn_slope_kib),
+        fail_slope_kib=float(args.fail_slope_kib),
+        min_repeats=int(args.min_repeats),
+    )
+    if args.out:
+        atomic_write(Path(args.out).resolve(), jdump(slope_report))
+    if args.json:
+        print(jdump(slope_report))
+    else:
+        summary = slope_report.get("summary") or {}
+        suffix = f" out={Path(args.out).resolve()}" if args.out else ""
+        print(f"selftest stress run={summary.get('run_id')} analyzed={summary.get('analyzed_cases')} findings={summary.get('findings')} failures={summary.get('failures')}{suffix}")
+    if args.fail_on_leak and not slope_report.get("ok"):
+        raise SystemExit(1)
 
 
 def _patch_for_new_file(path: str, content: str) -> str:
@@ -850,6 +1473,124 @@ def wiki_patch_apply_cmd(args: argparse.Namespace) -> None:
                     (wiki_repo / rel).parent.mkdir(parents=True, exist_ok=True)
                     (wiki_repo / rel).write_bytes(src.read_bytes())
     print(jdump({"ok": True, "dry_run": bool(args.dry_run), "patch_dir": str(patch_dir), "wiki_repo": str(wiki_repo), "actions": actions}))
+
+
+def _safe_branch_name(value: str) -> str:
+    cleaned = "".join(ch if ch.isalnum() or ch in "._/-" else "-" for ch in str(value or "").strip())
+    cleaned = cleaned.strip("./-")
+    return cleaned or "noemaforge/wiki-patch"
+
+
+def _load_wiki_patch_manifest(patch_dir: Path) -> Dict[str, Any]:
+    for name in ["wiki_patch_manifest.json", "manifest.json"]:
+        path = patch_dir / name
+        if path.exists():
+            loaded = load_json(path, {})
+            if isinstance(loaded, dict):
+                loaded["manifest_path"] = str(path)
+                return loaded
+    return {"manifest_path": ""}
+
+
+def build_wiki_patch_commit_plan(
+    patch_dir: Path,
+    wiki_repo: Path,
+    *,
+    branch: str,
+    reviewed_by: str,
+    review_id: str = "",
+    message: str = "",
+    out_dir: Optional[Path] = None,
+) -> Dict[str, Any]:
+    patch_dir = patch_dir.resolve()
+    wiki_repo = wiki_repo.resolve()
+    if not patch_dir.exists():
+        raise ValueError(f"patch_dir_not_found:{patch_dir}")
+    if not str(reviewed_by or "").strip():
+        raise ValueError("reviewed_by_required")
+    manifest = _load_wiki_patch_manifest(patch_dir)
+    patch_id = str(manifest.get("patch_id") or patch_dir.name)
+    branch_name = _safe_branch_name(branch or f"noemaforge/wiki-patch/{patch_id}")
+    destination = (out_dir or patch_dir / "reviewed_commit").resolve()
+    commit_message = message or f"NoemaForge wiki patch: {patch_id}\n\nReviewed-by: {reviewed_by}\nReview-id: {review_id or 'manual'}\nPatch-dir: {patch_dir}\n"
+    script = f"""#!/usr/bin/env bash
+set -euo pipefail
+WIKI_REPO="${{1:-{wiki_repo}}}"
+PATCH_DIR="${{2:-{patch_dir}}}"
+BRANCH="{branch_name}"
+
+if [[ ! -d "$WIKI_REPO/.git" ]]; then
+  echo "wiki repo is not a git checkout: $WIKI_REPO" >&2
+  exit 2
+fi
+if [[ ! -d "$PATCH_DIR" ]]; then
+  echo "patch dir not found: $PATCH_DIR" >&2
+  exit 2
+fi
+
+git -C "$WIKI_REPO" status --short
+git -C "$WIKI_REPO" checkout -B "$BRANCH"
+if [[ -x "$PATCH_DIR/apply.sh" ]]; then
+  "$PATCH_DIR/apply.sh" "$WIKI_REPO"
+elif [[ -d "$PATCH_DIR/payload" ]]; then
+  cp -a "$PATCH_DIR/payload/." "$WIKI_REPO/"
+else
+  echo "no apply.sh or payload directory found in $PATCH_DIR" >&2
+  exit 2
+fi
+git -C "$WIKI_REPO" add .
+git -C "$WIKI_REPO" commit -F "{destination / 'commit_message.txt'}"
+echo "Created local wiki commit on $BRANCH; review and push manually if desired."
+"""
+    plan = {
+        "apiVersion": "noemaforge/v1",
+        "kind": "WikiPatchCommitPlan",
+        "version": RUNTIME_VERSION,
+        "ok": True,
+        "created_at": nowz(),
+        "patch_id": patch_id,
+        "patch_dir": str(patch_dir),
+        "wiki_repo": str(wiki_repo),
+        "branch": branch_name,
+        "review": {"required": True, "reviewed_by": reviewed_by, "review_id": review_id or "manual"},
+        "no_push": True,
+        "commands": [
+            f"git -C {wiki_repo} checkout -B {branch_name}",
+            f"{patch_dir / 'apply.sh'} {wiki_repo}",
+            f"git -C {wiki_repo} add .",
+            f"git -C {wiki_repo} commit -F {destination / 'commit_message.txt'}",
+        ],
+        "artifacts": {
+            "plan": str(destination / "reviewed_commit_plan.json"),
+            "script": str(destination / "commit_helper.sh"),
+            "commit_message": str(destination / "commit_message.txt"),
+        },
+        "source_manifest": manifest.get("manifest_path", ""),
+    }
+    atomic_write(destination / "reviewed_commit_plan.json", jdump(plan))
+    atomic_write(destination / "commit_message.txt", commit_message)
+    atomic_write(destination / "commit_helper.sh", script)
+    try:
+        os.chmod(destination / "commit_helper.sh", 0o755)
+    except Exception:
+        pass
+    return plan
+
+
+def wiki_patch_commit_plan_cmd(args: argparse.Namespace) -> None:
+    try:
+        plan = build_wiki_patch_commit_plan(
+            Path(args.patch_dir),
+            Path(args.wiki_repo),
+            branch=args.branch,
+            reviewed_by=args.reviewed_by,
+            review_id=args.review_id or "",
+            message=args.message or "",
+            out_dir=Path(args.out_dir) if args.out_dir else None,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc))
+    print(jdump(plan) if args.json else f"wiki-patch commit-plan patch_id={plan['patch_id']} branch={plan['branch']} script={plan['artifacts']['script']}")
 
 
 def wiki_patch_cmd(args: argparse.Namespace) -> None:
@@ -963,6 +1704,26 @@ def baseline_compare_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def events_ingest_cmd(args: argparse.Namespace) -> None:
+    state = Path(args.state).resolve() if args.state else DEFAULT_STATE
+    report = load_json(Path(args.report), {})
+    conn = db_connect(state)
+    try:
+        events = record_test_events_for_report(conn, report)
+    finally:
+        conn.close()
+    doc = {"ok": True, "run_id": report.get("run_id"), "event_count": len(events), "state": str(state)}
+    print(jdump(doc) if args.json else f"ok=true run_id={doc['run_id']} events={doc['event_count']}")
+
+
+def events_export_cmd(args: argparse.Namespace) -> None:
+    state = Path(args.state).resolve() if args.state else DEFAULT_STATE
+    doc = export_test_events(state, run_id=args.run_id or "", limit=int(args.limit or 500))
+    if args.out:
+        atomic_write(Path(args.out), jdump(doc))
+    print(jdump(doc) if args.json else f"selftest events count={doc['event_count']} run_id={doc.get('run_id') or '*'}")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="NoemaForge self-test telemetry and wiki-patch runtime")
     p.add_argument("--root", default=str(DEFAULT_ROOT))
@@ -993,6 +1754,16 @@ def build_parser() -> argparse.ArgumentParser:
     comp.add_argument("--current", required=True)
     comp.add_argument("--fail-on-regression", action="store_true")
     comp.set_defaults(func=compare_cmd)
+    guard = sub.add_parser("release-guard")
+    guard.add_argument("--baseline", required=True)
+    current_group = guard.add_mutually_exclusive_group(required=True)
+    current_group.add_argument("--current")
+    current_group.add_argument("--report")
+    guard.add_argument("--policy")
+    guard.add_argument("--out")
+    guard.add_argument("--json", action="store_true")
+    guard.add_argument("--fail-on-warn", action="store_true")
+    guard.set_defaults(func=premerge_release_guard_cmd)
     base = sub.add_parser("baseline")
     bsub = base.add_subparsers(dest="baseline_action", required=True)
     bc = bsub.add_parser("create")
@@ -1011,6 +1782,35 @@ def build_parser() -> argparse.ArgumentParser:
     met.add_argument("--report", required=True)
     met.add_argument("--format", choices=["json", "prometheus"], default="json")
     met.set_defaults(func=metrics_cmd)
+    trend = sub.add_parser("trend")
+    trend.add_argument("--report", action="append", help="selftest-report.json path; may be supplied more than once")
+    trend.add_argument("--out-dir")
+    trend.add_argument("--title", default="NoemaForge self-test trend")
+    trend.add_argument("--format", choices=["text", "json"], default="text")
+    trend.add_argument("--limit", type=int, default=50, help="maximum discovered reports when --report is not supplied")
+    trend.set_defaults(func=trend_cmd)
+    events = sub.add_parser("events")
+    evsub = events.add_subparsers(dest="events_action", required=True)
+    eving = evsub.add_parser("ingest")
+    eving.add_argument("--report", required=True)
+    eving.add_argument("--json", action="store_true")
+    eving.set_defaults(func=events_ingest_cmd)
+    evexp = evsub.add_parser("export")
+    evexp.add_argument("--run-id")
+    evexp.add_argument("--limit", type=int, default=500)
+    evexp.add_argument("--out")
+    evexp.add_argument("--json", action="store_true")
+    evexp.set_defaults(func=events_export_cmd)
+    stress = sub.add_parser("stress")
+    stress.add_argument("--report", required=True, help="selftest-report.json generated with --repeat")
+    stress.add_argument("--out")
+    stress.add_argument("--title", default="NoemaForge RSS slope stress report")
+    stress.add_argument("--warn-slope-kib", type=float, default=512.0)
+    stress.add_argument("--fail-slope-kib", type=float, default=2048.0)
+    stress.add_argument("--min-repeats", type=int, default=3)
+    stress.add_argument("--json", action="store_true")
+    stress.add_argument("--fail-on-leak", action="store_true")
+    stress.set_defaults(func=rss_slope_cmd)
     wiki = sub.add_parser("wiki-patch")
     wiksub = wiki.add_subparsers(dest="wiki_action", required=True)
     create = wiksub.add_parser("create")
@@ -1039,6 +1839,16 @@ def build_parser() -> argparse.ArgumentParser:
     applyp.add_argument("--wiki-repo", required=True)
     applyp.add_argument("--dry-run", action="store_true")
     applyp.set_defaults(func=wiki_patch_apply_cmd)
+    cplan = wiksub.add_parser("commit-plan")
+    cplan.add_argument("--patch-dir", required=True)
+    cplan.add_argument("--wiki-repo", required=True)
+    cplan.add_argument("--branch", default="")
+    cplan.add_argument("--reviewed-by", required=True)
+    cplan.add_argument("--review-id")
+    cplan.add_argument("--message")
+    cplan.add_argument("--out-dir")
+    cplan.add_argument("--json", action="store_true")
+    cplan.set_defaults(func=wiki_patch_commit_plan_cmd)
     return p
 
 
@@ -1067,3 +1877,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

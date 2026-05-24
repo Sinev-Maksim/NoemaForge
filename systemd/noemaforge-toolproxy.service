@@ -1,0 +1,35 @@
+# === NoemaForge File Header ===
+# File: systemd/noemaforge-toolproxy.service
+# Zone: release/package
+# Version: 0.31.13.alpha-patched1
+# Created: 2026-05-14
+# Modified: 2026-05-14
+# Purpose: Define a systemd unit used by NoemaForge runtime or recovery.
+# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
+# Outputs: Structured command output, files, service state or UI state as documented by the caller.
+# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+[Unit]
+Description=NoemaForge ToolProxy
+After=network.target noemaforge-llm-gateway.service
+Wants=noemaforge-llm-gateway.service
+ConditionPathExists=/opt/noemaforge/src/toolproxy.py
+
+[Service]
+Type=simple
+User=noemaforge
+Group=noemaforge
+Environment=NOEMAFORGE_ROOT=/opt/noemaforge
+Environment=NOEMAFORGE_STATE=/var/lib/noemaforge
+Environment=NOEMAFORGE_GATEWAY_SOCKET=/run/noemaforge/llm/gateway.sock
+Environment=NOEMAFORGE_TOOLPROXY_SOCKET=/run/noemaforge/toolproxy.sock
+EnvironmentFile=-/etc/default/noemaforge-runtime
+ExecStartPre=+/usr/bin/install -d -o noemaforge -g noemaforge -m 0755 /run/noemaforge /run/noemaforge/llm /run/noemaforge/llm/backends /var/lib/noemaforge
+ExecStart=/usr/bin/python3 /opt/noemaforge/src/toolproxy.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

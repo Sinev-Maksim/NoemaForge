@@ -1,0 +1,18 @@
+{
+  "apiVersion": "noemaforge.pipeline.stage-transition/v1",
+  "kind": "PipelineStageTransitionExampleSet",
+  "scenarios": [
+    {
+      "id": "offline-stage-transition-lifecycle",
+      "trace_id": "trace:pipeline:stage-transition:lifecycle",
+      "pipeline": "public_mwp",
+      "task_id": "x",
+      "run_id": "r",
+      "advance_stage": "status_check",
+      "invalid_stage": "missing_stage",
+      "expected_commands": ["run", "approve", "pause", "resume", "advance", "fail", "event-log"],
+      "expected_event_types": ["pipeline_created", "pipeline_approved", "pipeline_paused", "pipeline_resumed", "pipeline_stage_updated", "pipeline_failed"],
+      "expected_outputs": ["approved_status", "paused_status", "resumed_status", "advanced_stage", "failed_status", "event_log_evidence", "invalid_stage_rejected"]
+    }
+  ]
+}

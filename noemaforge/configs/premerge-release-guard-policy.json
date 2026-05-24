@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.premerge-release-guard/v1",
+  "kind": "PremergeReleaseGuardPolicy",
+  "id": "premerge-release-guard-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "release_guard": {
+    "require_baseline_report": true,
+    "require_current_report": true,
+    "block_failed_summary": true,
+    "block_failed_cases": true,
+    "block_failed_regressions": true,
+    "block_warn_regressions_by_default": false,
+    "required_case_ids": ["cli_status_json", "pipeline_validate"],
+    "required_artifacts": ["selftest-report.json"]
+  },
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "premerge_release_guard",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_selftest_commands": ["release-guard"],
+    "required_outputs": ["premerge-release-guard.json"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/selftest_runtime.py",
+      "contract_runtime": "src/premerge_release_guard_runtime.py"
+    },
+    "controls": {
+      "baseline_required": true,
+      "current_report_required": true,
+      "failed_summary_blocks": true,
+      "failed_cases_block": true,
+      "failed_regressions_block": true,
+      "rollback_plan_required": true,
+      "artifact_status_required": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/premerge_release_guard.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/premerge-release-guard-policy.json",
+    "noemaforge/contracts/premerge_release_guard.schema.json",
+    "noemaforge/src/selftest_runtime.py",
+    "noemaforge/src/premerge_release_guard_runtime.py",
+    "noemaforge/tests/test_premerge_release_guard_runtime.py",
+    "noemaforge/tests/test_premerge_release_guard_qa.py",
+    "noemaforge/tests/test_premerge_release_guard_performance.py",
+    "prelaunch/governance/premerge_release_guard.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

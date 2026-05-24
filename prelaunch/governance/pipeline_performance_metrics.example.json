@@ -1,0 +1,43 @@
+{
+  "apiVersion": "noemaforge.pipeline-performance-metrics/v1",
+  "kind": "PipelinePerformanceMetricsExampleSet",
+  "id": "pipeline-performance-metrics-core-examples",
+  "version": "0.31.21.alpha",
+  "samples": [
+    {
+      "stage_id": "graph_patch_validate",
+      "latency_ms": 12.5,
+      "memory_mb": 18.0,
+      "operation_count": 7,
+      "artifact_bytes": 4096,
+      "status": "passed"
+    },
+    {
+      "stage_id": "model_switch_plan",
+      "latency_ms": 8.75,
+      "memory_mb": 12.0,
+      "operation_count": 4,
+      "artifact_bytes": 2048,
+      "status": "passed"
+    },
+    {
+      "stage_id": "wiki_patch_render",
+      "latency_ms": 21.0,
+      "memory_mb": 24.5,
+      "operation_count": 9,
+      "artifact_bytes": 8192,
+      "status": "warn"
+    }
+  ],
+  "expected_summary": {
+    "sample_count": 3,
+    "max_latency_ms": 21.0,
+    "max_memory_mb": 24.5,
+    "total_operation_count": 20,
+    "total_artifact_bytes": 14336,
+    "status_counts": {
+      "passed": 2,
+      "warn": 1
+    }
+  }
+}

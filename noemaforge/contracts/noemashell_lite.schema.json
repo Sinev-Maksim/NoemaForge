@@ -1,0 +1,118 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/noemashell_lite.schema.json",
+  "title": "NoemaShellLitePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.noemashell/v1"},
+    "kind": {"const": "NoemaShellLitePolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "role_kernel_policy_ref",
+        "roleflow_policy_ref",
+        "gui_shell_policy_ref",
+        "launch_modes",
+        "primary_surfaces",
+        "operator_controls",
+        "safety_defaults",
+        "resource_budget_profiles",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "primary_operator_shell"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "role_kernel_policy_ref": {"type": "string"},
+        "roleflow_policy_ref": {"type": "string"},
+        "gui_shell_policy_ref": {"type": "string"},
+        "launch_modes": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 3,
+          "uniqueItems": true
+        },
+        "primary_surfaces": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "operator_controls": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 8,
+          "uniqueItems": true
+        },
+        "safety_defaults": {
+          "type": "object",
+          "required": [
+            "no_hidden_privileged_action",
+            "no_heavy_backend_autostart",
+            "explicit_approval_required",
+            "visible_reason_required",
+            "no_destructive_action_without_policy"
+          ],
+          "properties": {
+            "no_hidden_privileged_action": {"const": true},
+            "no_heavy_backend_autostart": {"const": true},
+            "explicit_approval_required": {"const": true},
+            "visible_reason_required": {"const": true},
+            "no_destructive_action_without_policy": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "resource_budget_profiles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "max_active_heavy_workers",
+              "heavy_backend_autostart",
+              "requires_operator_confirmation"
+            ],
+            "properties": {
+              "id": {"type": "string"},
+              "max_active_heavy_workers": {"const": 1},
+              "heavy_backend_autostart": {"const": false},
+              "requires_operator_confirmation": {"const": true}
+            },
+            "additionalProperties": false
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

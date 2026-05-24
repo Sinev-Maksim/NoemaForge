@@ -1,0 +1,39 @@
+{
+  "apiVersion": "noemaforge.signed-model-manifest/v1",
+  "kind": "SignedModelManifest",
+  "id": "example-edge-model",
+  "model_id": "example_edge_model",
+  "version": "0.31.21.alpha",
+  "status": "shadow",
+  "target_type": "edge",
+  "model_ref": "model:model-registry-local:0.31.13.alpha-patched1",
+  "runtime": "onnx",
+  "artifact_uri": "models/example_edge_model.onnx",
+  "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  "signature": "sha256-selftest:0123456789abcdef",
+  "signature_scheme": "sha256-selftest",
+  "input_contract": "sensor.window.v1",
+  "output_contract": "classification.v1",
+  "budgets": {
+    "latency_budget_ms": 50.0,
+    "memory_budget_mb": 128.0,
+    "max_artifact_bytes": 52428800
+  },
+  "fallback": "whitebox",
+  "rollout": "canary",
+  "qa_gate": {
+    "required": true,
+    "reviewer_role": "qa",
+    "developer_role": "developer",
+    "independent_from_developer": true,
+    "can_block_release": true,
+    "review_required": true,
+    "status": "approved_shadow",
+    "review_ref": "prelaunch/evidence/ci-model-gates/release_evidence.json"
+  },
+  "refs": [
+    "noemaforge/configs/signed-model-manifest-policy.json",
+    "noemaforge/configs/ci-model-gates.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json"
+  ]
+}

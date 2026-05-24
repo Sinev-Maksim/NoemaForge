@@ -1,0 +1,104 @@
+{
+  "apiVersion": "noemaforge.release-gate-environment-readiness/v1",
+  "kind": "ReleaseGateEnvironmentReadinessPolicy",
+  "id": "release-gate-environment-readiness-core",
+  "version": "0.32.0.alpha",
+  "status": "stable",
+  "policy": {
+    "required_checks": [
+      {
+        "id": "python_ast_and_pytest_runner",
+        "kind": "command_any",
+        "commands": [
+          {
+            "cmd": "python",
+            "args": [
+              "--version"
+            ]
+          },
+          {
+            "cmd": "py",
+            "args": [
+              "-V"
+            ]
+          },
+          {
+            "cmd": "python3",
+            "args": [
+              "--version"
+            ]
+          }
+        ],
+        "required_for": [
+          "python_ast_parse",
+          "pytest_qa",
+          "pytest_performance"
+        ],
+        "blocker": "Python is required before Python AST, pytest QA and pytest performance gates can be considered complete."
+      },
+      {
+        "id": "yaml_semantic_parser",
+        "kind": "command_any",
+        "commands": [
+          {
+            "cmd": "python",
+            "args": [
+              "-c",
+              "import yaml"
+            ]
+          },
+          {
+            "cmd": "py",
+            "args": [
+              "-c",
+              "import yaml"
+            ]
+          },
+          {
+            "cmd": "python3",
+            "args": [
+              "-c",
+              "import yaml"
+            ]
+          }
+        ],
+        "required_for": [
+          "yaml_parse"
+        ],
+        "blocker": "A YAML parser is required before YAML semantic parse gates can be considered complete."
+      },
+      {
+        "id": "bash_syntax_runner",
+        "kind": "command_any",
+        "commands": [
+          {
+            "cmd": "bash",
+            "args": [
+              "-lc",
+              "bash --version"
+            ]
+          }
+        ],
+        "required_for": [
+          "bash_n"
+        ],
+        "blocker": "A usable bash shell is required before shell syntax gates can be considered complete."
+      }
+    ],
+    "report_contract": {
+      "ok_when_all_required_checks_pass": true,
+      "missing_tools_are_blockers_not_successes": true,
+      "network_allowed": false,
+      "hardware_required": false
+    }
+  },
+  "refs": [
+    "helpers/release_gate_environment_readiness.mjs",
+    "helpers/release_gate_environment_readiness.qa.test.mjs",
+    "helpers/release_gate_environment_readiness.performance.test.mjs",
+    "noemaforge/docs/wiki/quality/release-gate-environment-readiness.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}

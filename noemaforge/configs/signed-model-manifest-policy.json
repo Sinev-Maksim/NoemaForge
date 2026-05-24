@@ -1,0 +1,70 @@
+{
+  "apiVersion": "noemaforge.signed-model-manifest/v1",
+  "kind": "SignedModelManifestPolicy",
+  "id": "signed-model-manifest-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_sha256": true,
+    "require_signature": true,
+    "require_input_contract": true,
+    "require_output_contract": true,
+    "require_resource_budgets": true,
+    "require_whitebox_fallback": true,
+    "require_rollout_state": true,
+    "require_independent_qa_gate": true,
+    "require_qa_can_block_release": true,
+    "allowed_runtimes": [
+      "onnx",
+      "tflm",
+      "llama.cpp",
+      "python",
+      "mock"
+    ],
+    "allowed_signature_schemes": [
+      "sha256-selftest",
+      "cosign",
+      "minisign",
+      "pgp"
+    ],
+    "allowed_rollouts": [
+      "shadow",
+      "canary",
+      "stable"
+    ],
+    "allowed_fallbacks": [
+      "whitebox",
+      "previous_model",
+      "manual_review"
+    ],
+    "deployable_rollouts": [
+      "canary",
+      "stable"
+    ],
+    "qa_approved_statuses": [
+      "approved_shadow",
+      "approved_canary",
+      "approved_stable"
+    ]
+  },
+  "manifest_refs": [
+    {
+      "id": "example-edge-model",
+      "ref": "prelaunch/manifests/models/example_edge_model.manifest.json"
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/signed-model-manifest-policy.json",
+    "noemaforge/contracts/signed_model_manifest.schema.json",
+    "noemaforge/src/signed_model_manifest_runtime.py",
+    "noemaforge/tests/test_signed_model_manifest_runtime.py",
+    "noemaforge/tests/test_signed_model_manifest_qa.py",
+    "noemaforge/tests/test_signed_model_manifest_performance.py",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

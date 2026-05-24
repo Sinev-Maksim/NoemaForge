@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/role_review_state_machine.schema.json",
+  "title": "NoemaForge Role Review State Machine Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "refs", "policy"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.role-review-state-machine/v1"},
+    "kind": {"const": "RoleReviewStateMachinePolicy"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_.:/-]{1,220}$"},
+    "version": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_pipeline_ref",
+        "boundary_phrase",
+        "role_kernel_policy_ref",
+        "roleflow_policy_ref",
+        "required_roles",
+        "required_state_kinds",
+        "required_terminal_states",
+        "states",
+        "mandatory_transitions",
+        "baton_requirements",
+        "controls",
+        "required_outputs",
+        "blocked_transition_claims",
+        "required_boundary_refs",
+        "scan_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "explicit_admin_surgeon_scary_state_machine"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_live_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 1},
+        "role_kernel_policy_ref": {"type": "string", "minLength": 1},
+        "roleflow_policy_ref": {"type": "string", "minLength": 1},
+        "required_roles": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_state_kinds": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_terminal_states": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "states": {
+          "type": "array",
+          "items": {"type": "object"},
+          "minItems": 1
+        },
+        "mandatory_transitions": {
+          "type": "array",
+          "items": {"type": "object"},
+          "minItems": 1
+        },
+        "baton_requirements": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "controls": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "blocked_transition_claims": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_boundary_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "scan_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

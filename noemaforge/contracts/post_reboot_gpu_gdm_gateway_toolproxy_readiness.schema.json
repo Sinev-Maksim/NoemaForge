@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/post_reboot_gpu_gdm_gateway_toolproxy_readiness.schema.json",
+  "title": "Post-Reboot GPU/GDM/Gateway/ToolProxy Readiness Policy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "policy"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.post-reboot-gpu-gdm-gateway-toolproxy-readiness/v1"
+    },
+    "kind": {
+      "const": "PostRebootGpuGdmGatewayToolproxyReadinessPolicy"
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "id",
+        "status",
+        "completion_state",
+        "blocked_todo",
+        "local_validator_only",
+        "target_machine_required",
+        "operator_approval_required",
+        "safety_controls",
+        "output_artifacts",
+        "required_checks",
+        "registry_refs",
+        "docs_refs"
+      ],
+      "properties": {
+        "id": {
+          "const": "post-reboot-gpu-gdm-gateway-toolproxy-readiness-core"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "shadow",
+            "stable",
+            "retired"
+          ]
+        },
+        "completion_state": {
+          "const": "blocked_until_target_post_reboot_gpu_gdm_gateway_toolproxy_evidence"
+        },
+        "blocked_todo": {
+          "const": "Run live NoemaForge post-reboot GPU/GDM/gateway/ToolProxy validation."
+        },
+        "local_validator_only": {
+          "const": true
+        },
+        "target_machine_required": {
+          "const": true
+        },
+        "operator_approval_required": {
+          "const": true
+        },
+        "safety_controls": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 8
+        },
+        "output_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 6
+        },
+        "required_checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "title",
+              "target_evidence_required",
+              "commands",
+              "evidence",
+              "completion_gates"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z0-9][a-z0-9._-]*$"
+              },
+              "title": {
+                "type": "string",
+                "minLength": 1
+              },
+              "target_evidence_required": {
+                "const": true
+              },
+              "requires_operator_approval": {
+                "type": "boolean"
+              },
+              "commands": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              },
+              "completion_gates": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "minItems": 1
+              }
+            },
+            "additionalProperties": true
+          },
+          "minItems": 6
+        },
+        "registry_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "docs_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "example_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

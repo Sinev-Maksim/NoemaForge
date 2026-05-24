@@ -1,0 +1,84 @@
+{
+  "apiVersion": "noemaforge.manifest-checksum-exclusion/v1",
+  "kind": "ManifestChecksumExclusionPolicy",
+  "id": "manifest-checksum-exclusion-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "trash_and_cache_excluded_from_release_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "project_manifest_ref": "MANIFEST.json",
+    "project_manifest_sha_refs": [
+      "MANIFEST.json.sha256",
+      "MANIFEST.sha256"
+    ],
+    "project_checksum_refs": [
+      "SHA256SUMS",
+      "SHA256SUMS_0.32.0.alpha"
+    ],
+    "package_root_ref": "noemaforge",
+    "package_manifest_ref": "noemaforge/docs/MANIFEST.json",
+    "package_manifest_sha_refs": [
+      "noemaforge/docs/MANIFEST.json.sha256"
+    ],
+    "package_checksum_ref": "checksums/SHA256SUMS",
+    "excluded_dir_names": [
+      ".git",
+      ".hg",
+      ".mypy_cache",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".tox",
+      ".venv",
+      "__pycache__",
+      "build",
+      "dist",
+      "node_modules",
+      "trash"
+    ],
+    "project_checksum_self_exclusions": [
+      "SHA256SUMS",
+      "SHA256SUMS_0.32.0.alpha"
+    ],
+    "package_checksum_self_exclusions": [
+      "checksums/SHA256SUMS"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/manifest_checksum_exclusion_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "trash_and_cache_excluded_from_release_evidence",
+      "validate_manifest_checksum_exclusion_policy",
+      "project_checksum_self_exclusions",
+      "package_checksum_self_exclusions",
+      "hash_mismatch"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/wiki/prelaunch/prelaunch-tooling.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/manifest-checksum-exclusion-policy.json",
+    "noemaforge/contracts/manifest_checksum_exclusion.schema.json",
+    "noemaforge/src/manifest_checksum_exclusion_runtime.py",
+    "noemaforge/tests/test_manifest_checksum_exclusion_runtime.py",
+    "noemaforge/tests/test_manifest_checksum_exclusion_qa.py",
+    "noemaforge/tests/test_manifest_checksum_exclusion_performance.py",
+    "prelaunch/governance/manifest_checksum_exclusion.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/wiki/prelaunch/prelaunch-tooling.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

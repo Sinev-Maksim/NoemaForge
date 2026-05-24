@@ -1,0 +1,72 @@
+{
+  "apiVersion": "noemaforge.admin-llm-smalltalk/v1",
+  "kind": "AdminLLMSmalltalkPolicy",
+  "id": "admin-llm-smalltalk-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "optional_llm_chat_with_deterministic_fallback",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_llm_dependency": true,
+    "require_control_plane_preserved": true,
+    "required_backends": [
+      "llm_chat",
+      "deterministic_fallback"
+    ],
+    "required_gui_tokens": [
+      "def conversational_admin_reply",
+      "def try_llm_admin_reply",
+      "def fallback_conversation_reply",
+      "NOEMAFORGE_GUI_DISABLE_LLM_CHAT",
+      "conversation_backend",
+      "llm_chat",
+      "deterministic_fallback",
+      "if self._explicit_control_request(low):",
+      "if self._conversational(low):"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_llm_smalltalk_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_admin_llm_smalltalk_policy",
+      "optional_llm_chat_with_deterministic_fallback",
+      "llm_chat",
+      "deterministic_fallback",
+      "build_smalltalk_backend_decision"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ],
+    "smalltalk_examples": [
+      "hello",
+      "how are you",
+      "спасибо"
+    ],
+    "explicit_control_examples": [
+      "run public_mwp",
+      "привет, запусти public_mwp"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/admin-llm-smalltalk-policy.json",
+    "noemaforge/contracts/admin_llm_smalltalk.schema.json",
+    "noemaforge/src/admin_llm_smalltalk_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/tests/test_admin_llm_smalltalk_runtime.py",
+    "noemaforge/tests/test_admin_llm_smalltalk_qa.py",
+    "noemaforge/tests/test_admin_llm_smalltalk_performance.py",
+    "prelaunch/governance/admin_llm_smalltalk.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/wiki_patch_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.31.13.alpha-patched1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -42,7 +42,7 @@ from typing import Any, Dict, Iterable, List, Optional
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", "/var/lib/noemaforge/wiki_patches"))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-RUNTIME_VERSION = "0.31.13.alpha"
+RUNTIME_VERSION = "0.32.0.alpha"
 
 
 def nowz() -> str:
@@ -73,6 +73,18 @@ def load_json(path: Optional[str]) -> Dict[str, Any]:
         return loaded if isinstance(loaded, dict) else {"value": loaded}
     except Exception:
         return {}
+
+
+def copy_optional_json_artifact(src_path: Optional[str], out_dir: Path, filename: str) -> Dict[str, Any]:
+    if not src_path:
+        return {"present": False, "path": ""}
+    src = Path(src_path).resolve()
+    if not src.exists() or src.is_dir():
+        return {"present": False, "path": str(src), "error": "missing_or_directory"}
+    payload = load_json(str(src))
+    dst = out_dir / filename
+    atomic_write_text(dst, json_dumps(payload) + "\n")
+    return {"present": True, "path": str(dst), "source": str(src), "keys": sorted(payload.keys())}
 
 
 def flatten_numeric(data: Any, prefix: str = "") -> Dict[str, float]:
@@ -157,6 +169,8 @@ def create_cmd(args: argparse.Namespace) -> None:
     before = load_json(args.metrics_before)
     after = load_json(args.metrics_after)
     mdelta = metrics_delta(before, after)
+    media_delta = copy_optional_json_artifact(getattr(args, "media_capability_report", None), out_dir, "media_capability_delta.json")
+    generated_artifacts = copy_optional_json_artifact(getattr(args, "artifact_manifest", None), out_dir, "generated_artifacts.json")
     description = args.description or os.environ.get("NOEMAFORGE_TASK_DESCRIPTION") or "No functional description supplied."
     functional = f"""# Functional Delta — {title}
 
@@ -182,6 +196,12 @@ def create_cmd(args: argparse.Namespace) -> None:
             functional += f"- `{key}`: {row.get('before')} → {row.get('after')} (delta={row.get('delta')}, pct={row.get('pct')})\n"
     else:
         functional += "No comparable numeric metrics supplied.\n"
+    if media_delta.get("present"):
+        functional += "\n## Media capability delta\n\n"
+        functional += f"- `media_capability_delta.json` copied from `{media_delta.get('source')}`.\n"
+    if generated_artifacts.get("present"):
+        functional += "\n## Generated artifacts\n\n"
+        functional += f"- `generated_artifacts.json` copied from `{generated_artifacts.get('source')}`.\n"
     atomic_write_text(out_dir / "functional_delta.md", functional)
     atomic_write_text(out_dir / "metrics_delta.json", json_dumps(mdelta) + "\n")
     diff = make_unified_diff(wiki_repo, payload_dir, copied)
@@ -201,6 +221,8 @@ def create_cmd(args: argparse.Namespace) -> None:
         "metrics_before": args.metrics_before,
         "metrics_after": args.metrics_after,
         "metric_count": mdelta.get("metric_count", 0),
+        "media_capability_delta": media_delta,
+        "generated_artifacts": generated_artifacts,
         "apply": "./apply.sh /path/to/wiki-repo",
     }
     atomic_write_text(out_dir / "wiki_patch_manifest.json", json_dumps(manifest) + "\n")
@@ -268,6 +290,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--run-id")
     c.add_argument("--metrics-before")
     c.add_argument("--metrics-after")
+    c.add_argument("--media-capability-report")
+    c.add_argument("--artifact-manifest")
     c.add_argument("--include", action="append")
     c.add_argument("--out-dir")
     c.add_argument("--patch-id")
@@ -311,3 +335,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/grounded_administrator.schema.json",
+  "title": "NoemaForge Grounded Administrator Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "refs", "policy"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.grounded-administrator/v1"},
+    "kind": {"const": "GroundedAdministratorPolicy"},
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9_.:/-]{1,220}$"},
+    "version": {"type": "string", "minLength": 1},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "refs": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "minItems": 1
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_pipeline_ref",
+        "boundary_phrase",
+        "administrator_role_ref",
+        "role_kernel_policy_ref",
+        "knowledge_manifest_ref",
+        "docs_rag_policy_ref",
+        "graphrag_pack_ref",
+        "grounded_answer_runtime_ref",
+        "default_query_surface",
+        "retrieval_order",
+        "required_answer_modes",
+        "required_citation_fields",
+        "required_gap_followups",
+        "controls",
+        "required_outputs",
+        "blocked_answer_claims",
+        "required_boundary_refs",
+        "scan_refs",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "default_hypergraph_knowledge_surface"},
+        "required_pipeline_ref": {"type": "string", "pattern": "^pipeline:"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_no_live_dependency": {"const": true},
+        "boundary_phrase": {"type": "string", "minLength": 1},
+        "administrator_role_ref": {"type": "string", "pattern": "^persona:"},
+        "role_kernel_policy_ref": {"type": "string", "minLength": 1},
+        "knowledge_manifest_ref": {"type": "string", "minLength": 1},
+        "docs_rag_policy_ref": {"type": "string", "minLength": 1},
+        "graphrag_pack_ref": {"type": "string", "minLength": 1},
+        "grounded_answer_runtime_ref": {"type": "string", "minLength": 1},
+        "default_query_surface": {"type": "string", "minLength": 1},
+        "retrieval_order": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_answer_modes": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_citation_fields": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_gap_followups": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "controls": {
+          "type": "object",
+          "additionalProperties": {"type": "boolean"}
+        },
+        "required_outputs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "blocked_answer_claims": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_boundary_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "scan_refs": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/dashboard_api_endpoint.schema.json",
+  "title": "DashboardApiEndpointPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.dashboard-api-endpoint/v1"},
+    "kind": {"const": "DashboardApiEndpointPolicy"},
+    "id": {"const": "dashboard-api-endpoint-core"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_first_default",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "endpoint",
+        "alias_endpoint",
+        "compatibility_endpoint",
+        "required_api_paths",
+        "required_runtime_tokens",
+        "required_frontend_tokens",
+        "required_sections",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "local_first_default": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "endpoint": {"const": "/api/dashboard"},
+        "alias_endpoint": {"const": "/api/dashboard/state"},
+        "compatibility_endpoint": {"const": "/api/gui/state"},
+        "required_api_paths": {"type": "array", "items": {"enum": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}, "minItems": 3, "uniqueItems": true},
+        "required_runtime_tokens": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "required_frontend_tokens": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "required_sections": {"type": "array", "items": {"enum": ["dashboard", "conversation", "tasks", "jobs", "persona", "pipelines", "telemetry"]}, "minItems": 7, "uniqueItems": true},
+        "required_docs": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

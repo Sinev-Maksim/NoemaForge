@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/media_capture_privacy.schema.json",
+  "title": "MediaCapturePrivacyPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.media-capture-privacy/v1"},
+    "kind": {"const": "MediaCapturePrivacyPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_first_default",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "capture_defaults",
+        "guarded_actions",
+        "required_pipeline_gates",
+        "required_catalog_entries",
+        "required_static_tokens",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "local_first_default": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "capture_defaults": {
+          "type": "object",
+          "required": ["microphone_enabled_by_default", "camera_enabled_by_default", "virtual_camera_enabled_by_default"],
+          "properties": {
+            "microphone_enabled_by_default": {"const": false},
+            "camera_enabled_by_default": {"const": false},
+            "virtual_camera_enabled_by_default": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "guarded_actions": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": [
+              "action",
+              "source",
+              "toolproxy_action",
+              "require_operator_consent",
+              "require_visible_privacy_state",
+              "require_manual_operator_command",
+              "autostart",
+              "max_seconds"
+            ],
+            "properties": {
+              "action": {"enum": ["voice.capture_live", "voice.transcribe_live", "camera.mask_virtual_camera"]},
+              "source": {"enum": ["microphone", "camera"]},
+              "target": {"enum": ["virtual_camera"]},
+              "toolproxy_action": {"type": "boolean"},
+              "require_operator_consent": {"const": true},
+              "require_visible_privacy_state": {"const": true},
+              "require_manual_operator_command": {"const": true},
+              "require_user_selected_target": {"type": "boolean"},
+              "autostart": {"const": false},
+              "max_seconds": {"type": "number", "minimum": 0, "maximum": 15}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required_pipeline_gates": {"type": "object"},
+        "required_catalog_entries": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true},
+        "required_static_tokens": {"type": "object"},
+        "required_example_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

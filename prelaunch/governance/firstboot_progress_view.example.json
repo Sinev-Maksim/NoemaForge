@@ -1,0 +1,39 @@
+{
+  "apiVersion": "noemaforge.firstboot-progress-view/v1",
+  "kind": "FirstbootProgressViewExampleSet",
+  "id": "firstboot-progress-view-examples",
+  "version": "0.31.21.alpha",
+  "status": "shadow",
+  "events": [
+    {"ts": "2026-05-20T07:38:00Z", "step": "seed_copy", "state": "complete", "message": "Seed package copied."},
+    {"ts": "2026-05-20T07:38:01Z", "step": "host_preflight", "state": "complete", "message": "Host preflight complete."},
+    {"ts": "2026-05-20T07:38:02Z", "step": "vault_scan", "state": "complete", "message": "Vault scanned."},
+    {"ts": "2026-05-20T07:38:03Z", "step": "inbox_normalize", "state": "complete", "message": "Inbox normalized."},
+    {"ts": "2026-05-20T07:38:04Z", "step": "candidate_staging", "state": "complete", "message": "Candidates staged."},
+    {"ts": "2026-05-20T07:38:05Z", "step": "role_staffing", "state": "warning", "message": "Mandatory roles are staffed with degraded roles."},
+    {"ts": "2026-05-20T07:38:06Z", "step": "epoch_apply", "state": "complete", "message": "Epoch request built."},
+    {"ts": "2026-05-20T07:38:07Z", "step": "reboot_pending", "state": "running", "message": "Reboot is pending."}
+  ],
+  "status": {
+    "apiVersion": "noemaforge.firstbootstatus/v1",
+    "kind": "FirstbootStatus",
+    "updated_at": "2026-05-20T07:38:07Z",
+    "step": "reboot_pending",
+    "state": "applied_reboot_scheduled",
+    "message": "Epoch applied; reboot scheduled.",
+    "reboot_scheduled": true
+  },
+  "staffing": {
+    "apiVersion": "noemaforge.firstbootstaffing/v1",
+    "kind": "FirstbootStaffingSummary",
+    "staffing_state": "degraded_selected",
+    "missing_mandatory_core_roles": [],
+    "selected_model_count": 4
+  },
+  "expected": {
+    "phase_count": 8,
+    "current_phase": "reboot_pending",
+    "completed_phases_min": 6,
+    "required_text": ["FIRSTBOOT PROGRESS", "role_staffing", "Next actions"]
+  }
+}

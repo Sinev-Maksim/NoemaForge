@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.systemd-happy-path/v1",
+  "kind": "SystemdHappyPathExampleSet",
+  "id": "systemd-happy-path-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "boot-mode-cli-owned-systemd-flow",
+      "trace_id": "trace:systemd-happy-path:example:001",
+      "happy_path_commands": [
+        "sudo noemaforge boot-mode set gui --apply-systemd",
+        "sudo noemaforge boot-mode install-units --dry-run",
+        "sudo noemaforge boot-mode set wogui --apply-systemd"
+      ],
+      "rejected_manual_steps": [
+        "sudo systemctl edit noemaforge-autostart-gui.service",
+        "sudo nano /etc/systemd/system/noemaforge-autostart-gui.service"
+      ],
+      "expected_outputs": [
+        "operator_cli_boot_mode",
+        "install_units_wrapper",
+        "dry_run_available",
+        "daemon_reload_owned_by_wrapper",
+        "no_manual_unit_editor_happy_path"
+      ]
+    }
+  ]
+}

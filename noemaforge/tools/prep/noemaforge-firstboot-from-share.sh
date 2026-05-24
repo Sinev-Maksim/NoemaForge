@@ -33,6 +33,7 @@ SHARE_ROOT="/mnt/noemaforge-share"
 VAULT_ROOT=""
 SHORTLIST_FILE=""
 CANDIDATE_LIMIT="0"
+MODEL_PROFILE="minimal"
 TOP_K="0"
 NO_REBOOT="0"
 INCLUDE_DOWNLOAD_MIRROR="0"
@@ -57,6 +58,7 @@ while [[ $# -gt 0 ]]; do
     --vault-root) VAULT_ROOT="$2"; shift 2 ;;
     --shortlist-file) SHORTLIST_FILE="$2"; shift 2 ;;
     --candidate-limit) CANDIDATE_LIMIT="$2"; shift 2 ;;
+    --model-profile) MODEL_PROFILE="$2"; shift 2 ;;
     --top-k) TOP_K="$2"; shift 2 ;;
     --include-download-mirror) INCLUDE_DOWNLOAD_MIRROR="1"; shift ;;
     --allow-incomplete-shards) ALLOW_INCOMPLETE_SHARDS="1"; shift ;;
@@ -86,9 +88,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) echo "[noemaforge-firstboot][ERROR] unsupported model profile: $MODEL_PROFILE" >&2; exit 2 ;; esac
+
 PY_ARGS=(--share-root "$SHARE_ROOT")
 [[ -n "$VAULT_ROOT" ]] && PY_ARGS+=(--vault-root "$VAULT_ROOT")
 [[ -n "$SHORTLIST_FILE" ]] && PY_ARGS+=(--shortlist-file "$SHORTLIST_FILE")
+PY_ARGS+=(--model-profile "$MODEL_PROFILE")
 [[ "$CANDIDATE_LIMIT" != "0" ]] && PY_ARGS+=(--candidate-limit "$CANDIDATE_LIMIT")
 [[ "$TOP_K" != "0" ]] && PY_ARGS+=(--top-k "$TOP_K")
 [[ "$NO_REBOOT" == "1" ]] && PY_ARGS+=(--no-reboot)

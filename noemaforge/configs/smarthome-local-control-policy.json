@@ -1,24 +1,76 @@
 {
   "apiVersion": "noemaforge.smarthome/v1",
   "kind": "SmartHomeLocalControlPolicy",
-  "version": "0.31.13.alpha",
+  "id": "smarthome-local-control-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
   "principle": "Value your privacy: local-first telemetry and device control through the NoemaForge home server.",
-  "devices": [
-    "smart_plug",
-    "smart_switch",
-    "vacuum",
-    "camera",
-    "sensor",
-    "thermostat",
-    "light",
-    "relay"
-  ],
-  "rules": [
-    "no cloud upload by default",
-    "no hidden camera or microphone capture",
-    "human override always wins",
-    "auditable actions",
-    "trusted/simulated/unverified source labels"
-  ],
-  "status": "candidate_backlog_pack"
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "local_first_control_pack",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "supported_devices": [
+      "smart_plug",
+      "smart_switch",
+      "vacuum",
+      "camera",
+      "sensor",
+      "thermostat",
+      "light",
+      "relay"
+    ],
+    "adapter_surfaces": [
+      "mqtt",
+      "home_assistant",
+      "zigbee",
+      "z_wave",
+      "matter"
+    ],
+    "privacy_controls": {
+      "telemetry_local_only": true,
+      "cloud_upload_default": false,
+      "hidden_camera_capture_allowed": false,
+      "hidden_microphone_capture_allowed": false,
+      "visible_privacy_state_required": true,
+      "raw_media_persistence_allowed": false
+    },
+    "governance_controls": {
+      "room_graph_required": true,
+      "device_registry_required": true,
+      "automation_rules_required": true,
+      "emergency_pause_required": true,
+      "sr_ssr_review_required": true,
+      "human_override_wins": true,
+      "auditable_actions": true
+    },
+    "source_labels": [
+      "trusted",
+      "simulated",
+      "unverified"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/smarthome_local_control.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/smarthome-local-control-policy.json",
+    "noemaforge/contracts/smarthome_local_control.schema.json",
+    "noemaforge/contracts/smarthome_device_registry.schema.json",
+    "noemaforge/contracts/smarthome_action_contract.schema.json",
+    "noemaforge/src/smarthome_local_control_runtime.py",
+    "noemaforge/tests/test_smarthome_local_control_runtime.py",
+    "noemaforge/tests/test_smarthome_local_control_qa.py",
+    "noemaforge/tests/test_smarthome_local_control_performance.py",
+    "prelaunch/governance/smarthome_local_control.example.json",
+    "docs/wiki/smarthome/local-first-smart-home-control-0.31.13.alpha-patched1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
 }
+

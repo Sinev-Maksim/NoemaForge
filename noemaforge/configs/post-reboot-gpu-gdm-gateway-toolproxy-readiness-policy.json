@@ -1,0 +1,198 @@
+{
+  "apiVersion": "noemaforge.post-reboot-gpu-gdm-gateway-toolproxy-readiness/v1",
+  "kind": "PostRebootGpuGdmGatewayToolproxyReadinessPolicy",
+  "policy": {
+    "id": "post-reboot-gpu-gdm-gateway-toolproxy-readiness-core",
+    "status": "shadow",
+    "completion_state": "blocked_until_target_post_reboot_gpu_gdm_gateway_toolproxy_evidence",
+    "blocked_todo": "Run live NoemaForge post-reboot GPU/GDM/gateway/ToolProxy validation.",
+    "local_validator_only": true,
+    "target_machine_required": true,
+    "operator_approval_required": true,
+    "safety_controls": [
+      "no_auto_live_execution",
+      "target_machine_required",
+      "operator_approval_required",
+      "post_reboot_baseline_required",
+      "gpu_gdm_required",
+      "gateway_toolproxy_required",
+      "archive_required",
+      "local_validator_has_no_subprocess"
+    ],
+    "output_artifacts": [
+      "post_reboot_gpu_gdm_gateway_toolproxy_summary",
+      "blocked_completion_notice",
+      "target_post_reboot_validation_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_checks": [
+      {
+        "id": "target-boot-baseline",
+        "title": "Target boot baseline after reboot",
+        "target_evidence_required": true,
+        "commands": [
+          "cat /proc/sys/kernel/random/boot_id",
+          "date --iso-8601=seconds",
+          "hostnamectl --static || hostname",
+          "systemctl is-system-running || true",
+          "systemctl --failed --no-legend || true"
+        ],
+        "evidence": [
+          "boot_id",
+          "target_timestamp",
+          "system_running_state",
+          "failed_units",
+          "target_host"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "system_state_recorded",
+          "failed_units_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval for live target validation",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "printf '%s\\n' '<operator records approval before live target probes>'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host",
+          "approval_timestamp"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_post_reboot_gpu_gdm_gateway_toolproxy_validation",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gpu-gdm-baseline",
+        "title": "GPU and GDM/display-manager baseline",
+        "target_evidence_required": true,
+        "commands": [
+          "systemctl is-active display-manager.service || true",
+          "systemctl is-active gdm.service || true",
+          "systemctl is-active graphical.target || true",
+          "nvidia-smi --query-gpu=name,driver_version,memory.total,ecc.mode.current --format=csv,noheader",
+          "ls -l /dev/nvidia* 2>/dev/null || true"
+        ],
+        "evidence": [
+          "display_manager_state",
+          "gdm_state",
+          "graphical_target_state",
+          "nvidia_smi_csv",
+          "nvidia_device_nodes"
+        ],
+        "completion_gates": [
+          "display_manager_recorded",
+          "gdm_state_recorded",
+          "nvidia_signal_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gateway-toolproxy-services",
+        "title": "Gateway and ToolProxy service baseline",
+        "target_evidence_required": true,
+        "commands": [
+          "systemctl is-active noemaforge-llm-gateway.service || true",
+          "systemctl is-active noemaforge-toolproxy.service || true",
+          "systemctl status noemaforge-llm-gateway.service --no-pager -l || true",
+          "systemctl status noemaforge-toolproxy.service --no-pager -l || true",
+          "noemaforge status --json"
+        ],
+        "evidence": [
+          "gateway_service_state",
+          "toolproxy_service_state",
+          "noemaforge_status_json",
+          "gateway_status_excerpt",
+          "toolproxy_status_excerpt"
+        ],
+        "completion_gates": [
+          "gateway_state_recorded",
+          "toolproxy_state_recorded",
+          "status_json_archived",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "socket-live-smokes",
+        "title": "Gateway and ToolProxy socket smoke evidence",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "test -S /run/noemaforge/llm/gateway.sock",
+          "test -S /run/noemaforge/toolproxy.sock",
+          "noemaforge smoke --json",
+          "noemaforge toolproxy smoke --capability llm.chat --json"
+        ],
+        "evidence": [
+          "gateway_socket_path",
+          "toolproxy_socket_path",
+          "gateway_smoke_transcript",
+          "toolproxy_smoke_json",
+          "llm_chat_capability_result"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "gateway_socket_recorded",
+          "toolproxy_socket_recorded",
+          "gateway_smoke_recorded",
+          "toolproxy_smoke_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "archive-and-redaction",
+        "title": "Archive, hash and redaction review",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge forensics --include-gpu-gdm-gateway-toolproxy",
+          "sha256sum <gpu-gdm-gateway-toolproxy-bundle>"
+        ],
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "secret_scan_summary",
+          "review_followup_record"
+        ],
+        "completion_gates": [
+          "forensics_bundle_created",
+          "bundle_sha256_recorded",
+          "redaction_manifest_recorded",
+          "review_followup_recorded"
+        ]
+      }
+    ],
+    "registry_refs": [
+      "noemaforge/configs/post-reboot-gpu-gdm-gateway-toolproxy-readiness-policy.json",
+      "noemaforge/contracts/post_reboot_gpu_gdm_gateway_toolproxy_readiness.schema.json",
+      "noemaforge/src/post_reboot_gpu_gdm_gateway_toolproxy_readiness_runtime.py",
+      "noemaforge/tests/test_post_reboot_gpu_gdm_gateway_toolproxy_readiness_runtime.py",
+      "noemaforge/tests/test_post_reboot_gpu_gdm_gateway_toolproxy_readiness_qa.py",
+      "noemaforge/tests/test_post_reboot_gpu_gdm_gateway_toolproxy_readiness_performance.py",
+      "prelaunch/governance/post_reboot_gpu_gdm_gateway_toolproxy_readiness.example.json"
+    ],
+    "docs_refs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md"
+    ],
+    "example_refs": [
+      "prelaunch/governance/post_reboot_gpu_gdm_gateway_toolproxy_readiness.example.json"
+    ]
+  }
+}

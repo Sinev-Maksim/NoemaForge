@@ -32,26 +32,8 @@ echo   BrainRoot: %BRAIN_ROOT%
 echo   LabRoot:   %LAB_ROOT%
 if not "%PY_EXE%"=="" echo   Python:    %PY_EXE%
 
-REM 1) Cleanup forbidden artifacts (pyc/__pycache__/cd/)
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\cleanup_forbidden_artifacts.ps1" -Root "%BRAIN_ROOT%"
-if errorlevel 1 echo WARN: cleanup_forbidden_artifacts.ps1 returned %ERRORLEVEL%
+if "%PY_EXE%"=="" set "PY_EXE=%NOEMAFORGE_PYTHON%"
+if "%PY_EXE%"=="" set "PY_EXE=py"
 
-REM 2) Verify seed checksums
-powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\verify_seed.ps1" -Root "%BRAIN_ROOT%"
-if errorlevel 1 exit /b %ERRORLEVEL%
-
-REM 3) Deep checker (uses python if found; will warn if missing)
-if not "%PY_EXE%"=="" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_check.ps1" -Root "%BRAIN_ROOT%" -Deep -PythonExe "%PY_EXE%"
-) else (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_check.ps1" -Root "%BRAIN_ROOT%" -Deep
-)
-if errorlevel 1 exit /b %ERRORLEVEL%
-
-REM 4) Prepare lab (needs python)
-if not "%PY_EXE%"=="" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_lab.ps1" -SeedRoot "%BRAIN_ROOT%" -LabRoot "%LAB_ROOT%" -AutoManifest -PythonExe "%PY_EXE%"
-) else (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_lab.ps1" -SeedRoot "%BRAIN_ROOT%" -LabRoot "%LAB_ROOT%" -AutoManifest
-)
+"%PY_EXE%" "%BRAIN_ROOT%\tools\prep\noemaforge_prep_core.py" firstboot --repo-root "%BRAIN_ROOT%" --lab-root "%LAB_ROOT%" --auto-manifest
 exit /b %ERRORLEVEL%

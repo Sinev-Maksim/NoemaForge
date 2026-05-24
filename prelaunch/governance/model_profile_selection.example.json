@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.model-profile-selection/v1",
+  "kind": "ModelProfileSelectionExampleSet",
+  "id": "model-profile-selection-examples",
+  "version": "0.31.21.alpha",
+  "status": "shadow",
+  "scenarios": [
+    {
+      "id": "new-user-balanced-profile",
+      "trace_id": "trace:model-profile-selection:balanced",
+      "profile": "balanced",
+      "expected": {
+        "ok": true,
+        "auto_download": false,
+        "max_active_llms": 1,
+        "required_manifest_fields": ["fetch_candidates", "stage_roles", "selection_policy"]
+      }
+    },
+    {
+      "id": "writer-profile-stages-writing-roles",
+      "trace_id": "trace:model-profile-selection:writer",
+      "profile": "writer",
+      "expected": {
+        "ok": true,
+        "auto_download": false,
+        "required_role_hint": "writer"
+      }
+    }
+  ]
+}

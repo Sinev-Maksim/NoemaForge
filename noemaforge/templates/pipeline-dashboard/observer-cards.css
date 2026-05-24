@@ -1,0 +1,21 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/observer-cards.css
+Zone: gui/shell
+Version: 0.31.21.alpha
+Created: 2026-05-20
+Modified: 2026-05-20
+Purpose: Style Runtime observer cards for gateway/backend smoke affirmation.
+Inputs: Runtime observer card classes rendered by app.js.
+Outputs: Compact responsive Runtime card grid.
+Tests: noemaforge/tests/test_runtime_observer_cards_qa.py
+=== End NoemaForge File Header ===
+*/
+.observer-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.observer-card{display:grid;gap:2px;min-width:0;padding:7px;border:1px solid var(--line);border-radius:10px;background:#0b1118}
+.observer-card b,.observer-card span,.observer-card small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.observer-card b{font-size:12px}
+.observer-card span,.observer-card small{color:var(--muted);font-size:11px}
+.observer-card.ok{border-color:#246b45}
+.observer-card.warn{border-color:#775d23}
+@media(max-width:620px){.observer-cards{grid-template-columns:1fr}}

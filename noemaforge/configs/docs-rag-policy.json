@@ -1,0 +1,37 @@
+{
+  "apiVersion": "noemaforge.docs-rag/v1",
+  "kind": "DocsRAGPolicy",
+  "id": "docs-wiki-context",
+  "version": "0.32.0.alpha",
+  "index_version": "docs-rag-v1",
+  "include_globs": [
+    "docs/wiki/**/*.md",
+    "docs/architecture/**/*.md",
+    "docs/backlog/**/*.md",
+    "docs/quality/**/*.md",
+    "TODO.md",
+    "context.md"
+  ],
+  "max_chars_per_doc": 12000,
+  "top_k": 5,
+  "max_citations": 4,
+  "citation_required": true,
+  "retrieval": {
+    "mode": "lexical",
+    "network_required": false,
+    "embedding_required": false
+  },
+  "reranking": {
+    "mode": "deterministic_heuristic",
+    "signals": [
+      "term_overlap",
+      "phrase_match",
+      "title_path_boost"
+    ]
+  },
+  "answering": {
+    "mode": "extractive_grounded_summary",
+    "fallback": "knowledge_gap_notice"
+  }
+}
+

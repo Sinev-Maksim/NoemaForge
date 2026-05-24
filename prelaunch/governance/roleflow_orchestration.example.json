@@ -1,0 +1,127 @@
+{
+  "apiVersion": "noemaforge.roleflow/v1",
+  "kind": "RoleFlowSet",
+  "id": "roleflow-orchestration-examples",
+  "version": "0.31.21.alpha",
+  "flows": [
+    {
+      "apiVersion": "noemaforge.roleflow/v1",
+      "kind": "RoleFlow",
+      "id": "roleflow-admin-scary-surgeon-repair",
+      "trace_id": "trace:roleflow:admin-scary-surgeon-repair",
+      "status": "ready",
+      "orchestration_graph": {
+        "start_node": "admin_intake",
+        "nodes": [
+          {
+            "id": "admin_intake",
+            "kind": "role_switch",
+            "role_key": "operator.admin/administrator",
+            "label": "Admin intake"
+          },
+          {
+            "id": "scary_guard",
+            "kind": "guard",
+            "role_key": "system.guard/scary",
+            "label": "Scary risk guard"
+          },
+          {
+            "id": "admin_approval",
+            "kind": "approval",
+            "role_key": "operator.admin/administrator",
+            "label": "Admin explicit approval"
+          },
+          {
+            "id": "surgeon_switch",
+            "kind": "role_switch",
+            "role_key": "system.guard/surgeon",
+            "label": "Surgeon repair switch"
+          },
+          {
+            "id": "repair_branch",
+            "kind": "branch",
+            "role_key": "system.guard/surgeon",
+            "label": "Repair branch"
+          },
+          {
+            "id": "repair_baton",
+            "kind": "baton",
+            "role_key": "system.guard/surgeon",
+            "baton_id": "baton:roleflow:surgeon-repair",
+            "label": "Durable repair baton"
+          },
+          {
+            "id": "admin_rollback",
+            "kind": "rollback",
+            "role_key": "operator.admin/administrator",
+            "label": "Admin rollback"
+          }
+        ],
+        "edges": [
+          {
+            "id": "edge:intake-to-guard",
+            "from": "admin_intake",
+            "to": "scary_guard",
+            "kind": "next"
+          },
+          {
+            "id": "edge:guard-to-approval",
+            "from": "scary_guard",
+            "to": "admin_approval",
+            "kind": "guard",
+            "condition": "risk_class in ['low', 'medium']"
+          },
+          {
+            "id": "edge:approval-to-surgeon",
+            "from": "admin_approval",
+            "to": "surgeon_switch",
+            "kind": "approval",
+            "approver_role": "operator.admin/administrator"
+          },
+          {
+            "id": "edge:surgeon-to-branch",
+            "from": "surgeon_switch",
+            "to": "repair_branch",
+            "kind": "next"
+          },
+          {
+            "id": "edge:branch-to-baton",
+            "from": "repair_branch",
+            "to": "repair_baton",
+            "kind": "branch",
+            "condition": "repair_plan_valid == true"
+          },
+          {
+            "id": "edge:branch-to-rollback",
+            "from": "repair_branch",
+            "to": "admin_rollback",
+            "kind": "rollback",
+            "condition": "repair_plan_valid == false",
+            "rollback_target": "admin_intake"
+          }
+        ],
+        "batons": [
+          {
+            "id": "baton:roleflow:surgeon-repair",
+            "role_key": "system.guard/surgeon",
+            "durable": true,
+            "sleep_wake": true,
+            "handoff_reason": "approved_guarded_repair",
+            "resume_policy": "resume_from_last_acknowledged_edge",
+            "payload": {
+              "active_node": "repair_baton",
+              "previous_role": "operator.admin/administrator",
+              "guard_role": "system.guard/scary",
+              "rollback_target": "admin_intake"
+            }
+          }
+        ]
+      },
+      "refs": [
+        "noemaforge/configs/roleflow-orchestration-policy.json",
+        "noemaforge/configs/role-kernel-policy.json",
+        "docs/backlog/ROADMAP_AND_TODO.md"
+      ]
+    }
+  ]
+}

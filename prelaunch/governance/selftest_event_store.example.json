@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.selftest-event-store/v1",
+  "kind": "SelfTestEventStoreExampleSet",
+  "id": "selftest-event-store-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "offline-report-to-canonical-events",
+      "trace_id": "trace:selftest:event-store:offline-report",
+      "expected_event_types": ["selftest.run.summary", "selftest.case.result"],
+      "expected_event_count": 3,
+      "report": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.31.13.alpha-patched1",
+        "run_id": "selftest_events_example",
+        "suite": "core",
+        "started_at": "2026-05-20T02:56:00Z",
+        "finished_at": "2026-05-20T02:56:05Z",
+        "summary": {"ok": false, "case_count": 2, "passed": 1, "failed": 1, "duration_total_sec": 1.0, "duration_max_sec": 0.7, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "cli_status_json", "module": "operator_cli", "tier": "smoke", "status": "pass", "metrics": {"duration_sec": 0.3, "max_rss_kib": 8000, "disk_write_bytes": 32}},
+          {"case_id": "pipeline_validate", "module": "pipeline_runtime", "tier": "unit", "status": "fail", "problems": ["stdout missing ok"], "metrics": {"duration_sec": 0.7, "max_rss_kib": 12000, "disk_write_bytes": 32}}
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,127 @@
+{
+  "apiVersion": "noemaforge.docs-hygiene/v1",
+  "kind": "DocsHygienePolicy",
+  "id": "prelaunch-docs-hygiene",
+  "version": "0.32.0.alpha",
+  "status": "stable",
+  "policy": {
+    "approved_markdown_prefixes": [
+      "noemaforge/docs/",
+      "helpers/",
+      "prelaunch/"
+    ],
+    "allowed_root_markdown": [],
+    "allowed_docs_root_markdown": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/Manifest.md",
+      "noemaforge/docs/TODO.md"
+    ],
+    "allowed_package_root_markdown": [],
+    "legacy_root_markdown_patterns": [],
+    "canonical_changelog_refs": [
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "allowed_parallel_changelog_prefixes": [],
+    "forbidden_markdown_prefixes": [
+      "noemaforge/docs/source_reports/",
+      "noemaforge/docs/research_sources/",
+      "noemaforge/docs/research/",
+      "noemaforge/docs/todo/",
+      "noemaforge/docs/patches/",
+      "noemaforge/docs/pub\u006cic/",
+      "noemaforge/docs/wiki/pub\u006cic/"
+    ],
+    "required_canonical_files": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/Manifest.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/wiki/WIKI.md"
+    ],
+    "required_checked_todo_items": [
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add Unified Registry for model, prompt, retriever, reranker, tool-policy, pipeline, persona, task, epoch and eval-pack versions."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add trace_id across Admin chat, GUI jobs, pipeline runs, model selection and tool calls."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add EvaluationGate contract for code, prompt, model, RAG, pipeline and router changes."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add Intent Router Eval Pack and per-route metrics."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add safe rollout lifecycle for epoch, prompt and routing changes: shadow, canary, promote, rollback."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add ReleaseEvidence artifact for every promoted change."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add abstention policy: auto-route, ask clarification, defer to Admin/SR/SSR or block."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add production RAG subsystem for docs/wiki/context with retrieval, reranking and citations."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add RAG eval: retrieval hit rate, citation coverage, groundedness and answer helpfulness."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add Model Card, Prompt Card, Pipeline Card, Epoch Card and Tool Policy Card."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add data-centric error loop: classify errors, create regression tests, update docs/eval packs."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add trajectory-level evaluation for agent loops."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add GraphRAG experiment pack after classic RAG stabilizes."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add MCP adapter registry under zero-trust policy."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add A2A only as optional reviewed interoperability layer."
+      },
+      {
+        "file": "noemaforge/docs/TODO.md",
+        "label": "Add PEFT/LoRA lab only after evaluation and rollback gates mature."
+      }
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/docs-hygiene-policy.json",
+    "noemaforge/contracts/docs_hygiene_policy.schema.json",
+    "noemaforge/src/docs_hygiene_runtime.py",
+    "noemaforge/tests/test_docs_hygiene_runtime.py",
+    "noemaforge/tests/test_docs_hygiene_qa.py",
+    "noemaforge/tests/test_docs_hygiene_performance.py",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/Manifest.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/wiki/WIKI.md",
+    "noemaforge/docs/wiki/strict-markdown-placement-0.31.21.alpha.md"
+  ]
+}
+

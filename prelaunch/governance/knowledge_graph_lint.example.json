@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.knowledge-graph-lint/v1",
+  "kind": "KnowledgeGraphLintExampleSet",
+  "id": "knowledge-graph-lint-examples",
+  "version": "0.31.21.alpha",
+  "scenarios": [
+    {
+      "id": "knowledge-maintenance-findings",
+      "trace_id": "trace:knowledge-graph-lint:maintenance",
+      "graph": {
+        "graph_ref": "hypergraph:knowledge-maintenance:demo",
+        "concepts": [
+          {"id": "concept:administrator", "labels": ["Administrator"], "realm_id": "realm:admin"},
+          {"id": "concept:orphan", "labels": ["Unused concept"], "realm_id": "realm:admin"}
+        ],
+        "claims": [
+          {
+            "id": "claim:supported",
+            "summary": "Administrator answers should cite graph-backed provenance.",
+            "status": "supported",
+            "concept_ids": ["concept:administrator"],
+            "passage_refs": ["passage:fresh"],
+            "citations": ["source:policy"]
+          },
+          {
+            "id": "claim:unsupported",
+            "summary": "Unsupported graph claim must not be published as grounded.",
+            "status": "unsupported",
+            "concept_ids": ["concept:administrator"],
+            "passage_refs": [],
+            "citations": []
+          }
+        ],
+        "passages": [
+          {"id": "passage:fresh", "source_ref": "source:policy", "age_days": 3, "claim_ids": ["claim:supported"]},
+          {"id": "passage:stale", "source_ref": "source:old", "age_days": 90, "claim_ids": []}
+        ],
+        "conflicts": [
+          {"id": "conflict:open", "summary": "Projection page drifted from graph state.", "status": "open", "claim_ids": ["claim:unsupported"]}
+        ],
+        "realm_bridges": [
+          {"id": "bridge:weak", "from_realm": "realm:admin", "to_realm": "realm:docs", "strength": 0.2, "evidence_refs": []}
+        ]
+      },
+      "expected_finding_types": [
+        "orphan_concept",
+        "unsupported_claim",
+        "stale_passage",
+        "unresolved_conflict",
+        "weak_realm_bridge"
+      ],
+      "expected_target_roles": ["Administrator", "Surgeon"],
+      "expected_loop_targets": ["prestart", "scheduled_maintenance"]
+    }
+  ]
+}

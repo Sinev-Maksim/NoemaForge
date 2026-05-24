@@ -138,9 +138,24 @@ ensure_share_mount() {
   [[ -r "$SHARE_ROOT" ]] || fail "$SHARE_ROOT is not readable."
 }
 
+validate_llama_server_runtime() {
+  local bin="$1" ldd_out="" ldd_rc=0
+  [[ -x "$bin" ]] || fail "llama-server is not executable: $bin"
+  command -v ldd >/dev/null 2>&1 || fail "ldd not found; cannot verify llama-server shared-library readiness."
+  ldd_out="$(ldd "$bin" 2>&1)" || ldd_rc=$?
+  if printf '%s\n' "$ldd_out" | grep -q 'not found'; then
+    fail "llama-server has unresolved shared libraries: $(printf '%s\n' "$ldd_out" | grep 'not found' | head -n 3 | tr '\n' '; ')"
+  fi
+  if [[ "$ldd_rc" -ne 0 ]] && ! printf '%s\n' "$ldd_out" | grep -Eqi 'not a dynamic executable|statically linked'; then
+    fail "llama-server shared-library inspection failed with ldd rc=${ldd_rc}: $(printf '%s\n' "$ldd_out" | head -n 3 | tr '\n' '; ')"
+  fi
+  log "llama-server binary/shared-library gate passed: $bin"
+}
+
 ensure_llama_server() {
   if [[ -x /opt/noemaforge/bin/llama-server ]]; then
     log "llama-server present: /opt/noemaforge/bin/llama-server"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
     return 0
   fi
   log "llama-server missing in /opt/noemaforge/bin; searching local disks/share."
@@ -149,6 +164,7 @@ ensure_llama_server() {
   if [[ -n "$cand" ]]; then
     install -m 0755 "$cand" /opt/noemaforge/bin/llama-server
     log "Installed llama-server from: $cand"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
     return 0
   fi
   cat >&2 <<'ERR'

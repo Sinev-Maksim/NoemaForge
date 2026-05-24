@@ -1,0 +1,52 @@
+{
+  "apiVersion": "noemaforge.release-provenance/v1",
+  "kind": "ReleaseProvenancePolicy",
+  "id": "release-provenance-core",
+  "version": "0.32.0.alpha",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "signed_release_provenance",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_artifact_kinds": ["release_archive"],
+    "required_materials": [
+      "archive",
+      "manifest",
+      "signature",
+      "checksums",
+      "release_notes",
+      "changelog",
+      "install_transcript",
+      "verification_summary"
+    ],
+    "signing_controls": {
+      "sha256_required": true,
+      "signature_required": true,
+      "detached_signature_required": true,
+      "public_key_fingerprint_required": true,
+      "plaintext_private_key_allowed": false,
+      "allowed_signature_schemes": ["ed25519", "minisign", "cosign-keyless"]
+    },
+    "required_example_sets": [
+      "prelaunch/governance/release_provenance.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/release-provenance-policy.json",
+    "noemaforge/contracts/release_provenance.schema.json",
+    "noemaforge/src/release_provenance_runtime.py",
+    "noemaforge/tests/test_release_provenance_runtime.py",
+    "noemaforge/tests/test_release_provenance_qa.py",
+    "noemaforge/tests/test_release_provenance_performance.py",
+    "prelaunch/governance/release_provenance.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/onboarding/PUBLIC_MVP_CHECKLIST_0.30.0.md"
+  ]
+}
+

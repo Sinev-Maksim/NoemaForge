@@ -1,0 +1,187 @@
+{
+  "apiVersion": "noemaforge.live-testbench-suite-readiness/v1",
+  "kind": "LiveTestbenchSuiteReadinessPolicy",
+  "policy": {
+    "id": "live-testbench-suite-readiness-core",
+    "status": "shadow",
+    "completion_state": "blocked_until_target_live_testbench_suite_evidence",
+    "blocked_todo": "Run live testbench suite on NoemaForge: `noemaforge testbench run --suite live --include-live`.",
+    "local_validator_only": true,
+    "target_machine_required": true,
+    "operator_approval_required": true,
+    "safety_controls": [
+      "no_auto_live_execution",
+      "target_machine_required",
+      "operator_approval_required",
+      "live_suite_requires_include_live",
+      "resource_telemetry_required",
+      "baseline_compare_required",
+      "archive_required",
+      "local_validator_has_no_subprocess"
+    ],
+    "output_artifacts": [
+      "live_testbench_suite_summary",
+      "blocked_completion_notice",
+      "target_live_testbench_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_checks": [
+      {
+        "id": "target-baseline",
+        "title": "Target baseline before live testbench",
+        "target_evidence_required": true,
+        "commands": [
+          "cat /proc/sys/kernel/random/boot_id",
+          "date --iso-8601=seconds",
+          "hostnamectl --static || hostname",
+          "noemaforge status --json",
+          "noemaforge testbench catalog --json"
+        ],
+        "evidence": [
+          "boot_id",
+          "target_timestamp",
+          "target_host",
+          "noemaforge_status_json",
+          "testbench_catalog_json"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "status_json_archived",
+          "catalog_json_archived"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval for live testbench suite",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "printf '%s\\n' '<operator records approval before live testbench suite>'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host",
+          "approval_timestamp"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_live_testbench_suite",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "live-suite-catalog",
+        "title": "Live suite catalog and include-live proof",
+        "target_evidence_required": true,
+        "commands": [
+          "noemaforge testbench catalog --json",
+          "printf '%s\\n' '--include-live approved for live suite run'"
+        ],
+        "evidence": [
+          "live_suite_case_ids",
+          "include_live_flag_recorded",
+          "live_case_count",
+          "suite_catalog_digest"
+        ],
+        "completion_gates": [
+          "live_suite_cases_recorded",
+          "include_live_flag_recorded",
+          "catalog_digest_recorded"
+        ]
+      },
+      {
+        "id": "live-suite-run",
+        "title": "Live testbench suite command transcript",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge testbench run --suite live --include-live --json"
+        ],
+        "evidence": [
+          "live_testbench_command",
+          "live_testbench_exit_code",
+          "live_testbench_stdout_json",
+          "live_testbench_stderr_excerpt",
+          "selftest_report_path"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "include_live_flag_used",
+          "suite_exit_code_recorded",
+          "selftest_report_archived"
+        ]
+      },
+      {
+        "id": "telemetry-artifacts",
+        "title": "Per-case telemetry artifacts",
+        "target_evidence_required": true,
+        "commands": [
+          "test -s <live-testbench-out>/selftest-report.json",
+          "find <live-testbench-out>/cases -name result.json -print"
+        ],
+        "evidence": [
+          "case_result_paths",
+          "duration_sec_metrics",
+          "max_rss_kib_metrics",
+          "disk_io_metrics",
+          "gpu_ecc_metrics_or_na"
+        ],
+        "completion_gates": [
+          "case_results_archived",
+          "resource_metrics_recorded",
+          "gpu_ecc_metrics_recorded_or_marked_na"
+        ]
+      },
+      {
+        "id": "baseline-compare-and-archive",
+        "title": "Baseline comparison, wiki patch and reviewed archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge testbench baseline --suite live --json",
+          "noemaforge testbench report --json",
+          "noemaforge wiki-patch create --report <live-testbench-out>/selftest-report.json --json",
+          "sha256sum <live-testbench-archive>"
+        ],
+        "evidence": [
+          "baseline_compare_json",
+          "wiki_patch_manifest",
+          "archive_path",
+          "archive_sha256",
+          "redaction_manifest",
+          "review_followup_record"
+        ],
+        "completion_gates": [
+          "baseline_compare_recorded",
+          "wiki_patch_manifest_recorded",
+          "archive_sha256_recorded",
+          "review_followup_recorded"
+        ]
+      }
+    ],
+    "registry_refs": [
+      "noemaforge/configs/live-testbench-suite-readiness-policy.json",
+      "noemaforge/contracts/live_testbench_suite_readiness.schema.json",
+      "noemaforge/src/live_testbench_suite_readiness_runtime.py",
+      "noemaforge/tests/test_live_testbench_suite_readiness_runtime.py",
+      "noemaforge/tests/test_live_testbench_suite_readiness_qa.py",
+      "noemaforge/tests/test_live_testbench_suite_readiness_performance.py",
+      "prelaunch/governance/live_testbench_suite_readiness.example.json"
+    ],
+    "docs_refs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/wiki/metrics/testbench-and-regression-metrics.md",
+      "noemaforge/docs/wiki/pipelines/self-improvement-pipelines.md"
+    ],
+    "example_refs": [
+      "prelaunch/governance/live_testbench_suite_readiness.example.json"
+    ]
+  }
+}
