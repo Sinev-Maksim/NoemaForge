@@ -264,7 +264,7 @@ else
 fi
 
 
-# 0.31.13.alpha-patched1: code-dev member-cell and legacy QA surfaces.
+# 0.32.1: code-dev member-cell and legacy QA surfaces.
 if "$NOEMAFORGE_BIN" qa code team --producer qwen25-coder-14b --json >/tmp/noemaforge-mvp-codeqa-team.json 2>/tmp/noemaforge-mvp-codeqa-team.err && grep -q '"reviewers"' /tmp/noemaforge-mvp-codeqa-team.json; then
   record code_qa_team pass "code QA reviewer selection excludes producer and returns sub-team"
 else

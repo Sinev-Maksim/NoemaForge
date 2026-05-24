@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/machine_local_defaults_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate /etc/default/noemaforge-* machine-local override defaults.
@@ -237,7 +237,7 @@ def _service_envfile_reports(policy: Dict[str, Any], *, project_root: Path, pack
 
 def _installer_report(policy: Dict[str, Any], *, project_root: Path, package_root: Path) -> Dict[str, Any]:
     failures: List[str] = []
-    resolved = _resolve_ref("install_noemaforge_0.31.21.alpha_mvp.sh", project_root=project_root, package_root=package_root)
+    resolved = _resolve_ref("install_noemaforge_0.32.1_mvp.sh", project_root=project_root, package_root=package_root)
     text = load_text(resolved["path"]) if resolved.get("ok") else ""
     if not resolved.get("ok"):
         failures.append("installer_missing")

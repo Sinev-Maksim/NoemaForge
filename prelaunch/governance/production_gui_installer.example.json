@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.production-gui-installer/v1",
   "kind": "ProductionGuiInstallerExampleSet",
   "id": "production-gui-installer-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "production-gui-installer-dry-run",

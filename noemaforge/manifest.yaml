@@ -1,5 +1,5 @@
 seed_format: 1
-noemaforge_version: 0.32.0.alpha
+noemaforge_version: 0.32.1
 codename: 'Public MWP Full: single-active runtime + recovery UX + model advisor'
 arch:
 - amd64
@@ -21,7 +21,6 @@ contents:
   - toolvault/plugins/voice.bundle
 notes:
 
-- 'v0.32.0.alpha: Minor release-gate package metadata, documentation completeness audit, research integration, strict Markdown hygiene, manifest/checksum regeneration, clean archive rebuild, and post-archive verification report. Release readiness remains blocked until all required host tooling and post-extract gates pass.'
 - 'v0.29.11-docs-sync: Synchronized context, roadmap, TODO, debug handoff, and bundled deep-research notes with the full NoemaForge recovery discussion. This is a docs/context refresh over the 0.29.11 runtime package.'
 
 - 'v0.29.06: Consolidated public MWP full candidate with idempotent stop/reboot/vault/SEL helpers, shutdown stop hook, ToolProxy SEL repair, llama socket permissions, runtime_desired_count=1 invariants, model size/quantization advisor, context.md transfer document, updated policies and package checksums.'

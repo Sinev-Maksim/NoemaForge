@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_setup_front_door_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate setup front-door runtime behavior.
@@ -54,7 +54,7 @@ class SetupFrontDoorRuntimeTests(unittest.TestCase):
 
     def test_setup_script_prints_single_command_progress_phases(self) -> None:
         setup = (PROJECT_ROOT / "setup.sh").read_text(encoding="utf-8")
-        installer = (PROJECT_ROOT / "install_noemaforge_0.31.21.alpha_mvp.sh").read_text(encoding="utf-8")
+        installer = (PROJECT_ROOT / "install_noemaforge_0.32.1_mvp.sh").read_text(encoding="utf-8")
         analysis = sfd.analyze_setup_front_door(setup, installer)
 
         self.assertTrue(analysis["ok"], analysis["failures"])

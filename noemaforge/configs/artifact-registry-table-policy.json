@@ -2,14 +2,14 @@
   "apiVersion": "noemaforge.artifact-registry-table/v1",
   "kind": "ArtifactRegistryTablePolicy",
   "id": "artifact-registry-table-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "artifact_registry_table_contract",
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "closed_todo_refs": [
       "Add artifact registry table for outputs/reviews/graph patches."
     ],

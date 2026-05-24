@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.dashboard-launcher/v1",
   "kind": "DashboardLauncherExampleSet",
   "id": "dashboard-launcher-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "dashboard-path-state",

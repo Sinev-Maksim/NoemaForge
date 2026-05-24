@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.grounded-administrator/v1",
   "kind": "GroundedAdministratorExampleSet",
   "id": "grounded-administrator-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "admin-hypergraph-first-answer",

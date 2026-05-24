@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.hypergraph-error-improvement/v1",
   "kind": "HypergraphErrorImprovementExampleSet",
   "id": "hypergraph-error-improvement-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "reviewed-hypergraph-errors-feed-training-and-eval",

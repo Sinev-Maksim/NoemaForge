@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_premerge_release_guard_performance.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test pre-merge release guard on synthetic self-test reports.
@@ -43,7 +43,7 @@ def synthetic_report(run_id: str, cases: int = 180) -> dict:
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": run_id,
         "suite": "synthetic",
         "summary": {

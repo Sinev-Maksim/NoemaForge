@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.setup-default-path/v1",
   "kind": "SetupDefaultPathExampleSet",
   "id": "setup-default-path-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "vm-first-canonical-onboarding",

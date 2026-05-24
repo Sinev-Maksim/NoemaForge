@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # === NoemaForge File Header ===
-# File: install_noemaforge_0.31.13.alpha-patched1_mvp.sh
+# File: install_noemaforge_0.32.1_mvp.sh
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Install a historical or current NoemaForge release payload.
@@ -12,15 +12,15 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha-patched1 public MVP/MWP installer.
+# NoemaForge 0.32.1 public MVP/MWP installer.
 # Installs the operator CLI, safe runtime helpers, docs, and config defaults.
 # It does not auto-start heavy LLM backends and does not enable parallel runtime.
 set -euo pipefail
 
-# 0.31.13.alpha-patched1: this is the real installer; it performs installation directly and must not re-enter setup.
+# 0.32.1: this is the real installer; it performs installation directly and must not re-enter setup.
 # setup.sh may delegate here, but this file performs the install directly.
 
-VERSION="0.31.13.alpha-patched1"
+VERSION="0.32.1"
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOTFS="/"
 DATA_ROOT="/var/lib/noemaforge"
@@ -32,7 +32,7 @@ PRESERVE_TIMERS=0
 DRY_RUN=0
 
 usage(){ cat <<'USAGE'
-Usage: sudo ./install_noemaforge_0.31.13.alpha-patched1_mvp.sh [options]
+Usage: sudo ./install_noemaforge_0.32.1_mvp.sh [options]
 
 Options:
   --verify                    Verify SHA256SUMS when present.
@@ -86,8 +86,8 @@ fi
 if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: shell syntax"
   bash -n "$PKG_DIR/setup.sh"
-  bash -n "$PKG_DIR/install_noemaforge_0.31.13.alpha-patched1_mvp.sh"
-  bash -n "$PKG_DIR/uninstall_noemaforge_0.31.13.alpha-patched1_mvp.sh"
+  bash -n "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh"
+  bash -n "$PKG_DIR/uninstall_noemaforge_0.32.1_mvp.sh"
   bash -n "$PKG_DIR/noemaforge/bin/noemaforge"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-version-audit.sh"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-first-run-audit.sh"
@@ -151,7 +151,7 @@ for h in noemaforge-stop noemaforge-reboot-safe noemaforge-sel-fix noemaforge-va
   [[ -f "$PKG_DIR/helpers/$h" ]] && install_file "$PKG_DIR/helpers/$h" "/usr/local/sbin/$h" 0755
 done
 install_file "$PKG_DIR/lib/noemaforge-common.sh" /usr/local/lib/noemaforge-common.sh 0644
-# 0.31.13.alpha-patched1: public noemaforge commands are symlinks to the canonical /opt/noemaforge CLI; no wrapper is installed so `noemaforge version` and policy always use the same root.
+# 0.32.1: public noemaforge commands are symlinks to the canonical /opt/noemaforge CLI; no wrapper is installed so `noemaforge version` and policy always use the same root.
 install_symlink /opt/noemaforge/bin/noemaforge /usr/local/sbin/noemaforge
 install_symlink /opt/noemaforge/bin/noemaforge /usr/local/bin/noemaforge
 install_symlink /opt/noemaforge/bin/noemaforge /usr/bin/noemaforge
@@ -179,7 +179,7 @@ install_symlink /usr/local/sbin/gui-start /opt/helpers/gui-start
 install_symlink /usr/local/sbin/gui-start /opt/helpers/gui_start
 
 install -d -m 0750 "$(target "$DATA_ROOT")" "$(target "$DATA_ROOT/.sys")" "$(target "$DATA_ROOT/bootstrap")"
-# 0.31.13.alpha-patched1 live-fix: create writable runtime/state directories for operator-facing
+# 0.32.1 live-fix: create writable runtime/state directories for operator-facing
 # commands and service users before systemd services start.
 for d in   "$DATA_ROOT/pipelines" "$DATA_ROOT/personas" "$DATA_ROOT/testbench" "$DATA_ROOT/selftest" "$DATA_ROOT/selftests"   "$DATA_ROOT/wiki-patches" "$DATA_ROOT/wiki_patches" "$DATA_ROOT/dashboard" "$DATA_ROOT/runtime"   "$DATA_ROOT/model-evolution" "$DATA_ROOT/model-selection" "$DATA_ROOT/dev-team" "$DATA_ROOT/multimodal"   "$DATA_ROOT/model_scorecards" "$DATA_ROOT/team_scorecards" "$DATA_ROOT/contracts" "$DATA_ROOT/requests" "$DATA_ROOT/requests/prestart"   "$DATA_ROOT/boot" "$DATA_ROOT/boot/reports" "$DATA_ROOT/outbox"; do
   install -d -m 2775 "$(target "$d")"
@@ -375,7 +375,7 @@ PYFSTAB
   systemctl disable --now brainos-llm-gateway.service brainos-toolproxy.service brainos-memsentinel.service brainos-autostart-gui.service brainos-autostart-gui.timer brainos-first-start.service 2>/dev/null || true
   /usr/local/sbin/noemaforge-sel-fix 2>/dev/null || true
   systemctl daemon-reload 2>/dev/null || true
-  # 0.31.13.alpha-patched1: GUI mode must be timer-driven. The direct service is never enabled under graphical.target.
+  # 0.32.1: GUI mode must be timer-driven. The direct service is never enabled under graphical.target.
   mode="manual"
   [[ -r /etc/noemaforge/boot-mode ]] && mode="$(tr -d '[:space:]' < /etc/noemaforge/boot-mode)"
   case "$mode" in

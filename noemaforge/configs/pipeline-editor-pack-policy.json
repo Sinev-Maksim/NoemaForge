@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-editor-pack/v1",
   "kind": "PipelineEditorPackPolicy",
   "id": "pipeline-editor-pack-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "summary": "Pipeline editor drafts must support drag-and-drop edit events, clone as a new pipeline class and Scary/Architecture/Admin review before activation.",
   "policy": {

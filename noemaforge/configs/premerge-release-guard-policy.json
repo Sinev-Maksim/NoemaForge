@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.premerge-release-guard/v1",
   "kind": "PremergeReleaseGuardPolicy",
   "id": "premerge-release-guard-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "release_guard": {
     "require_baseline_report": true,
@@ -20,7 +20,7 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "required_selftest_commands": ["release-guard"],
     "required_outputs": ["premerge-release-guard.json"],
     "required_refs": {

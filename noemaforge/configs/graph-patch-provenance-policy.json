@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.graph-patch-provenance/v1",
   "kind": "GraphPatchProvenancePolicy",
   "id": "graph-patch-provenance-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,7 @@
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "require_no_live_graph_mutation": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "closed_todo_refs": [
       "Add graph patch format and provenance schema."
     ],

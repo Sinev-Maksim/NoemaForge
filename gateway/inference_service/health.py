@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: gateway/inference_service/health.py
 Zone: prelaunch/gateway
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Provide health, readiness and metrics payloads for the gateway inference service skeleton.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/multimodal_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -32,7 +32,7 @@ try:
 except Exception:  # pragma: no cover - installed path fallback
     model_inventory_normalize = None  # type: ignore[assignment]
 
-VERSION = "0.31.13.alpha-patched1"
+VERSION = "0.32.1"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MULTIMODAL_STATE", "/var/lib/noemaforge/multimodal"))
 DEFAULT_VAULT = Path(os.environ.get("NOEMAFORGE_VAULT", "/mnt/noemaforge-share/noemaforge-lab/data/Vault"))

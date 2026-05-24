@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_release_provenance_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate signed release provenance archive invariants.
@@ -73,8 +73,8 @@ class ReleaseProvenanceRuntimeTests(unittest.TestCase):
             report = rpr.validate_release_provenance_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
 
         self.assertFalse(report["ok"])
-        self.assertIn("release_signature_missing:noemaforge-0.31.13-alpha-patched1-public-archive", report["failures"])
-        self.assertIn("release_signature_artifact_missing:noemaforge-0.31.13-alpha-patched1-public-archive:archive", report["failures"])
+        self.assertIn("release_signature_missing:noemaforge-0.32.1-alpha-patched1-public-archive", report["failures"])
+        self.assertIn("release_signature_artifact_missing:noemaforge-0.32.1-alpha-patched1-public-archive:archive", report["failures"])
 
     def test_install_transcript_and_verification_summary_are_required(self) -> None:
         policy_path = ROOT / "configs" / "release-provenance-policy.json"
@@ -88,8 +88,8 @@ class ReleaseProvenanceRuntimeTests(unittest.TestCase):
             report = rpr.validate_release_provenance_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
 
         self.assertFalse(report["ok"])
-        self.assertIn("release_material_missing:noemaforge-0.31.13-alpha-patched1-public-archive:install_transcript", report["failures"])
-        self.assertIn("release_verification_summary_not_passed:noemaforge-0.31.13-alpha-patched1-public-archive", report["failures"])
+        self.assertIn("release_material_missing:noemaforge-0.32.1-alpha-patched1-public-archive:install_transcript", report["failures"])
+        self.assertIn("release_verification_summary_not_passed:noemaforge-0.32.1-alpha-patched1-public-archive", report["failures"])
 
 
 if __name__ == "__main__":

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.sense-privacy/v1",
   "kind": "SensePrivacySet",
   "id": "sense-privacy-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "states": [
     {
       "apiVersion": "noemaforge.sense-privacy/v1",
@@ -48,7 +48,7 @@
         }
       },
       "refs": [
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
       ]
     }
   ],

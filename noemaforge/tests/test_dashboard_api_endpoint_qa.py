@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_dashboard_api_endpoint_qa.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA coverage for dashboard API endpoint documentation, registry and UI wiring.

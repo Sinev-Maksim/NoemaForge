@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # === NoemaForge File Header ===
-# File: uninstall_noemaforge_0.31.13.alpha-patched1_mvp.sh
+# File: uninstall_noemaforge_0.32.1_mvp.sh
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Install a historical or current NoemaForge release payload.
@@ -13,4 +13,4 @@
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
 set -euo pipefail
-echo "Use previous uninstall flow; 0.31.13.alpha-patched1 is an installer-loop stabilization package."
+echo "Use previous uninstall flow; 0.32.1 is an installer-loop stabilization package."

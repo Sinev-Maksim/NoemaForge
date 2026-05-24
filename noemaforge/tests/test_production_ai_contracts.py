@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_production_ai_contracts.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-18
 Modified: 2026-05-18
 Purpose: Validate production-AI lifecycle contracts introduced by the TODO backlog.
@@ -167,13 +167,13 @@ class ProductionAIContractTests(unittest.TestCase):
             {"change_id": "rag-change-1", "domain": "rag", "summary": "Tune retrieval."},
             gate,
             rollout,
-            registry_refs=["retriever:knowledge-keyword-retrieval:0.31.13.alpha-patched1"],
+            registry_refs=["retriever:knowledge-keyword-retrieval:0.32.1"],
             trace_id="trace-123",
         )
         self.assertEqual("ReleaseEvidence", evidence["kind"])
         self.assertEqual("trace-123", evidence["trace_id"])
         self.assertTrue(evidence["gate"]["ok"])
-        self.assertEqual(["retriever:knowledge-keyword-retrieval:0.31.13.alpha-patched1"], evidence["registry_refs"])
+        self.assertEqual(["retriever:knowledge-keyword-retrieval:0.32.1"], evidence["registry_refs"])
 
     def test_artifact_cards_cover_model_prompt_pipeline_epoch_and_tool_policy(self) -> None:
         registry = {"entries": []}
@@ -278,15 +278,15 @@ class ProductionAIContractTests(unittest.TestCase):
             {
                 "id": "docs_model_selection_dev_team",
                 "query": "What does optimize model for Dev Team mean?",
-                "expected_source_refs": ["docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md"],
+                "expected_source_refs": ["docs/wiki/first-start/model-selection-modes-0.32.1.md"],
                 "expected_answer_terms": ["model", "dev team", "trace"],
             }
         ]
         results = [
             {
                 "case_id": "docs_model_selection_dev_team",
-                "retrieved_refs": ["docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md"],
-                "citations": [{"source_ref": "docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md"}],
+                "retrieved_refs": ["docs/wiki/first-start/model-selection-modes-0.32.1.md"],
+                "citations": [{"source_ref": "docs/wiki/first-start/model-selection-modes-0.32.1.md"}],
                 "grounded": True,
                 "answer": "Model selection for Dev Team should carry trace evidence.",
             }
@@ -308,14 +308,14 @@ class ProductionAIContractTests(unittest.TestCase):
             {
                 "id": "docs_admin_routing_eval_pack",
                 "query": "How is Admin intent routing evaluated?",
-                "expected_source_refs": ["docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.31.21.alpha.md"],
+                "expected_source_refs": ["docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"],
                 "expected_answer_terms": ["intent", "route", "abstention"],
             }
         ]
         results = [
             {
                 "case_id": "docs_admin_routing_eval_pack",
-                "retrieved_refs": ["docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.31.21.alpha.md"],
+                "retrieved_refs": ["docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"],
                 "citations": [],
                 "grounded": True,
                 "answer": "Intent route abstention is evaluated.",
@@ -387,7 +387,7 @@ class ProductionAIContractTests(unittest.TestCase):
             {"decision": "pass", "overall_ok": True, "created_at": "2026-05-18T00:00:01Z"},
             build_report_path="prestart_build_report.json",
             scary_report_path="scary_report.json",
-            registry_refs=["epoch:noemaforge-runtime:0.31.13.alpha-patched1"],
+            registry_refs=["epoch:noemaforge-runtime:0.32.1"],
             trace_id="trace-epoch",
         )
         self.assertEqual("ReleaseEvidence", evidence["kind"])

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_trend_dashboard_performance.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test self-test trend dashboard generation on synthetic reports.
@@ -47,7 +47,7 @@ def synthetic_report(index: int, cases: int = 8) -> dict:
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": f"selftest_20260520T{index:06d}Z",
         "suite": "synthetic",
         "started_at": f"2026-05-20T00:{index % 60:02d}:00Z",

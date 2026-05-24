@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_switch_policy_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate role-driven model switch policy and fallback decisions.
@@ -237,7 +237,7 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
         failures.append("policy_mode_not_offline_contract")
     if str(policy.get("activation_state") or "") != "role_preferred_model_switch_with_fallback":
         failures.append("policy_activation_state_invalid")
-    if str(policy.get("required_pipeline_ref") or "") != "pipeline:firstboot-model-selection:0.31.13.alpha-patched1":
+    if str(policy.get("required_pipeline_ref") or "") != "pipeline:firstboot-model-selection:0.32.1":
         failures.append("policy_required_pipeline_ref_invalid")
     if PRIMARY_TODO not in _as_string_list(policy.get("closed_todo_refs")):
         failures.append("policy_closed_todo_ref_missing")

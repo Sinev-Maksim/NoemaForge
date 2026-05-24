@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_llama_server_launcher_gate_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate launcher-side llama-server binary/shared-library gate.

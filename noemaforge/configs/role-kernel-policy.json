@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.role-kernel/v1",
   "kind": "RoleKernelPolicy",
   "id": "role-kernel-active-nn-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "persona_catalog_ref": "configs/persona-catalog.json",
     "role_catalog_ref": "configs/role-catalog.yaml",
     "default_roles": [

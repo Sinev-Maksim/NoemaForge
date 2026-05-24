@@ -7,7 +7,7 @@
     "public_entrypoint": "/usr/local/bin/noemaforge",
     "canonical_target": "/opt/noemaforge/bin/noemaforge",
     "package_cli_ref": "bin/noemaforge",
-    "installer_ref": "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "installer_ref": "install_noemaforge_0.32.1_mvp.sh",
     "setup_ref": "setup.sh",
     "dry_run_evidence": "installer emits link <public_path> -> <canonical_target> before any live filesystem mutation"
   },

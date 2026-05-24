@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_sense_layer_edge_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test Sense Layer Edge discoverability through registry and canonical docs.
@@ -46,15 +46,15 @@ class SenseLayerEdgeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:sense-layer-edge-core:0.32.0")
+        pack = entries.get("eval-pack:sense-layer-edge-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/sense-layer-edge.json", pack["refs"])
         self.assertIn("src/sense_layer_edge_runtime.py", pack["refs"])
         self.assertIn("sense/edge/mqtt_adapter.py", pack["refs"])
         self.assertIn("tests/test_sense_layer_edge_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:sense-layer-edge-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:sense-layer-edge-core:0.32.1", pipeline["eval_pack_refs"])
 
     def test_sense_layer_edge_docs_policy_and_schema_are_discoverable(self) -> None:
         policy = sler.load_policy(ROOT / "configs" / "sense-layer-edge.json")

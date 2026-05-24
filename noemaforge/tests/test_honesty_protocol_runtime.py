@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_honesty_protocol_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Validate Honesty Protocol contracts for unknown, need-research and error-attribution states.
@@ -104,7 +104,7 @@ class HonestyProtocolRuntimeTests(unittest.TestCase):
         self.assertEqual("ask_clarification", unknown["response_template"]["next_action"])
 
         need_research = hpr.classify_honesty_event(
-            {"trace_id": "trace:test:fresh", "confidence": 0.7, "freshness_required": True, "evidence_refs": ["docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"]},
+            {"trace_id": "trace:test:fresh", "confidence": 0.7, "freshness_required": True, "evidence_refs": ["docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"]},
             policy,
         )
         self.assertEqual("need_research", need_research["state"])

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_previous_install_context_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate previous-install context cannot become active runtime.
@@ -48,7 +48,7 @@ def valid_context() -> dict:
             "active": False,
         },
         "backup": {
-            "path": "/var/backups/noemaforge/prelaunch-0.31.13",
+            "path": "/var/backups/noemaforge/prelaunch-0.32.1",
             "mode": "readonly_evidence",
             "active": False,
         },
@@ -94,7 +94,7 @@ class PreviousInstallContextRuntimeTests(unittest.TestCase):
     def test_backup_path_cannot_be_active_runtime_root(self) -> None:
         policy = pic.load_policy(ROOT / "configs" / "previous-install-context-policy.json")
         context = copy.deepcopy(valid_context())
-        context["active_runtime"]["state_root"] = "/var/backups/noemaforge/prelaunch-0.31.13/state"
+        context["active_runtime"]["state_root"] = "/var/backups/noemaforge/prelaunch-0.32.1/state"
         report = pic.validate_previous_install_context(context, policy=policy)
 
         self.assertFalse(report["ok"])

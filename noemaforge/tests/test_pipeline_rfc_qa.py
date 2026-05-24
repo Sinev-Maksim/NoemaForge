@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_pipeline_rfc_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Pipeline RFC discoverability through registry and canonical docs.
@@ -44,14 +44,14 @@ class PipelineRFCQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:pipeline-rfc-mutation-core:0.32.0")
+        pack = entries.get("eval-pack:pipeline-rfc-mutation-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/pipeline-rfc-policy.json", pack["refs"])
         self.assertIn("src/pipeline_rfc_runtime.py", pack["refs"])
         self.assertIn("tests/test_pipeline_rfc_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:pipeline-rfc-mutation-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:pipeline-rfc-mutation-core:0.32.1", pipeline["eval_pack_refs"])
 
     def test_pipeline_rfc_docs_policy_and_changelog_are_discoverable(self) -> None:
         policy = prr.load_policy(ROOT / "configs" / "pipeline-rfc-policy.json")

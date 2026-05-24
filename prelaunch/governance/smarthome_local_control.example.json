@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.smarthome/v1",
   "kind": "SmartHomeLocalControlSet",
   "id": "smarthome-local-control-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "device_registry": {
     "apiVersion": "noemaforge.smarthome/v1",
     "kind": "SmartHomeDeviceRegistry",
     "id": "home-lab-registry",
-    "version": "0.31.21.alpha",
+    "version": "0.32.1",
     "privacy_principle": "Value your privacy: local telemetry stays on the NoemaForge home server by default.",
     "rooms": [
       {"id": "kitchen", "name": "Kitchen", "privacy_zone": "shared"},
@@ -64,6 +64,6 @@
     "noemaforge/contracts/smarthome_local_control.schema.json",
     "noemaforge/contracts/smarthome_device_registry.schema.json",
     "noemaforge/contracts/smarthome_action_contract.schema.json",
-    "docs/wiki/smarthome/local-first-smart-home-control-0.31.13.alpha-patched1.md"
+    "docs/wiki/smarthome/local-first-smart-home-control-0.32.1.md"
   ]
 }

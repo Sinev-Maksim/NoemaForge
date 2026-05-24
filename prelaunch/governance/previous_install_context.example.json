@@ -14,7 +14,7 @@
     "active": false
   },
   "backup": {
-    "path": "/var/backups/noemaforge/prelaunch-0.31.13",
+    "path": "/var/backups/noemaforge/prelaunch-0.32.1",
     "mode": "readonly_evidence",
     "active": false
   },

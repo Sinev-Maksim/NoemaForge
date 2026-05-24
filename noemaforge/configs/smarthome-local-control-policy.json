@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.smarthome/v1",
   "kind": "SmartHomeLocalControlPolicy",
   "id": "smarthome-local-control-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "principle": "Value your privacy: local-first telemetry and device control through the NoemaForge home server.",
   "policy": {
@@ -12,7 +12,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "supported_devices": [
       "smart_plug",
       "smart_switch",
@@ -66,7 +66,7 @@
     "noemaforge/tests/test_smarthome_local_control_qa.py",
     "noemaforge/tests/test_smarthome_local_control_performance.py",
     "prelaunch/governance/smarthome_local_control.example.json",
-    "docs/wiki/smarthome/local-first-smart-home-control-0.31.13.alpha-patched1.md",
+    "docs/wiki/smarthome/local-first-smart-home-control-0.32.1.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "docs/history/CHANGELOG.md",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.machine-local-defaults/v1",
   "kind": "MachineLocalDefaultsPolicy",
   "id": "machine-local-defaults-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -150,7 +150,7 @@
     "noemaforge/docs/policies/noemaforge-recovery.example",
     "noemaforge/docs/policies/noemaforge-runtime.example",
     "noemaforge/docs/policies/noemaforge-firstboot.example",
-    "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "install_noemaforge_0.32.1_mvp.sh",
     "systemd/noemaforge-toolproxy.service",
     "systemd/noemaforge-llm-gateway.service",
     "systemd/noemaforge-llama@.service",

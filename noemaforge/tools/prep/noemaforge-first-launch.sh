@@ -67,7 +67,7 @@ Options:
   --reboot-after-apply           Allow firstboot orchestrator to schedule reboot after epoch apply.
   --from-noemaforge-cli             Internal marker used by /opt/noemaforge/bin/noemaforge.
 
-Selection modes for 0.31.13.alpha-patched1:
+Selection modes for 0.32.1:
   --fast                         First valid measured candidate per role; no composite testing.
   --normal                       Keep at least two candidates per role where available; choose best; no composite testing.
   --full                         Evaluate all runnable models; choose best per role; no composite testing.

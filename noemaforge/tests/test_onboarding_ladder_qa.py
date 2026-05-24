@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_onboarding_ladder_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test onboarding ladder discoverability through registry, docs and TODO.
@@ -35,7 +35,7 @@ class OnboardingLadderQATests(unittest.TestCase):
     def test_pack_is_registered_and_attached_to_firstboot_pipeline(self) -> None:
         registry = json.loads((ROOT / "configs" / "unified-registry.json").read_text(encoding="utf-8"))
         entries = {f"{item['kind']}:{item['id']}:{item['version']}": item for item in registry["entries"]}
-        pack_ref = "eval-pack:onboarding-ladder-core:0.32.0"
+        pack_ref = "eval-pack:onboarding-ladder-core:0.32.1"
         pack = entries.get(pack_ref)
         self.assertIsNotNone(pack)
         self.assertIn("docs/onboarding/QUICKSTART_VM.md", pack["refs"])
@@ -44,7 +44,7 @@ class OnboardingLadderQATests(unittest.TestCase):
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("docs/reference/PROJECT_CONTEXT.md", pack["refs"])
         self.assertIn("tests/test_onboarding_ladder_performance.py", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
         self.assertIn(pack_ref, pipeline["eval_pack_refs"])
         self.assertIn("configs/onboarding-ladder-policy.json", pipeline["refs"])
         self.assertIn("src/onboarding_ladder_runtime.py", pipeline["refs"])

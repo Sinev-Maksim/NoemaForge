@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/post_reboot_validation_archive_readiness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for post-reboot validation and wiki patch archive evidence.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/intent_router_eval.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-18
 Modified: 2026-05-18
 Purpose: Evaluate Admin intent routing against a deterministic eval pack and emit per-route metrics.
@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional
 import admin_runtime
 import production_ai_contracts
 
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_PACK = DEFAULT_ROOT / "configs" / "intent-router-eval-pack.json"
 

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_model_profile_selection_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test model profile selection discoverability through registry, docs and CLI.
@@ -45,14 +45,14 @@ class ModelProfileSelectionQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:model-profile-selection-core:0.32.0")
+        pack = entries.get("eval-pack:model-profile-selection-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/model-profile-selection-policy.json", pack["refs"])
         self.assertIn("configs/model-profiles.json", pack["refs"])
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("tests/test_model_profile_selection_performance.py", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:model-profile-selection-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:model-profile-selection-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("src/model_profile_selection_runtime.py", pipeline["refs"])
 
     def test_docs_and_backlog_capture_profile_boundary(self) -> None:

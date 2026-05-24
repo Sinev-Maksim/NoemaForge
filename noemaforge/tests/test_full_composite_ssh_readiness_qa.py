@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_full_composite_ssh_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for patched10 full-composite SSH readiness.
@@ -47,15 +47,15 @@ class FullCompositeSshReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/full-composite-ssh-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/full_composite_ssh_readiness.schema.json", pack["refs"])
         self.assertIn("src/full_composite_ssh_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        task = entries.get("task:first-start-model-selection:0.31.13.alpha-patched1")
+        task = entries.get("task:first-start-model-selection:0.32.1")
         self.assertIsNotNone(task)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", task["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", task["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_ssh_target_run(self) -> None:
         report = fcsr.validate_full_composite_ssh_readiness_policy(fcsr.load_policy())
@@ -70,7 +70,7 @@ class FullCompositeSshReadinessQATests(unittest.TestCase):
             ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "reference" / "PROJECT_CONTEXT.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.31.13.alpha-patched1.md",
+            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.32.1.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(PACK_ID, text, str(path))

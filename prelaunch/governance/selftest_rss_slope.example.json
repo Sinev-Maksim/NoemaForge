@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.selftest-rss-slope/v1",
   "kind": "SelfTestRssSlopeExampleSet",
   "id": "selftest-rss-slope-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "offline-repeat-rss-slope-finding",
@@ -14,7 +14,7 @@
       "report": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "rss_slope_example",
         "suite": "stress",
         "started_at": "2026-05-20T03:11:00Z",

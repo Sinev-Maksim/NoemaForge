@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: setup.sh
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Validate and install the NoemaForge release package on the host.
@@ -12,12 +12,12 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha-patched1 setup front door.
+# NoemaForge 0.32.1 setup front door.
 # Safe by default: dry-run friendly, one active LLM invariant, no heavy backend autostart.
 set -euo pipefail
 
-# 0.31.13.alpha-patched1 guard: setup may delegate to the real installer, but it must
-# never be re-entered by that installer. This catches the 0.31.13.alpha-patched1 loop
+# 0.32.1 guard: setup may delegate to the real installer, but it must
+# never be re-entered by that installer. This catches the 0.32.1 loop
 # class (setup.sh -> install_* -> setup.sh -> ...).
 if [[ "${NOEMAFORGE_SETUP_DEPTH:-0}" -ge 1 ]]; then
   echo "[setup][ERROR] recursive setup invocation detected; use the real installer directly or clear the loop" >&2
@@ -83,12 +83,12 @@ case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) ech
 if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: shell syntax"
   bash -n "$PKG_DIR/setup.sh"
-  bash -n "$PKG_DIR/install_noemaforge_0.31.13.alpha-patched1_mvp.sh"
-  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_0.31.13.alpha-patched1_mvp.sh"; then
+  bash -n "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh"
+  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh"; then
     echo "[setup][ERROR] installer must not exec setup.sh; recursion risk" >&2
     exit 71
   fi
-  bash -n "$PKG_DIR/uninstall_noemaforge_0.31.13.alpha-patched1_mvp.sh"
+  bash -n "$PKG_DIR/uninstall_noemaforge_0.32.1_mvp.sh"
   bash -n "$PKG_DIR/noemaforge/bin/noemaforge"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-version-audit.sh"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-first-run-audit.sh"
@@ -117,7 +117,7 @@ if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: CLI/API surfaces are covered by targeted verification; package syntax validation passed"
 fi
 cat <<PLAN
-NoemaForge 0.31.13.alpha-patched1 setup plan
+NoemaForge 0.32.1 setup plan
   mode:                  $MODE
   install_root:          $INSTALL_ROOT
   data_root:             $DATA_ROOT
@@ -153,4 +153,4 @@ fi
 
 install_args=(--rootfs "$INSTALL_ROOT" --data-root "$DATA_ROOT" --model-profile "$MODEL_PROFILE")
 if [[ -n "$WITH_SHARE" ]]; then install_args+=(--with-share "$WITH_SHARE"); fi
-exec "$PKG_DIR/install_noemaforge_0.31.13.alpha-patched1_mvp.sh" "${install_args[@]}"
+exec "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh" "${install_args[@]}"

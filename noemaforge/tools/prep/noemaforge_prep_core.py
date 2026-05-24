@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tools/prep/noemaforge_prep_core.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Cross-platform prep front door for Vault scan, inbox processing, metadata export and firstboot staging.

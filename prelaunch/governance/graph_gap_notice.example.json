@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.graph-gap-notice/v1",
   "kind": "GraphGapNoticeExampleSet",
   "id": "graph-gap-notice-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "administrator-graph-miss-states-unknown",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.role-kernel/v1",
   "kind": "RoleKernelSet",
   "id": "role-kernel-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "kernels": [
     {
       "apiVersion": "noemaforge.role-kernel/v1",

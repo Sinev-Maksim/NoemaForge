@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/peft_lora_lab_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Validate disabled PEFT/LoRA lab readiness gates without training or weight mutation.

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-rfc/v1",
   "kind": "PipelineRFCSet",
   "id": "pipeline-rfc-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "rfcs": [
     {
       "apiVersion": "noemaforge.pipeline-rfc/v1",

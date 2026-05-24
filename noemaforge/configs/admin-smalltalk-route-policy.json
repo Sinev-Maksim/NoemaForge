@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.admin-smalltalk-route/v1",
   "kind": "AdminSmalltalkRoutePolicy",
   "id": "admin-smalltalk-route-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

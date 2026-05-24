@@ -3,10 +3,10 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_version_03200_performance.py
 Zone: release/package
-Version: 0.32.0.alpha
+Version: 0.32.1
 Created: 2026-05-20
-Modified: 2026-05-22
-Purpose: Keep active 0.32.0.alpha version-surface checks lightweight.
+Modified: 2026-05-21
+Purpose: Keep active 0.32.1 version-surface checks lightweight.
 Inputs: Workspace version, release, setup, config and runtime files.
 Outputs: unittest assertions only.
 Side effects: None.
@@ -25,7 +25,7 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
-EXPECTED_VERSION = "0.32.0.alpha"
+EXPECTED_VERSION = "0.32.1"
 
 
 class Version03200PerformanceTests(unittest.TestCase):

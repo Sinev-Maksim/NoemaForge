@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/wiki_patch_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -42,7 +42,7 @@ from typing import Any, Dict, Iterable, List, Optional
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", "/var/lib/noemaforge/wiki_patches"))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 
 
 def nowz() -> str:

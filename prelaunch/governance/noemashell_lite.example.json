@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.noemashell/v1",
   "kind": "NoemaShellLiteSessionSet",
   "id": "noemashell-lite-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "sessions": [
     {
       "apiVersion": "noemaforge.noemashell/v1",

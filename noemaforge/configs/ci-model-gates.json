@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.ci-model-gates/v1",
   "kind": "CIModelGatesPolicy",
   "id": "ci-model-gates-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_validation",
@@ -41,10 +41,10 @@
   "gates": [
     {
       "id": "edge-model-ci-gate",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "shadow",
       "target_type": "edge",
-      "model_ref": "model:model-registry-local:0.31.13.alpha-patched1",
+      "model_ref": "model:model-registry-local:0.32.1",
       "runtime": "onnx",
       "budgets": {
         "max_p95_latency_ms": 50.0,

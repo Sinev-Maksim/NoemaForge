@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.rag-eval/v1",
   "kind": "RAGEvalSuite",
   "id": "docs-wiki-rag-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "thresholds": {
     "retrieval_hit_rate_min": 1.0,
     "citation_coverage_min": 1.0,
@@ -14,8 +14,8 @@
       "id": "docs_model_selection_dev_team",
       "query": "What does optimize model for Dev Team mean?",
       "expected_source_refs": [
-        "docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md",
-        "docs/wiki/operations/trace-observability-evaluation-gates-safe-rollout-0.31.21.alpha.md"
+        "docs/wiki/first-start/model-selection-modes-0.32.1.md",
+        "docs/wiki/operations/trace-observability-evaluation-gates-safe-rollout-0.32.1.md"
       ],
       "expected_answer_terms": [
         "model",
@@ -27,8 +27,8 @@
       "id": "docs_admin_routing_eval_pack",
       "query": "How is Admin intent routing evaluated?",
       "expected_source_refs": [
-        "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.31.21.alpha.md",
-        "docs/wiki/governance/calibration-abstention-data-centric-error-loop-0.31.21.alpha.md"
+        "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md",
+        "docs/wiki/governance/calibration-abstention-data-centric-error-loop-0.32.1.md"
       ],
       "expected_answer_terms": [
         "intent",

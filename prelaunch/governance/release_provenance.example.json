@@ -2,21 +2,21 @@
   "apiVersion": "noemaforge.release-provenance/v1",
   "kind": "ReleaseProvenanceExampleSet",
   "id": "release-provenance-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "releases": [
     {
-      "id": "noemaforge-0.31.13-alpha-patched1-public-archive",
+      "id": "noemaforge-0.32.1-alpha-patched1-public-archive",
       "trace_id": "trace:release:provenance:public-archive",
-      "version": "0.31.13.alpha-patched1",
+      "version": "0.32.1",
       "created_at": "2026-05-20T02:00:45Z",
       "archive": {
         "kind": "release_archive",
-        "path": "dist/noemaforge_0.31.13.alpha-patched1.tar.gz",
+        "path": "dist/noemaforge_0.32.1.tar.gz",
         "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "bytes": 1048576
       },
       "manifest": {
-        "path": "dist/noemaforge_0.31.13.alpha-patched1.manifest.json",
+        "path": "dist/noemaforge_0.32.1.manifest.json",
         "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "schema_ref": "noemaforge/contracts/release_provenance.schema.json",
         "includes": ["archive", "checksums", "release_notes", "changelog", "install_transcript", "verification_summary"]
@@ -25,14 +25,14 @@
         {
           "artifact": "archive",
           "scheme": "ed25519",
-          "signature_path": "dist/noemaforge_0.31.13.alpha-patched1.tar.gz.sig",
+          "signature_path": "dist/noemaforge_0.32.1.tar.gz.sig",
           "signature": "base64:ZXhhbXBsZS1zaWduYXR1cmU",
           "public_key_fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         },
         {
           "artifact": "manifest",
           "scheme": "ed25519",
-          "signature_path": "dist/noemaforge_0.31.13.alpha-patched1.manifest.json.sig",
+          "signature_path": "dist/noemaforge_0.32.1.manifest.json.sig",
           "signature": "base64:ZXhhbXBsZS1tYW5pZmVzdC1zaWc",
           "public_key_fingerprint": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
         }
@@ -47,7 +47,7 @@
       "build": {
         "source_tree": "release-candidate-tree",
         "recipe": "package-public-archive",
-        "archive_command": "tar --sort=name --owner=0 --group=0 --numeric-owner -czf dist/noemaforge_0.31.13.alpha-patched1.tar.gz noemaforge/",
+        "archive_command": "tar --sort=name --owner=0 --group=0 --numeric-owner -czf dist/noemaforge_0.32.1.tar.gz noemaforge/",
         "reproducibility_notes": "Archive inputs are allowlisted and checksummed before signing."
       },
       "checks": {

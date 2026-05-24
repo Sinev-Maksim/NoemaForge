@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.backlog-status-legend/v1",
   "kind": "BacklogStatusLegendPolicy",
   "id": "backlog-status-legend-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

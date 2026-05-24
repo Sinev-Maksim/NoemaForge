@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_role_corpus_binding_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Role Corpus Binding discoverability through registry and docs.
@@ -47,14 +47,14 @@ class RoleCorpusBindingQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:role-corpus-binding-core:0.32.0")
+        pack = entries.get("eval-pack:role-corpus-binding-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/role-corpus-binding-policy.json", pack["refs"])
         self.assertIn("configs/role-eval-datasets.yaml", pack["refs"])
         self.assertIn("tests/test_role_corpus_binding_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:role-corpus-binding-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:role-corpus-binding-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/role-corpus-binding-policy.json", pipeline["refs"])
         self.assertIn("src/role_corpus_binding_runtime.py", pipeline["refs"])
 

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.job-progress-stream/v1",
   "kind": "JobProgressStreamPolicy",
   "id": "job-progress-stream-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

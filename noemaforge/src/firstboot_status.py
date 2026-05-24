@@ -363,7 +363,7 @@ def load_status(path: str) -> Dict[str, Any]:
 
 
 def write_status(path: str, *, step: str, state: str, message: str, extra: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    # 0.31.13.alpha-patched1: status files must be fresh per update.
+    # 0.32.1: status files must be fresh per update.
     # Earlier builds loaded the old status and merged new fields, which mixed a
     # current running step with previous successful request_id/results/finished_at.
     doc = {

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.manifest-checksum-exclusion/v1",
   "kind": "ManifestChecksumExclusionPolicy",
   "id": "manifest-checksum-exclusion-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -17,7 +17,7 @@
     ],
     "project_checksum_refs": [
       "SHA256SUMS",
-      "SHA256SUMS_0.32.0.alpha"
+      "SHA256SUMS_0.32.1"
     ],
     "package_root_ref": "noemaforge",
     "package_manifest_ref": "noemaforge/docs/MANIFEST.json",
@@ -41,7 +41,7 @@
     ],
     "project_checksum_self_exclusions": [
       "SHA256SUMS",
-      "SHA256SUMS_0.32.0.alpha"
+      "SHA256SUMS_0.32.1"
     ],
     "package_checksum_self_exclusions": [
       "checksums/SHA256SUMS"

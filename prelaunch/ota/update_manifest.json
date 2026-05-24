@@ -3,7 +3,7 @@
   "kind": "OTAUpdateManifest",
   "id": "edge-gateway-shadow-update",
   "target": "gateway",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "state": "shadow",
   "staged_rollout": {
     "enabled": true,
@@ -16,18 +16,18 @@
     "max_canary_percent": 10
   },
   "candidate_bundle": {
-    "id": "edge-gateway-bundle-0.31.21-alpha",
+    "id": "edge-gateway-bundle-0.32.1-alpha",
     "kind": "gateway",
-    "version": "0.31.21.alpha",
+    "version": "0.32.1",
     "sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
     "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
     "gateway_service_ref": "noemaforge/configs/gateway-inference-service.json",
     "release_evidence_ref": "prelaunch/evidence/ci-model-gates/release_evidence.json"
   },
   "previous_bundle": {
-    "id": "edge-gateway-bundle-0.31.13-alpha-patched1",
+    "id": "edge-gateway-bundle-0.32.1-alpha-patched1",
     "kind": "gateway",
-    "version": "0.31.13.alpha-patched1",
+    "version": "0.32.1",
     "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
     "gateway_service_ref": "noemaforge/configs/gateway-inference-service.json"

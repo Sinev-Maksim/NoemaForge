@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.alpha-backlog/v1",
   "kind": "AlphaBacklogFenceSet",
   "id": "alpha-backlog-fence-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "fences": [
     {
       "apiVersion": "noemaforge.alpha-backlog/v1",
@@ -10,7 +10,7 @@
       "id": "alpha-backlog-fence-typed-governance",
       "trace_id": "trace:alpha-backlog:typed-governance",
       "status": "active",
-      "protected_ref": "eval-pack:typed-governance-track-core:0.31.21.alpha",
+      "protected_ref": "eval-pack:typed-governance-track-core:0.32.1",
       "activation_state": "backlog_only",
       "protected_until": "manual_alpha_gate_stability_review",
       "alpha_gates_stable": false,
@@ -22,19 +22,19 @@
       },
       "required_evidence": [
         {
-          "ref": "eval-pack:docs-hygiene-prelaunch:0.31.21.alpha",
+          "ref": "eval-pack:docs-hygiene-prelaunch:0.32.1",
           "present": true
         },
         {
-          "ref": "eval-pack:ci-model-gates-core:0.31.21.alpha",
+          "ref": "eval-pack:ci-model-gates-core:0.32.1",
           "present": true
         },
         {
-          "ref": "eval-pack:signed-model-manifest-core:0.31.21.alpha",
+          "ref": "eval-pack:signed-model-manifest-core:0.32.1",
           "present": true
         },
         {
-          "ref": "eval-pack:typed-governance-track-core:0.31.21.alpha",
+          "ref": "eval-pack:typed-governance-track-core:0.32.1",
           "present": true
         }
       ],

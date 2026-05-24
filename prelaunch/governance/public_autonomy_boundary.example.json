@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.public-autonomy-boundary/v1",
   "kind": "PublicAutonomyBoundaryExampleSet",
   "id": "public-autonomy-boundary-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "public-copy-keeps-alpha-boundary",

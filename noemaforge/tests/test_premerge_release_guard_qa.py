@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_premerge_release_guard_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test pre-merge release guard discoverability through registry and docs.
@@ -44,7 +44,7 @@ class PremergeReleaseGuardQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:premerge-release-guard-core:0.32.0")
+        pack = entries.get("eval-pack:premerge-release-guard-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/premerge-release-guard-policy.json", pack["refs"])
         self.assertIn("contracts/premerge_release_guard.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class PremergeReleaseGuardQATests(unittest.TestCase):
         self.assertIn("src/premerge_release_guard_runtime.py", pack["refs"])
         self.assertIn("tests/test_premerge_release_guard_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:premerge-release-guard-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:premerge-release-guard-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/premerge-release-guard-policy.json", pipeline["refs"])
         self.assertIn("src/premerge_release_guard_runtime.py", pipeline["refs"])
 

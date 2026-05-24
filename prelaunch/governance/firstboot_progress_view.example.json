@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.firstboot-progress-view/v1",
   "kind": "FirstbootProgressViewExampleSet",
   "id": "firstboot-progress-view-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "events": [
     {"ts": "2026-05-20T07:38:00Z", "step": "seed_copy", "state": "complete", "message": "Seed package copied."},

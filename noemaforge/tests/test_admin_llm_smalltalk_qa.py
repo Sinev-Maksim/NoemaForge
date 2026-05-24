@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_admin_llm_smalltalk_qa.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Admin LLM smalltalk registry and documentation coverage.
@@ -47,7 +47,7 @@ class AdminLLMSmalltalkQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:admin-llm-smalltalk-core:0.32.0")
+        pack = entries.get("eval-pack:admin-llm-smalltalk-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/admin-llm-smalltalk-policy.json", pack["refs"])
         self.assertIn("contracts/admin_llm_smalltalk.schema.json", pack["refs"])

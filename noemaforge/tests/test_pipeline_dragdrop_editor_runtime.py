@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_pipeline_dragdrop_editor_runtime.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate draft-only pipeline drag/drop editor runtime behavior.

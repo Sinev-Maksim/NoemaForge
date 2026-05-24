@@ -4,7 +4,7 @@
 === NoemaForge File Header ===
 File: src/admin_gui_server.py
 Zone: gui/control-plane
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-11
 Modified: 2026-05-14
 Purpose: Serve the localhost Admin GUI and JSON APIs for conversation memory,
@@ -53,7 +53,7 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -213,7 +213,7 @@ def build_public_showcase_scenario(locale: str = "") -> Dict[str, Any]:
         "live_backend_demo_enabled": False,
         "requires_live_target": False,
         "requires_packaging": False,
-        "operator_note": "Use this guided Admin GUI path as the public 0.31.13 polish scenario; run the final live replay separately on the target machine.",
+        "operator_note": "Use this guided Admin GUI path as the public 0.32.1 polish scenario; run the final live replay separately on the target machine.",
         "steps": steps,
         "expected_ui_surfaces": ["topbar", "main_chat", "pipeline_dock", "artifacts", "jobs", "runtime_cards"],
         "safety": {

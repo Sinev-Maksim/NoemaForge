@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/release_provenance_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate signed release provenance contracts for public archives.

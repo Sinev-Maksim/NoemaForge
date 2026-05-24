@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-switch-policy/v1",
   "kind": "ModelSwitchPolicyExampleSet",
   "id": "model-switch-policy-core-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "model_inventory": [
     {
       "model_id": "local:qwen2.5-7b-instruct",

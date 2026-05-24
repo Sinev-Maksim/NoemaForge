@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.hfbridge/v1",
   "kind": "HFBridgeMetadataSet",
   "id": "hfbridge-metadata-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "queries": [
     {
       "apiVersion": "noemaforge.hfbridge/v1",

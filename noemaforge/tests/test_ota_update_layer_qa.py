@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_ota_update_layer_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test OTA Update Layer discoverability through registry and canonical docs.
@@ -46,15 +46,15 @@ class OTAUpdateLayerQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:ota-update-layer-core:0.32.0")
+        pack = entries.get("eval-pack:ota-update-layer-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/ota-update-layer.json", pack["refs"])
         self.assertIn("src/ota_update_layer_runtime.py", pack["refs"])
         self.assertIn("ota/update_agent.py", pack["refs"])
         self.assertIn("tests/test_ota_update_layer_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:ota-update-layer-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:ota-update-layer-core:0.32.1", pipeline["eval_pack_refs"])
 
     def test_ota_update_layer_docs_policy_and_agent_are_discoverable(self) -> None:
         policy = oalr.load_policy(ROOT / "configs" / "ota-update-layer.json")

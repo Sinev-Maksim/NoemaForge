@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_media_backend_selection_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for media backend selection readiness.
@@ -47,15 +47,15 @@ class MediaBackendSelectionReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/media-backend-selection-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/media_backend_selection_readiness.schema.json", pack["refs"])
         self.assertIn("src/media_backend_selection_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.31.13.alpha-patched1")
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_live_backend_item(self) -> None:
         report = mbsr.validate_media_backend_selection_readiness_policy(mbsr.load_policy())
@@ -70,7 +70,7 @@ class MediaBackendSelectionReadinessQATests(unittest.TestCase):
             ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "reference" / "PROJECT_CONTEXT.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-            ROOT / "docs" / "wiki" / "multimodal" / "multimodal-vault-readiness-0.31.13.alpha-patched1.md",
+            ROOT / "docs" / "wiki" / "multimodal" / "multimodal-vault-readiness-0.32.1.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(PACK_ID, text, str(path))

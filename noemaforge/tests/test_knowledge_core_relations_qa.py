@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_knowledge_core_relations_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Knowledge Core Relations discoverability through registry and docs.
@@ -46,7 +46,7 @@ class KnowledgeCoreRelationsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:knowledge-core-relations-gates-core:0.32.0")
+        pack = entries.get("eval-pack:knowledge-core-relations-gates-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/knowledge-core-relations-policy.json", pack["refs"])
         self.assertIn("contracts/knowledge_core_relations.schema.json", pack["refs"])
@@ -54,8 +54,8 @@ class KnowledgeCoreRelationsQATests(unittest.TestCase):
         self.assertIn("src/knowledge/gatekeeper.py", pack["refs"])
         self.assertIn("src/knowledge/store.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:knowledge-core-relations-gates-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:knowledge-core-relations-gates-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/knowledge-core-relations-policy.json", pipeline["refs"])
         self.assertIn("src/knowledge_core_relations_runtime.py", pipeline["refs"])
         self.assertIn("src/knowledge/gatekeeper.py", pipeline["refs"])

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_model_switch_policy_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for model switch policy.
@@ -46,14 +46,14 @@ class ModelSwitchPolicyQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/model-switch-policy.json", pack["refs"])
         self.assertIn("contracts/model_switch_policy.schema.json", pack["refs"])
         self.assertIn("src/model_switch_policy_runtime.py", pack["refs"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.31.13.alpha-patched1")
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
 
     def test_docs_close_model_switch_todo_with_contract_refs(self) -> None:
         report = msp.validate_model_switch_policy(msp.load_policy(), project_root=PROJECT_ROOT, package_root=ROOT)

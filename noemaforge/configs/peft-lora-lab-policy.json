@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.peft-lora-lab/v1",
   "kind": "PEFTLoRALabPolicy",
   "id": "peft-lora-lab-readiness",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "disabled",
   "policy": {
     "mode": "readiness_only",
@@ -21,16 +21,16 @@
     "allowed_adapter_methods": ["lora", "qlora"],
     "max_adapter_rank": 16,
     "baseline_eval_pack_refs": [
-      "eval-pack:production-ai-gate-smoke:0.32.0",
-      "eval-pack:agent-loop-core:0.32.0"
+      "eval-pack:production-ai-gate-smoke:0.32.1",
+      "eval-pack:agent-loop-core:0.32.1"
     ]
   },
   "labs": [
     {
       "id": "dev-code-lora-dry-run",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "disabled",
-      "target_model_ref": "model:model-registry-local:0.31.13.alpha-patched1",
+      "target_model_ref": "model:model-registry-local:0.32.1",
       "adapter_method": "lora",
       "adapter_rank": 8,
       "network": "deny",
@@ -51,8 +51,8 @@
         "required": true,
         "domain": "model",
         "eval_pack_refs": [
-          "eval-pack:production-ai-gate-smoke:0.32.0",
-          "eval-pack:agent-loop-core:0.32.0"
+          "eval-pack:production-ai-gate-smoke:0.32.1",
+          "eval-pack:agent-loop-core:0.32.1"
         ]
       },
       "resource_guard": {
@@ -63,7 +63,7 @@
       },
       "rollback_manifest": {
         "required": true,
-        "restore_target": "model:model-registry-local:0.31.13.alpha-patched1",
+        "restore_target": "model:model-registry-local:0.32.1",
         "steps": [
           "Keep production model registry unchanged.",
           "Discard dry-run adapter plan artifacts if any gate fails.",
@@ -89,7 +89,7 @@
         "configs/team-eval-policy.yaml",
         "datasets/role_eval_cases/dev_work_selection_full.jsonl",
         "docs/wiki/evolve/evolve-lab-roadmap.md",
-        "docs/wiki/evolution/model-evolution-control-plane-0.31.13.alpha-patched1.md"
+        "docs/wiki/evolution/model-evolution-control-plane-0.32.1.md"
       ]
     }
   ],
@@ -103,7 +103,7 @@
     "configs/team-eval-policy.yaml",
     "datasets/role_eval_cases/dev_work_selection_full.jsonl",
     "docs/wiki/evolve/evolve-lab-roadmap.md",
-    "docs/wiki/evolution/model-evolution-control-plane-0.31.13.alpha-patched1.md"
+    "docs/wiki/evolution/model-evolution-control-plane-0.32.1.md"
   ]
 }
 

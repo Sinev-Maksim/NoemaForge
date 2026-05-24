@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-profile-selection/v1",
   "kind": "ModelProfileSelectionExampleSet",
   "id": "model-profile-selection-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "scenarios": [
     {

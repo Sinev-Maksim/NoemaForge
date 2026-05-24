@@ -1,5 +1,5 @@
 {
-  "version": "0.29.10",
+  "version": "0.32.1",
   "stop_closes_gui_by_default": false,
   "explicit_gui_close_flag": "--close-gui-heavy",
   "explicit_gui_close_scope": "Firefox/Nautilus/Files processes holding NOEMAFORGE_SHARE mount",

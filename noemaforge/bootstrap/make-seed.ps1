@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/bootstrap/make-seed.ps1
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.

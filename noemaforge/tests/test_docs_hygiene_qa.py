@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_docs_hygiene_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-21
 Purpose: QA-test docs hygiene and active-file readability discoverability through registry and documentation indexes.
@@ -47,7 +47,7 @@ class DocsHygieneQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:docs-hygiene-prelaunch:0.32.0")
+        pack = entries.get("eval-pack:docs-hygiene-prelaunch:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/docs-hygiene-policy.json", pack["refs"])
         self.assertIn("contracts/docs_hygiene_policy.schema.json", pack["refs"])

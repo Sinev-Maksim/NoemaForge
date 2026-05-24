@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/telemetry_card_truthfulness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate telemetry cards show hardware/runtime/product metrics without creative-media quality overclaims.
@@ -181,7 +181,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server._write_json = write_json
     server._append_jsonl = append_jsonl
     server._command_output = lambda cmd, timeout=8: {"available": False, "cmd": list(cmd), "stdout": "", "stderr": "offline fixture"}
-    server.runtime_status = lambda: {"ok": True, "version": "0.31.21.alpha", "device_policy": {"policy": "auto"}, "sockets": {}, "main_backend": {"stdout": "inactive"}, "main_manifest": {"model_id": "fixture-main"}}
+    server.runtime_status = lambda: {"ok": True, "version": "0.32.1", "device_policy": {"policy": "auto"}, "sockets": {}, "main_backend": {"stdout": "inactive"}, "main_manifest": {"model_id": "fixture-main"}}
     return server
 
 

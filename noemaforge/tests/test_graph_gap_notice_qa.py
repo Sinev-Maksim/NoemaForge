@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_graph_gap_notice_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Graph Gap Notice discoverability through registry and docs.
@@ -44,15 +44,15 @@ class GraphGapNoticeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:graph-gap-notice-core:0.32.0")
+        pack = entries.get("eval-pack:graph-gap-notice-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/graph-gap-notice-policy.json", pack["refs"])
         self.assertIn("contracts/graph_gap_notice.schema.json", pack["refs"])
         self.assertIn("src/knowledge/grounded_administrator.py", pack["refs"])
         self.assertIn("tests/test_graph_gap_notice_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:graph-gap-notice-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:graph-gap-notice-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/graph-gap-notice-policy.json", pipeline["refs"])
         self.assertIn("src/graph_gap_notice_runtime.py", pipeline["refs"])
 

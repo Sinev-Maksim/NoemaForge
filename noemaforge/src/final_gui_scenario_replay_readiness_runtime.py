@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/final_gui_scenario_replay_readiness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for final Admin GUI scenario replay evidence.
@@ -31,10 +31,10 @@ REPORT_KIND = "FinalGuiScenarioReplayReadinessValidationReport"
 POLICY_ID = "final-gui-scenario-replay-readiness-core"
 BLOCKED_STATE = "blocked_until_target_final_gui_scenario_replay_evidence"
 PRIMARY_BLOCKED_TODO = (
-    "Run `0.31.12` on the target machine from GUI start through Admin greeting, routed pipeline launch, "
+    "Run `0.32.1` on the target machine from GUI start through Admin greeting, routed pipeline launch, "
     "Dev Team action and model-evolution action."
 )
-SECONDARY_BLOCKED_TODO = "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.31.13`."
+SECONDARY_BLOCKED_TODO = "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.32.1`."
 REQUIRED_SHOWCASE_ID = "polished_admin_gui_guided_scenario"
 VALID_STATUSES = {"draft", "shadow", "stable", "retired"}
 SAFE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9._-]*$")
@@ -72,9 +72,9 @@ REQUIRED_DOC_REFS = {
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/history/CHANGELOG.md",
-    "noemaforge/docs/wiki/gui/admin-console-and-admin-routing-0.31.12.md",
-    "noemaforge/docs/wiki/evolution/model-evolution-control-plane-0.31.12.md",
-    "noemaforge/docs/wiki/gui/persona-portraits-and-dashboard-0.31.12.md",
+    "noemaforge/docs/wiki/gui/admin-console-and-admin-routing-0.32.1.md",
+    "noemaforge/docs/wiki/evolution/model-evolution-control-plane-0.32.1.md",
+    "noemaforge/docs/wiki/gui/persona-portraits-and-dashboard-0.32.1.md",
 }
 FORBIDDEN_COMMAND_TOKENS = (
     "--upload",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.public-autonomy-boundary/v1",
   "kind": "PublicAutonomyBoundaryPolicy",
   "id": "public-autonomy-boundary-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "refs": [
     "configs/public-autonomy-boundary-policy.json",
@@ -22,7 +22,7 @@
   "policy": {
     "mode": "offline_contract",
     "activation_state": "alpha_lab_only_not_public_ready",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,

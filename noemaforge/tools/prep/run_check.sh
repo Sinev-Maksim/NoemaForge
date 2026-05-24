@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/run_check.sh
 # Zone: prep
-# Version: 0.31.21.alpha
+# Version: 0.32.1
 # Purpose: Linux/macOS wrapper matching tools/windows/run_check.cmd through the Python prep core.
 # Inputs: Optional repo root argument.
 # Outputs: JSON prep-core check.

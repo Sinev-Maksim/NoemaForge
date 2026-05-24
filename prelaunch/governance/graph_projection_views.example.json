@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.graph-projection-views/v1",
   "kind": "GraphProjectionViewsExampleSet",
   "id": "graph-projection-views-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "knowledge-space-projection-pack",

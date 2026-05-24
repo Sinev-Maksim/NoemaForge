@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/systemd_happy_path_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate that happy-path systemd setup is owned by NoemaForge CLI wrappers, not manual unit editing.

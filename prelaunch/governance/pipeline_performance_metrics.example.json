@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-performance-metrics/v1",
   "kind": "PipelinePerformanceMetricsExampleSet",
   "id": "pipeline-performance-metrics-core-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "samples": [
     {
       "stage_id": "graph_patch_validate",

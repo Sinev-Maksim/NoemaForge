@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/stateful_admin_gui_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the installed Admin GUI state restore and primary surface hydration contract.
@@ -196,7 +196,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server._command_output = lambda cmd, timeout=8: {"available": False, "cmd": list(cmd), "stdout": "", "stderr": "offline fixture"}
     server.runtime_status = lambda: {
         "ok": True,
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "device_policy": {"policy": "auto", "pending_apply": False},
         "sockets": {},
         "gateway": {"ok": False, "stdout": "offline fixture"},
@@ -205,8 +205,8 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     }
     server.dashboard_state = lambda: {
         "ok": True,
-        "version": "0.31.21.alpha",
-        "admin_gui": {"ok": True, "version": "0.31.21.alpha"},
+        "version": "0.32.1",
+        "admin_gui": {"ok": True, "version": "0.32.1"},
         "source": "offline_stateful_gui_fixture",
     }
     return server
@@ -231,7 +231,7 @@ def build_stateful_gui_fixture(*, package_root: Path | str) -> Dict[str, Any]:
     gui_state = server.gui_state()
     return {
         "ok": True,
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "conversation_current": server.conversation_current(),
         "conversation_history": server.conversation_history(),
         "persona": server.persona_current(),

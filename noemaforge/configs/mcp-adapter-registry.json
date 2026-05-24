@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.mcp-adapter-registry/v1",
   "kind": "MCPAdapterRegistry",
   "id": "zero-trust-mcp-adapters",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "policy": {
     "default_state": "disabled",
     "default_network": "deny",
@@ -17,7 +17,7 @@
   "adapters": [
     {
       "id": "docs.search",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",
@@ -29,7 +29,7 @@
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
-      "registry_ref": "tool-policy:tool-policy-main:0.31.13.alpha-patched1",
+      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
       "audit_logging": true,
       "sandbox": {
         "profile": "read_only_docs",
@@ -53,7 +53,7 @@
     },
     {
       "id": "issue.tracker",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",
@@ -65,7 +65,7 @@
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
-      "registry_ref": "tool-policy:tool-policy-main:0.31.13.alpha-patched1",
+      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
       "audit_logging": true,
       "sandbox": {
         "profile": "read_only_issues",
@@ -90,7 +90,7 @@
     },
     {
       "id": "docs.rag.local",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",
@@ -102,7 +102,7 @@
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
-      "registry_ref": "retriever:knowledge-keyword-retrieval:0.31.13.alpha-patched1",
+      "registry_ref": "retriever:knowledge-keyword-retrieval:0.32.1",
       "audit_logging": true,
       "sandbox": {
         "profile": "read_only_rag",
@@ -121,7 +121,7 @@
         "contracts/docs_rag_policy.schema.json",
         "contracts/rag_eval_suite.schema.json",
         "src/docs_rag_runtime.py",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
       ]
     }
   ]

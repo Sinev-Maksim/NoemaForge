@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/systemd_gdm_nvidia_live_validation_readiness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for target systemd, GDM and NVIDIA live validation evidence.

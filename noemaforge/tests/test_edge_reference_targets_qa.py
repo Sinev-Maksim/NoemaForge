@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_edge_reference_targets_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test Edge Reference Targets discoverability through registry and canonical docs.
@@ -44,14 +44,14 @@ class EdgeReferenceTargetsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:edge-reference-targets-core:0.32.0")
+        pack = entries.get("eval-pack:edge-reference-targets-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/edge-reference-targets.json", pack["refs"])
         self.assertIn("src/edge_reference_targets_runtime.py", pack["refs"])
         self.assertIn("tests/test_edge_reference_targets_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:edge-reference-targets-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:edge-reference-targets-core:0.32.1", pipeline["eval_pack_refs"])
 
     def test_edge_reference_targets_docs_and_policy_are_discoverable(self) -> None:
         policy = ertr.load_policy(ROOT / "configs" / "edge-reference-targets.json")

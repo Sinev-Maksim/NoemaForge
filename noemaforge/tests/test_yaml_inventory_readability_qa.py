@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_yaml_inventory_readability_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test YAML inventory readability discoverability through registry and docs.
@@ -46,7 +46,7 @@ class YamlInventoryReadabilityQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:yaml-inventory-readability-core:0.32.0")
+        pack = entries.get("eval-pack:yaml-inventory-readability-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/yaml-inventory-readability-policy.json", pack["refs"])
         self.assertIn("contracts/yaml_inventory_readability.schema.json", pack["refs"])

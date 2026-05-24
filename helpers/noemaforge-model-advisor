@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-model-advisor
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
@@ -15,7 +15,7 @@
 from __future__ import annotations
 import argparse, json, os, re, shutil, subprocess
 from pathlib import Path
-VERSION='0.29.10'
+VERSION='0.32.1'
 
 def meminfo():
     d={}

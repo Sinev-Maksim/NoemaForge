@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_public_showcase_guided_scenario_performance.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test public showcase guided scenario validation on bounded fixtures.

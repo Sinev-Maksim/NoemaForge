@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_release_artifact_name_guard_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Unit-test release artifact name guard validation and failure reporting.
@@ -59,7 +59,7 @@ def _fixture_policy(project: Path) -> dict:
         "apiVersion": rang.API_VERSION,
         "kind": rang.POLICY_KIND,
         "id": "release-artifact-name-guard-core",
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "status": "stable",
         "policy": {
             "mode": "offline_contract",

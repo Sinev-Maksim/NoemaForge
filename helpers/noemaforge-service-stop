@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-service-stop
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
@@ -12,11 +12,11 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.29.10 stop helper. Single source of truth for runtime stop.
+# NoemaForge 0.32.1 stop helper. Single source of truth for runtime stop.
 # Idempotent. Default behavior MUST NOT close Firefox/Nautilus or other GUI user apps.
 set -euo pipefail
 . /usr/local/lib/noemaforge-common.sh
-VERSION="0.29.10"
+VERSION="0.32.1"
 CLOSE_GUI=0; DRY_RUN=0; SHUTDOWN_HOOK=0; RESET_FAILED=1; KILL_ANY_LLAMA=0; KILL_GUI_AFTER_TERM=0
 LOCK_FILE="/run/noemaforge/noemaforge-stop.lock"; LOCK_MODE="wait"; LOCK_WAIT_SECONDS="30"
 for arg in "$@"; do

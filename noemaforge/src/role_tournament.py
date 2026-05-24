@@ -371,7 +371,7 @@ def safe_id(raw: str) -> str:
 
 
 def role_file_id(role_key: str) -> str:
-    # 0.31.13.alpha-patched1 fix: use the same naming as dataset_inventory.role_safe().
+    # 0.32.1 fix: use the same naming as dataset_inventory.role_safe().
     return safe_id(role_key.replace("/", "__").replace(".", "_"))
 
 
@@ -560,7 +560,7 @@ def score_task(task: Dict[str, Any], ok: bool, response: str, latency_ms: float,
     resp_l = response.lower()
     nonempty = bool(response.strip())
 
-    # 0.31.13.alpha-patched1 fix: no semantic/JSON/contains credit for failed or empty backend calls.
+    # 0.32.1 fix: no semantic/JSON/contains credit for failed or empty backend calls.
     if not ok or not nonempty:
         json_ok = False
         contains_ok = False
@@ -633,7 +633,7 @@ def write_modelstore_manifest(modelstore_root: str, model: Dict[str, Any], model
         "capabilities": model.get("capabilities") or [],
         "runtime_family": model.get("runtime_family"),
         "trust": "unknown",
-        "notes": "staged by role-aware first-start tournament v0.31.13.alpha-patched1",
+        "notes": "staged by role-aware first-start tournament v0.32.1",
     }
     if yaml is not None:
         with open(target / "manifest.yaml", "w", encoding="utf-8") as f:
@@ -839,7 +839,7 @@ def write_scorecard(scorecards_dir: str, result: Dict[str, Any]) -> None:
     card = {
         "schema_version": "noemaforge.model_scorecard/v1",
         "created_at": now(),
-        "source": "role_tournament_v0.31.13.alpha-patched1",
+        "source": "role_tournament_v0.32.1",
         "model_id": model_id,
         "runtime_device": runtime_device,
         "stream_id": stream,
@@ -917,7 +917,7 @@ def _violates_composition_constraints(combo: Dict[str, str]) -> List[str]:
 def build_composition_plan(role_candidate_map: Dict[str, Any], *, top_n: int = 0, max_enum: int = 100000) -> Dict[str, Any]:
     """Build a bounded composition plan for --full_composite.
 
-    top_n=0 means no top limit. 0.31.13.alpha-patched1 never materializes
+    top_n=0 means no top limit. 0.32.1 never materializes
     partial/empty compositions and applies the easy hard constraint QA != Developer
     when enough role metadata is available.
     """

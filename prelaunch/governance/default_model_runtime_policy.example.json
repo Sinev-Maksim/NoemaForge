@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.default-model-runtime-policy/v1",
   "kind": "DefaultModelRuntimePolicyExampleSet",
   "id": "default-model-runtime-policy-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "default-boot-cpu-safe",

@@ -104,7 +104,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "CandidateSelectionPlan",
         "created_at": _nowz(),
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "selection": _selection_mode_contract(mode, composite_top_n),
         "dry_run": bool(dry_run),
         "artifacts": {
@@ -123,7 +123,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionDecision",
         "created_at": _nowz(),
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "mode": mode,
         "dry_run": bool(dry_run),
         "staffing_state": staffing_summary.get("staffing_state"),
@@ -138,7 +138,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionRollbackPlan",
         "created_at": _nowz(),
-        "version": "0.31.21.alpha",
+        "version": "0.32.1",
         "mode": mode,
         "steps": [
             "Do not delete previous epoch contracts.",
@@ -485,7 +485,7 @@ def orchestrate(
         # Evaluation is full because role_tournament iterates every runnable model.
         # top_k_per_role controls how many measured candidates are retained for review/composition.
         top_k_per_role = max(1, top_k_per_role)
-    # 0.31.13.alpha-patched1: preserve effective tournament options for
+    # 0.32.1: preserve effective tournament options for
     # direct and systemd-rehomed first-start runs. role_tournament reads these
     # from the environment, so CLI flags must be materialized before calling it.
     default_per_model, default_total = role_tournament._selection_timeout_defaults(selection_mode)

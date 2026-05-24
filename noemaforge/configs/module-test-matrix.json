@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "ModuleTestMatrix",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "coverage_policy": {
     "minimum": "unit_compile per Python module",
     "recommended": [
@@ -2030,7 +2030,7 @@
     }
   ],
   "notes": [
-    "0.31.13.alpha-patched1 includes code-dev QA sub-team and GUI recovery compatibility checks"
+    "0.32.1 includes code-dev QA sub-team and GUI recovery compatibility checks"
   ]
 }
 

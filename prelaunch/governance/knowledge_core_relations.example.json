@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.knowledge-core-relations/v1",
   "kind": "KnowledgeCoreRelationsExampleSet",
   "id": "knowledge-core-relations-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "passage-source-gate",

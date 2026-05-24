@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_event_store_performance.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test self-test event storage on synthetic reports.
@@ -42,7 +42,7 @@ def synthetic_report(run_id: str, cases: int = 220) -> dict:
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": run_id,
         "suite": "synthetic",
         "started_at": "2026-05-20T02:56:00Z",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/runtime_device_policy_staging_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate CPU/GPU runtime device-policy staging without live backend migration.

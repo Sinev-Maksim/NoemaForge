@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.media-wiki-patch/v1",
   "kind": "MediaWikiPatchExampleSet",
   "id": "media-wiki-patch-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "media-capability-delta-with-artifact-manifest",

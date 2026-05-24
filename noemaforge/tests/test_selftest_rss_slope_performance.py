@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_rss_slope_performance.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test self-test RSS slope analysis on synthetic repeated reports.
@@ -45,7 +45,7 @@ def synthetic_repeat_report(cases: int = 260, repeats: int = 6) -> dict:
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "synthetic_rss",
         "suite": "stress",
         "summary": {"ok": True, "case_count": cases, "passed": cases, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.01, "max_rss_kib": max(item["metrics"]["max_rss_kib"] for item in results), "disk_write_bytes_total": 0, "ecc_delta_total": 0},

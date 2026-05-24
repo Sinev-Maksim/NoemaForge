@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_pipeline_toolproxy_stage_binding_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Verify registry and documentation integration for pipeline ToolProxy stage binding.
@@ -34,14 +34,14 @@ class PipelineToolProxyStageBindingQATests(unittest.TestCase):
     def test_registry_contains_eval_pack_and_tool_policy_links(self) -> None:
         registry = json.loads((ROOT / "configs" / "unified-registry.json").read_text(encoding="utf-8"))
         entries = {f"{entry['kind']}:{entry['id']}:{entry['version']}": entry for entry in registry["entries"]}
-        pack_ref = "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.0"
+        pack_ref = "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.1"
         self.assertIn(pack_ref, entries)
         pack = entries[pack_ref]
         self.assertIn("configs/pipeline-toolproxy-stage-binding-policy.json", pack["refs"])
         self.assertIn("contracts/pipeline_toolproxy_stage_binding.schema.json", pack["refs"])
         self.assertIn("src/pipeline_toolproxy_stage_binding_runtime.py", pack["refs"])
         self.assertIn("tests/test_pipeline_toolproxy_stage_binding_performance.py", pack["refs"])
-        tool_policy = entries["tool-policy:tool-policy-main:0.31.13.alpha-patched1"]
+        tool_policy = entries["tool-policy:tool-policy-main:0.32.1"]
         self.assertIn(pack_ref, tool_policy["eval_pack_refs"])
         self.assertIn("src/pipeline_toolproxy_stage_binding_runtime.py", tool_policy["refs"])
 

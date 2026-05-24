@@ -2,7 +2,7 @@
 === NoemaForge File Header ===
 File: templates/pipeline-dashboard/app.js
 Zone: gui/shell
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-10
 Modified: 2026-05-14
 Purpose: Stateful Admin GUI frontend: backend-owned chat history, persona portraits,

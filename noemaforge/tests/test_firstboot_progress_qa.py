@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_firstboot_progress_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test firstboot progress discoverability through registry, CLI and docs.
@@ -45,14 +45,14 @@ class FirstbootProgressQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:firstboot-progress-view-core:0.32.0")
+        pack = entries.get("eval-pack:firstboot-progress-view-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/firstboot-progress-view-policy.json", pack["refs"])
         self.assertIn("src/firstboot_progress_runtime.py", pack["refs"])
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("tests/test_firstboot_progress_performance.py", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:firstboot-progress-view-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:firstboot-progress-view-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("src/firstboot_progress_runtime.py", pipeline["refs"])
 
     def test_cli_docs_and_todo_capture_progress_boundary(self) -> None:

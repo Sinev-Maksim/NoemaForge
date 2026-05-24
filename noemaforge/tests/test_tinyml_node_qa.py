@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_tinyml_node_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test TinyML Node discoverability through registry and canonical docs.
@@ -44,15 +44,15 @@ class TinyMLNodeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:tinyml-node-core:0.32.0")
+        pack = entries.get("eval-pack:tinyml-node-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/tinyml-node-policy.json", pack["refs"])
         self.assertIn("src/tinyml_node_runtime.py", pack["refs"])
         self.assertIn("tests/test_tinyml_node_performance.py", pack["refs"])
         self.assertIn("prelaunch/tinyml/golden_vectors/example_edge_model_vectors.jsonl", pack["refs"])
 
-        model = entries["model:model-registry-local:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:tinyml-node-core:0.32.0", model["eval_pack_refs"])
+        model = entries["model:model-registry-local:0.32.1"]
+        self.assertIn("eval-pack:tinyml-node-core:0.32.1", model["eval_pack_refs"])
 
     def test_tinyml_node_docs_and_policy_are_discoverable(self) -> None:
         policy = tnr.load_policy(ROOT / "configs" / "tinyml-node-policy.json")

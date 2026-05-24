@@ -1,6 +1,6 @@
 # NoemaForge Prelaunch Tools
 
-Version: 0.29.13.
+Version: 0.32.1.
 
 This folder contains manual prelaunch utilities extracted from the uploaded Windows packs and wrapped for Debian Trixie and macOS.
 

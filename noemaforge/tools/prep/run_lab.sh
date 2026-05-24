@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/run_lab.sh
 # Zone: prep
-# Version: 0.31.21.alpha
+# Version: 0.32.1
 # Purpose: Linux/macOS wrapper matching tools/windows/run_lab.cmd through the Python prep core.
 # Inputs: Optional lab root and Python from NOEMAFORGE_PYTHON.
 # Outputs: JSON Lab prep run.

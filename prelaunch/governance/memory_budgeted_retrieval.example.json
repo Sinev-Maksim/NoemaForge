@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.memory-budgeted-retrieval/v1",
   "kind": "MemoryBudgetedRetrievalExampleSet",
   "id": "memory-budgeted-retrieval-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "over-budget-chain-degrades-to-coherent-subchunks",

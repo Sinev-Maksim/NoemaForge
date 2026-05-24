@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/pipeline_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Manage NoemaForge pipeline catalog, runs, gates, artifacts and state.
@@ -22,7 +22,7 @@ pipelines. It targets switchable LLMs, not simultaneous multi-model teams.
 Stage-to-stage handoff is done with markdown context packets:
 `task_<task_id>_project_<project_id>_<stage>_context.md`.
 
-0.31.13.alpha-patched1 includes pipeline member cells: each participant can be standalone or a sequential multi-model cell with proposal/consensus/unique artifacts.
+0.32.1 includes pipeline member cells: each participant can be standalone or a sequential multi-model cell with proposal/consensus/unique artifacts.
 
 0.30.0 MVP/MWP scope:
 - durable local SQLite run/event/artifact registry;
@@ -34,8 +34,8 @@ Stage-to-stage handoff is done with markdown context packets:
 - 0.30.05 pattern catalog / persona catalog validation hooks.
 - 0.30.09 readiness, run-repair, stage gates and template import helpers.
 - 0.30.21 P1 typed event/state core, LLM leases, schema validation and metrics exporters.
-- 0.31.13.alpha-patched1 carries forward self-improvement testbench/wiki-patch integration hooks.
-- 0.31.13.alpha-patched1 includes member-cell pipeline subcommands and code analyzer/visualizer handoff artifacts.
+- 0.32.1 carries forward self-improvement testbench/wiki-patch integration hooks.
+- 0.32.1 includes member-cell pipeline subcommands and code analyzer/visualizer handoff artifacts.
 """
 from __future__ import annotations
 
@@ -63,13 +63,13 @@ DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
 DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 FINISHED_STATUSES = {"done", "completed", "cancelled", "failed", "archived"}
 PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}
 EVOLUTION_WORKTREE_BRANCH_PREFIX = "noemaforge/evolution/"
 WORKTREE_REF_RE = re.compile(r"^[A-Za-z0-9._/@+-]{1,180}$")
-TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.31.13.alpha-patched1"
+TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.32.1"
 TOOLPROXY_CAPABILITY_SCHEMA_REF = "contracts/capability_token.schema.json"
 TOOLPROXY_BASE_ACTIONS = [
     "llm.chat",

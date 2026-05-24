@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.previous-install-context/v1",
   "kind": "PreviousInstallContextPolicy",
   "id": "previous-install-context-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

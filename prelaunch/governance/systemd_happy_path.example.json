@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.systemd-happy-path/v1",
   "kind": "SystemdHappyPathExampleSet",
   "id": "systemd-happy-path-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "boot-mode-cli-owned-systemd-flow",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.gateway-inference-service/v1",
   "kind": "GatewayInferenceServicePolicy",
   "id": "gateway-inference-service-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -32,10 +32,10 @@
   "services": [
     {
       "id": "gateway-floor-inference-shadow",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "shadow",
       "containerized": true,
-      "image": "noemaforge/gateway-inference-service:0.31.21-alpha",
+      "image": "noemaforge/gateway-inference-service:0.32.1-alpha",
       "model_source": "signed_manifest",
       "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
       "tinyml_node_policy_ref": "noemaforge/configs/tinyml-node-policy.json",

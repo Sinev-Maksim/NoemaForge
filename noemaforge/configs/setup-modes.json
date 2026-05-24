@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.setup-modes/v1",
   "kind": "SetupModeMatrix",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "modes": {
     "vm": {
       "label": "Ubuntu/Debian VM",

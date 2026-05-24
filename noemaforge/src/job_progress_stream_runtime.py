@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/job_progress_stream_runtime.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the Admin GUI job-progress SSE stream contract.
@@ -156,7 +156,7 @@ def _token_report(ref: str, tokens: Sequence[str], *, project_root: Path, packag
     return {"ref": ref, "ok": not failures, "failures": failures, "resolved": resolved}
 
 
-def build_job_stream_events(jobs: Sequence[Dict[str, Any]], *, version: str = "0.31.21.alpha") -> List[Dict[str, Any]]:
+def build_job_stream_events(jobs: Sequence[Dict[str, Any]], *, version: str = "0.32.1") -> List[Dict[str, Any]]:
     safe_jobs = [dict(job) for job in jobs if isinstance(job, dict)]
     events = [{
         "event": "jobs_snapshot",

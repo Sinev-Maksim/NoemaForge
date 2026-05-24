@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_full_composite_target_run_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for patched10 full-composite target-run readiness.
@@ -47,7 +47,7 @@ class FullCompositeTargetRunReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/full-composite-target-run-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/full_composite_target_run_readiness.schema.json", pack["refs"])
@@ -67,7 +67,7 @@ class FullCompositeTargetRunReadinessQATests(unittest.TestCase):
             ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "reference" / "PROJECT_CONTEXT.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.31.13.alpha-patched1.md",
+            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.32.1.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(PACK_ID, text, str(path))

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.package-dry-run/v1",
   "kind": "PackageDryRunValidationPolicy",
   "id": "package-dry-run-validation-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,11 +10,11 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "required_scripts": {
       "setup": "setup.sh",
-      "installer": "install_noemaforge_0.32.0.alpha_mvp.sh",
-      "uninstall": "uninstall_noemaforge_0.32.0.alpha_mvp.sh"
+      "installer": "install_noemaforge_0.32.1_mvp.sh",
+      "uninstall": "uninstall_noemaforge_0.32.1_mvp.sh"
     },
     "required_setup_flags": ["--dry-run", "--selftest", "--install-root", "--data-root", "--model-profile"],
     "required_uninstall_flags": ["--dry-run", "--selftest"],
@@ -34,8 +34,8 @@
   },
   "refs": [
     "setup.sh",
-    "install_noemaforge_0.32.0.alpha_mvp.sh",
-    "uninstall_noemaforge_0.32.0.alpha_mvp.sh",
+    "install_noemaforge_0.32.1_mvp.sh",
+    "uninstall_noemaforge_0.32.1_mvp.sh",
     "noemaforge/configs/package-dry-run-validation-policy.json",
     "noemaforge/contracts/package_dry_run_validation.schema.json",
     "noemaforge/src/package_dry_run_validation_runtime.py",

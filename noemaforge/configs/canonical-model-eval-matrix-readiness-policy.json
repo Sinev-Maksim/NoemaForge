@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.canonical-model-eval-matrix-readiness/v1",
   "kind": "CanonicalModelEvalMatrixReadinessPolicy",
   "id": "canonical-model-eval-matrix-readiness-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -119,7 +119,7 @@
         "runtime_devices": ["cpu", "gpu"],
         "target_evidence_required": true,
         "source_refs": [
-          "noemaforge/docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md"
+          "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md"
         ],
         "evidence": ["matrix_transcript", "scorecard_bundle_sha256", "operator_review_note"],
         "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "canonical_docs_updated_after_review"]
@@ -147,7 +147,7 @@
       "noemaforge/src/model_scorecards.py",
       "noemaforge/src/role_tournament.py",
       "noemaforge/src/firstboot_eval.py",
-      "noemaforge/docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md",
+      "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
       "noemaforge/docs/README.md",
       "noemaforge/docs/TODO.md",
       "noemaforge/docs/reference/PROJECT_CONTEXT.md",
@@ -171,7 +171,7 @@
     "noemaforge/src/model_scorecards.py",
     "noemaforge/src/role_tournament.py",
     "noemaforge/src/firstboot_eval.py",
-    "noemaforge/docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md",
+    "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
     "noemaforge/docs/README.md",
     "noemaforge/docs/TODO.md",
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",

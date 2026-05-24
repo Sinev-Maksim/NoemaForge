@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_alpha_backlog_fence_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate alpha backlog-only fences and promotion blockers.
@@ -74,7 +74,7 @@ class AlphaBacklogFenceRuntimeTests(unittest.TestCase):
 
         self.assertFalse(report["ok"])
         self.assertIn(
-            "registry_protected_ref_promoted:eval-pack:typed-governance-track-core:0.32.0:promoted",
+            "registry_protected_ref_promoted:eval-pack:typed-governance-track-core:0.32.1:promoted",
             report["failures"],
         )
 

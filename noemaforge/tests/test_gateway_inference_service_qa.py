@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_gateway_inference_service_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test Gateway Inference Service discoverability through registry and canonical docs.
@@ -46,15 +46,15 @@ class GatewayInferenceServiceQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:gateway-inference-service-core:0.32.0")
+        pack = entries.get("eval-pack:gateway-inference-service-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/gateway-inference-service.json", pack["refs"])
         self.assertIn("src/gateway_inference_service_runtime.py", pack["refs"])
         self.assertIn("gateway/inference_service/app.py", pack["refs"])
         self.assertIn("tests/test_gateway_inference_service_performance.py", pack["refs"])
 
-        model = entries["model:model-registry-local:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:gateway-inference-service-core:0.32.0", model["eval_pack_refs"])
+        model = entries["model:model-registry-local:0.32.1"]
+        self.assertIn("eval-pack:gateway-inference-service-core:0.32.1", model["eval_pack_refs"])
 
     def test_gateway_inference_service_docs_policy_and_app_are_discoverable(self) -> None:
         policy = gisr.load_policy(ROOT / "configs" / "gateway-inference-service.json")

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-rfc/v1",
   "kind": "PipelineRFCPolicy",
   "id": "pipeline-rfc-mutation-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -61,7 +61,7 @@
     "noemaforge/tests/test_pipeline_rfc_performance.py",
     "prelaunch/governance/pipeline_rfc.example.json",
     "prelaunch/governance/research_packet.example.json",
-    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
   ]

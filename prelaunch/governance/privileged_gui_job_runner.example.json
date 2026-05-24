@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.privileged-gui-job-runner/v1",
   "kind": "PrivilegedGuiJobRunnerExampleSet",
   "id": "privileged-gui-job-runner-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "approved-epoch-apply-dry-run",

@@ -5,8 +5,8 @@
     "id": "final-gui-scenario-replay-readiness-core",
     "status": "shadow",
     "completion_state": "blocked_until_target_final_gui_scenario_replay_evidence",
-    "blocked_todo": "Run `0.31.12` on the target machine from GUI start through Admin greeting, routed pipeline launch, Dev Team action and model-evolution action.",
-    "secondary_blocked_todo": "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.31.13`.",
+    "blocked_todo": "Run `0.32.1` on the target machine from GUI start through Admin greeting, routed pipeline launch, Dev Team action and model-evolution action.",
+    "secondary_blocked_todo": "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.32.1`.",
     "required_showcase_id": "polished_admin_gui_guided_scenario",
     "local_validator_only": true,
     "target_machine_required": true,
@@ -223,9 +223,9 @@
       "noemaforge/docs/reference/PROJECT_CONTEXT.md",
       "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
       "noemaforge/docs/history/CHANGELOG.md",
-      "noemaforge/docs/wiki/gui/admin-console-and-admin-routing-0.31.12.md",
-      "noemaforge/docs/wiki/evolution/model-evolution-control-plane-0.31.12.md",
-      "noemaforge/docs/wiki/gui/persona-portraits-and-dashboard-0.31.12.md"
+      "noemaforge/docs/wiki/gui/admin-console-and-admin-routing-0.32.1.md",
+      "noemaforge/docs/wiki/evolution/model-evolution-control-plane-0.32.1.md",
+      "noemaforge/docs/wiki/gui/persona-portraits-and-dashboard-0.32.1.md"
     ],
     "example_refs": [
       "prelaunch/governance/final_gui_scenario_replay_readiness.example.json"

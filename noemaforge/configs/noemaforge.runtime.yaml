@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.runtime/v1",
   "kind": "NoemaForgeRuntimePolicy",
   "id": "multios-runtime-host-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -54,7 +54,7 @@
       "preserve_existing_launch": false,
       "refs": [
         "prelaunch/multios/windows_host_control_launcher.json",
-        "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md"
+        "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
       ]
     },
     {
@@ -70,7 +70,7 @@
       "preserve_existing_launch": false,
       "refs": [
         "prelaunch/multios/macos_host_control_launcher.json",
-        "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md"
+        "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
       ]
     },
     {
@@ -115,7 +115,7 @@
     "prelaunch/multios/windows_host_control_launcher.json",
     "prelaunch/multios/macos_host_control_launcher.json",
     "prelaunch/multios/runtime_health_report.example.json",
-    "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha-patched1.md",
+    "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
   ]

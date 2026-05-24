@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.post-reboot-validation-archive-readiness/v1",
   "kind": "PostRebootValidationArchiveReadinessPolicy",
   "id": "post-reboot-validation-archive-readiness-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/pipeline_toolproxy_stage_binding_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate ToolProxy capability-policy bindings on pipeline stages.
@@ -29,7 +29,7 @@ import unified_registry_runtime as urr
 API_VERSION = "noemaforge.pipeline-toolproxy-stage-binding/v1"
 POLICY_KIND = "PipelineToolProxyStageBindingPolicy"
 PACK_ID = "pipeline-toolproxy-stage-binding-core"
-VERSION = "0.31.21.alpha"
+VERSION = "0.32.1"
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = PACKAGE_ROOT.parent
 DEFAULT_POLICY = PACKAGE_ROOT / "configs" / "pipeline-toolproxy-stage-binding-policy.json"

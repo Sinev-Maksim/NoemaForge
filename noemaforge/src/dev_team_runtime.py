@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/dev_team_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -34,7 +34,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/lib/noemaforge/dev-team"))
 DEFAULT_PIPELINE_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_knowledge_purpose_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Knowledge Purpose discoverability through registry and docs.
@@ -46,14 +46,14 @@ class KnowledgePurposeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:knowledge-purpose-artifacts-core:0.32.0")
+        pack = entries.get("eval-pack:knowledge-purpose-artifacts-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/knowledge-purpose-policy.json", pack["refs"])
         self.assertIn("contracts/knowledge_purpose.schema.json", pack["refs"])
         self.assertIn("tests/test_knowledge_purpose_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:knowledge-purpose-artifacts-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:knowledge-purpose-artifacts-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/knowledge-purpose-policy.json", pipeline["refs"])
         self.assertIn("src/knowledge_purpose_runtime.py", pipeline["refs"])
 

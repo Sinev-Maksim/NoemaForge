@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for systemd/GDM/NVIDIA live-validation readiness.
@@ -47,14 +47,14 @@ class SystemdGdmNvidiaLiveValidationReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/systemd-gdm-nvidia-live-validation-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/systemd_gdm_nvidia_live_validation_readiness.schema.json", pack["refs"])
         self.assertIn("src/systemd_gdm_nvidia_live_validation_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        task = entries["task:first-start-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", task["eval_pack_refs"])
+        task = entries["task:first-start-model-selection:0.32.1"]
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", task["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_target_item(self) -> None:
         report = sgnv.validate_systemd_gdm_nvidia_live_validation_readiness_policy(sgnv.load_policy())

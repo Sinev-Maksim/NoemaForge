@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_graph_projection_views_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Graph Projection Views discoverability through registry and docs.
@@ -46,7 +46,7 @@ class GraphProjectionViewsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:graph-projection-views-core:0.32.0")
+        pack = entries.get("eval-pack:graph-projection-views-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/graph-projection-views-policy.json", pack["refs"])
         self.assertIn("contracts/graph_projection_views.schema.json", pack["refs"])
@@ -54,8 +54,8 @@ class GraphProjectionViewsQATests(unittest.TestCase):
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("docs/reference/PROJECT_CONTEXT.md", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:graph-projection-views-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:graph-projection-views-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/graph-projection-views-policy.json", pipeline["refs"])
         self.assertIn("src/graph_projection_views_runtime.py", pipeline["refs"])
 

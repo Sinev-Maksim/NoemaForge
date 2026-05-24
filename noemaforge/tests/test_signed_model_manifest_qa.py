@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_signed_model_manifest_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test signed model manifest discoverability through registry and canonical docs.
@@ -44,15 +44,15 @@ class SignedModelManifestQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:signed-model-manifest-core:0.32.0")
+        pack = entries.get("eval-pack:signed-model-manifest-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/signed-model-manifest-policy.json", pack["refs"])
         self.assertIn("contracts/signed_model_manifest.schema.json", pack["refs"])
         self.assertIn("src/signed_model_manifest_runtime.py", pack["refs"])
         self.assertIn("tests/test_signed_model_manifest_performance.py", pack["refs"])
 
-        model = entries["model:model-registry-local:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:signed-model-manifest-core:0.32.0", model["eval_pack_refs"])
+        model = entries["model:model-registry-local:0.32.1"]
+        self.assertIn("eval-pack:signed-model-manifest-core:0.32.1", model["eval_pack_refs"])
 
     def test_signed_manifest_docs_and_policy_are_discoverable(self) -> None:
         policy = smmr.load_policy(ROOT / "configs" / "signed-model-manifest-policy.json")

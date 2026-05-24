@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-route-distinction/v1",
   "kind": "ModelRouteDistinctionPolicy",
   "id": "model-route-distinction-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.onboarding-ladder/v1",
   "kind": "OnboardingLadderExampleSet",
   "id": "onboarding-ladder-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "newcomer-five-minute-overview",

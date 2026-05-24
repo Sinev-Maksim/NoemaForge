@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.release-provenance/v1",
   "kind": "ReleaseProvenancePolicy",
   "id": "release-provenance-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,7 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "required_artifact_kinds": ["release_archive"],
     "required_materials": [
       "archive",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_trend_dashboard_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test self-test trend dashboard discoverability through registry and docs.
@@ -44,7 +44,7 @@ class SelfTestTrendDashboardQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:selftest-trend-dashboard-core:0.32.0")
+        pack = entries.get("eval-pack:selftest-trend-dashboard-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/selftest-trend-dashboard-policy.json", pack["refs"])
         self.assertIn("contracts/selftest_trend_dashboard.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class SelfTestTrendDashboardQATests(unittest.TestCase):
         self.assertIn("src/selftest_trend_dashboard_runtime.py", pack["refs"])
         self.assertIn("tests/test_selftest_trend_dashboard_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:selftest-trend-dashboard-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:selftest-trend-dashboard-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/selftest-trend-dashboard-policy.json", pipeline["refs"])
         self.assertIn("src/selftest_runtime.py", pipeline["refs"])
 

@@ -52,7 +52,7 @@
           "const": "Run `0.31.12` on the target machine from GUI start through Admin greeting, routed pipeline launch, Dev Team action and model-evolution action."
         },
         "secondary_blocked_todo": {
-          "const": "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.31.13`."
+          "const": "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.32.1`."
         },
         "required_showcase_id": {
           "const": "polished_admin_gui_guided_scenario"

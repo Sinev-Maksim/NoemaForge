@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_final_gui_scenario_replay_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and docs coverage for final Admin GUI replay readiness.
@@ -29,7 +29,7 @@ import final_gui_scenario_replay_readiness_runtime as fgsr
 import unified_registry_runtime as urr
 
 OPEN_TODO = "- [ ] Run `0.31.12` on the target machine from GUI start through Admin greeting, routed pipeline launch, Dev Team action and model-evolution action."
-SECONDARY_OPEN_TODO = "- [ ] On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.31.13`."
+SECONDARY_OPEN_TODO = "- [ ] On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.32.1`."
 PACK_ID = "final-gui-scenario-replay-readiness-core"
 BLOCKED_STATE = "blocked_until_target_final_gui_scenario_replay_evidence"
 
@@ -48,14 +48,14 @@ class FinalGuiScenarioReplayReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/final-gui-scenario-replay-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/final_gui_scenario_replay_readiness.schema.json", pack["refs"])
         self.assertIn("src/final_gui_scenario_replay_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        task = entries["task:first-start-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", task["eval_pack_refs"])
+        task = entries["task:first-start-model-selection:0.32.1"]
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", task["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_target_items(self) -> None:
         report = fgsr.validate_final_gui_scenario_replay_readiness_policy(fgsr.load_policy())

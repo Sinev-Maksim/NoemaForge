@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_artifact_card_affordance_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test artifact-card affordance registration and documentation coverage.
@@ -43,13 +43,13 @@ class ArtifactCardAffordanceQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:artifact-card-affordance-core:0.32.0")
+        pack = entries.get("eval-pack:artifact-card-affordance-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/artifact-card-affordance-policy.json", pack["refs"])
         self.assertIn("src/artifact_card_affordance_runtime.py", pack["refs"])
         self.assertIn("templates/pipeline-dashboard/artifact-affordances.css", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:artifact-card-affordance-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:artifact-card-affordance-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/artifact-card-affordance-policy.json", pipeline["refs"])
 
     def test_docs_and_examples_name_artifact_card_affordance_contract(self) -> None:

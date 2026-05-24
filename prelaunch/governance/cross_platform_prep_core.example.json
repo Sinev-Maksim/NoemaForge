@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.cross-platform-prep/v1",
   "kind": "CrossPlatformPrepCoreExampleSet",
   "id": "cross-platform-prep-core-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "linux-macos-firstboot-staging",

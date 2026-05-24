@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.wiki-patch-commit-helper/v1",
   "kind": "WikiPatchCommitHelperPolicy",
   "id": "wiki-patch-commit-helper-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,7 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "required_wiki_patch_commands": ["commit-plan"],
     "required_outputs": ["reviewed_commit_plan.json", "commit_helper.sh", "commit_message.txt"],
     "required_refs": {

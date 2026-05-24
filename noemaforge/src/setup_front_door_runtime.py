@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/setup_front_door_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the root setup.sh front-door contract for setup flags and progress phases.
@@ -68,7 +68,7 @@ REQUIRED_REGISTRY_REFS = [
     "contracts/setup_front_door.schema.json",
     "src/setup_front_door_runtime.py",
     "setup.sh",
-    "install_noemaforge_0.31.21.alpha_mvp.sh",
+    "install_noemaforge_0.32.1_mvp.sh",
     "src/firstboot_orchestrator.py",
     "src/firstboot_status.py",
     "src/firstboot_eval.py",

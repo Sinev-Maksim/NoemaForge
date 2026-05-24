@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.runtime-default-safety/v1",
   "kind": "RuntimeDefaultSafetyExampleSet",
   "id": "runtime-default-safety-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "offline-default-single-llm-heavy-manual",

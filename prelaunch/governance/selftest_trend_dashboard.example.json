@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.selftest-trend-dashboard/v1",
   "kind": "SelfTestTrendDashboardExampleSet",
   "id": "selftest-trend-dashboard-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "offline-two-run-regression-trend",
@@ -15,7 +15,7 @@
         {
           "apiVersion": "noemaforge/v1",
           "kind": "SelfTestReport",
-          "version": "0.31.13.alpha-patched1",
+          "version": "0.32.1",
           "run_id": "selftest_20260519T010000Z",
           "suite": "core",
           "started_at": "2026-05-19T01:00:00Z",
@@ -29,7 +29,7 @@
         {
           "apiVersion": "noemaforge/v1",
           "kind": "SelfTestReport",
-          "version": "0.31.13.alpha-patched1",
+          "version": "0.32.1",
           "run_id": "selftest_20260520T010000Z",
           "suite": "core",
           "started_at": "2026-05-20T01:00:00Z",

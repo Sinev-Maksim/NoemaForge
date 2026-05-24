@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.setup-modes/v1",
   "kind": "SetupModeMatrixExampleSet",
   "id": "setup-mode-matrix-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "friend-first-success",

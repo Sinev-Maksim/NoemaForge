@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.selftest-event-store/v1",
   "kind": "SelfTestEventStoreExampleSet",
   "id": "selftest-event-store-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "offline-report-to-canonical-events",
@@ -12,7 +12,7 @@
       "report": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "selftest_events_example",
         "suite": "core",
         "started_at": "2026-05-20T02:56:00Z",

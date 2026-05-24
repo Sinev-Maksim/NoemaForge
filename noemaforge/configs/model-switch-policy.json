@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-switch-policy/v1",
   "kind": "ModelSwitchPolicy",
   "id": "model-switch-policy-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,7 @@
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "require_no_live_backend_dependency": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "closed_todo_refs": [
       "Add model switch policy: role -> preferred local/remote model -> fallback."
     ],

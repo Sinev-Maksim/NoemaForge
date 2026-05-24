@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/package_dry_run_validation_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate install/uninstall dry-run package validation contracts.
@@ -274,7 +274,7 @@ def _static_script_failures(payload: Dict[str, Any], *, project_root: Path, pack
     setup_checks = {
         "required_flags": sorted([flag for flag in REQUIRED_SETUP_FLAGS if flag in setup_text]),
         "dry_run_if_line": _line_of(setup_text, 'if [[ "$DRY_RUN" == 1 ]]'),
-        "installer_exec_line": _line_of(setup_text, 'exec "$PKG_DIR/install_noemaforge_0.31.21.alpha_mvp.sh"'),
+        "installer_exec_line": _line_of(setup_text, 'exec "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh"'),
         "root_guard": "non-dry-run install requires sudo/root" in setup_text,
         "recursion_guard": "NOEMAFORGE_SETUP_DEPTH" in setup_text,
         "syntax_checks_installer": f'bash -n "$PKG_DIR/{installer_ref}"' in setup_text,

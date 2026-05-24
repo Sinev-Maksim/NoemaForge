@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_selection_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Create and manage model-selection plans and epoch candidate artifacts.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge model-selection control-plane runtime.
 
-This is a lightweight GUI/CLI bridge for 0.31.13.alpha-patched1. It creates an
+This is a lightweight GUI/CLI bridge for 0.32.1. It creates an
 operator-reviewable plan for first-start model optimization and, on apply,
 writes an epoch-switch request artifact. Actual heavy selection is performed by
 `sudo noemaforge first-start --<mode>`.
@@ -34,7 +34,7 @@ from typing import Any, Dict, Optional
 
 import production_ai_contracts
 
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
 

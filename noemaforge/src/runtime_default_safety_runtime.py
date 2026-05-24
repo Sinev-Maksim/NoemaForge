@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/runtime_default_safety_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate default single-LLM runtime safety and manual-only heavy boot policy.

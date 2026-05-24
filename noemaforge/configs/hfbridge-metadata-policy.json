@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.hfbridge/v1",
   "kind": "HFBridgeMetadataPolicy",
   "id": "hfbridge-metadata-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "git_exchange_policy_ref": "configs/git-exchange-quarantine-policy.json",
     "peft_lora_policy_ref": "configs/peft-lora-lab-policy.json",
     "allowed_operations": [

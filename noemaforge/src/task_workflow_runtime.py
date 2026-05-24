@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/task_workflow_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate Admin GUI task add/edit/prioritize/block/complete workflows through chat and API.

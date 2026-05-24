@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/run_firstboot.sh
 # Zone: prep
-# Version: 0.31.21.alpha
+# Version: 0.32.1
 # Purpose: Linux/macOS wrapper matching tools/windows/run_firstboot.cmd through the Python prep core.
 # Inputs: Optional lab root plus --model-profile through environment MODEL_PROFILE.
 # Outputs: JSON firstboot staging plan.

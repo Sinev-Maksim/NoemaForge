@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.clean-distribution/v1",
   "kind": "CleanDistributionPlanSet",
   "id": "clean-distribution-allowlist-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "plans": [
     {
       "apiVersion": "noemaforge.clean-distribution/v1",

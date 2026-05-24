@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-reference-targets/v1",
   "kind": "EdgeReferenceTargetsPolicy",
   "id": "edge-reference-targets-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -37,9 +37,9 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.0",
+      "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.1",
       "refs": [
-        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md"
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
       ]
     },
     {
@@ -50,9 +50,9 @@
       "required_runtime_dependency": false,
       "preferred": true,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.0",
+      "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.1",
       "refs": [
-        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
         "noemaforge/configs/edge-rules-engine-policy.json"
       ]
     },
@@ -64,7 +64,7 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.0",
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.1",
       "refs": [
         "ota/mender_module_model_update/README.md",
         "noemaforge/configs/ota-update-layer.json"
@@ -78,7 +78,7 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.0",
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.1",
       "refs": [
         "ota/rauc_bundle_notes.md",
         "noemaforge/configs/ota-update-layer.json"
@@ -92,7 +92,7 @@
     "noemaforge/tests/test_edge_reference_targets_runtime.py",
     "noemaforge/tests/test_edge_reference_targets_qa.py",
     "noemaforge/tests/test_edge_reference_targets_performance.py",
-    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
+    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
     "noemaforge/configs/edge-rules-engine-policy.json",
     "noemaforge/configs/gateway-inference-service.json",
     "noemaforge/configs/ota-update-layer.json",

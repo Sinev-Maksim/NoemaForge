@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/dashboard_api_endpoint_runtime.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the dedicated installed Admin GUI dashboard backend endpoint contract.
@@ -149,7 +149,7 @@ def _registry_failures(payload: Dict[str, Any], *, project_root: Path, package_r
     eval_ref = f"eval-pack:{payload.get('id')}:{payload.get('version')}"
     if eval_ref not in entries:
         failures.append(f"registry_eval_pack_missing:{eval_ref}")
-    pipeline_ref = "pipeline:firstboot-model-selection:0.31.13.alpha-patched1"
+    pipeline_ref = "pipeline:firstboot-model-selection:0.32.1"
     pipeline = raw_entries.get(pipeline_ref) or entries.get(pipeline_ref)
     if not pipeline:
         failures.append(f"registry_pipeline_missing:{pipeline_ref}")
@@ -199,8 +199,8 @@ def build_offline_dashboard_server(*, package_root: Path | str) -> Any:
     server = object.__new__(admin_gui_server.AdminGuiServer)
     server.root = root
     server.state = root / "_offline" / "pipeline-state"
-    server.health = lambda: {"ok": True, "version": "0.31.21.alpha", "api": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}
-    server.dashboard_state = lambda: {"ok": True, "version": "0.31.21.alpha", "source": "offline_dashboard_api_fixture"}
+    server.health = lambda: {"ok": True, "version": "0.32.1", "api": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}
+    server.dashboard_state = lambda: {"ok": True, "version": "0.32.1", "source": "offline_dashboard_api_fixture"}
     server.conversation_history = lambda: {"conversation_id": "conv_dashboard_api", "messages": [], "artifacts": []}
     server.epoch_status = lambda: {"ok": True, "epoch": "offline"}
     server.telemetry_status = lambda: {"ok": True, "hardware": {}, "runtime": {}, "product": {}}

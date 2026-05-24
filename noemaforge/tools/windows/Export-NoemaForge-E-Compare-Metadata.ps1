@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: tools/windows/Export-NoemaForge-E-Compare-Metadata.ps1
 # Zone: prep
-# Version: 0.31.21.alpha
+# Version: 0.32.1
 # Created: 2026-05-20
 # Modified: 2026-05-20
 # Purpose: Thin Windows wrapper over cross-platform Python Vault compare metadata export.

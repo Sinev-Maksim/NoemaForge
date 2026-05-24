@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_premerge_release_guard_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate pre-merge release guard invariants.
@@ -38,7 +38,7 @@ def report(run_id: str, *, failed: bool = False, duration: float = 0.4, rss: int
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": run_id,
         "suite": "core",
         "summary": {

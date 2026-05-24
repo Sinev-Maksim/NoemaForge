@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "SelfTestCaseCatalog",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "invariant": {
     "llm_mode": "switchable",
     "max_active_llms": 1,
@@ -3045,7 +3045,7 @@
       "command": [
         "test",
         "-s",
-        "{{root}}/../docs/USER_TEST_CASE_0.31.13.alpha-patched1.md"
+        "{{root}}/../docs/USER_TEST_CASE_0.32.1.md"
       ],
       "timeout_seconds": 10
     }

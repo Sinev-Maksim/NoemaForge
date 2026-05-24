@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.roleflow/v1",
   "kind": "RoleFlowPolicy",
   "id": "roleflow-orchestration-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "role_kernel_policy_ref": "configs/role-kernel-policy.json",
     "role_catalog_ref": "configs/role-catalog.yaml",
     "allowed_node_kinds": [

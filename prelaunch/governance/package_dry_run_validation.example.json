@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.package-dry-run/v1",
   "kind": "PackageDryRunValidationExampleSet",
   "id": "package-dry-run-validation-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "setup-vm-dry-run-selftest",
@@ -14,13 +14,13 @@
         "plans_only": true,
         "dry_run_exits_before_installer_exec": true,
         "recursion_guard": true,
-        "syntax_checks": ["setup.sh", "install_noemaforge_0.32.0.alpha_mvp.sh", "uninstall_noemaforge_0.32.0.alpha_mvp.sh"],
+        "syntax_checks": ["setup.sh", "install_noemaforge_0.32.1_mvp.sh", "uninstall_noemaforge_0.32.1_mvp.sh"],
         "destructive_actions_allowed": false
       },
       "refs": [
         "setup.sh",
-        "install_noemaforge_0.32.0.alpha_mvp.sh",
-        "uninstall_noemaforge_0.32.0.alpha_mvp.sh",
+        "install_noemaforge_0.32.1_mvp.sh",
+        "uninstall_noemaforge_0.32.1_mvp.sh",
         "noemaforge/configs/package-dry-run-validation-policy.json",
         "noemaforge/src/package_dry_run_validation_runtime.py"
       ]
@@ -28,18 +28,18 @@
     {
       "id": "uninstall-dry-run-selftest",
       "trace_id": "trace:package-dry-run:uninstall-selftest",
-      "command": ["./uninstall_noemaforge_0.32.0.alpha_mvp.sh", "--dry-run", "--selftest"],
-      "script": "uninstall_noemaforge_0.32.0.alpha_mvp.sh",
+      "command": ["./uninstall_noemaforge_0.32.1_mvp.sh", "--dry-run", "--selftest"],
+      "script": "uninstall_noemaforge_0.32.1_mvp.sh",
       "expected": {
         "no_root_required": true,
         "plans_only": true,
         "dry_run_exits_before_installer_exec": true,
         "recursion_guard": false,
-        "syntax_checks": ["uninstall_noemaforge_0.32.0.alpha_mvp.sh"],
+        "syntax_checks": ["uninstall_noemaforge_0.32.1_mvp.sh"],
         "destructive_actions_allowed": false
       },
       "refs": [
-        "uninstall_noemaforge_0.32.0.alpha_mvp.sh",
+        "uninstall_noemaforge_0.32.1_mvp.sh",
         "noemaforge/configs/package-dry-run-validation-policy.json",
         "noemaforge/src/package_dry_run_validation_runtime.py"
       ]

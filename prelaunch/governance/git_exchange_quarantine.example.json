@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.git-exchange/v1",
   "kind": "GitExchangeImportSet",
   "id": "git-exchange-quarantine-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "imports": [
     {
       "apiVersion": "noemaforge.git-exchange/v1",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/full_composite_target_run_readiness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for patched10 full-composite target-run evidence.
@@ -72,8 +72,8 @@ REQUIRED_DOC_REFS = {
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/history/CHANGELOG.md",
-    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
-    "noemaforge/docs/wiki/first-start/model-selection-modes-0.31.13.alpha-patched1.md",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+    "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
 }
 
 SRC_DIR = Path(__file__).resolve().parent

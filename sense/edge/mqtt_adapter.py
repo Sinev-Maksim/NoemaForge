@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: sense/edge/mqtt_adapter.py
 Zone: prelaunch/sense
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Normalize offline MQTT sensor payloads into the Sense Layer Edge metric schema.

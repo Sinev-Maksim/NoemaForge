@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-rules-engine/v1",
   "kind": "EdgeFallbackRules",
   "id": "edge-whitebox-fallback-rules",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "rules": [
     {
       "id": "whitebox-temperature-fallback",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_role_review_state_machine_qa.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test Admin/Surgeon/Scary state-machine discoverability through registry and docs.
@@ -44,7 +44,7 @@ class RoleReviewStateMachineQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:role-review-state-machine-core:0.32.0")
+        pack = entries.get("eval-pack:role-review-state-machine-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/role-review-state-machine-policy.json", pack["refs"])
         self.assertIn("contracts/role_review_state_machine.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class RoleReviewStateMachineQATests(unittest.TestCase):
         self.assertIn("src/role_review_state_machine_runtime.py", pack["refs"])
         self.assertIn("tests/test_role_review_state_machine_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
-        self.assertIn("eval-pack:role-review-state-machine-core:0.32.0", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        self.assertIn("eval-pack:role-review-state-machine-core:0.32.1", pipeline["eval_pack_refs"])
         self.assertIn("configs/role-review-state-machine-policy.json", pipeline["refs"])
         self.assertIn("src/role_review_state_machine_runtime.py", pipeline["refs"])
 

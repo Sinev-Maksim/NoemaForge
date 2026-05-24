@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.systemd-happy-path/v1",
   "kind": "SystemdHappyPathPolicy",
   "id": "systemd-happy-path-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "refs": [
     "configs/systemd-happy-path-policy.json",
@@ -22,7 +22,7 @@
   "policy": {
     "mode": "offline_contract",
     "activation_state": "operator_cli_owned_systemd_happy_path",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.31.13.alpha-patched1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,

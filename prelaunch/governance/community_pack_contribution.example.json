@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.community-pack-contribution/v1",
   "kind": "CommunityPackContributionExampleSet",
   "id": "community-pack-contribution-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "quarantine-first-community-evalpack",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.wiki-patch-commit-helper/v1",
   "kind": "WikiPatchCommitHelperExampleSet",
   "id": "wiki-patch-commit-helper-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "offline-reviewed-local-commit-plan",

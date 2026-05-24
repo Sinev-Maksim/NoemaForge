@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.post-reboot-service-health-readiness/v1",
   "kind": "PostRebootServiceHealthReadinessPolicy",
   "id": "post-reboot-service-health-readiness-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

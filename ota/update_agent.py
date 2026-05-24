@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: ota/update_agent.py
 Zone: prelaunch/ota
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Provide offline OTA update planning helpers with rollback and health-gate enforcement.

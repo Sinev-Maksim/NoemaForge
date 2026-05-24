@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/media_backend_selection_readiness_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for explicit live-media backend selection.
@@ -73,7 +73,7 @@ REQUIRED_DOC_REFS = {
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/history/CHANGELOG.md",
-    "noemaforge/docs/wiki/multimodal/multimodal-vault-readiness-0.31.13.alpha-patched1.md",
+    "noemaforge/docs/wiki/multimodal/multimodal-vault-readiness-0.32.1.md",
 }
 PRIMARY_TODO = "Add final live-media backend adapters after explicit backend selection."
 

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/hypergraph_error_improvement_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the offline model-improvement loop from reviewed hypergraph errors.

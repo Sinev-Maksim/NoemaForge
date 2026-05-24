@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.knowledge-purpose/v1",
   "kind": "KnowledgePurposeExampleSet",
   "id": "knowledge-purpose-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "admin-grounding-realm-purpose",

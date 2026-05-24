@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.tinyml-node/v1",
   "kind": "TinyMLNodePolicy",
   "id": "tinyml-node-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_validation",
@@ -27,12 +27,12 @@
   "nodes": [
     {
       "id": "example-mcu-floor-controller",
-      "version": "0.32.0",
+      "version": "0.32.1",
       "state": "shadow",
       "target_mcu": "generic-cortex-m",
       "runtime": "tflm",
       "decision_mode": "advisory_only",
-      "model_ref": "model:model-registry-local:0.31.13.alpha-patched1",
+      "model_ref": "model:model-registry-local:0.32.1",
       "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
       "edge_rules_ref": "noemaforge/configs/edge-rules-engine-policy.json",
       "golden_vectors_ref": "prelaunch/tinyml/golden_vectors/example_edge_model_vectors.jsonl",

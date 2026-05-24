@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.role-corpus-binding/v1",
   "kind": "RoleCorpusBindingExampleSet",
   "id": "role-corpus-binding-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "seed-jsonl-and-missing-library",

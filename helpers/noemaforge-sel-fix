@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-sel-fix
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.

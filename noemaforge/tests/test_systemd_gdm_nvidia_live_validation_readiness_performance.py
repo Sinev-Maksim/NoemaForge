@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_systemd_gdm_nvidia_live_validation_readiness_performance.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Bounded regression-test systemd/GDM/NVIDIA live-validation readiness validation runtime.

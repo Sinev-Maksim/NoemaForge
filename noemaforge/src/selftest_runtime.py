@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/selftest_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge self-test, telemetry and wiki-patch runtime.
 
-0.31.13.alpha-patched1 scope:
+0.32.1 scope:
 - module-level test case catalog runner;
 - resource telemetry per case: wall time, CPU, RSS, proc I/O, optional GPU/VRAM/ECC;
 - baseline comparison and regression classification;
@@ -60,7 +60,7 @@ except ImportError:  # pragma: no cover - exercised on Windows hosts.
 
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
-RUNTIME_VERSION = "0.32.0.alpha"
+RUNTIME_VERSION = "0.32.1"
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
 POLICY_REL = Path("configs/selftest-telemetry-policy.json")
 

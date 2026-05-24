@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/production_ai_contracts.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-18
 Modified: 2026-05-18
 Purpose: Provide executable production-AI lifecycle contracts for registry, evaluation gates and release evidence.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/docs_hygiene_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-21
 Purpose: Validate canonical Markdown placement, changelog hygiene and active-file readability for prelaunch docs.

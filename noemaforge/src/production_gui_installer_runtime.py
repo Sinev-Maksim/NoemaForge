@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/production_gui_installer_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the production GUI installer readiness contract without touching a live host.
@@ -169,7 +169,7 @@ def analyze_installer_surface(payload: Dict[str, Any], *, project_root: Path | s
     for token in _as_string_list(policy.get("required_cli_tokens")):
         if token not in cli_text:
             failures.append(f"cli_token_missing:{token}")
-    if "exec \"$PKG_DIR/install_noemaforge_0.31.21.alpha_mvp.sh\"" not in setup_text:
+    if "exec \"$PKG_DIR/install_noemaforge_0.32.1_mvp.sh\"" not in setup_text:
         failures.append("setup_does_not_delegate_to_current_installer")
     if re.search(r"systemctl\s+enable\s+noemaforge-autostart-gui\.service", installer_text):
         failures.append("installer_enables_direct_gui_service")

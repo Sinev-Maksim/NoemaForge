@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_public_showcase_guided_scenario_qa.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test public showcase guided scenario registry and documentation coverage.
@@ -48,7 +48,7 @@ class PublicShowcaseGuidedScenarioQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:public-showcase-guided-scenario-core:0.32.0")
+        pack = entries.get("eval-pack:public-showcase-guided-scenario-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/public-showcase-guided-scenario-policy.json", pack["refs"])
         self.assertIn("src/public_showcase_guided_scenario_runtime.py", pack["refs"])

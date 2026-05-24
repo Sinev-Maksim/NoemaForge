@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.first-start-summary/v1",
   "kind": "FirstStartSummaryExampleSet",
   "id": "first-start-summary-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "events": [
     {"ts": "2026-05-20T01:00:00Z", "step": "start", "state": "running", "message": "first run started", "extra": {"run_id": "run-pass"}},
     {"ts": "2026-05-20T01:00:02Z", "step": "inventory", "state": "complete", "message": "vault inventory complete", "extra": {"selection_mode": "gui"}},

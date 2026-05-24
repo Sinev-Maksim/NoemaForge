@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.premerge-release-guard/v1",
   "kind": "PremergeReleaseGuardExampleSet",
   "id": "premerge-release-guard-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "clean-premerge-allows",
@@ -11,7 +11,7 @@
       "baseline": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "baseline_clean",
         "suite": "core",
         "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
@@ -23,7 +23,7 @@
       "current": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "candidate_clean",
         "suite": "core",
         "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
@@ -41,7 +41,7 @@
       "baseline": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "baseline_pass",
         "suite": "core",
         "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 1.0, "duration_max_sec": 0.6, "max_rss_kib": 12000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
@@ -53,7 +53,7 @@
       "current": {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": "candidate_fail",
         "suite": "core",
         "summary": {"ok": false, "case_count": 2, "passed": 1, "failed": 1, "duration_total_sec": 1.5, "duration_max_sec": 1.1, "max_rss_kib": 13000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},

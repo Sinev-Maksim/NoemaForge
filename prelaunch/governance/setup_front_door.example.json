@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.setup-front-door/v1",
   "kind": "SetupFrontDoorExampleSet",
   "id": "setup-front-door-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "root-setup-wraps-firstboot-progress",

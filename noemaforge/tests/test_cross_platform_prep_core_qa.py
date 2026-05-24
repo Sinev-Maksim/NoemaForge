@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_cross_platform_prep_core_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test cross-platform prep core discoverability through registry, docs and TODO.
@@ -35,14 +35,14 @@ class CrossPlatformPrepCoreQATests(unittest.TestCase):
     def test_pack_is_registered_and_attached_to_firstboot_pipeline(self) -> None:
         registry = json.loads((ROOT / "configs" / "unified-registry.json").read_text(encoding="utf-8"))
         entries = {f"{item['kind']}:{item['id']}:{item['version']}": item for item in registry["entries"]}
-        pack_ref = "eval-pack:cross-platform-prep-core:0.32.0"
+        pack_ref = "eval-pack:cross-platform-prep-core:0.32.1"
         pack = entries.get(pack_ref)
         self.assertIsNotNone(pack)
         self.assertIn("tools/prep/noemaforge_prep_core.py", pack["refs"])
         self.assertIn("tests/test_cross_platform_prep_core_performance.py", pack["refs"])
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("docs/reference/PROJECT_CONTEXT.md", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.31.13.alpha-patched1"]
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
         self.assertIn(pack_ref, pipeline["eval_pack_refs"])
         self.assertIn("tools/prep/noemaforge_prep_core.py", pipeline["refs"])
         self.assertIn("src/cross_platform_prep_core_runtime.py", pipeline["refs"])

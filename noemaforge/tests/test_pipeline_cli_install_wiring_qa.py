@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_pipeline_cli_install_wiring_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: QA-test registry and documentation coverage for pipeline CLI install wiring.
@@ -46,16 +46,16 @@ class PipelineCliInstallWiringQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/pipeline-cli-install-wiring-policy.json", pack["refs"])
         self.assertIn("contracts/pipeline_cli_install_wiring.schema.json", pack["refs"])
         self.assertIn("src/pipeline_cli_install_wiring_runtime.py", pack["refs"])
         self.assertIn("bin/noemaforge", pack["refs"])
-        self.assertIn("install_noemaforge_0.31.21.alpha_mvp.sh", pack["refs"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.31.13.alpha-patched1")
+        self.assertIn("install_noemaforge_0.32.1_mvp.sh", pack["refs"])
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.0", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
 
     def test_docs_close_installed_pipeline_cli_todo_with_contract_refs(self) -> None:
         report = pciw.validate_pipeline_cli_install_wiring_policy(

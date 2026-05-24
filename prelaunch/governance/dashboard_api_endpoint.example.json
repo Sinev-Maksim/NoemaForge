@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.dashboard-api-endpoint/v1",
   "kind": "DashboardApiEndpointExampleSet",
   "id": "dashboard-api-endpoint-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "examples": [
     {
       "name": "installed_gui_dashboard_backend",

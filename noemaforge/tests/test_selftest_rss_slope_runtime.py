@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_rss_slope_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate self-test RSS slope stress runner invariants.
@@ -38,7 +38,7 @@ def repeated_report(run_id: str = "rss_run") -> dict:
     return {
         "apiVersion": "noemaforge/v1",
         "kind": "SelfTestReport",
-        "version": "0.31.13.alpha-patched1",
+        "version": "0.32.1",
         "run_id": run_id,
         "suite": "stress",
         "started_at": "2026-05-20T03:11:00Z",

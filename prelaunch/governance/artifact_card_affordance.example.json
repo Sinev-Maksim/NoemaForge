@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.artifact-card-affordance/v1",
   "kind": "ArtifactCardAffordanceExampleSet",
   "id": "artifact-card-affordance-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "examples": [
     {
       "name": "operator_can_open_and_download_json_artifact",

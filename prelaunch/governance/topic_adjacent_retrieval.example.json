@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.topic-adjacent-retrieval/v1",
   "kind": "TopicAdjacentRetrievalExampleSet",
   "id": "topic-adjacent-retrieval-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "scenarios": [
     {
       "id": "topic-adjacent-budgeted-retrieval",

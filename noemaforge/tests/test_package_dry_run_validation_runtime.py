@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_package_dry_run_validation_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate install/uninstall dry-run package validation invariants.
@@ -86,7 +86,7 @@ class PackageDryRunValidationRuntimeTests(unittest.TestCase):
 
         def fake_script(path: Path | str) -> str:
             text = Path(path).read_text(encoding="utf-8")
-            if str(path).endswith("uninstall_noemaforge_0.31.21.alpha_mvp.sh"):
+            if str(path).endswith("uninstall_noemaforge_0.32.1_mvp.sh"):
                 return text + "\nrm -rf /opt/noemaforge\n"
             return text
 

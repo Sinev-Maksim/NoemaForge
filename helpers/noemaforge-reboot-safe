@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-reboot-safe
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
@@ -12,7 +12,7 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.29.10 safe reboot/shutdown helper.
+# NoemaForge 0.32.1 safe reboot/shutdown helper.
 set -euo pipefail
 . /usr/local/lib/noemaforge-common.sh
 
@@ -46,7 +46,7 @@ STOP_ARGS=(--shutdown-hook)
 [[ "$CLOSE_GUI" == "1" ]] && STOP_ARGS+=(--close-gui-heavy)
 [[ "$DRY_RUN" == "1" ]] && STOP_ARGS+=(--dry-run)
 
-printf '=== NoemaForge %s-safe 0.29.10 ===\n' "$MODE"
+printf '=== NoemaForge %s-safe 0.32.1 ===\n' "$MODE"
 printf 'close_gui_heavy=%s\n' "$CLOSE_GUI"
 printf 'umount_share=%s\n' "$UMOUNT_SHARE"
 

@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge_validation_logger.sh
 # Zone: release/package
-# Version: 0.31.13.alpha-patched1
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -12,8 +12,8 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha-patched1 target-machine validation logger.
-# Run after installing NoemaForge 0.31.13.alpha-patched1. It collects command output, GUI/API
+# NoemaForge 0.32.1 target-machine validation logger.
+# Run after installing NoemaForge 0.32.1. It collects command output, GUI/API
 # smoke results, selected NoemaForge state artifacts and a tar.gz bundle.
 set -u -o pipefail
 
@@ -103,7 +103,7 @@ elif mode == "dev_replace":
     data = {"project": project, "path": "README.md", "old": "status=created-by-gui-api", "new": "status=modified-by-dev-team", "once": True, "apply": True}
 elif mode == "dev_set_version":
     project = sys.argv[3]
-    data = {"project": project, "version": "0.31.13.alpha-patched1-gui-test", "apply": True}
+    data = {"project": project, "version": "0.32.1-gui-test", "apply": True}
 elif mode == "model_evolution":
     data = {"request": "проведи эволюцию модели для ревью кода", "target_role": "dev.work/dev", "apply": True}
 elif mode == "model_selection":
@@ -195,7 +195,7 @@ if [[ "$READY" == "1" ]]; then
 
   TEST_PROJECT="$STATEHOME/test-project"
   mkdir -p "$TEST_PROJECT"
-  printf '0.31.13.alpha-patched1-gui-test-before\n' > "$TEST_PROJECT/VERSION"
+  printf '0.32.1-gui-test-before\n' > "$TEST_PROJECT/VERSION"
 
   make_payload "$APILOG/payload-dev-write.json" dev_write "$TEST_PROJECT"
   api_post_file 46-dev-write-file /api/dev-team/write-file "$APILOG/payload-dev-write.json"
@@ -252,5 +252,5 @@ BUNDLE="$LOGROOT/noemaforge_03113_patched10_debug_bundle_${TS}.tar.gz"
 tar -C "$LOGROOT" -czf "$BUNDLE" "$(basename "$LOGDIR")"
 set +x
 echo
-echo "NoemaForge 0.31.13.alpha-patched1 pre-alpha validation log bundle: $BUNDLE"
+echo "NoemaForge 0.32.1 pre-alpha validation log bundle: $BUNDLE"
 echo "Attach this tar.gz if something failed or looked wrong. Avoid adding secrets/tokens to the log directory before sending."

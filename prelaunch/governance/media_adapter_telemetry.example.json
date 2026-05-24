@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.media-adapter-telemetry/v1",
   "kind": "MediaAdapterTelemetryExampleSet",
   "id": "media-adapter-telemetry-examples",
-  "version": "0.31.21.alpha",
+  "version": "0.32.1",
   "adapters": [
     {
       "pipeline_id": "voice_generation",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_canonical_model_eval_matrix_readiness_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test registry and docs coverage for canonical CPU/GPU model matrix readiness.
@@ -47,7 +47,7 @@ class CanonicalModelEvalMatrixReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.0")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/canonical-model-eval-matrix-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/canonical_model_eval_matrix_readiness.schema.json", pack["refs"])
@@ -66,7 +66,7 @@ class CanonicalModelEvalMatrixReadinessQATests(unittest.TestCase):
             ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "reference" / "PROJECT_CONTEXT.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-            ROOT / "docs" / "wiki" / "first-start" / "model-selection-modes-0.31.13.alpha-patched1.md",
+            ROOT / "docs" / "wiki" / "first-start" / "model-selection-modes-0.32.1.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(PACK_ID, text, str(path))

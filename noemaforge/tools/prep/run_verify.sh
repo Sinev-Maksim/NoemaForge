@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/run_verify.sh
 # Zone: prep
-# Version: 0.31.21.alpha
+# Version: 0.32.1
 # Purpose: Linux/macOS wrapper matching tools/windows/run_verify.cmd through the Python prep core.
 # Inputs: Optional repo root argument.
 # Outputs: JSON seed verification.

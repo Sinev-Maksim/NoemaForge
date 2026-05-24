@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.trixie-preflight-target-readiness/v1",
   "kind": "TrixiePreflightTargetReadinessPolicy",
   "id": "trixie-preflight-target-readiness-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/artifact_card_affordance_runtime.py
 Zone: gui/control-plane
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate guarded open/download affordances for installed Admin GUI artifact cards.
@@ -155,7 +155,7 @@ def _registry_failures(payload: Dict[str, Any], *, project_root: Path, package_r
     eval_ref = f"eval-pack:{payload.get('id')}:{payload.get('version')}"
     if eval_ref not in entries:
         failures.append(f"registry_eval_pack_missing:{eval_ref}")
-    pipeline_ref = "pipeline:firstboot-model-selection:0.31.13.alpha-patched1"
+    pipeline_ref = "pipeline:firstboot-model-selection:0.32.1"
     pipeline = raw_entries.get(pipeline_ref) or entries.get(pipeline_ref)
     if not pipeline:
         failures.append(f"registry_pipeline_missing:{pipeline_ref}")

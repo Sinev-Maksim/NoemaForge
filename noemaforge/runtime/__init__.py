@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/runtime/__init__.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Expose the offline MultiOS runtime abstraction package.

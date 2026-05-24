@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_backlog_status_legend_qa.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test backlog status legend contract discoverability through registry and docs.
@@ -46,7 +46,7 @@ class BacklogStatusLegendQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:backlog-status-legend-core:0.32.0")
+        pack = entries.get("eval-pack:backlog-status-legend-core:0.32.1")
         self.assertIsNotNone(pack)
         self.assertIn("configs/backlog-status-legend-policy.json", pack["refs"])
         self.assertIn("contracts/backlog_status_legend.schema.json", pack["refs"])

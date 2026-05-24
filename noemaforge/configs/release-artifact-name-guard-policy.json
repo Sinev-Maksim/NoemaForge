@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.release-artifact-name-guard/v1",
   "kind": "ReleaseArtifactNameGuardPolicy",
   "id": "release-artifact-name-guard-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "stable",
   "policy": {
     "mode": "offline_contract",

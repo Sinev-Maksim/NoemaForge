@@ -3,10 +3,10 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_version_03200_qa.py
 Zone: release/package
-Version: 0.32.0.alpha
+Version: 0.32.1
 Created: 2026-05-20
-Modified: 2026-05-22
-Purpose: Validate the 0.32.0.alpha minor version bump across active release surfaces.
+Modified: 2026-05-21
+Purpose: Validate the 0.32.1 minor version bump across active release surfaces.
 Inputs: Workspace version files, active runtime constants, setup front door and package metadata.
 Outputs: unittest assertions only.
 Side effects: None.
@@ -24,10 +24,11 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
-EXPECTED_VERSION = "0.32.0.alpha"
-EXPECTED_INSTALLER = "install_noemaforge_0.32.0.alpha_mvp.sh"
-EXPECTED_UNINSTALLER = "uninstall_noemaforge_0.32.0.alpha_mvp.sh"
-OLD_ACTIVE_INSTALLER = "install_noemaforge_0.31.13.alpha-patched1_mvp.sh"
+EXPECTED_VERSION = "0.32.1"
+EXPECTED_VERSION = "0.32.1"
+EXPECTED_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
+EXPECTED_UNINSTALLER = "uninstall_noemaforge_0.32.1_mvp.sh"
+OLD_ACTIVE_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
 
 
 CONFIG_VERSION_FILES = [
@@ -89,10 +90,10 @@ class Version03200QATests(unittest.TestCase):
         manifest = json.loads((PROJECT_ROOT / "MANIFEST.json").read_text(encoding="utf-8"))
 
         self.assertEqual(EXPECTED_VERSION, release["version"])
-        self.assertEqual("noemaforge_0.32.0.alpha_prelaunch", release["package"])
+        self.assertEqual("noemaforge_0.32.1_prelaunch", release["package"])
         self.assertTrue(release["summary"].startswith(f"NoemaForge {EXPECTED_VERSION}:"))
         self.assertEqual(EXPECTED_VERSION, manifest["runtime_base_version"])
-        self.assertEqual("noemaforge_0.32.0.alpha_release_gate_prelaunch", manifest["package_name"])
+        self.assertEqual("noemaforge_0.32.1_docs-integrated_prelaunch", manifest["package_name"])
 
     def test_runtime_constants_and_cli_fallback_are_promoted(self) -> None:
         for rel in RUNTIME_CONSTANT_FILES:

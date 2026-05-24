@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: gateway/inference_service/model_loader.py
 Zone: prelaunch/gateway
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Load gateway inference model metadata only from a signed model manifest.

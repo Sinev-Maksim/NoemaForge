@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_ota_update_layer_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha-patched1
+Version: 0.32.1
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Validate OTA Update Layer contracts for staged rollout, rollback and health gates.
@@ -71,7 +71,7 @@ class OTAUpdateLayerRuntimeTests(unittest.TestCase):
         self.assertTrue(plan["health_gate_passed"])
         self.assertTrue(plan["activation_allowed"])
         self.assertTrue(plan["rollback"]["ok"])
-        self.assertEqual("edge-gateway-bundle-0.31.13-alpha-patched1", plan["rollback"]["previous_bundle_id"])
+        self.assertEqual("edge-gateway-bundle-0.32.1-alpha-patched1", plan["rollback"]["previous_bundle_id"])
 
     def test_rollout_rollback_and_health_gate_are_enforced(self) -> None:
         policy_path = ROOT / "configs" / "ota-update-layer.json"

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.toolproxy-capability/v1",
   "kind": "ToolProxyCapabilityTokenPolicy",
   "id": "toolproxy-capability-token-core",
-  "version": "0.32.0.alpha",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_tool_policy_ref": "tool-policy:tool-policy-main:0.31.13.alpha-patched1",
+    "required_tool_policy_ref": "tool-policy:tool-policy-main:0.32.1",
     "required_runtime_refs": [
       "src/caps.py",
       "src/noemaforge_toolproxy_diag.py",

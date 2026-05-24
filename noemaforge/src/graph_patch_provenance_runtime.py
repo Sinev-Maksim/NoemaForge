@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/graph_patch_provenance_runtime.py
 Zone: release/package
-Version: 0.31.21.alpha
+Version: 0.32.1
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate graph patch format and provenance schema contracts.
@@ -227,7 +227,7 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
     for key in ["require_registry_attachment", "require_docs_and_changelog_refs", "require_no_live_graph_mutation"]:
         if policy.get(key) is not True:
             failures.append(f"policy_{key}_not_true")
-    if policy.get("required_pipeline_ref") != "pipeline:firstboot-model-selection:0.31.13.alpha-patched1":
+    if policy.get("required_pipeline_ref") != "pipeline:firstboot-model-selection:0.32.1":
         failures.append("policy_required_pipeline_ref_invalid")
     if PRIMARY_TODO not in _as_string_list(policy.get("closed_todo_refs")):
         failures.append("policy_primary_closed_todo_missing")
