@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: noemaforge/src/admin_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
+Modified: 2026-05-25
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge Admin control-plane runtime.
 
-0.32.1 release-candidate scope:
+0.32.2 release-candidate scope:
 - route natural-language operator requests to concrete NoemaForge pipelines;
 - optionally create/launch the selected pipeline run;
 - bridge Admin GUI actions to dev-team, multimodal planning and model-evolution runtimes;
@@ -44,8 +44,7 @@ except Exception:  # pragma: no cover
         except Exception: return default or key
 
 import production_ai_contracts
-
-RUNTIME_VERSION = "0.32.1"
+from noemaforge_version import RUNTIME_VERSION
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
 DEFAULT_EVOLUTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))

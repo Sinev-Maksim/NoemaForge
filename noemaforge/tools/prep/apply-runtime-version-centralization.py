@@ -33,6 +33,7 @@ TARGETS = [
     "noemaforge/src/code_qa_runtime.py",
     "noemaforge/src/dev_team_runtime.py",
     "noemaforge/src/first_start_summary.py",
+    "noemaforge/src/intent_router_eval.py",
     "noemaforge/src/model_evolution_runtime.py",
     "noemaforge/src/model_selection_runtime.py",
     "noemaforge/src/pipeline_runtime.py",
