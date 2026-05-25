@@ -2,17 +2,16 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-version-audit.sh
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.32.2
 # Created: 2026-05-14
-# Modified: 2026-05-14
-# Purpose: Provide NoemaForge release functionality for the packaged local runtime.
-# Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
-# Outputs: Structured command output, files, service state or UI state as documented by the caller.
-# Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
-# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Modified: 2026-05-25
+# Purpose: Audit NoemaForge release/version consistency against the canonical VERSION file.
+# Inputs: --root, --expected, release metadata, Python runtime modules, shell helpers, JSON/YAML configs.
+# Outputs: Human or JSON audit report and non-zero exit code on version drift.
+# Side effects: None; this script is read-only.
+# Tests: bash -n, noemaforge-version-audit.sh --strict-all --expected 0.32.2.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge release/version consistency audit.
 set -euo pipefail
 
 ROOT="${NOEMAFORGE_ROOT:-/opt/noemaforge}"
@@ -22,16 +21,17 @@ VERBOSE=0
 STRICT_ALL=0
 
 usage(){ cat <<'USAGE'
-Usage: noemaforge version-audit [--root ROOT] [--expected VERSION] [--json] [--verbose] [--strict-all]
+Usage: noemaforge-version-audit.sh [--root ROOT] [--expected VERSION] [--json] [--verbose] [--strict-all]
 
-Default mode checks release-bearing metadata only:
-  - ROOT/VERSION
-  - release.json version
-  - top-level JSON config "version" fields
-  - RUNTIME_VERSION constants
-  - shell VERSION assignments and cmd_version fallback lines
+Checks:
+  - canonical VERSION files
+  - release.json and release YAML metadata
+  - JSON/YAML top-level version fields
+  - Python centralized noemaforge_version import behavior
+  - hardcoded Python RUNTIME_VERSION assignments outside noemaforge_version.py
+  - shell VERSION assignments and stale command fallbacks
 
-Historical references inside tests/catalog descriptions are reported only with --strict-all.
+With --strict-all, any active old version literal in runtime/config/tooling files is a failure.
 USAGE
 }
 
@@ -52,149 +52,230 @@ if [[ -z "$EXPECTED" ]]; then
 fi
 
 python3 - "$ROOT" "$EXPECTED" "$FORMAT" "$VERBOSE" "$STRICT_ALL" <<'PY'
-import ast, json, re, sys
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
 from pathlib import Path
-root = Path(sys.argv[1])
+
+root = Path(sys.argv[1]).resolve()
 expected = sys.argv[2]
 fmt = sys.argv[3]
 verbose = sys.argv[4] == "1"
 strict_all = sys.argv[5] == "1"
-version_re = re.compile(r"(?<![A-Za-z0-9_.-])0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha(?:-patched\d+)?)?(?![A-Za-z0-9_.-])")
-problems=[]
-warnings=[]
-warning_keys=set()
-checks=[]
-seen=[]
 
-def add_problem(id, path, found, expected, message=""):
-    problems.append({"id":id, "path":str(path), "found":found if isinstance(found,list) else [found], "expected":expected, "message":message})
+old_version_re = re.compile(r"(?<![A-Za-z0-9_.-])(?:0\.31\.13\.alpha|0\.31\.13\.pre-alpha(?:-patched\d+)?|0\.31\.\d+(?:\.alpha(?:-patched\d+)?|\.pre-alpha(?:-patched\d+)?)?|0\.29\.10|0\.29\.11|0\.29\.06|0\.28\.5)(?![A-Za-z0-9_.-])")
+hardcoded_runtime_re = re.compile(r"(?m)^\s*RUNTIME_VERSION\s*=\s*[\"'][^\"']+[\"']")
 
-def add_warning(id, path, found, message=""):
-    key=(id, str(path), tuple(found if isinstance(found,list) else [found]), message)
+problems: list[dict] = []
+warnings: list[dict] = []
+checks: list[dict] = []
+seen: list[dict] = []
+warning_keys: set[tuple] = set()
+
+
+def rel(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(root))
+    except Exception:
+        return str(path)
+
+
+def add_problem(problem_id: str, path: Path | str, found, expected_value: str, message: str = "") -> None:
+    if not isinstance(found, list):
+        found = [found]
+    problems.append({"id": problem_id, "path": str(path), "found": found, "expected": expected_value, "message": message})
+
+
+def add_warning(warning_id: str, path: Path | str, found=None, message: str = "") -> None:
+    if found is None:
+        found = []
+    if not isinstance(found, list):
+        found = [found]
+    key = (warning_id, str(path), tuple(map(str, found)), message)
     if key in warning_keys:
         return
     warning_keys.add(key)
-    warnings.append({"id":id, "path":str(path), "found":found if isinstance(found,list) else [found], "message":message})
+    warnings.append({"id": warning_id, "path": str(path), "found": found, "message": message})
 
-def check_id(id, ok, message, **extra):
-    d={"id":id,"ok":bool(ok),"message":message}; d.update(extra); checks.append(d)
 
-def read(p):
+def check(check_id: str, ok: bool, message: str, **extra) -> None:
+    row = {"id": check_id, "ok": bool(ok), "message": message}
+    row.update(extra)
+    checks.append(row)
+
+
+def read_text(path: Path) -> str | None:
     try:
-        size = p.stat().st_size
-        if size > 2_000_000 and p.suffix not in {'.json', '.py', '.sh'} and p.name != 'noemaforge':
-            known_runtime_bins = {'llama-server-cpu', 'llama-server-cuda', 'noemaforge-llm-gateway'}
-            if p.parent.name == 'bin' and '.bak.' in p.name:
-                add_warning('backup_binary_in_active_bin', p, [], 'backup binary should be moved to /var/backups/noemaforge/bin')
-            elif verbose or p.name not in known_runtime_bins:
-                add_warning('large_binary_skipped', p, [], f'skipped {size} byte non-text file')
-            return ''
-        return p.read_text(errors='replace')
-    except Exception as e:
-        add_warning('unreadable', p, [], str(e)); return None
+        size = path.stat().st_size
+        if size > 2_000_000 and path.suffix not in {".json", ".py", ".sh", ".yaml", ".yml"}:
+            runtime_bins = {"llama-server-cpu", "llama-server-cuda", "noemaforge-llm-gateway"}
+            if path.parent.name == "bin" and ".bak." in path.name:
+                add_warning("backup_binary_in_active_bin", path, [], "Move backup binaries to /var/backups/noemaforge/bin before release packaging.")
+            elif verbose or path.name not in runtime_bins:
+                add_warning("large_binary_skipped", path, [], f"skipped {size} byte non-text file")
+            return ""
+        return path.read_text(encoding="utf-8", errors="replace")
+    except Exception as exc:
+        add_warning("unreadable", path, [], str(exc))
+        return None
 
-# Canonical VERSION.
-vfile=root/'VERSION'
-actual=vfile.read_text().strip() if vfile.exists() else None
-if actual != expected:
-    add_problem('version_file_mismatch', vfile, actual or '<missing>', expected)
 
-# release.json.
-rj=root/'release.json'
-if rj.exists():
+def json_version(path: Path) -> None:
     try:
-        data=json.loads(rj.read_text())
-        rv=data.get('version')
-        if rv != expected: add_problem('release_json_version_mismatch', rj, rv or '<missing>', expected)
-    except Exception as e:
-        add_problem('release_json_invalid', rj, '<invalid>', expected, str(e))
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        add_warning("json_parse_warning", path, [], str(exc))
+        return
+    if isinstance(data, dict) and "version" in data:
+        found = str(data.get("version"))
+        seen.append({"path": rel(path), "version": found})
+        if found != expected:
+            add_problem("json_top_level_version_mismatch", path, found, expected)
 
-# Top-level JSON config versions.
-for cfgdir in [root/'configs']:
-    if not cfgdir.exists(): continue
-    for p in sorted(cfgdir.glob('*.json')):
-        try:
-            data=json.loads(p.read_text())
-        except Exception as e:
-            add_warning('json_parse_warning', p, [], str(e)); continue
-        if isinstance(data, dict) and 'version' in data:
-            v=data.get('version')
-            if v != expected: add_problem('json_top_level_version_mismatch', p, v or '<missing>', expected)
-            seen.append({'path':str(p),'metadata_version':v})
 
-# Runtime constants in Python.
-for srcdir in [root/'src']:
-    if not srcdir.exists(): continue
-    for p in sorted(srcdir.rglob('*.py')):
-        text=read(p)
-        if text is None: continue
-        for m in re.finditer(r'RUNTIME_VERSION\s*=\s*["\']([^"\']+)["\']', text):
-            v=m.group(1)
-            if v != expected: add_problem('runtime_version_mismatch', p, v, expected)
-            seen.append({'path':str(p),'runtime_version':v})
+def simple_yaml_version(path: Path) -> None:
+    text = read_text(path)
+    if text is None:
+        return
+    for line in text.splitlines():
+        if re.match(r"^\s*version\s*:", line):
+            found = line.split(":", 1)[1].strip().strip("'\"")
+            seen.append({"path": rel(path), "version": found})
+            if found and found != expected:
+                add_problem("yaml_top_level_version_mismatch", path, found, expected)
+            return
 
-# Shell VERSION= assignments and cmd_version fallback in active scripts.
-for sub in ['bin','tools/prep','tools/ops','helpers']:
-    d=root/sub
-    if not d.exists(): continue
-    for p in sorted(d.rglob('*')):
-        if not p.is_file(): continue
-        text=read(p)
-        if text is None: continue
-        for m in re.finditer(r'(?m)^VERSION=["\']([^"\']+)["\']', text):
-            v=m.group(1)
-            if v != expected: add_problem('shell_version_assignment_mismatch', p, v, expected)
-            seen.append({'path':str(p),'shell_version':v})
-        # cmd_version fallback, only for noemaforge CLI.
-        if p.name == 'noemaforge':
-            for m in re.finditer(r'echo\s+["\'](0\.31\.\d+(?:\.pre-alpha(?:-patched\d*)?|\.alpha(?:-patched\d+)?)?)["\']', text):
-                v=m.group(1)
-                if v != expected: add_problem('cmd_version_fallback_mismatch', p, v, expected)
-                seen.append({'path':str(p),'cmd_version_fallback':v})
 
-# Strict grep of all active versions is opt-in, because catalogs may include historical names/test cases.
-if strict_all:
-    for sub in ['bin','src','configs','tools','helpers','systemd']:
-        d=root/sub
-        if not d.exists(): continue
-        for p in sorted(d.rglob('*')):
-            if not p.is_file(): continue
-            if '__pycache__' in p.parts or p.suffix == '.pyc': continue
-            text=read(p)
-            if text is None: continue
-            found=sorted(set(version_re.findall(text)))
-            bad=[v for v in found if v != expected]
-            if bad: add_problem('strict_stale_version_reference', p, bad, expected)
-            elif found: seen.append({'path':str(p),'versions':found})
+def check_version_file(path: Path, label: str) -> None:
+    if not path.exists():
+        add_problem("version_file_missing", path, "<missing>", expected, label)
+        return
+    found = path.read_text(encoding="utf-8", errors="replace").strip()
+    seen.append({"path": rel(path), "version_file": found})
+    if found != expected:
+        add_problem("version_file_mismatch", path, found or "<empty>", expected, label)
+
+
+# Canonical version files.
+check_version_file(root / "VERSION", "root VERSION")
+check_version_file(root / "noemaforge" / "VERSION", "package VERSION")
+check_version_file(root / "docs" / "VERSION", "docs VERSION")
+
+# Release metadata.
+for release_json in [root / "release.json", root / "docs" / "release.json"]:
+    if release_json.exists():
+        json_version(release_json)
+for release_yaml in sorted((root / "noemaforge" / "release").glob("release-v*.yaml")) if (root / "noemaforge" / "release").exists() else []:
+    simple_yaml_version(release_yaml)
+
+# Config metadata.
+for cfg_dir in [root / "noemaforge" / "configs", root / "configs"]:
+    if not cfg_dir.exists():
+        continue
+    for path in sorted(cfg_dir.glob("*.json")):
+        json_version(path)
+    for path in sorted(list(cfg_dir.glob("*.yaml")) + list(cfg_dir.glob("*.yml"))):
+        simple_yaml_version(path)
+
+# Centralized runtime version import check.
+module_path = root / "noemaforge" / "src" / "noemaforge_version.py"
+if not module_path.exists():
+    add_problem("central_version_module_missing", module_path, "<missing>", expected)
 else:
-    # Non-fatal warnings for active files containing older versions in comments/descriptions.
-    for sub in ['bin','src','configs','tools','helpers','systemd']:
-        d=root/sub
-        if not d.exists(): continue
-        for p in sorted(d.rglob('*')):
-            if not p.is_file(): continue
-            if '__pycache__' in p.parts or p.suffix == '.pyc': continue
-            text=read(p)
-            if text is None: continue
-            found=sorted(set(version_re.findall(text)))
-            bad=[v for v in found if v != expected]
-            if bad:
-                # Already captured metadata mismatches should be problems; remaining are warnings.
-                if not any(pr['path']==str(p) for pr in problems):
-                    add_warning('historical_or_fixture_version_reference', p, bad, 'Use --strict-all to fail on every active older version string.')
+    env = os.environ.copy()
+    env["NOEMAFORGE_ROOT"] = str(root)
+    code = "import sys; sys.path.insert(0, r'%s'); import noemaforge_version; print(noemaforge_version.RUNTIME_VERSION)" % str(module_path.parent)
+    proc = subprocess.run([sys.executable, "-c", code], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
+    imported = proc.stdout.strip()
+    check("central_version_import", proc.returncode == 0 and imported == expected, f"imported={imported!r}, expected={expected!r}", stderr=proc.stderr.strip())
+    if proc.returncode != 0 or imported != expected:
+        add_problem("central_version_import_mismatch", module_path, imported or f"rc={proc.returncode}", expected, proc.stderr.strip())
 
-check_id('version_file', actual == expected, f"VERSION={actual!r}, expected={expected!r}")
-check_id('active_release_metadata_versions', not problems, f"metadata/runtime mismatches={len(problems)}")
-report={"ok": not problems, "root":str(root), "expected":expected, "checks":checks, "problems":problems, "warnings":warnings}
-if verbose: report['seen_versions']=seen
-if fmt == 'json':
-    print(json.dumps(report, indent=2, ensure_ascii=False))
+# Python runtime hardcoded assignments are forbidden outside noemaforge_version.py.
+for src_dir in [root / "noemaforge" / "src", root / "src"]:
+    if not src_dir.exists():
+        continue
+    for path in sorted(src_dir.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        text = read_text(path)
+        if text is None:
+            continue
+        if path.name != "noemaforge_version.py" and hardcoded_runtime_re.search(text):
+            add_problem("hardcoded_runtime_version_assignment", path, hardcoded_runtime_re.findall(text), "from noemaforge_version import RUNTIME_VERSION")
+
+# Shell VERSION assignments should not pin stale release versions.
+for sub in ["helpers", "noemaforge/bin", "noemaforge/tools", "tools", "bin"]:
+    d = root / sub
+    if not d.exists():
+        continue
+    for path in sorted(d.rglob("*")):
+        if not path.is_file():
+            continue
+        text = read_text(path)
+        if text is None:
+            continue
+        for match in re.finditer(r"(?m)^VERSION=[\"']([^\"']+)[\"']", text):
+            found = match.group(1)
+            seen.append({"path": rel(path), "shell_version": found})
+            if found != expected:
+                add_problem("shell_version_assignment_mismatch", path, found, expected)
+
+# Strict stale version scan for active release-bearing files.
+scan_roots = ["helpers", "noemaforge/bin", "noemaforge/src", "noemaforge/configs", "noemaforge/tools", "noemaforge/systemd", "setup.sh"]
+for sub in scan_roots:
+    path = root / sub
+    paths: list[Path]
+    if path.is_file():
+        paths = [path]
+    elif path.exists():
+        paths = [p for p in path.rglob("*") if p.is_file()]
+    else:
+        continue
+    for item in sorted(paths):
+        if "__pycache__" in item.parts or item.suffix == ".pyc":
+            continue
+        text = read_text(item)
+        if text is None:
+            continue
+        bad = sorted(set(old_version_re.findall(text)))
+        bad = [v for v in bad if v != expected]
+        if not bad:
+            continue
+        if strict_all:
+            add_problem("strict_stale_version_reference", item, bad, expected)
+        else:
+            if not any(p["path"] == str(item) for p in problems):
+                add_warning("historical_or_fixture_version_reference", item, bad, "Use --strict-all to fail on every active older version string.")
+
+check("version_files", not any(p["id"].startswith("version_file") for p in problems), "canonical VERSION files checked")
+check("metadata_versions", not any("version_mismatch" in p["id"] for p in problems), "metadata versions checked")
+check("hardcoded_runtime_versions", not any(p["id"] == "hardcoded_runtime_version_assignment" for p in problems), "Python runtime version assignments checked")
+
+report = {
+    "ok": not problems,
+    "root": str(root),
+    "expected": expected,
+    "checks": checks,
+    "problems": problems,
+    "warnings": warnings,
+}
+if verbose:
+    report["seen_versions"] = seen
+
+if fmt == "json":
+    print(json.dumps(report, indent=2, ensure_ascii=False, sort_keys=True))
 else:
     print(f"NoemaForge version audit: expected={expected} root={root}")
-    if not problems: print('overall: OK')
-    else:
-        print(f"overall: FAIL ({len(problems)} metadata/runtime mismatches)")
-        for p in problems: print(f"- {p['path']}: found={','.join(map(str,p['found']))} expected={expected} {p.get('message','')}")
-    if warnings: print(f"warnings: {len(warnings)} audit warnings; run --verbose or --strict-all for details")
+    print("overall: OK" if not problems else f"overall: FAIL ({len(problems)} problems)")
+    for problem in problems:
+        print(f"- {problem['id']}: {problem['path']} found={problem['found']} expected={problem['expected']} {problem.get('message','')}")
+    if warnings:
+        print(f"warnings: {len(warnings)}; run --json --verbose for details")
+
 sys.exit(0 if not problems else 1)
 PY
