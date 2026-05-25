@@ -3,14 +3,14 @@
 === NoemaForge File Header ===
 File: noemaforge/src/wiki_patch_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
-Purpose: Provide NoemaForge release functionality for the packaged local runtime.
-Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
-Outputs: Structured command output, files, service state or UI state as documented by the caller.
-Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
-Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+Modified: 2026-05-25
+Purpose: Create auditable incremental patch bundles for a NoemaForge wiki repository.
+Inputs: Command-line arguments, source files, before/after metrics and local NoemaForge runtime state.
+Outputs: Patch directory with payload files, functional_delta.md, metrics_delta.json, patch.diff, manifest and apply.sh.
+Side effects: Writes only under the requested output directory or wiki patch state directory.
+Tests: python3 -m py_compile noemaforge/src/wiki_patch_runtime.py; noemaforge wiki-patch create --json.
 Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 === End NoemaForge File Header ===
 
@@ -18,14 +18,9 @@ Existing module notes:
 NoemaForge wiki incremental patch runtime.
 
 Creates auditable patch bundles for a project wiki repository. Each patch bundle
-contains:
-- copied wiki payload files;
-- functional_delta.md supplied by operator/task/request;
-- metrics_delta.json comparing before/after summaries;
-- patch.diff with concrete textual changes;
-- manifest and apply.sh.
-
-No network access and no git push are performed by this runtime.
+contains copied wiki payload files, a functional delta, metric comparisons, a
+patch diff, a manifest and an apply script. No network access and no git push are
+performed by this runtime.
 """
 from __future__ import annotations
 
@@ -39,10 +34,11 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
+from noemaforge_version import RUNTIME_VERSION
+
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", "/var/lib/noemaforge/wiki_patches"))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-RUNTIME_VERSION = "0.32.1"
 
 
 def nowz() -> str:
