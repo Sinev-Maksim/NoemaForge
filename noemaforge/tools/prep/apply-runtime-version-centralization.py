@@ -49,8 +49,8 @@ IMPORT_LINE = "from noemaforge_version import RUNTIME_VERSION"
 def patch_text(text: str, rel_path: str) -> str:
     text = re.sub(r"(?m)^Version: .*$", f"Version: {VERSION}", text, count=1)
     text = re.sub(r"(?m)^Modified: .*$", f"Modified: {MODIFIED}", text, count=1)
-    text = text.replace("0.32.1", VERSION)
-    text = text.replace("0.31.13.alpha", VERSION)
+    text = re.sub(r"0\.32\.1", VERSION, text)
+    text = re.sub(r"0\.31\.13\.alpha", VERSION, text)
 
     if rel_path.endswith("noemaforge_version.py"):
         return text

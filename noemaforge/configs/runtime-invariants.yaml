@@ -1,6 +1,6 @@
 apiVersion: noemaforge.runtime/v1
 kind: RuntimeInvariants
-version: 0.29.06
+version: 0.32.2
 runtime_desired_count: 1
 single_active_model: true
 stop_closes_gui_by_default: false

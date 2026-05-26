@@ -1,6 +1,6 @@
 apiVersion: noemaforge.roles/v1
 kind: RoleCatalog
-version: 0.28.5
+version: 0.32.2
 selection:
   top_k_per_role: 8
   tasks_per_role: 10

@@ -116,8 +116,8 @@ find_vault_root() {
 ensure_setup() {
   [[ -f /var/lib/noemaforge/.sys/setup.done ]] || fail "NoemaForge bootstrap marker missing: /var/lib/noemaforge/.sys/setup.done"
   [[ -f /opt/noemaforge/src/gguf_select.py ]] || fail "Missing /opt/noemaforge/src/gguf_select.py; apply model-safe patch first."
-  [[ -f /opt/noemaforge/src/vault_inventory.py ]] || fail "Missing /opt/noemaforge/src/vault_inventory.py; apply 0.28.5 role-aware patch first."
-  [[ -f /opt/noemaforge/src/role_tournament.py ]] || fail "Missing /opt/noemaforge/src/role_tournament.py; apply 0.28.5 role-aware patch first."
+  [[ -f /opt/noemaforge/src/vault_inventory.py ]] || fail "Missing /opt/noemaforge/src/vault_inventory.py; apply 0.32.2 role-aware patch first."
+  [[ -f /opt/noemaforge/src/role_tournament.py ]] || fail "Missing /opt/noemaforge/src/role_tournament.py; apply 0.32.2 role-aware patch first."
   [[ -f /opt/noemaforge/configs/role-catalog.yaml ]] || fail "Missing /opt/noemaforge/configs/role-catalog.yaml."
   # Incremental tar/rsync installs can leave helper scripts as 0644. Since
   # prepare-gui runs as root, repair executable bits here instead of failing late.

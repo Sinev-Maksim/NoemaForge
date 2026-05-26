@@ -232,7 +232,7 @@ BASE_TASKS: Dict[str, List[Dict[str, Any]]] = {
         {"id": "write-07", "prompt": "Produce a neutral warning that first-start may close GNOME but does not uninstall it.", "contains_any": ["GNOME", "not uninstall"]},
         {"id": "write-08", "prompt": "Summarize a dataset inventory in two bullets.", "contains_any": ["dataset"]},
         {"id": "write-09", "prompt": "Explain top-8-per-role in plain Russian in one paragraph.", "contains_any": ["роль"]},
-        {"id": "write-10", "prompt": "Write a tiny changelog entry for version 0.28.5.", "contains_any": ["0.28.5"]},
+        {"id": "write-10", "prompt": "Write a tiny changelog entry for version 0.32.2.", "contains_any": ["0.32.2"]},
     ],
     "factcheck_light_10": [
         {"id": "fact-01", "prompt": "A user claims 74 GGUF files means 74 models. Explain why this may be false.", "contains_any": ["shard", "duplicate"]},
@@ -314,7 +314,7 @@ def build_eval_packs(role_catalog_path: str = DEFAULT_ROLE_CATALOG, out_root: st
                 rec.setdefault("role_key", role_key)
                 rec.setdefault("eval_profile", profile)
                 rec.setdefault("ordinal", idx)
-                rec.setdefault("source", "noemaforge_builtin_light_pack_v0.28.5")
+                rec.setdefault("source", "noemaforge_builtin_light_pack_v0.32.2")
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         written.append({"role_key": role_key, "eval_profile": profile, "path": out_path, "tasks": min(10, len(tasks))})
     index = {"apiVersion": "noemaforge.evalpacks/v1", "kind": "FirstStartEvalPacks", "updated_at": dt.datetime.now(dt.timezone.utc).isoformat(), "out_root": out_root, "packs": written, "dataset_inventory": dataset_inventory_path}
