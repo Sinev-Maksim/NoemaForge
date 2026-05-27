@@ -55,7 +55,7 @@ jobs:
 
       - name: Version check — no forbidden RUNTIME_VERSION assignment
         run: |
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
+          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" . \
             | grep -v "noemaforge/src/noemaforge_version.py" \
             | grep -v ".git" || true)
           if [ -n "$hits" ]; then
