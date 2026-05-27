@@ -53,6 +53,7 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
+from job_manager import JobManager
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -583,6 +584,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self.job_manager = JobManager(self.jobs_dir)
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -931,54 +933,39 @@ class AdminGuiServer(ThreadingHTTPServer):
         return result
 
     def jobs_file(self) -> Path:
+        """Compatibility shim — the authoritative file is written by JobManager."""
         return self.jobs_dir / "jobs.json"
 
     def jobs_data(self) -> Dict[str, Any]:
-        data = self._read_json(self.jobs_file(), {"jobs": []})
-        if not isinstance(data, dict):
-            data = {"jobs": []}
+        """Compatibility shim — returns index as written by JobManager."""
+        data = self.job_manager._read_index()
         data.setdefault("jobs", [])
         return data
 
-    def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
-        data = self.jobs_data()
-        if idempotency_key:
-            for existing in data.get("jobs", []):
-                if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
-                    return existing
-        data.setdefault("jobs", []).append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
-        return job
-
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
-        job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
-        job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
-        return self._upsert_job(job, idempotency_key=idempotency_key)
+        job = self.job_manager.create(
+            kind,
+            idempotency_key=idempotency_key,
+            command=command,
+            progress=progress,
+            artifacts=enrich_artifact_cards(artifacts),
+            trace_id=trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"),
+        )
+        if status and status != "queued":
+            # Apply non-default initial status (e.g. needs_privilege) after creation.
+            job = self.job_manager.update_status(job["job_id"], status) or job
+        return job
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = data.setdefault("jobs", [])
-        replaced = False
-        for index, existing in enumerate(jobs):
-            if existing.get("job_id") == job.get("job_id"):
-                jobs[index] = job
-                replaced = True
-                break
-        if not replaced:
-            jobs.append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
-        return job
+        """Save a (possibly caller-mutated) job dict back through JobManager."""
+        return self.job_manager._save(job)
 
     def jobs_list(self) -> Dict[str, Any]:
-        data = self.jobs_data()
         jobs = []
-        for job in data.get("jobs", []):
-            if isinstance(job, dict):
-                item = dict(job)
-                item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
-                jobs.append(item)
+        for job in self.job_manager.list_all():
+            item = dict(job)
+            item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+            jobs.append(item)
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
 
     def job_stream_events(self) -> List[Dict[str, Any]]:
@@ -1008,28 +995,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
-        job = self._read_json(self.jobs_dir / f"{safe_id(job_id)}.json", None)
-        if not job:
-            for j in self.jobs_data().get("jobs", []):
-                if j.get("job_id") == job_id:
-                    job = j
-                    break
+        job = self.job_manager.get(job_id)
         if isinstance(job, dict):
             job = dict(job)
             job["artifacts"] = enrich_artifact_cards(job.get("artifacts") if isinstance(job.get("artifacts"), list) else [])
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
-        data = self.jobs_data()
-        target = None
-        for j in data.get("jobs", []):
-            if j.get("job_id") == job_id:
-                j["status"] = "cancelled"
-                j["updated_at"] = now_iso()
-                target = j
-        self._write_json(self.jobs_file(), data)
-        if target:
-            self._write_json(self.jobs_dir / f"{target['job_id']}.json", target)
+        target = self.job_manager.cancel(job_id)
         return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Job cancelled" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------

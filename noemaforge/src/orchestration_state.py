@@ -21,7 +21,7 @@ from typing import Any, Dict
 
 from noemaforge_version import RUNTIME_VERSION
 
-ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested"}
+ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested", "needs_privilege"}
 FINAL_JOB_STATES = {"done", "failed", "cancelled"}
 
 
