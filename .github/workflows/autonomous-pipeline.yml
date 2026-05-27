@@ -96,9 +96,17 @@ jobs:
       issues: write
       pull-requests: read
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repository
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config --global --add safe.directory $env:GITHUB_WORKSPACE
+          git init .
+          git remote add origin "https://github.com/$env:GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin `
+            "+refs/heads/$env:GITHUB_REF_NAME:refs/remotes/origin/$env:GITHUB_REF_NAME" `
+            "+refs/heads/release/0.32.2-hardening:refs/remotes/origin/release/0.32.2-hardening"
+          git checkout --force $env:GITHUB_SHA
 
       - name: Get diff vs release branch
         shell: pwsh
