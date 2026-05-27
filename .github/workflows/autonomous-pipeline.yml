@@ -110,9 +110,7 @@ jobs:
         id: codex
         shell: pwsh
         env:
-          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          CODEX_HOME: ${{ runner.temp }}\codex-home
+          CODEX_HOME: C:\Users\sinev\.codex
           CODEX_BIN_ROOT: C:\Users\sinev\AppData\Local\OpenAI\Codex\bin
         run: |
           $ErrorActionPreference = 'Stop'
@@ -150,19 +148,19 @@ jobs:
             throw "codex.exe was not found. Add Codex CLI to PATH or update CODEX_BIN_ROOT."
           }
 
-          New-Item -ItemType Directory -Force -Path $env:CODEX_HOME | Out-Null
           git config --global --add safe.directory $env:GITHUB_WORKSPACE
 
-          if ($env:CODEX_ACCESS_TOKEN) {
-            $env:CODEX_ACCESS_TOKEN | & $codex login --with-access-token
-          } elseif ($env:OPENAI_API_KEY) {
-            $env:OPENAI_API_KEY | & $codex login --with-api-key
-          } else {
-            Write-FailureReview "Repository secret CODEX_ACCESS_TOKEN or OPENAI_API_KEY is missing."
-            throw "Set either CODEX_ACCESS_TOKEN or OPENAI_API_KEY in repository secrets."
+          $authPath = Join-Path $env:CODEX_HOME 'auth.json'
+          if (-not (Test-Path -LiteralPath $authPath)) {
+            Write-FailureReview "Codex ChatGPT OAuth auth.json was not found on the Windows runner."
+            throw "Codex ChatGPT OAuth auth.json was not found at $authPath."
           }
 
           & $codex login status
+          if ($LASTEXITCODE -ne 0) {
+            Write-FailureReview "Codex CLI is not logged in with ChatGPT on the Windows runner."
+            throw "Codex CLI is not logged in with ChatGPT. Run codex login for CODEX_HOME=$env:CODEX_HOME."
+          }
 
           $prompt = @(
             "You are reviewing a Claude Code branch in NoemaForge."
