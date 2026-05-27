@@ -42,7 +42,12 @@ def _empty_progress() -> Dict[str, Any]:
 
 
 def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
-    """Return a fully-populated, typed copy of a job record."""
+    """Return a fully-populated, typed copy of a job record.
+
+    Unknown/extra fields (e.g. ``privileged_runner_command``) are preserved
+    so callers can freely annotate job dicts and round-trip them through
+    persist/read without losing data.
+    """
     progress = record.get("progress")
     if not isinstance(progress, dict):
         progress = _empty_progress()
@@ -51,7 +56,9 @@ def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(artifacts, list):
         artifacts = []
 
-    return {
+    # Start with a full copy to preserve caller-supplied extra fields.
+    out = dict(record)
+    out.update({
         "job_id": str(record.get("job_id") or ""),
         "kind": str(record.get("kind") or "unknown"),
         "status": str(record.get("status") or "queued"),
@@ -70,7 +77,9 @@ def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
         "updated_at": str(record.get("updated_at") or _nowz()),
         "finished_at": str(record.get("finished_at") or ""),
         "version": str(record.get("version") or RUNTIME_VERSION),
-    }
+    })
+    return out
+
 
 
 class JobManager:
