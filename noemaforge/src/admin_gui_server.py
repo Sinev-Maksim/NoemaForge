@@ -53,6 +53,7 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
+from session_store import SessionStore
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -356,6 +357,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path == "/api/public-showcase/scenario":
             self._send_json(self.server.public_showcase_scenario())
             return
+        if path == "/api/session/current":
+            self._send_json(self.server.session_current())
+            return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
             return
@@ -449,6 +453,12 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     max_steps=int(body.get("max_steps") or 0),
                     time_budget_minutes=int(body.get("time_budget_minutes") or 0),
                     until_stop=bool(body.get("until_stop", False)),
+                ))
+                return
+            if path == "/api/session/mode":
+                self._send_json(self.server.session_mode(
+                    str(body.get("mode") or "normal"),
+                    composite_top_n=int(body.get("composite_top_n") or 0),
                 ))
                 return
             if path == "/api/conversation/reset":
@@ -574,6 +584,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.dev_team_state = dev_team_state.resolve()
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
+        self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
@@ -696,6 +707,17 @@ class AdminGuiServer(ThreadingHTTPServer):
             ],
         }
 
+    # --- session state ----------------------------------------------------------------
+    def session_current(self) -> Dict[str, Any]:
+        """Return the current GUI session record (default session)."""
+        session = self.session_store.load("default")
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+
+    def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
+        """Persist the selected model-selection mode across browser refreshes."""
+        session = self.session_store.set_mode("default", mode, composite_top_n)
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+
     # --- conversation/review state -------------------------------------------------
     def conversation_file(self) -> Path:
         return self.gui_state_dir / "conversation-current.json"
@@ -738,6 +760,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         if persona:
             conv["active_persona"] = persona
         self._save_conversation(conv)
+        # Sync message into session store so browser refresh can restore history.
+        self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
