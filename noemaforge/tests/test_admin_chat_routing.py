@@ -240,5 +240,128 @@ class TestSourceContainsRouting(unittest.TestCase):
         self.assertIn("_route_gui_action", self._src)
 
 
+# ---------------------------------------------------------------------------
+# model-evolution routing tests (appended to existing test module)
+# ---------------------------------------------------------------------------
+
+class TestDetectGuiActionModelEvolution(unittest.TestCase):
+    """_detect_gui_action() recognises model-evolution phrases."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.srv = _stub_server(Path(self._td.name))
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def test_detects_model_evolution_en(self) -> None:
+        action = self.srv._detect_gui_action("run model evolution")
+        self.assertEqual(action, "model_evolution")
+
+    def test_detects_model_evolution_noun_phrase(self) -> None:
+        action = self.srv._detect_gui_action("model evolution")
+        self.assertEqual(action, "model_evolution")
+
+    def test_detects_model_evolution_hyphen(self) -> None:
+        action = self.srv._detect_gui_action("model-evolution")
+        self.assertEqual(action, "model_evolution")
+
+    def test_detects_model_evolution_ru(self) -> None:
+        action = self.srv._detect_gui_action("проведи эволюцию модели")
+        self.assertEqual(action, "model_evolution")
+
+    def test_detects_evolution_ru_short(self) -> None:
+        action = self.srv._detect_gui_action("эволюция модели")
+        self.assertEqual(action, "model_evolution")
+
+    def test_detects_start_model_evolution(self) -> None:
+        action = self.srv._detect_gui_action("start model evolution cycle")
+        self.assertEqual(action, "model_evolution")
+
+    def test_no_false_positive_for_vault(self) -> None:
+        action = self.srv._detect_gui_action("scan vault")
+        self.assertNotEqual(action, "model_evolution")
+
+    def test_no_false_positive_for_model_selection(self) -> None:
+        action = self.srv._detect_gui_action("continue model selection")
+        self.assertNotEqual(action, "model_evolution")
+
+
+class TestRouteGuiActionModelEvolution(unittest.TestCase):
+    """_route_gui_action() routes model_evolution to model_evolution()."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.srv = _stub_server(Path(self._td.name))
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def test_routes_model_evolution(self) -> None:
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "Evolution cycle queued.", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected) as mock_ev:
+            result = self.srv._route_gui_action("model_evolution", "run model evolution", "en")
+        mock_ev.assert_called_once()
+        self.assertIsNotNone(result)
+        self.assertTrue(result["ok"])
+
+    def test_model_evolution_route_includes_mode(self) -> None:
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "ok", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected):
+            result = self.srv._route_gui_action("model_evolution", "run model evolution", "en")
+        self.assertEqual(result["mode"], "model_evolution")
+
+    def test_model_evolution_called_with_text_as_request(self) -> None:
+        """The original user text should be passed as the evolution request."""
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "ok", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected) as mock_ev:
+            self.srv._route_gui_action("model_evolution", "run model evolution for review", "en")
+        call_args = mock_ev.call_args
+        # request is the first positional arg; target_role and apply are keyword-only.
+        request_arg = call_args[0][0] if call_args[0] else call_args[1].get("request", "")
+        self.assertIn("run model evolution", str(request_arg))
+
+    def test_model_evolution_apply_defaults_false(self) -> None:
+        """Routing from chat must never auto-apply (apply=False)."""
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "ok", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected) as mock_ev:
+            self.srv._route_gui_action("model_evolution", "run model evolution", "en")
+        call_kwargs = mock_ev.call_args[1] if mock_ev.call_args else {}
+        self.assertFalse(call_kwargs.get("apply", False))
+
+
+class TestAdminMessageModelEvolutionRouting(unittest.TestCase):
+    """admin_message() routes model-evolution phrases to model_evolution() directly."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.srv = _stub_server(Path(self._td.name))
+        self.srv._conversation = MagicMock(return_value={"active_persona": "Admin", "messages": [], "artifacts": []})
+        self.srv.save_message = MagicMock()
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def test_admin_message_model_evolution_routes_gui(self) -> None:
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "Evolution cycle ready.", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected):
+            result = self.srv.admin_message(
+                "run model evolution",
+                execute=False, prepare_media=False, allow_degraded=False, apply=False
+            )
+        self.assertTrue(result["ok"])
+        self.assertEqual(result.get("mode"), "model_evolution")
+
+    def test_admin_message_model_evolution_skips_subprocess(self) -> None:
+        expected = {"ok": True, "version": RUNTIME_VERSION, "reply": "ok", "artifacts": []}
+        with patch.object(self.srv, "model_evolution", return_value=expected):
+            with patch("admin_gui_server.run_json") as mock_run:
+                self.srv.admin_message(
+                    "model evolution",
+                    execute=False, prepare_media=False, allow_degraded=False, apply=False
+                )
+        mock_run.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()
