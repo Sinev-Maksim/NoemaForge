@@ -1331,6 +1331,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     # GUI action constants — phrases that map directly to server API methods.
     _GUI_ACTION_MODEL_SELECTION_CONTINUE = "model_selection_continue"
     _GUI_ACTION_VAULT_REINVENTORY = "vault_reinventory"
+    _GUI_ACTION_MODEL_EVOLUTION = "model_evolution"
 
     # Phrase sets that identify each GUI action (checked case-insensitively).
     _GUI_ACTION_PHRASES: List[Tuple[str, List[str]]] = [
@@ -1344,6 +1345,12 @@ class AdminGuiServer(ThreadingHTTPServer):
             "vault reinventory", "scan vault", "инвентаризация vault",
             "inventory vault", "vault scan",
             "re inventory vault", "inventory the vault", "re inventory the vault",
+        ]),
+        (_GUI_ACTION_MODEL_EVOLUTION, [
+            "model evolution", "model-evolution",
+            "run model evolution", "start model evolution",
+            "эволюция модели", "проведи эволюцию",
+            "запусти эволюцию", "model evolution cycle",
         ]),
     ]
 
@@ -1393,6 +1400,13 @@ class AdminGuiServer(ThreadingHTTPServer):
             result = self.model_selection_continue({"mode": "full_composite", "composite_top_n": 4})
         elif action_key == self._GUI_ACTION_VAULT_REINVENTORY:
             result = self.vault_reinventory()
+        elif action_key == self._GUI_ACTION_MODEL_EVOLUTION:
+            # Route from chat: use original text as the request; never auto-apply.
+            result = self.model_evolution(
+                text,
+                target_role="dev.work/dev",
+                apply=False,
+            )
         if result is None:
             return None
         result = dict(result)
