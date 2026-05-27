@@ -1,1 +1,0 @@
-sudo bash -c 'set -euo pipefail; SEED_DEV=$(blkid -L NOEMAFORGE_SEED); mkdir -p /mnt/seed; mount -o ro,noexec,nodev,nosuid "$SEED_DEV" /mnt/seed; bash /mnt/seed/bootstrap/noemaforge-bootstrap.sh --seed /mnt/seed --mode mvp --auto-origin --dual-initramfs --driver-vault --provision-bca; umount /mnt/seed'

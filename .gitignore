@@ -1,0 +1,42 @@
+# Python bytecode / cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+.venv/
+venv/
+.env/
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local secrets
+.env
+.env.*
+*.local
+
+# IDE / OS
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local release artifacts
+*.tar.gz
+*.zip
+*.sha256
+*.sha512
+
+# Cursor: ignore local state, keep shared project rules in git
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
