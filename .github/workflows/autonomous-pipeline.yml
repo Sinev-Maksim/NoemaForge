@@ -1,0 +1,272 @@
+name: Autonomous Dev Pipeline
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+      - 'codex/**'
+
+jobs:
+  # ─── Stage 1: lint + compile on Claude push ───────────────────────────────
+  validate-claude-push:
+    if: startsWith(github.ref, 'refs/heads/claude/')
+    runs-on: ubuntu-latest
+    outputs:
+      branch: ${{ steps.info.outputs.branch }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install pyyaml --quiet
+
+      - name: Python compile check
+        run: |
+          find noemaforge/src -name "*.py" | xargs python -m py_compile
+          echo "PASS: python compile"
+
+      - name: JSON parse check
+        run: |
+          find . -name "*.json" \
+            ! -path './.git/*' \
+            ! -path './noemaforge/src/__pycache__/*' \
+            | while read f; do
+              python -m json.tool "$f" > /dev/null || exit 1
+            done
+          echo "PASS: json parse"
+
+      - name: YAML parse check
+        run: |
+          python - <<'EOF'
+          import yaml, pathlib, sys
+          files = list(pathlib.Path('.').rglob('*.yaml')) + list(pathlib.Path('.').rglob('*.yml'))
+          errors = []
+          for f in files:
+              if '.git' in str(f): continue
+              try: yaml.safe_load(f.read_text())
+              except Exception as e: errors.append(f"{f}: {e}")
+          if errors:
+              print('\n'.join(errors)); sys.exit(1)
+          print(f"PASS: yaml parse ({len(files)} files)")
+          EOF
+
+      - name: Version check — no forbidden RUNTIME_VERSION assignment
+        run: |
+          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
+            | grep -v "noemaforge/src/noemaforge_version.py" \
+            | grep -v ".git" || true)
+          if [ -n "$hits" ]; then
+            echo "FAIL: forbidden RUNTIME_VERSION assignment:"; echo "$hits"; exit 1
+          fi
+          echo "PASS: no forbidden RUNTIME_VERSION assignment"
+
+      - name: VERSION files = 0.32.2
+        run: |
+          for f in VERSION noemaforge/VERSION docs/VERSION; do
+            if [ -f "$f" ]; then
+              v=$(cat "$f" | tr -d '[:space:]')
+              if [ "$v" != "0.32.2" ]; then
+                echo "FAIL: $f contains '$v', expected 0.32.2"; exit 1
+              fi
+            fi
+          done
+          echo "PASS: VERSION files"
+
+      - name: No __pycache__ in git
+        run: |
+          tracked=$(git ls-files | grep '__pycache__' || true)
+          if [ -n "$tracked" ]; then
+            echo "FAIL: __pycache__ tracked in git:"; echo "$tracked"; exit 1
+          fi
+          echo "PASS: no __pycache__ tracked"
+
+      - name: Get branch info
+        id: info
+        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+
+  # ─── Stage 2: Codex review (calls OpenAI API) ─────────────────────────────
+  codex-review:
+    needs: validate-claude-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 10
+
+      - name: Get diff vs release branch
+        id: diff
+        run: |
+          git fetch origin release/0.32.2-hardening
+          DIFF=$(git diff origin/release/0.32.2-hardening...HEAD -- '*.py' | head -c 12000)
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Codex review via OpenAI API
+        id: codex
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          python - <<'PYEOF'
+          import os, json, urllib.request, sys
+
+          diff = os.environ.get('DIFF', '')[:10000]
+          branch = os.environ.get('BRANCH', 'unknown')
+
+          payload = {
+            "model": "o4-mini",
+            "max_completion_tokens": 1200,
+            "messages": [
+              {
+                "role": "system",
+                "content": (
+                  "You are a senior Python code reviewer for NoemaForge, a local-first AI OS. "
+                  "Review the diff strictly. Reply in JSON only: "
+                  '{"verdict": "PASS"|"FAIL", "issues": [...], "optimizations": [...], "summary": "..."}'
+                  "\nFAIL if: syntax errors, RUNTIME_VERSION assigned outside noemaforge_version.py, "
+                  "__pycache__ added to git, return in finally without justification comment, "
+                  "hardcoded 'BigBro-BOS' or 'OUTDATED' strings, obvious logic errors. "
+                  "PASS with optimizations otherwise."
+                )
+              },
+              {
+                "role": "user",
+                "content": f"Branch: {branch}\n\nDiff:\n{diff}"
+              }
+            ]
+          }
+
+          req = urllib.request.Request(
+            'https://api.openai.com/v1/chat/completions',
+            data=json.dumps(payload).encode(),
+            headers={
+              'Content-Type': 'application/json',
+              'Authorization': f'Bearer {os.environ["OPENAI_API_KEY"]}'
+            }
+          )
+          resp = urllib.request.urlopen(req, timeout=60)
+          data = json.loads(resp.read())
+          content = data['choices'][0]['message']['content']
+
+          # strip markdown fences if present
+          content = content.strip()
+          if content.startswith('```'):
+            content = '\n'.join(content.split('\n')[1:])
+          if content.endswith('```'):
+            content = '\n'.join(content.split('\n')[:-1])
+
+          review = json.loads(content)
+          print(json.dumps(review, ensure_ascii=False, indent=2))
+
+          with open('codex_review.json', 'w') as f:
+            json.dump(review, f, ensure_ascii=False, indent=2)
+
+          if review.get('verdict') == 'FAIL':
+            print(f"\nCodex verdict: FAIL")
+            sys.exit(1)
+          else:
+            print(f"\nCodex verdict: PASS")
+          PYEOF
+        env:
+          DIFF: ${{ steps.diff.outputs.diff }}
+          BRANCH: ${{ needs.validate-claude-push.outputs.branch }}
+
+      - name: Upload review artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: codex-review-${{ github.sha }}
+          path: codex_review.json
+
+      - name: Post review as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let review = {};
+            try { review = JSON.parse(fs.readFileSync('codex_review.json', 'utf8')); } catch(e) {}
+
+            const verdict = review.verdict || 'ERROR';
+            const icon = verdict === 'PASS' ? '✅' : '❌';
+            const issues = (review.issues || []).map(i => `- ${i}`).join('\n') || '_none_';
+            const opts = (review.optimizations || []).map(o => `- ${o}`).join('\n') || '_none_';
+
+            const body = `### ${icon} Codex review — ${verdict}
+
+**Summary**: ${review.summary || 'n/a'}
+
+**Issues**:
+${issues}
+
+**Optimizations suggested**:
+${opts}
+
+_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``;
+
+            const pulls = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${{ github.ref_name }}`,
+              state: 'open'
+            });
+            if (pulls.data.length > 0) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pulls.data[0].number,
+                body
+              });
+            }
+
+  # ─── Stage 3: Batch counter — every 5 Codex pushes → trigger QA bump ─────
+  batch-counter:
+    needs: codex-review
+    if: startsWith(github.ref, 'refs/heads/codex/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Count recent reviewed pushes and maybe bump version
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Count commits on codex/* branches in last 24h
+            const since = new Date(Date.now() - 86400000).toISOString();
+            const branches = await github.rest.repos.listBranches({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            const codexBranches = branches.data
+              .filter(b => b.name.startsWith('codex/'));
+
+            let totalCommits = 0;
+            for (const b of codexBranches) {
+              const commits = await github.rest.repos.listCommits({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                sha: b.name,
+                since,
+                per_page: 20
+              });
+              totalCommits += commits.data.length;
+            }
+
+            core.info(`Codex commits in last 24h: ${totalCommits}`);
+            if (totalCommits > 0 && totalCommits % 5 === 0) {
+              core.info('Threshold reached — triggering QA version bump');
+              await github.rest.actions.createWorkflowDispatch({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                workflow_id: 'qa-version-bump.yml',
+                ref: 'release/0.32.2-hardening'
+              });
+            }
+
+  # ─── Stage 4: QA version bump (triggered manually or by batch counter) ────
+  # See: .github/workflows/qa-version-bump.yml
