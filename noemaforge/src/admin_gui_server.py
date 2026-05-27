@@ -469,6 +469,12 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/conversation/reset":
                 self._send_json(self.server.conversation_reset())
                 return
+            if path == "/api/session/mode":
+                session_id = str(body.get("session_id") or "default")
+                mode = str(body.get("mode") or "normal")
+                composite_top_n = int(body.get("composite_top_n") or 0)
+                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
+                return
             if path == "/api/tasks/create":
                 self._send_json(self.server.task_create(body))
                 return
@@ -1044,6 +1050,14 @@ class AdminGuiServer(ThreadingHTTPServer):
             return {"ok": True, "version": RUNTIME_VERSION, "events": events}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "events": [], "error": str(exc)}
+
+    def session_set_mode(self, session_id: str, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
+        """Persist the selected model-selection mode to the session so it survives refresh."""
+        try:
+            session = self.session_store.set_mode(session_id, mode, composite_top_n)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": str(exc)}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:

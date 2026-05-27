@@ -173,6 +173,8 @@ async function sendAdmin(){
     if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
       result.type = 'model_selection';
+      // Persist the selected mode to the session so it survives page refresh.
+      api('/api/session/mode', {mode:modePick.mode, composite_top_n:modePick.composite_top_n}).catch(()=>{});
     }else{
       result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
     }
@@ -347,9 +349,33 @@ async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
+async function restoreSession(){
+  // Restore message history and selected mode from persistent session store.
+  try{
+    const sess = await api('/api/session/current');
+    const session = sess.session || {};
+    // Restore conversation messages if the session has any (prefer over empty dashboard state).
+    if(Array.isArray(session.messages) && session.messages.length > 0){
+      renderConversation(session);
+    }
+    // Restore selected model-selection mode label if stored.
+    if(session.selected_mode && session.selected_mode !== 'normal'){
+      addMessage('Admin', `[session restored] Last selected mode: ${session.selected_mode}`, 'system');
+    }
+  }catch(_){}
+}
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
-  try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value=”${htmlEscape(x)}”>${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  // Try session-based restore first, fall back to dashboard state.
+  let restoredFromSession = false;
+  try{
+    const sess = await api('/api/session/current');
+    const msgs = (sess.session || {}).messages || [];
+    if(msgs.length > 0){ renderConversation(sess.session); restoredFromSession = true; }
+  }catch(_){}
+  if(!restoredFromSession){
+    try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
   connectJobProgressStream();
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); }, 10000);
