@@ -1318,6 +1318,58 @@ class AdminGuiServer(ThreadingHTTPServer):
             return "Optimizer"
         return "Admin"
 
+    # GUI action constants — phrases that map directly to server API methods.
+    _GUI_ACTION_MODEL_SELECTION_CONTINUE = "model_selection_continue"
+    _GUI_ACTION_VAULT_REINVENTORY = "vault_reinventory"
+
+    # Phrase sets that identify each GUI action (checked case-insensitively).
+    _GUI_ACTION_PHRASES: List[Tuple[str, List[str]]] = [
+        (_GUI_ACTION_MODEL_SELECTION_CONTINUE, [
+            "continue model selection", "resume model selection",
+            "продолжи выбор модел", "продолжи model selection",
+            "continue selection", "resume selection",
+        ]),
+        (_GUI_ACTION_VAULT_REINVENTORY, [
+            "reinventory vault", "re-inventory vault", "vault inventory",
+            "vault reinventory", "scan vault", "инвентаризация vault",
+            "inventory vault", "vault scan",
+            "re inventory vault", "inventory the vault", "re inventory the vault",
+        ]),
+    ]
+
+    def _detect_gui_action(self, low: str) -> Optional[str]:
+        """Return a GUI action key if *low* (already lowercased text) matches a known phrase.
+
+        Returns None when no specific GUI action is detected.  Only exact phrase
+        substrings are matched — partial word matches are intentionally avoided.
+        """
+        if not low:
+            return None
+        # Normalise punctuation/hyphens the same way for comparison.
+        normalised = re.sub(r"[-–—]", " ", low)
+        for action_key, phrases in self._GUI_ACTION_PHRASES:
+            if any(phrase in normalised for phrase in phrases):
+                return action_key
+        return None
+
+    def _route_gui_action(self, action_key: str, text: str, locale: str) -> Optional[Dict[str, Any]]:
+        """Call the appropriate server method for *action_key* and enrich the result.
+
+        Returns None for unknown keys so callers can fall through to other routing.
+        """
+        result: Optional[Dict[str, Any]] = None
+        if action_key == self._GUI_ACTION_MODEL_SELECTION_CONTINUE:
+            # Use default full-composite mode when routing from chat.
+            result = self.model_selection_continue({"mode": "full_composite", "composite_top_n": 4})
+        elif action_key == self._GUI_ACTION_VAULT_REINVENTORY:
+            result = self.vault_reinventory()
+        if result is None:
+            return None
+        result = dict(result)
+        result.setdefault("mode", action_key)
+        result.setdefault("artifacts", [])
+        return result
+
     def _run_explicit_pipeline_from_chat(self, text: str, pipeline_id: str, locale: str, allow_degraded: bool) -> Dict[str, Any]:
         """Run an explicitly named pipeline from chat and return a GUI-friendly response."""
         result = self.pipeline_run(pipeline_id, text, allow_degraded=allow_degraded)
@@ -1369,6 +1421,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        # Direct GUI-action routing: model-selection-continue and vault-reinventory are
+        # handled inline by the server without spawning admin_runtime.py.
+        gui_action = self._detect_gui_action(low)
+        if gui_action:
+            routed = self._route_gui_action(gui_action, text, locale)
+            if routed is not None:
+                reply = str(routed.get("reply") or "Action queued.")
+                self.save_message("admin", reply, persona=conv.get("active_persona", "Optimizer"), locale=locale, intent=gui_action)
+                return routed
         if self._explicit_control_request(low):
             pipeline_id = self._detect_pipeline_id(text)
             if pipeline_id:
