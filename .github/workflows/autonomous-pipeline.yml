@@ -87,99 +87,122 @@ jobs:
         id: info
         run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
 
-  # ─── Stage 2: Codex review (calls OpenAI API) ─────────────────────────────
+  # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Windows]
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 10
+          fetch-depth: 0
 
       - name: Get diff vs release branch
-        id: diff
+        shell: pwsh
         run: |
           git fetch origin release/0.32.2-hardening
-          DIFF=$(git diff origin/release/0.32.2-hardening...HEAD -- '*.py' | head -c 12000)
-          echo "diff<<EOF" >> $GITHUB_OUTPUT
-          echo "$DIFF" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          git diff --stat origin/release/0.32.2-hardening...HEAD
 
-      - name: Codex review via OpenAI API
+      - name: Run Codex CLI review
         id: codex
+        shell: pwsh
         env:
+          CODEX_ACCESS_TOKEN: ${{ secrets.CODEX_ACCESS_TOKEN }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CODEX_HOME: ${{ runner.temp }}\codex-home
+          CODEX_BIN_ROOT: C:\Users\sinev\AppData\Local\OpenAI\Codex\bin
         run: |
-          python - <<'PYEOF'
-          import os, json, urllib.request, sys
+          $ErrorActionPreference = 'Stop'
 
-          diff = os.environ.get('DIFF', '')[:10000]
-          branch = os.environ.get('BRANCH', 'unknown')
+          $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
+          $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+          $codex = $null
 
-          payload = {
-            "model": "o4-mini",
-            "max_completion_tokens": 1200,
-            "messages": [
-              {
-                "role": "system",
-                "content": (
-                  "You are a senior Python code reviewer for NoemaForge, a local-first AI OS. "
-                  "Review the diff strictly. Reply in JSON only: "
-                  '{"verdict": "PASS"|"FAIL", "issues": [...], "optimizations": [...], "summary": "..."}'
-                  "\nFAIL if: syntax errors, RUNTIME_VERSION assigned outside noemaforge_version.py, "
-                  "__pycache__ added to git, return in finally without justification comment, "
-                  "hardcoded 'BigBro-BOS' or 'OUTDATED' strings, obvious logic errors. "
-                  "PASS with optimizations otherwise."
-                )
-              },
-              {
-                "role": "user",
-                "content": f"Branch: {branch}\n\nDiff:\n{diff}"
-              }
-            ]
+          $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
+          if ($pathCommand) {
+            $codex = $pathCommand.Source
           }
 
-          req = urllib.request.Request(
-            'https://api.openai.com/v1/chat/completions',
-            data=json.dumps(payload).encode(),
-            headers={
-              'Content-Type': 'application/json',
-              'Authorization': f'Bearer {os.environ["OPENAI_API_KEY"]}'
+          if (-not $codex -and (Test-Path -LiteralPath $env:CODEX_BIN_ROOT)) {
+            $codex = Get-ChildItem -LiteralPath $env:CODEX_BIN_ROOT -Filter codex.exe -Recurse -File |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+
+          if (-not $codex -or -not (Test-Path -LiteralPath $codex)) {
+            throw "codex.exe was not found. Add Codex CLI to PATH or update CODEX_BIN_ROOT."
+          }
+
+          New-Item -ItemType Directory -Force -Path $env:CODEX_HOME | Out-Null
+          git config --global --add safe.directory $env:GITHUB_WORKSPACE
+
+          if ($env:CODEX_ACCESS_TOKEN) {
+            $env:CODEX_ACCESS_TOKEN | & $codex login --with-access-token
+          } elseif ($env:OPENAI_API_KEY) {
+            $env:OPENAI_API_KEY | & $codex login --with-api-key
+          } else {
+            throw "Set either CODEX_ACCESS_TOKEN or OPENAI_API_KEY in repository secrets."
+          }
+
+          & $codex login status
+
+          $prompt = @(
+            "You are reviewing a Claude Code branch in NoemaForge."
+            "Base branch: origin/release/0.32.2-hardening"
+            "Head branch: $env:GITHUB_REF_NAME"
+            "Commit: $env:GITHUB_SHA"
+            ""
+            "Read .codex/instructions.md and review the diff strictly against the documented gates."
+            "Return a concise GitHub-ready Markdown review."
+            "Start with exactly one verdict line:"
+            "Verdict: PASS"
+            "or"
+            "Verdict: FAIL"
+            ""
+            "Include sections for Summary, Blocking Issues, and Optimizations."
+            "Do not modify files or push commits in this workflow run."
+          ) -join [Environment]::NewLine
+
+          & $codex exec review `
+            --base origin/release/0.32.2-hardening `
+            --output-last-message $reviewPath `
+            $prompt 2>&1 | Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            if (-not (Test-Path -LiteralPath $reviewPath)) {
+              $failureReview = @(
+                "Verdict: ERROR"
+                ""
+                "Summary"
+                "Codex CLI failed before producing a review."
+                ""
+                "Blocking Issues"
+                "- See the GitHub Actions log artifact for details."
+              ) -join [Environment]::NewLine
+              Set-Content -LiteralPath $reviewPath -Value $failureReview -Encoding utf8
             }
-          )
-          resp = urllib.request.urlopen(req, timeout=60)
-          data = json.loads(resp.read())
-          content = data['choices'][0]['message']['content']
+            throw "Codex CLI review failed with exit code $LASTEXITCODE."
+          }
 
-          # strip markdown fences if present
-          content = content.strip()
-          if content.startswith('```'):
-            content = '\n'.join(content.split('\n')[1:])
-          if content.endswith('```'):
-            content = '\n'.join(content.split('\n')[:-1])
-
-          review = json.loads(content)
-          print(json.dumps(review, ensure_ascii=False, indent=2))
-
-          with open('codex_review.json', 'w') as f:
-            json.dump(review, f, ensure_ascii=False, indent=2)
-
-          if review.get('verdict') == 'FAIL':
-            print(f"\nCodex verdict: FAIL")
-            sys.exit(1)
-          else:
-            print(f"\nCodex verdict: PASS")
-          PYEOF
-        env:
-          DIFF: ${{ steps.diff.outputs.diff }}
-          BRANCH: ${{ needs.validate-claude-push.outputs.branch }}
+          $reviewText = Get-Content -LiteralPath $reviewPath -Raw
+          if ($reviewText -notmatch '(?im)^Verdict:\s*(PASS|FAIL)\b') {
+            throw "Codex CLI review did not include a Verdict line."
+          }
+          if ($Matches[1].ToUpperInvariant() -eq 'FAIL') {
+            throw "Codex CLI review returned FAIL."
+          }
 
       - name: Upload review artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codex-review-${{ github.sha }}
-          path: codex_review.json
+          path: |
+            codex_review.md
+            ${{ runner.temp }}\codex_run.log
 
       - name: Post review as PR comment
         if: always()
@@ -187,25 +210,19 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let review = {};
-            try { review = JSON.parse(fs.readFileSync('codex_review.json', 'utf8')); } catch(e) {}
+            let review = 'Codex CLI did not produce a review artifact.';
+            try { review = fs.readFileSync('codex_review.md', 'utf8'); } catch(e) {}
+            if (review.length > 60000) {
+              review = review.slice(0, 60000) + '\n\n_Review truncated to fit GitHub comment limits._';
+            }
 
-            const verdict = review.verdict || 'ERROR';
-            const icon = verdict === 'PASS' ? '✅' : '❌';
-            const issues = (review.issues || []).map(i => `- ${i}`).join('\n') || '_none_';
-            const opts = (review.optimizations || []).map(o => `- ${o}`).join('\n') || '_none_';
-
-            const body = `### ${icon} Codex review — ${verdict}
-
-**Summary**: ${review.summary || 'n/a'}
-
-**Issues**:
-${issues}
-
-**Optimizations suggested**:
-${opts}
-
-_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``;
+            const body = [
+              '### Codex CLI review',
+              '',
+              `_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``,
+              '',
+              review
+            ].join('\n');
 
             const pulls = await github.rest.pulls.list({
               owner: context.repo.owner,
