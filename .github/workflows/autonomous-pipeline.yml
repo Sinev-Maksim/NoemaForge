@@ -121,6 +121,19 @@ jobs:
           $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
           $codex = $null
 
+          function Write-FailureReview([string] $message) {
+            $failureReview = @(
+              "Verdict: ERROR"
+              ""
+              "Summary"
+              $message
+              ""
+              "Blocking Issues"
+              "- See the GitHub Actions log artifact for details."
+            ) -join [Environment]::NewLine
+            Set-Content -LiteralPath $reviewPath -Value $failureReview -Encoding utf8
+          }
+
           $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
           if ($pathCommand) {
             $codex = $pathCommand.Source
@@ -133,6 +146,7 @@ jobs:
           }
 
           if (-not $codex -or -not (Test-Path -LiteralPath $codex)) {
+            Write-FailureReview "codex.exe was not found on the Windows runner."
             throw "codex.exe was not found. Add Codex CLI to PATH or update CODEX_BIN_ROOT."
           }
 
@@ -144,6 +158,7 @@ jobs:
           } elseif ($env:OPENAI_API_KEY) {
             $env:OPENAI_API_KEY | & $codex login --with-api-key
           } else {
+            Write-FailureReview "Repository secret CODEX_ACCESS_TOKEN or OPENAI_API_KEY is missing."
             throw "Set either CODEX_ACCESS_TOKEN or OPENAI_API_KEY in repository secrets."
           }
 
@@ -173,16 +188,7 @@ jobs:
 
           if ($LASTEXITCODE -ne 0) {
             if (-not (Test-Path -LiteralPath $reviewPath)) {
-              $failureReview = @(
-                "Verdict: ERROR"
-                ""
-                "Summary"
-                "Codex CLI failed before producing a review."
-                ""
-                "Blocking Issues"
-                "- See the GitHub Actions log artifact for details."
-              ) -join [Environment]::NewLine
-              Set-Content -LiteralPath $reviewPath -Value $failureReview -Encoding utf8
+              Write-FailureReview "Codex CLI failed before producing a review."
             }
             throw "Codex CLI review failed with exit code $LASTEXITCODE."
           }
