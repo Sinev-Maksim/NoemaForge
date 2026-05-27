@@ -76,6 +76,7 @@ def _normalize(record: Dict[str, Any]) -> Dict[str, Any]:
         "created_at": str(record.get("created_at") or _nowz()),
         "updated_at": str(record.get("updated_at") or _nowz()),
         "finished_at": str(record.get("finished_at") or ""),
+        "last_heartbeat": str(record.get("last_heartbeat") or ""),
         "version": str(record.get("version") or RUNTIME_VERSION),
     })
     return out
@@ -315,3 +316,34 @@ class JobManager:
         if artifacts is not None:
             job["artifacts"] = artifacts
         return self._save(job)
+
+    def heartbeat(self, job_id: str) -> Optional[Dict[str, Any]]:
+        """Record that the job process is still alive by updating ``last_heartbeat``.
+
+        Call this periodically from the job subprocess or its watchdog thread.
+        Returns the updated job record, or None if the job does not exist.
+        """
+        job = self.get(job_id)
+        if job is None:
+            return None
+        job["last_heartbeat"] = _nowz()
+        return self._save(job)
+
+    def is_stale(self, job_id: str, *, stale_seconds: int = 120) -> bool:
+        """Return True when the job has not sent a heartbeat within *stale_seconds*.
+
+        A job with no ``last_heartbeat`` and whose ``updated_at`` is older than
+        *stale_seconds* is considered stale.  Missing jobs are always stale.
+        """
+        job = self.get(job_id)
+        if job is None:
+            return True
+        ts_str = str(job.get("last_heartbeat") or job.get("updated_at") or "")
+        if not ts_str:
+            return True
+        try:
+            ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            age = (datetime.now(timezone.utc) - ts).total_seconds()
+            return age > stale_seconds
+        except Exception:
+            return True
