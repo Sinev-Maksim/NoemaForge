@@ -54,6 +54,7 @@ import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from job_manager import JobManager
+from startup_preflight import PreflightSuite
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -1173,6 +1174,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return out
 
     def model_selection_continue(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        preflight = self._run_preflight()
+        if preflight is not None:
+            return {
+                "ok": False,
+                "preflight_failed": True,
+                "version": RUNTIME_VERSION,
+                "preflight": preflight,
+                "reply": "Pre-start safety check failed. Resolve the issues listed in 'preflight' before continuing model selection.",
+            }
         progress = self.model_selection_progress()
         mode = str(body.get("mode") or "full_composite")
         n = int(body.get("composite_top_n") or 4)
@@ -1336,6 +1346,26 @@ class AdminGuiServer(ThreadingHTTPServer):
             "re inventory vault", "inventory the vault", "re inventory the vault",
         ]),
     ]
+
+    def _run_preflight(self) -> Optional[Dict[str, Any]]:
+        """Run the standard first-start preflight suite.
+
+        Returns ``None`` when all checks pass (safe to proceed).
+        Returns the preflight report dict when one or more checks fail (caller
+        should return an error response to the GUI without creating a job).
+
+        Exceptions from the preflight suite itself are swallowed and treated as
+        non-fatal so that a broken preflight module never blocks the GUI.
+        """
+        try:
+            report = PreflightSuite.for_first_start().run()
+            if report.get("ok"):
+                return None
+            return report
+        except Exception:
+            # Preflight unavailable — allow the caller to proceed; the issue
+            # will surface through the normal job-level error handling.
+            return None
 
     def _detect_gui_action(self, low: str) -> Optional[str]:
         """Return a GUI action key if *low* (already lowercased text) matches a known phrase.
@@ -1612,6 +1642,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return run_json(cmd, env=self.env(), timeout=120)
 
     def vault_reinventory(self) -> Dict[str, Any]:
+        preflight = self._run_preflight()
+        if preflight is not None:
+            return {
+                "ok": False,
+                "preflight_failed": True,
+                "version": RUNTIME_VERSION,
+                "preflight": preflight,
+                "reply": "Pre-start safety check failed. Resolve the issues listed in 'preflight' before running vault re-inventory.",
+            }
         progress = self.model_selection_progress()
         command = "sudo noemaforge inventory scan && sudo noemaforge datasets scan && sudo noemaforge tournament eligibility"
         privileged_steps = [
