@@ -57,6 +57,7 @@ from job_manager import JobManager
 from startup_preflight import PreflightSuite
 from session_store import SessionStore
 from event_log import EventLog
+from orchestration_state import is_active_job
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -994,6 +995,12 @@ class AdminGuiServer(ThreadingHTTPServer):
             item = dict(job)
             item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
             jobs.append(item)
+        # Sync active jobs into the session store for browser-refresh restore.
+        try:
+            active = [j for j in jobs if is_active_job(j)]
+            self.session_store.attach_active_jobs("default", active)
+        except Exception:
+            pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
 
     def job_stream_events(self) -> List[Dict[str, Any]]:
