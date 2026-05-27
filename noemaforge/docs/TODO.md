@@ -42,6 +42,17 @@
 - [x] Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path. Closed by `setup-mode-matrix-core`
 - [x] Onboarding ladder boundary: README.md is the 5-minute overview, docs/QUICKSTART_VM.md is the first-success VM path, docs/SETUP_MODES.md explains host/VM/docker-dev/macOS-dev differences, and docs/PRODUCTION_INSTALL_TRIXIE.md is only entered after quickstart validation; primary docs do not lead with Windows lab workflow. Closed by `onboarding-ladder-core`
 
+## 0.32.2 hardening — completed in release/0.32.2-hardening
+
+- [x] Added file-backed `JobManager` (`noemaforge/src/job_manager.py`): job creation, persistence, idempotency-key deduplication, PID/PGID tracking, cancellation flag, stdout/stderr tail fields, `heartbeat()` / `is_stale()`. Covered by `test_job_manager.py` and `test_job_heartbeat_and_process_runner.py`.
+- [x] Added `ProcessGroupRunner` (`noemaforge/src/process_group_runner.py`): subprocess launch into its own process group, stdout/stderr capture via threads, PGID-scoped SIGTERM/SIGKILL cancel, stdout/stderr tail trimming. Covered by `test_job_heartbeat_and_process_runner.py`.
+- [x] Wired `JobManager` into `AdminGuiServer` (`noemaforge/src/admin_gui_server.py`): `create_job()`, `_persist_job()`, `jobs_list()`, `job_get()`, `job_cancel()` all delegate to `self.job_manager`. Covered by `test_admin_gui_job_manager_wiring.py`.
+- [x] Added direct GUI-action routing in `AdminGuiServer`: `_detect_gui_action()` + `_route_gui_action()` dispatch model-selection-continue and vault-reinventory chat phrases to their respective API methods without spawning subprocess. Covered by `test_admin_chat_routing.py`.
+- [x] Added startup preflight module (`noemaforge/src/startup_preflight.py`): `StorageCheck` (disk space, write-test), `DisplayCheck` (DISPLAY env or Wayland socket), `JournaldCheck` (journald socket), `PreflightSuite.for_first_start()`. Covered by `test_startup_preflight.py`.
+- [x] Wired `PreflightSuite` into `AdminGuiServer` as a non-fatal gate: `_run_preflight()` is called before `model_selection_continue()` and `vault_reinventory()`; returns `ok=False, preflight_failed=True` with report details when unsafe. Covered by `test_admin_gui_preflight_wiring.py`.
+- [x] Added model-evolution chat routing in `AdminGuiServer`: EN/RU phrase detection routes to `model_evolution(text, apply=False)` without auto-applying. Covered by appended tests in `test_admin_chat_routing.py`.
+- [x] Added `ConfigValidator` JSON/YAML parse gate (`noemaforge/src/config_validator.py`): walks directory tree, parses every `.json`/`.yaml`/`.yml`, skips `.git`/`__pycache__`/`node_modules`/etc., returns `ValidationReport` with per-file `FileCheckResult`; PyYAML optional with graceful degradation. Covered by `test_config_validator.py`.
+
 ## Started in this workspace
 
 - [x] Edge/TinyML/OTA pack: MQTT/serial, TinyML validation, gateway inference, rules, manifest signing and OTA rollback. Closed by `edge-tinyml-ota-pack-core`: component contracts are now checked together as an offline aggregate contract across Sense, TinyML, gateway inference, edge rules, OTA rollback and reference targets.

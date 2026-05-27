@@ -1,6 +1,6 @@
 # NoemaForge documentation
 
-This documentation tree was consolidated for NoemaForge `0.32.1`.
+This documentation tree was consolidated for NoemaForge `0.32.2`.
 
 ## 5-Minute Overview
 
