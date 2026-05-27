@@ -90,7 +90,7 @@ jobs:
   # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
-    runs-on: [self-hosted, Windows]
+    runs-on: [self-hosted, Windows, codex]
     permissions:
       contents: read
       issues: write
