@@ -55,6 +55,8 @@ from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from job_manager import JobManager
 from startup_preflight import PreflightSuite
+from session_store import SessionStore
+from event_log import EventLog
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -358,6 +360,17 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path == "/api/public-showcase/scenario":
             self._send_json(self.server.public_showcase_scenario())
             return
+        if path == "/api/session/current":
+            query = parse_qs(urlparse(self.path).query)
+            session_id = str((query.get("session_id") or ["default"])[0])
+            self._send_json(self.server.session_current(session_id))
+            return
+        if path == "/api/events":
+            query = parse_qs(urlparse(self.path).query)
+            after = int((query.get("after_index") or ["0"])[0])
+            limit = int((query.get("limit") or ["200"])[0])
+            self._send_json(self.server.events_list(after, limit))
+            return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
             return
@@ -586,6 +599,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
         self.job_manager = JobManager(self.jobs_dir)
+        self.session_store = SessionStore(self.data_root / "sessions")
+        self.event_log = EventLog(self.data_root / "events")
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -688,7 +703,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             "root": str(self.root),
             "state": str(self.state),
             "api": [
-                "/api/admin/message", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/events",
+                "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/stream", "/api/pipelines/catalog",
@@ -753,6 +769,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.review_dir / "sr" / "inbox" / f"{msg['message_id']}.json", review)
         if review["ssr_review"]["required"]:
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
+        # Also persist in session_store for browser-refresh restore.
+        try:
+            self.session_store.append_message("default", msg)
+        except Exception:
+            pass
         return msg
 
     def record_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
@@ -1005,6 +1026,24 @@ class AdminGuiServer(ThreadingHTTPServer):
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
         target = self.job_manager.cancel(job_id)
         return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Job cancelled" if target else "Job not found"}
+
+    # --- session / event log ---------------------------------------------------------
+
+    def session_current(self, session_id: str = "default") -> Dict[str, Any]:
+        """Return the current session record (messages, mode, active jobs) for GUI refresh."""
+        try:
+            session = self.session_store.load(session_id)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
+
+    def events_list(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
+        """Return event log entries, optionally after a given index."""
+        try:
+            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
+            return {"ok": True, "version": RUNTIME_VERSION, "events": events}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "error": str(exc)}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:
