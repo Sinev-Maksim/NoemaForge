@@ -64,6 +64,7 @@ import os
 import re
 import tarfile
 import zipfile
+from html.parser import HTMLParser
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -411,18 +412,47 @@ def _profile_recommendations(profile: str, signals: List[str]) -> List[str]:
 # Key locals:
 #   - blank, lines, ln, out, t
 # === End NoemaForge Autodoc Function Header ===
+class _TextExtractingHTMLParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self._chunks: List[str] = []
+        self._skip_depth = 0
+
+    def handle_starttag(self, tag: str, attrs: List[Tuple[str, Optional[str]]]) -> None:
+        t = (tag or "").lower()
+        if t in {"script", "style"}:
+            self._skip_depth += 1
+            return
+        if self._skip_depth > 0:
+            return
+        if t == "br":
+            self._chunks.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        t = (tag or "").lower()
+        if t in {"script", "style"}:
+            if self._skip_depth > 0:
+                self._skip_depth -= 1
+            return
+        if self._skip_depth > 0:
+            return
+        if t in {"p", "div", "li", "ul", "ol", "section", "article", "header", "footer"} or re.fullmatch(r"h\d", t):
+            self._chunks.append("\n")
+
+    def handle_data(self, data: str) -> None:
+        if self._skip_depth == 0 and data:
+            self._chunks.append(data)
+
+    def get_text(self) -> str:
+        return "".join(self._chunks)
+
+
 def _strip_html(text: str) -> str:
     t = text or ""
-    # Remove script/style blocks.
-    # End-tag pattern uses \s* to match optional whitespace before '>',
-    # e.g. </script > or </style\t>, which naive </script> would miss (CWE-185).
-    t = re.sub(r"<script[\s\S]*?</script\s*>", " ", t, flags=re.IGNORECASE)
-    t = re.sub(r"<style[\s\S]*?</style\s*>", " ", t, flags=re.IGNORECASE)
-    # Turn common block separators into newlines before stripping tags.
-    t = re.sub(r"<\s*br\s*/?\s*>", "\n", t, flags=re.IGNORECASE)
-    t = re.sub(r"</\s*(p|div|li|ul|ol|h\d|section|article|header|footer)\s*>", "\n", t, flags=re.IGNORECASE)
-    # Remove tags
-    t = re.sub(r"<[^>]+>", " ", t)
+    parser = _TextExtractingHTMLParser()
+    parser.feed(t)
+    parser.close()
+    t = parser.get_text()
     # Normalize whitespace but preserve newlines.
     t = t.replace("\r\n", "\n").replace("\r", "\n")
     lines = [re.sub(r"\s+", " ", ln).strip() for ln in t.split("\n")]
