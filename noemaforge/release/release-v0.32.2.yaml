@@ -81,18 +81,58 @@ modified_file_groups:
   prep_tools:
     - noemaforge/tools/prep/noemaforge-version-audit.sh
     - noemaforge/tools/prep/apply-runtime-version-centralization.py
+    - noemaforge/tools/prep/noemaforge-premerge-check.ps1
+  ci_and_quality:
+    - .github/workflows/premerge-quality.yml
+    - noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md
+  security_hardening:
+    - noemaforge/src/brainui.py
+    - noemaforge/src/brainctl.py
+    - noemaforge/src/glove_agent.py
+    - noemaforge/src/knowledge/extraction_pipeline.py
+    - prelaunch/tools/common/unified_manifest_downloader.py
+    - prelaunch/tools/source/unified_manifest_download_pack_20260408_hotfix3/unified_manifest_downloader.py
   canonical_metadata:
     - VERSION
     - noemaforge/VERSION
     - docs/VERSION
     - LICENSE
 
+completed_items:
+  - "Wire SessionStore and EventLog into admin_gui_server.py: session_current(), events_list(), session_set_mode() — done in claude/task-15-frontend-event-polling."
+  - "GET /api/session/current, GET /api/events, POST /api/session/mode routes — done."
+  - "Frontend session restore on load (startup polls /api/session/current) — done."
+  - "Frontend event polling with deduplication by index (pollEvents()) — done."
+  - "Frontend mode persistence via POST /api/session/mode — done."
+  - "Stale version metadata bumped to 0.32.2: release.json, docs/release.json, noemaforge.runtime.yaml, quantization-policy.yaml (3 copies) — done in claude/task-14-version-config-cleanup."
+  - "py_compile noemaforge/src/*.py: PASS (2026-05-28, Windows dev machine)."
+  - "JSON parse noemaforge/configs/*.json: PASS (2026-05-28)."
+  - "YAML parse noemaforge/configs/*.yaml: PASS (2026-05-28)."
+  - "33/33 tests in test_admin_gui_session_event_wiring.py: PASS (29 session/events + 4 job_cancel marker)."
+  - "P1: return-in-finally at noemaforge_core.py:2118 removed — done."
+  - "docs/release.json updated from 0.32.1 to 0.32.2."
+  - ".gitignore created (was 0 bytes): covers __pycache__, *.pyc, venv, secrets, trash/, runtime state, release tarballs."
+  - "Explicit mode confirmation message in Admin chat after model-selection pick (sendAdmin() in app.js)."
+  - "Day-1 config audits: llm-backends-policy.yaml, role-catalog.yaml — no stale version strings. dataset_inventory.py, vault_reorg.py — no rogue RUNTIME_VERSION assignments."
+  - "job_cancel() uses cancel_requested status + writes .cancel sentinel file for subprocess polling."
+  - "Jobs panel: Cancel button (✕) wired to POST /api/jobs/{id}/cancel; refreshes panel after cancel."
+  - "/api/jobs/{job_id}/cancel documented in health endpoint API list."
+  - "RUNTIME_VERSION fixes: 8 src/ files replaced hardcoded '0.32.1' strings with RUNTIME_VERSION import."
+  - "Version centralization tool: changed_count=0 (all sources clean)."
+  - "286/286 Python source files pass py_compile."
+  - "docs/release.json: release, package, release_name, channel, status, summary, version_audit, timestamps updated to 0.32.2 — done in claude/task-15-frontend-event-polling."
+  - "Windows premerge audit script created: noemaforge/tools/prep/noemaforge-premerge-check.ps1 — 13/13 checks PASS (VERSION files, docs/release.json, RUNTIME_VERSION centralization, py_compile 286, JSON parse 169, YAML parse 70, no tracked __pycache__)."
+  - "CI premerge quality workflow created: .github/workflows/premerge-quality.yml — 8 gates on PRs to release/0.32.2-hardening and main; permissions: contents: read; no auto-commits."
+  - "Autonomous workflow safety review completed: noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md — CRITICAL: autonomous-pipeline-v2.yml uses --approval-mode auto-edit (operator action required before enabling); HIGH: qa-version-bump.yml direct-pushes to release branch; all three workflows currently untracked."
+  - "CodeQL security hardening (cherry-picked onto task-15, 2026-05-28): CWE-22 path traversal fix in brainui.py (realpath containment); CWE-185 HTML-filter regex in glove_agent.py; CWE-328 SHA-1→SHA-256 in extraction_pipeline.py; CWE-20 host equality check in both unified_manifest_downloader.py copies; CWE-312 security advisory on brainctl.py invite token stdout. Addresses 8 confirmed HIGH findings (2 phantom findings documented)."
+  - "admin_gui_server.py conflict resolved in claude/task-15-frontend-event-polling (commit c16ede1): SessionStore+EventLog features from task-2-events-api and release/0.32.2-hardening are combined; job_cancel() uses cancel_requested + .cancel sentinel."
+
 known_open_items_before_final_merge:
-  - "Wire JobManager, SessionStore and EventLog into admin_gui_server.py endpoints."
-  - "Run version-audit, py_compile, bash -n and JSON/YAML validation in a local or CI environment."
-  - "Regenerate checksums after final files are frozen."
-  - "Create a clean release archive and SHA256 sidecar."
-  - "Update docs/release.json from 0.32.1 to 0.32.2 before release publication."
+  - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
+  - "Create noemaforge_0.32.2_release.tar.gz clean release archive."
+  - "Run bash -n validation on all .sh helpers (requires Linux/WSL or BigBro-BOS)."
+  - "Run noemaforge-version-audit.sh --strict-all --expected 0.32.2 on BigBro-BOS."
+  - "Target-machine smoke gates (Admin GUI, first-start dry-run) on BigBro-BOS."
 
 validation_commands:
   local_static:

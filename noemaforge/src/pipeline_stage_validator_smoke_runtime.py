@@ -33,11 +33,12 @@ if str(SRC_DIR) not in sys.path:
 
 import pipeline_runtime as prt
 import unified_registry_runtime as urr
+from noemaforge_version import RUNTIME_VERSION
 
 API_VERSION = "noemaforge.pipeline-stage-validator-smoke/v1"
 POLICY_KIND = "PipelineStageValidatorSmokePolicy"
 PACK_ID = "pipeline-stage-validator-smoke-core"
-VERSION = "0.32.1"
+VERSION = RUNTIME_VERSION
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = PACKAGE_ROOT.parent
 DEFAULT_POLICY = PACKAGE_ROOT / "configs" / "pipeline-stage-validator-smoke-policy.json"

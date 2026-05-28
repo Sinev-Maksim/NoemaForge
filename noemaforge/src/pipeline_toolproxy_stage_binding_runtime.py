@@ -25,11 +25,12 @@ from typing import Any, Dict, Iterable, List
 
 import pipeline_runtime as pr
 import unified_registry_runtime as urr
+from noemaforge_version import RUNTIME_VERSION
 
 API_VERSION = "noemaforge.pipeline-toolproxy-stage-binding/v1"
 POLICY_KIND = "PipelineToolProxyStageBindingPolicy"
 PACK_ID = "pipeline-toolproxy-stage-binding-core"
-VERSION = "0.32.1"
+VERSION = RUNTIME_VERSION
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 PROJECT_ROOT = PACKAGE_ROOT.parent
 DEFAULT_POLICY = PACKAGE_ROOT / "configs" / "pipeline-toolproxy-stage-binding-policy.json"
