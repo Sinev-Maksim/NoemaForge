@@ -261,5 +261,64 @@ class TestHttpRoutesSourcePresence(unittest.TestCase):
         self.assertIn("/api/events", self._src)
 
 
+# ---------------------------------------------------------------------------
+# job_cancel() — cancel_requested status and .cancel marker file
+# ---------------------------------------------------------------------------
+
+class TestJobCancelMarker(unittest.TestCase):
+    """job_cancel() must use cancel_requested status and write .cancel marker."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.td = Path(self._td.name)
+        self.srv = _make_server(self.td)
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def _seed_job(self, job_id: str, status: str = "running") -> None:
+        """Write a minimal job record to jobs.json and {job_id}.json."""
+        job = {
+            "job_id": job_id,
+            "kind": "test_job",
+            "status": status,
+            "created_at": "2026-05-28T00:00:00Z",
+            "updated_at": "2026-05-28T00:00:00Z",
+            "idempotency_key": job_id,
+            "artifacts": [],
+        }
+        jobs_file = self.srv.jobs_dir / "jobs.json"
+        jobs_file.parent.mkdir(parents=True, exist_ok=True)
+        import json as _json
+        jobs_file.write_text(_json.dumps({"jobs": [job]}), encoding="utf-8")
+        (self.srv.jobs_dir / f"{job_id}.json").write_text(_json.dumps(job), encoding="utf-8")
+
+    def test_cancel_sets_cancel_requested_status(self) -> None:
+        jid = "job_test_001"
+        self._seed_job(jid)
+        result = self.srv.job_cancel(jid)
+        self.assertTrue(result["ok"])
+        self.assertEqual(result["job"]["status"], "cancel_requested")
+
+    def test_cancel_writes_marker_file(self) -> None:
+        jid = "job_test_002"
+        self._seed_job(jid)
+        self.srv.job_cancel(jid)
+        marker = self.srv.jobs_dir / f"{jid}.cancel"
+        self.assertTrue(marker.exists(), ".cancel sentinel file must be written by job_cancel()")
+
+    def test_cancel_marker_file_contains_timestamp(self) -> None:
+        jid = "job_test_003"
+        self._seed_job(jid)
+        self.srv.job_cancel(jid)
+        marker = self.srv.jobs_dir / f"{jid}.cancel"
+        content = marker.read_text(encoding="utf-8").strip()
+        self.assertTrue(content.startswith("202"), f"marker should contain ISO timestamp, got: {content!r}")
+
+    def test_cancel_missing_job_returns_ok_false(self) -> None:
+        result = self.srv.job_cancel("nonexistent_job_id")
+        self.assertFalse(result["ok"])
+
+
 if __name__ == "__main__":
     unittest.main()
