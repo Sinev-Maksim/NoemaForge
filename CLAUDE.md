@@ -250,6 +250,17 @@ context instead of treating it as a blocker.
   Fixed /api/events after_index validation so non-integer and negative values return
   JSON 400; route tests now exercise AdminGuiHandler.do_GET behavior instead of
   source-string checks. Ready for downstream review or merge.
+- task-3 / PR #5 / claude/task-3-session-mode-history:
+  Codex PASS on d80917f; blocking issues = 0. Fixed CodeRabbit findings from
+  38dec23 in d80917f: /api/session/mode now returns JSON 400 for malformed
+  composite_top_n, frontend persists the selected/restored mode instead of a
+  hardcoded full_composite value, the test header no longer hardcodes Version:
+  0.32.2, and the 500-message cap test now exercises 510 messages.
+  Local verification: py_compile admin_gui_server/orchestration_state/session_store,
+  node --check app.js, and 35 unit tests all passed. CodeRabbit status on
+  d80917f is success but "Review skipped" because release/0.32.2-hardening is
+  not the default branch; before closing task-3, trigger @coderabbitai review on
+  PR #5 and record blocking/actionable comments = 0 or add the next fix here.
 - Copilot review note:
   Automated reviewer requests were attempted through the API but were not visibly
   attached as requested reviewers. If explicit Copilot review evidence is required,
