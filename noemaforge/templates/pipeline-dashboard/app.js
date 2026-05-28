@@ -24,6 +24,7 @@ let jobStream = null;
 let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
+let restoredSelectionMode = {mode:'full_composite', composite_top_n:4};
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
 
@@ -152,6 +153,14 @@ function parseModeText(text){
   if(['fast','normal','full'].includes(lower)) return {mode:lower, composite_top_n:0};
   return null;
 }
+function selectionModePayload(){
+  const uiValue = el('selection-mode')?.value || '';
+  const parsed = uiValue ? parseModeText(uiValue) : null;
+  const mode = parsed?.mode || restoredSelectionMode.mode || 'full_composite';
+  let composite_top_n = Number(parsed?.composite_top_n ?? restoredSelectionMode.composite_top_n ?? 0);
+  if(mode === 'full_composite' && composite_top_n <= 0) composite_top_n = 4;
+  return {mode, composite_top_n};
+}
 function budgetPayload(){ return { max_steps:Number(el('depth-steps').value || 0), time_budget_minutes:Number(el('depth-minutes').value || 0), until_stop:Boolean(el('depth-until-stop').checked) }; }
 function renderRuntimeObserverCards(cards){
   const list = Array.isArray(cards) ? cards : [];
@@ -247,11 +256,10 @@ async function refreshPersona(){ try{ const st = await api('/api/persona/current
 async function applyEpoch(){ try{ absorbResult(await api('/api/epoch/apply', {locale: el('locale-select').value})); }catch(e){ addMessage('Admin', `Epoch apply error: ${String(e)}`, 'error'); } }
 async function continueSelection(){
   try{
-    const mode = 'full_composite', composite_top_n = 4;
-    // Persist mode to session so it survives browser refresh.
-    api('/api/session/mode', {mode, composite_top_n}).catch(()=>{});
+    const {mode, composite_top_n} = selectionModePayload();
     const r = await api('/api/model-selection/continue', {mode, composite_top_n});
     absorbResult(r); refreshJobs();
+    api('/api/session/mode', {mode: r.mode || mode, composite_top_n: Number(r.composite_top_n ?? composite_top_n)}).catch(()=>{});
   }catch(e){ addMessage('Admin', `Continue selection error: ${String(e)}`, 'error'); }
 }
 async function reinventoryVault(){ try{ const r = await api('/api/vault/reinventory', {}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Vault inventory error: ${String(e)}`, 'error'); } }
@@ -361,7 +369,11 @@ async function startup(){
   try{
     const sess = await api('/api/session/current');
     const selected_mode = sess?.session?.selected_mode;
-    if(selected_mode && el('selection-mode')){ el('selection-mode').value = selected_mode; }
+    const selected_composite_top_n = Number(sess?.session?.selected_composite_top_n || 0);
+    if(selected_mode){
+      restoredSelectionMode = {mode:selected_mode, composite_top_n:selected_composite_top_n};
+      if(el('selection-mode')){ el('selection-mode').value = selected_composite_top_n ? `${selected_mode} ${selected_composite_top_n}` : selected_mode; }
+    }
   }catch(_){}
   try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);

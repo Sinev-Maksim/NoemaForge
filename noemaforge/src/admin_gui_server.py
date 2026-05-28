@@ -471,9 +471,14 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 ))
                 return
             if path == "/api/session/mode":
+                try:
+                    composite_top_n = int(body.get("composite_top_n") or 0)
+                except (TypeError, ValueError):
+                    self._send_json({"ok": False, "error": "composite_top_n must be an integer"}, status=400)
+                    return
                 self._send_json(self.server.session_mode(
                     str(body.get("mode") or "normal"),
-                    composite_top_n=int(body.get("composite_top_n") or 0),
+                    composite_top_n=composite_top_n,
                 ))
                 return
             if path == "/api/conversation/reset":

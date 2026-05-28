@@ -3,7 +3,6 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_session_mode_history.py
 Zone: release/package
-Version: 0.32.2
 Created: 2026-05-27
 Modified: 2026-05-27
 Purpose: TDD tests for session mode persistence and message history sync via session_store.
@@ -24,7 +23,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from noemaforge_version import RUNTIME_VERSION
 from session_store import SessionStore
 import admin_gui_server
 from admin_gui_server import AdminGuiServer
@@ -78,25 +76,44 @@ class TestSessionModeMethod(unittest.TestCase):
 
 
 class TestSessionModeRoute(unittest.TestCase):
-    """POST /api/session/mode must be registered in AdminGuiHandler.do_POST."""
+    """POST /api/session/mode dispatches through AdminGuiHandler.do_POST."""
 
-    _source: str = ""
+    def _call_route(self, body: dict):
+        calls = []
+        responses = []
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls._source = (ROOT / "src" / "admin_gui_server.py").read_text(encoding="utf-8")
+        class ServerStub:
+            def session_mode(self, mode: str, composite_top_n: int = 0):
+                calls.append((mode, composite_top_n))
+                return {"ok": True, "session": {"selected_mode": mode, "selected_composite_top_n": composite_top_n}}
 
-    def test_post_route_session_mode_in_do_post(self) -> None:
-        self.assertIn('"/api/session/mode"', self._source)
+        handler = object.__new__(admin_gui_server.AdminGuiHandler)
+        handler.path = "/api/session/mode"
+        handler.server = ServerStub()
+        handler._read_json_body = lambda: body
+        handler._send_json = lambda obj, status=200: responses.append((status, obj))
 
-    def test_session_mode_method_called_in_do_post(self) -> None:
-        self.assertIn("session_mode(", self._source)
+        admin_gui_server.AdminGuiHandler.do_POST(handler)
+        self.assertEqual(len(responses), 1)
+        return responses[0], calls
 
-    def test_session_store_imported(self) -> None:
-        self.assertIn("SessionStore", self._source)
+    def test_post_route_session_mode_calls_server_method(self) -> None:
+        (status, payload), calls = self._call_route({"mode": "full_composite", "composite_top_n": 6})
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, [("full_composite", 6)])
+        self.assertTrue(payload["ok"])
 
-    def test_session_store_in_init(self) -> None:
-        self.assertIn("self.session_store", self._source)
+    def test_post_route_session_mode_defaults_missing_values(self) -> None:
+        (status, _payload), calls = self._call_route({})
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, [("normal", 0)])
+
+    def test_post_route_session_mode_rejects_bad_composite_top_n(self) -> None:
+        (status, payload), calls = self._call_route({"mode": "full", "composite_top_n": "abc"})
+        self.assertEqual(status, 400)
+        self.assertEqual(calls, [])
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "composite_top_n must be an integer")
 
 
 class TestSaveMessageSyncsSession(unittest.TestCase):
@@ -142,11 +159,12 @@ class TestSaveMessageSyncsSession(unittest.TestCase):
 
     def test_save_message_session_bounded_at_500(self) -> None:
         srv = self._make_server_stub()
-        for i in range(10):
+        for i in range(510):
             srv.save_message("user", f"msg {i}")
         session = srv.session_store.load("default")
-        # All 10 messages should be stored (well within 500 limit)
-        self.assertEqual(len(session["messages"]), 10)
+        self.assertEqual(len(session["messages"]), 500)
+        self.assertEqual(session["messages"][0]["text"], "msg 10")
+        self.assertEqual(session["messages"][-1]["text"], "msg 509")
 
 
 class TestAppJsSessionMode(unittest.TestCase):
