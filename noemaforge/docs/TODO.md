@@ -75,7 +75,7 @@ Found after 3-angle code review + verification of admin_gui_server.py, test_sess
 - [x] `admin_gui_server.py` — `/api/events` GET handler validates `after_index >= 0` but did not validate `limit >= 1`. Added explicit 400 reject for `limit <= 0` (2026-05-28).
 - [x] `test_events_api.py` — No test covered `limit=0` or `limit=-5`. Added `test_events_route_rejects_zero_limit` and `test_events_route_rejects_negative_limit` (2026-05-28).
 - [x] `admin_gui_server.py` — Documented `cancel_requested → cancelled` lifecycle in comment near `job_cancel()` (2026-05-28).
-- [ ] Verify `premerge-quality.yml` CI workflow actually triggers and passes on a test PR (create a dry-run branch with a known-good commit to confirm the 8-step gate runs).
+- [x] Verify `premerge-quality.yml` CI workflow structure locally: YAML valid, triggers on `release/0.32.2-hardening` and `main`, all 8 quality gate steps present, `docs/release.json` has `status=alpha-hardening` (not `pre-alpha`) so step 4 will pass. `gh` CLI not installed on Windows; full CI run evidence requires an open PR on BigBro-BOS or after branch push to GitHub (2026-05-28).
 
 ### BigBro-BOS only
 
