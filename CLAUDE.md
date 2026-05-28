@@ -234,6 +234,27 @@ git push origin claude/task-N-slug
 
 \# 4. Via MCP: add label codex-review to PR, comment on issue
 
+Autonomous review TODO for Claude
+
+Keep this block current after each claude/task-* branch is reviewed. Record branch, PR,
+Codex verdict, CodeRabbit status, actionable/blocking comments, fixes and next action.
+If CodeRabbit and Codex overlap on the same nitpick, record it once as carry-forward
+context instead of treating it as a blocker.
+
+- task-1 / PR #3 / claude/task-1-session-current:
+  Codex PASS on 4829f2f; CodeRabbit success; blocking/actionable comments = 0.
+  Only nitpick matched Codex: route tests were brittle source-string checks. Pilot
+  contour works; proceed to the next branch from the start of the task list.
+- task-2 / PR #4 / claude/task-2-events-api:
+  Codex PASS on c28a8e8; CodeRabbit success after fix; blocking/actionable comments = 0.
+  Fixed /api/events after_index validation so non-integer and negative values return
+  JSON 400; route tests now exercise AdminGuiHandler.do_GET behavior instead of
+  source-string checks. Ready for downstream review or merge.
+- Copilot review note:
+  Automated reviewer requests were attempted through the API but were not visibly
+  attached as requested reviewers. If explicit Copilot review evidence is required,
+  use the PR UI reviewer picker and record the result here.
+
 Do NOT do
 
 
