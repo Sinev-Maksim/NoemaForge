@@ -710,7 +710,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/admin/message", "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
-                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/stream", "/api/pipelines/catalog",
+                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
