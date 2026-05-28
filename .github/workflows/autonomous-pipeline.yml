@@ -9,10 +9,11 @@ on:
 jobs:
   # ─── Stage 1: lint + compile on Claude push ───────────────────────────────
   validate-claude-push:
-    if: startsWith(github.ref, 'refs/heads/claude/')
+    if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.info.outputs.branch }}
+      changed_count: ${{ steps.info.outputs.changed_count }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,163 +24,400 @@ jobs:
       - name: Install deps
         run: pip install pyyaml --quiet
 
+      - name: Get branch info and changed files
+        id: info
+        run: |
+          set -euo pipefail
+          base_branch="release/0.32.2-hardening"
+          changed_file_list="$RUNNER_TEMP/changed_files.txt"
+
+          git fetch --no-tags --depth=1 origin "$base_branch"
+          git diff --name-only --diff-filter=ACMR "origin/$base_branch" HEAD > "$changed_file_list"
+
+          echo "branch=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+          echo "changed_count=$(wc -l < "$changed_file_list" | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+          echo "Changed files against $base_branch:"
+          if [ -s "$changed_file_list" ]; then
+            sed 's/^/- /' "$changed_file_list"
+          else
+            echo "- none"
+          fi
+
       - name: Python compile check
         run: |
-          find noemaforge/src -name "*.py" | xargs python -m py_compile
-          echo "PASS: python compile"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import py_compile
+          import sys
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p.suffix == '.py' and p.exists()]
+          errors = []
+          for path in files:
+              try:
+                  py_compile.compile(str(path), doraise=True)
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: python compile ({len(files)} changed files)")
+          EOF
 
       - name: JSON parse check
         run: |
-          find . -name "*.json" \
-            ! -path './.git/*' \
-            ! -path './noemaforge/src/__pycache__/*' \
-            | while read f; do
-              python -m json.tool "$f" > /dev/null || exit 1
-            done
-          echo "PASS: json parse"
+          python - <<'EOF'
+          from pathlib import Path
+          import json
+          import os
+          import sys
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          files = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in files if p.suffix == '.json' and p.exists()]
+          errors = []
+          for path in files:
+              try:
+                  json.loads(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: json parse ({len(files)} changed files)")
+          EOF
 
       - name: YAML parse check
         run: |
           python - <<'EOF'
-          import yaml, pathlib, sys
-          files = list(pathlib.Path('.').rglob('*.yaml')) + list(pathlib.Path('.').rglob('*.yml'))
+          from pathlib import Path
+          import os
+          import sys
+          import yaml
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p.suffix in {'.yaml', '.yml'} and p.exists()]
           errors = []
-          for f in files:
-              if '.git' in str(f): continue
-              try: yaml.safe_load(f.read_text())
-              except Exception as e: errors.append(f"{f}: {e}")
+          for path in files:
+              try:
+                  yaml.safe_load(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
           if errors:
-              print('\n'.join(errors)); sys.exit(1)
-          print(f"PASS: yaml parse ({len(files)} files)")
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: yaml parse ({len(files)} changed files)")
           EOF
 
       - name: Version check — no forbidden RUNTIME_VERSION assignment
         run: |
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
-            | grep -v "noemaforge/src/noemaforge_version.py" \
-            | grep -v ".git" || true)
-          if [ -n "$hits" ]; then
-            echo "FAIL: forbidden RUNTIME_VERSION assignment:"; echo "$hits"; exit 1
-          fi
-          echo "PASS: no forbidden RUNTIME_VERSION assignment"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import re
+          import sys
+
+          allowed = Path('noemaforge/src/noemaforge_version.py')
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          files = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in files if p.suffix == '.py' and p.exists() and p != allowed]
+          pattern = re.compile(r'(?m)^[ \t]*RUNTIME_VERSION[ \t]*=')
+          hits = []
+          for path in files:
+              for line_no, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+                  if pattern.match(line):
+                      hits.append(f"{path}:{line_no}:{line}")
+          if hits:
+              print("FAIL: forbidden RUNTIME_VERSION assignment:")
+              print('\n'.join(hits))
+              sys.exit(1)
+          print("PASS: no forbidden RUNTIME_VERSION assignment in changed files")
+          EOF
 
       - name: VERSION files = 0.32.2
         run: |
-          for f in VERSION noemaforge/VERSION docs/VERSION; do
-            if [ -f "$f" ]; then
-              v=$(cat "$f" | tr -d '[:space:]')
-              if [ "$v" != "0.32.2" ]; then
-                echo "FAIL: $f contains '$v', expected 0.32.2"; exit 1
-              fi
-            fi
-          done
-          echo "PASS: VERSION files"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import sys
+
+          expected = '0.32.2'
+          version_files = {Path('VERSION'), Path('noemaforge/VERSION'), Path('docs/VERSION')}
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p in version_files and p.exists()]
+          errors = []
+          for path in files:
+              value = path.read_text(encoding='utf-8').strip()
+              if value != expected:
+                  errors.append(f"{path} contains {value!r}, expected {expected!r}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: VERSION files ({len(files)} changed files)")
+          EOF
 
       - name: No __pycache__ in git
         run: |
-          tracked=$(git ls-files | grep '__pycache__' || true)
-          if [ -n "$tracked" ]; then
-            echo "FAIL: __pycache__ tracked in git:"; echo "$tracked"; exit 1
+          if grep -q '__pycache__' "$RUNNER_TEMP/changed_files.txt"; then
+            echo "FAIL: __pycache__ present in changed files:"
+            grep '__pycache__' "$RUNNER_TEMP/changed_files.txt"
+            exit 1
           fi
-          echo "PASS: no __pycache__ tracked"
+          echo "PASS: no __pycache__ in changed files"
 
-      - name: Get branch info
-        id: info
-        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
-
-  # ─── Stage 2: Codex review (calls OpenAI API) ─────────────────────────────
+  # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
-    runs-on: ubuntu-latest
+    if: github.actor == 'Sinev-Maksim'
+    runs-on: [self-hosted, Windows, codex]
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    env:
+      GITHUB_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 10
-
-      - name: Get diff vs release branch
-        id: diff
+      - name: Prepare source archive
+        shell: pwsh
+        timeout-minutes: 10
         run: |
-          git fetch origin release/0.32.2-hardening
-          DIFF=$(git diff origin/release/0.32.2-hardening...HEAD -- '*.py' | head -c 12000)
-          echo "diff<<EOF" >> $GITHUB_OUTPUT
-          echo "$DIFF" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'codex-source.zip'
+          $extract = Join-Path $env:RUNNER_TEMP 'codex-source-extract'
+          $worktree = Join-Path $env:RUNNER_TEMP 'codex-source'
+          $archiveUrl = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/zipball/$env:GITHUB_SHA"
 
-      - name: Codex review via OpenAI API
-        id: codex
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python - <<'PYEOF'
-          import os, json, urllib.request, sys
-
-          diff = os.environ.get('DIFF', '')[:10000]
-          branch = os.environ.get('BRANCH', 'unknown')
-
-          payload = {
-            "model": "o4-mini",
-            "max_completion_tokens": 1200,
-            "messages": [
-              {
-                "role": "system",
-                "content": (
-                  "You are a senior Python code reviewer for NoemaForge, a local-first AI OS. "
-                  "Review the diff strictly. Reply in JSON only: "
-                  '{"verdict": "PASS"|"FAIL", "issues": [...], "optimizations": [...], "summary": "..."}'
-                  "\nFAIL if: syntax errors, RUNTIME_VERSION assigned outside noemaforge_version.py, "
-                  "__pycache__ added to git, return in finally without justification comment, "
-                  "hardcoded 'BigBro-BOS' or 'OUTDATED' strings, obvious logic errors. "
-                  "PASS with optimizations otherwise."
-                )
-              },
-              {
-                "role": "user",
-                "content": f"Branch: {branch}\n\nDiff:\n{diff}"
-              }
-            ]
+          $headers = @{
+            Accept = 'application/vnd.github+json'
+            'User-Agent' = 'NoemaForge-CI'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          if ($env:GITHUB_TOKEN) {
+            $headers.Authorization = "Bearer $env:GITHUB_TOKEN"
           }
 
-          req = urllib.request.Request(
-            'https://api.openai.com/v1/chat/completions',
-            data=json.dumps(payload).encode(),
-            headers={
-              'Content-Type': 'application/json',
-              'Authorization': f'Bearer {os.environ["OPENAI_API_KEY"]}'
-            }
-          )
-          resp = urllib.request.urlopen(req, timeout=60)
-          data = json.loads(resp.read())
-          content = data['choices'][0]['message']['content']
+          if (Test-Path -LiteralPath $archive) {
+            Remove-Item -LiteralPath $archive -Force
+          }
+          if (Test-Path -LiteralPath $extract) {
+            Remove-Item -LiteralPath $extract -Recurse -Force
+          }
+          if (Test-Path -LiteralPath $worktree) {
+            Remove-Item -LiteralPath $worktree -Recurse -Force
+          }
 
-          # strip markdown fences if present
-          content = content.strip()
-          if content.startswith('```'):
-            content = '\n'.join(content.split('\n')[1:])
-          if content.endswith('```'):
-            content = '\n'.join(content.split('\n')[:-1])
+          Invoke-WebRequest -Uri $archiveUrl -Headers $headers -OutFile $archive -MaximumRedirection 5
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
 
-          review = json.loads(content)
-          print(json.dumps(review, ensure_ascii=False, indent=2))
+          $sourceRoot = Get-ChildItem -LiteralPath $extract -Directory | Select-Object -First 1
+          if (-not $sourceRoot) {
+            throw "No source directory found in GitHub archive."
+          }
 
-          with open('codex_review.json', 'w') as f:
-            json.dump(review, f, ensure_ascii=False, indent=2)
+          Move-Item -LiteralPath $sourceRoot.FullName -Destination $worktree
+          "CODEX_WORKTREE=$worktree" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Prepared source at $worktree"
 
-          if review.get('verdict') == 'FAIL':
-            print(f"\nCodex verdict: FAIL")
-            sys.exit(1)
-          else:
-            print(f"\nCodex verdict: PASS")
-          PYEOF
+      - name: Get diff vs release branch
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location -LiteralPath $env:CODEX_WORKTREE
+
+          $base = [System.Uri]::EscapeDataString('release/0.32.2-hardening')
+          $head = [System.Uri]::EscapeDataString($env:GITHUB_SHA)
+          $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
+          $compareUrl = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/compare/$base...$head"
+          $headers = @{
+            Accept = 'application/vnd.github.diff'
+            'User-Agent' = 'NoemaForge-CI'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          if ($env:GITHUB_TOKEN) {
+            $headers.Authorization = "Bearer $env:GITHUB_TOKEN"
+          }
+
+          Invoke-WebRequest -Uri $compareUrl -Headers $headers -OutFile $diffPath
+          $diff = Get-Item -LiteralPath $diffPath
+          Write-Host "Downloaded diff.patch ($($diff.Length) bytes)"
+
+      - name: Run Codex CLI review
+        id: codex
+        shell: pwsh
+        timeout-minutes: 30
         env:
-          DIFF: ${{ steps.diff.outputs.diff }}
-          BRANCH: ${{ needs.validate-claude-push.outputs.branch }}
+          CODEX_HOME: C:\Users\sinev\.codex
+          CODEX_BIN_ROOT: C:\Users\sinev\AppData\Local\OpenAI\Codex\bin
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location -LiteralPath $env:CODEX_WORKTREE
+
+          $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
+          $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+          $codex = $null
+
+          function Write-FailureReview([string] $message) {
+            $failureReview = @(
+              "Verdict: ERROR"
+              ""
+              "Summary"
+              $message
+              ""
+              "Blocking Issues"
+              "- See the GitHub Actions log artifact for details."
+            ) -join [Environment]::NewLine
+            Set-Content -LiteralPath $reviewPath -Value $failureReview -Encoding utf8
+          }
+
+          $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
+          if ($pathCommand) {
+            $codex = $pathCommand.Source
+          }
+
+          if (-not $codex -and (Test-Path -LiteralPath $env:CODEX_BIN_ROOT)) {
+            $codex = Get-ChildItem -LiteralPath $env:CODEX_BIN_ROOT -Filter codex.exe -Recurse -File |
+              Sort-Object LastWriteTime -Descending |
+              Select-Object -First 1 -ExpandProperty FullName
+          }
+
+          if (-not $codex -or -not (Test-Path -LiteralPath $codex)) {
+            Write-FailureReview "codex.exe was not found on the Windows runner."
+            throw "codex.exe was not found. Add Codex CLI to PATH or update CODEX_BIN_ROOT."
+          }
+
+          $authPath = Join-Path $env:CODEX_HOME 'auth.json'
+          if (-not (Test-Path -LiteralPath $authPath)) {
+            Write-FailureReview "Codex ChatGPT OAuth auth.json was not found on the Windows runner."
+            throw "Codex ChatGPT OAuth auth.json was not found at $authPath."
+          }
+
+          & $codex login status
+          if ($LASTEXITCODE -ne 0) {
+            Write-FailureReview "Codex CLI is not logged in with ChatGPT on the Windows runner."
+            throw "Codex CLI is not logged in with ChatGPT. Run codex login for CODEX_HOME=$env:CODEX_HOME."
+          }
+
+          $instructionsPath = Join-Path $env:CODEX_WORKTREE '.codex\instructions.md'
+          $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
+          if (-not (Test-Path -LiteralPath $instructionsPath)) {
+            Write-FailureReview ".codex/instructions.md was not found in the prepared source archive."
+            throw ".codex/instructions.md was not found in the prepared source archive."
+          }
+          if (-not (Test-Path -LiteralPath $diffPath)) {
+            Write-FailureReview "diff.patch was not found in the prepared source archive."
+            throw "diff.patch was not found in the prepared source archive."
+          }
+
+          $instructions = Get-Content -LiteralPath $instructionsPath -Raw
+          $diffText = Get-Content -LiteralPath $diffPath -Raw
+          $maxDiffChars = 120000
+          if ($diffText.Length -gt $maxDiffChars) {
+            $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
+          }
+
+          $prompt = @(
+            "You are reviewing a Claude Code branch in NoemaForge."
+            "Base branch: origin/release/0.32.2-hardening"
+            "Head branch: $env:GITHUB_REF_NAME"
+            "Commit: $env:GITHUB_SHA"
+            ""
+            "Review strictly against the gates from .codex/instructions.md included below."
+            "Inspect the branch changes from diff.patch included below."
+            "If local command execution is unavailable, use the inline content below and the GitHub connector as read-only fallback."
+            "Return a concise GitHub-ready Markdown review."
+            "Start with exactly one verdict line:"
+            "Verdict: PASS"
+            "or"
+            "Verdict: FAIL"
+            ""
+            "Include sections for Summary, Blocking Issues, and Optimizations."
+            "Do not modify files or push commits in this workflow run."
+            "Use read-only inspection only."
+            ""
+            "Review gates from .codex/instructions.md:"
+            '```markdown'
+            $instructions
+            '```'
+            ""
+            "Branch diff from release/0.32.2-hardening to $env:GITHUB_SHA:"
+            '```diff'
+            $diffText
+            '```'
+          ) -join [Environment]::NewLine
+
+          & $codex exec `
+            -s read-only `
+            --output-last-message $reviewPath `
+            $prompt 2>&1 | Tee-Object -FilePath $logPath
+
+          if ($LASTEXITCODE -ne 0) {
+            if (-not (Test-Path -LiteralPath $reviewPath)) {
+              Write-FailureReview "Codex CLI failed before producing a review."
+            }
+            throw "Codex CLI review failed with exit code $LASTEXITCODE."
+          }
+
+          $reviewText = Get-Content -LiteralPath $reviewPath -Raw
+          if ($reviewText -notmatch '(?im)^Verdict:\s*(PASS|FAIL)\b') {
+            throw "Codex CLI review did not include a Verdict line."
+          }
+          if ($Matches[1].ToUpperInvariant() -eq 'FAIL') {
+            throw "Codex CLI review returned FAIL."
+          }
+
+      - name: Publish Codex CLI log summary
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+
+          $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
+          $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "## Codex CLI review"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Run: $runUrl"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Artifact: codex-review-$env:GITHUB_SHA"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+
+          if (Test-Path -LiteralPath $reviewPath) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Review"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value (Get-Content -LiteralPath $reviewPath -Raw)
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
+          if (Test-Path -LiteralPath $logPath) {
+            $lines = Get-Content -LiteralPath $logPath
+            $tail = $lines | Select-Object -Last 220
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Codex CLI log tail"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Full log is in the uploaded artifact."
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '```text'
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $tail
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '```'
+          } else {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Codex CLI log was not created."
+          }
 
       - name: Upload review artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: codex-review-${{ github.sha }}
-          path: codex_review.json
+          path: |
+            codex_review.md
+            ${{ runner.temp }}\codex_run.log
+            ${{ runner.temp }}\codex-source\diff.patch
 
       - name: Post review as PR comment
         if: always()
@@ -187,25 +425,41 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            let review = {};
-            try { review = JSON.parse(fs.readFileSync('codex_review.json', 'utf8')); } catch(e) {}
+            let review = 'Codex CLI did not produce a review artifact.';
+            try { review = fs.readFileSync('codex_review.md', 'utf8'); } catch(e) {}
+            if (review.length > 45000) {
+              review = review.slice(0, 45000) + '\n\n_Review truncated to fit GitHub comment limits._';
+            }
 
-            const verdict = review.verdict || 'ERROR';
-            const icon = verdict === 'PASS' ? '✅' : '❌';
-            const issues = (review.issues || []).map(i => `- ${i}`).join('\n') || '_none_';
-            const opts = (review.optimizations || []).map(o => `- ${o}`).join('\n') || '_none_';
+            let logTail = 'Codex CLI log was not created.';
+            try {
+              const logPath = `${process.env.RUNNER_TEMP}\\codex_run.log`;
+              const log = fs.readFileSync(logPath, 'utf8');
+              logTail = log.split(/\r?\n/).slice(-180).join('\n');
+              if (logTail.length > 12000) {
+                logTail = logTail.slice(-12000);
+              }
+            } catch(e) {}
 
-            const body = `### ${icon} Codex review — ${verdict}
-
-**Summary**: ${review.summary || 'n/a'}
-
-**Issues**:
-${issues}
-
-**Optimizations suggested**:
-${opts}
-
-_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``;
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const body = [
+              '### Codex CLI review',
+              '',
+              `_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``,
+              `_Run_: ${runUrl}`,
+              `_Full log artifact_: \`codex-review-${{ github.sha }}\``,
+              '',
+              review,
+              '',
+              '<details>',
+              '<summary>Codex CLI log tail</summary>',
+              '',
+              '```text',
+              logTail,
+              '```',
+              '',
+              '</details>'
+            ].join('\n');
 
             const pulls = await github.rest.pulls.list({
               owner: context.repo.owner,
@@ -225,7 +479,7 @@ _Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``;
   # ─── Stage 3: Batch counter — every 5 Codex pushes → trigger QA bump ─────
   batch-counter:
     needs: codex-review
-    if: startsWith(github.ref, 'refs/heads/codex/')
+    if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
