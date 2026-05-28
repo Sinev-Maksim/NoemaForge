@@ -359,6 +359,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path == "/api/public-showcase/scenario":
             self._send_json(self.server.public_showcase_scenario())
             return
+        if path == "/api/session/current":
+            self._send_json(self.server.session_current())
+            return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
             return
@@ -594,6 +597,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.dev_team_state = dev_team_state.resolve()
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
+        self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
@@ -707,7 +711,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             "root": str(self.root),
             "state": str(self.state),
             "api": [
-                "/api/admin/message", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
@@ -718,6 +722,12 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
+
+    # --- session state ----------------------------------------------------------------
+    def session_current(self) -> Dict[str, Any]:
+        """Return the current GUI session record (default session)."""
+        session = self.session_store.load("default")
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
     def conversation_file(self) -> Path:
