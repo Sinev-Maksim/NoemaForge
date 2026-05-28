@@ -290,6 +290,19 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
+          function Write-FailureReview([string] $message) {
+            $failureReview = @(
+              "Verdict: ERROR"
+              ""
+              "Summary"
+              $message
+              ""
+              "Blocking Issues"
+              "- See the GitHub Actions log artifact for details."
+            ) -join [Environment]::NewLine
+            Set-Content -LiteralPath $reviewPath -Value $failureReview -Encoding utf8
+          }
+
           $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
           if ($pathCommand) {
             $codex = $pathCommand.Source
