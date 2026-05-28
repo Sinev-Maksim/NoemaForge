@@ -87,12 +87,26 @@ modified_file_groups:
     - docs/VERSION
     - LICENSE
 
+completed_items:
+  - "Wire SessionStore and EventLog into admin_gui_server.py: session_current(), events_list(), session_set_mode() — done in claude/task-15-frontend-event-polling."
+  - "GET /api/session/current, GET /api/events, POST /api/session/mode routes — done."
+  - "Frontend session restore on load (startup polls /api/session/current) — done."
+  - "Frontend event polling with deduplication by index (pollEvents()) — done."
+  - "Frontend mode persistence via POST /api/session/mode — done."
+  - "Stale version metadata bumped to 0.32.2: release.json, docs/release.json, noemaforge.runtime.yaml, quantization-policy.yaml (3 copies) — done in claude/task-14-version-config-cleanup."
+  - "py_compile noemaforge/src/*.py: PASS (2026-05-28, Windows dev machine)."
+  - "JSON parse noemaforge/configs/*.json: PASS (2026-05-28)."
+  - "YAML parse noemaforge/configs/*.yaml: PASS (2026-05-28)."
+  - "29/29 tests in test_admin_gui_session_event_wiring.py: PASS."
+  - "P1: return-in-finally at noemaforge_core.py:2118 removed — done."
+  - "docs/release.json updated from 0.32.1 to 0.32.2."
+
 known_open_items_before_final_merge:
-  - "Wire JobManager, SessionStore and EventLog into admin_gui_server.py endpoints."
-  - "Run version-audit, py_compile, bash -n and JSON/YAML validation in a local or CI environment."
-  - "Regenerate checksums after final files are frozen."
-  - "Create a clean release archive and SHA256 sidecar."
-  - "Update docs/release.json from 0.32.1 to 0.32.2 before release publication."
+  - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
+  - "Create noemaforge_0.32.2_release.tar.gz clean release archive."
+  - "Run bash -n validation on all .sh helpers (requires Linux/WSL or BigBro-BOS)."
+  - "Run noemaforge-version-audit.sh --strict-all --expected 0.32.2 on BigBro-BOS."
+  - "Target-machine smoke gates (Admin GUI, first-start dry-run) on BigBro-BOS."
 
 validation_commands:
   local_static:
