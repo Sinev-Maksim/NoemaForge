@@ -57,6 +57,7 @@
 - [x] Frontend event polling with deduplication by index (`pollEvents()` every 10 s).
 - [x] Frontend mode persistence via POST /api/session/mode after model-selection pick.
 - [x] P1 fix: return-in-finally at noemaforge_core.py:2118 removed (was silently suppressing exceptions).
+- [x] Jobs panel: added Cancel button (✕) for cancellable jobs; `cancelJob()` calls POST /api/jobs/{id}/cancel then refreshes the panel (2026-05-28).
 - [x] Stale version metadata bumped to 0.32.2: release.json, docs/release.json, noemaforge.runtime.yaml, quantization-policy.yaml (3 copies), model_capabilities.py heuristic tag.
 - [x] 244 stale alpha/0.29.x files removed from git tree (moved to trash/).
 - [x] Docs versions bumped: noemaforge/docs/README.md, noemaforge/docs/Manifest.md → 0.32.2.

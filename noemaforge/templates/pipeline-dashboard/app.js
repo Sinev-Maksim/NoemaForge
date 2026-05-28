@@ -222,10 +222,26 @@ async function refreshTasks(){
     el('tasks').innerHTML = tasks.length ? tasks.slice(-8).reverse().map(x => `<div class="task"><b>${htmlEscape(x.title)}</b><span>${htmlEscape(x.category)} · p=${htmlEscape(x.priority)} · ${htmlEscape(x.status)}</span></div>`).join('') : '<p class="muted">No tasks yet.</p>';
   }catch(e){ el('tasks').innerHTML = `<p class="muted">tasks unavailable</p>`; }
 }
+const CANCELLABLE_JOB_STATES = new Set(['queued','starting','running','needs_privilege']);
+async function cancelJob(jobId){
+  try{
+    await api(`/api/jobs/${encodeURIComponent(jobId)}/cancel`, {});
+    await refreshJobs();
+  }catch(e){ addMessage('Admin', `Cancel error: ${String(e)}`, 'error'); }
+}
 function renderJobs(jobs){
   const list = jobs || [];
-  el('job-summary').textContent = `${list.filter(j=>['queued','running','needs_privilege'].includes(j.status)).length} active`;
-  el('jobs').innerHTML = list.length ? list.slice(-6).reverse().map(j => `<div class="job"><b>${htmlEscape(j.kind)}</b><span>${htmlEscape(j.status)} · ${htmlEscape(j.job_id)}</span><code>${htmlEscape(j.command || '')}</code></div>`).join('') : '<p class="muted">No jobs.</p>';
+  el('job-summary').textContent = `${list.filter(j=>CANCELLABLE_JOB_STATES.has(j.status)).length} active`;
+  const container = el('jobs');
+  if(!list.length){ container.innerHTML = '<p class="muted">No jobs.</p>'; return; }
+  container.innerHTML = list.slice(-6).reverse().map(j => {
+    const canCancel = CANCELLABLE_JOB_STATES.has(j.status);
+    const btn = canCancel ? `<button class="job-cancel-btn" data-job-id="${htmlEscape(j.job_id)}" title="Cancel job">✕</button>` : '';
+    return `<div class="job">${btn}<b>${htmlEscape(j.kind)}</b><span>${htmlEscape(j.status)} · ${htmlEscape(j.job_id)}</span><code>${htmlEscape(j.command || '')}</code></div>`;
+  }).join('');
+  container.querySelectorAll('.job-cancel-btn').forEach(btn =>
+    btn.addEventListener('click', () => cancelJob(btn.dataset.jobId))
+  );
 }
 async function refreshJobs(){
   try{
