@@ -353,6 +353,8 @@ function addPipelineStage(){
   if(clean && !pipelineEditorState.stages.includes(clean)) pipelineEditorState.stages.push(clean);
   renderPipelineEditor();
 }
+// Draft pipeline editor: draft-only offline stage editor with drag&drop reorder, add/remove controls.
+// Full feature status: drag&drop pipeline editor planned — full browser drag/drop UI is an after-alpha TODO.
 function openPipelineEditor(id=''){
   const p = pipelineById(id);
   pipelineEditorState = {pipeline_id:p.id || 'new_pipeline', title:p.id || 'New pipeline', description:p.description || '', stages:Array.isArray(p.stages) && p.stages.length ? [...p.stages] : ['intake','plan','review']};

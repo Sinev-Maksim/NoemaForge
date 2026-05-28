@@ -2705,6 +2705,7 @@ Additional source: `docs/source_reports/deep-research-report-8-typed-governance-
 - [x] Strict Markdown placement cleanup. Closed by `docs-hygiene-prelaunch`: legacy root and top-level Markdown is migrated or quarantined, and strict active-tree layout is enforced by runtime, QA and performance tests.
 - [x] MultiOS host/control pack: Linux reference runtime with future Windows/macOS host-control paths.
 - [x] Pipeline editor pack: drag-and-drop edit, clone as new pipeline class, Scary/Architecture/Admin review. Closed by `pipeline-editor-pack-core`: the editor pack is a draft-only offline contract that normalizes drag-and-drop events, clones pipelines as new classes and requires Scary/Architecture/Admin review before activation.
+- [ ] Add full drag&drop pipeline editor implementation after alpha.
 - [x] Git exchange pack: quarantine-first RolePack, RoleFlow, EvalPack and KnowledgeGraphPack import/export. Closed by `git-exchange-quarantine-core`: exchange imports are manifest-backed quarantine drafts with Scary/Surgeon/Admin review gates, explicit import/export action allowlists and lab-only ModelDeltaPack handling.
 
 ---
@@ -2913,6 +2914,7 @@ Patched7 incorporates the NoemaForge runtime-selection findings: core systemd un
 - [x] Strict Markdown placement cleanup. Closed by `docs-hygiene-prelaunch`: legacy root and top-level Markdown is migrated or quarantined, and strict active-tree layout is enforced by runtime, QA and performance tests.
 - [x] MultiOS host/control pack: Linux reference runtime with future Windows/macOS host-control paths.
 - [x] Pipeline editor pack: drag-and-drop edit, clone as new pipeline class, Scary/Architecture/Admin review. Closed by `pipeline-editor-pack-core`: the editor pack is a draft-only offline contract that normalizes drag-and-drop events, clones pipelines as new classes and requires Scary/Architecture/Admin review before activation.
+- [ ] Add full drag&drop pipeline editor implementation after alpha.
 - [x] Git exchange pack: quarantine-first RolePack, RoleFlow, EvalPack and KnowledgeGraphPack import/export. Closed by `git-exchange-quarantine-core`: exchange imports are manifest-backed quarantine drafts with Scary/Surgeon/Admin review gates, explicit import/export action allowlists and lab-only ModelDeltaPack handling.
 
 ---
