@@ -7,7 +7,7 @@ Version: 0.32.2
 Created: 2026-05-27
 Modified: 2026-05-28
 Purpose: TDD tests for wiring SessionStore and EventLog into AdminGuiServer.
-  Covers session_current(), events_list(), save_message() session integration,
+  Covers session_current(), events_api(), save_message() session integration,
   and GET /api/session/current + /api/events HTTP routes.
 Inputs: admin_gui_server.AdminGuiServer, session_store.SessionStore, event_log.EventLog.
 Outputs: test pass/fail.
@@ -105,11 +105,11 @@ class TestSessionCurrentMethod(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# EventLog wiring — events_list()
+# EventLog wiring — events_api()
 # ---------------------------------------------------------------------------
 
 class TestEventsListMethod(unittest.TestCase):
-    """events_list() returns event log entries via event_log."""
+    """events_api() returns event log entries via event_log."""
 
     def setUp(self) -> None:
         self._td = tempfile.TemporaryDirectory()
@@ -119,35 +119,35 @@ class TestEventsListMethod(unittest.TestCase):
     def tearDown(self) -> None:
         self._td.cleanup()
 
-    def test_events_list_returns_dict(self) -> None:
-        result = self.srv.events_list()
+    def test_events_api_returns_dict(self) -> None:
+        result = self.srv.events_api()
         self.assertIsInstance(result, dict)
 
-    def test_events_list_has_ok_true(self) -> None:
-        result = self.srv.events_list()
+    def test_events_api_has_ok_true(self) -> None:
+        result = self.srv.events_api()
         self.assertTrue(result["ok"])
 
-    def test_events_list_has_version(self) -> None:
-        result = self.srv.events_list()
+    def test_events_api_has_version(self) -> None:
+        result = self.srv.events_api()
         self.assertEqual(result["version"], RUNTIME_VERSION)
 
-    def test_events_list_has_events_key(self) -> None:
-        result = self.srv.events_list()
+    def test_events_api_has_events_key(self) -> None:
+        result = self.srv.events_api()
         self.assertIn("events", result)
 
-    def test_events_list_empty_when_no_events(self) -> None:
-        result = self.srv.events_list()
+    def test_events_api_empty_when_no_events(self) -> None:
+        result = self.srv.events_api()
         self.assertEqual(result["events"], [])
 
-    def test_events_list_returns_appended_event(self) -> None:
+    def test_events_api_returns_appended_event(self) -> None:
         self.srv.event_log.append("test.event", {"x": 1})
-        result = self.srv.events_list()
+        result = self.srv.events_api()
         self.assertGreater(len(result["events"]), 0)
 
-    def test_events_list_after_index_filters(self) -> None:
+    def test_events_api_after_index_filters(self) -> None:
         self.srv.event_log.append("a.event")
         self.srv.event_log.append("b.event")
-        result = self.srv.events_list(after_index=1)
+        result = self.srv.events_api(after_index=1)
         types = [e["type"] for e in result["events"]]
         self.assertNotIn("a.event", types)
 
@@ -178,7 +178,7 @@ class TestAdminGuiServerSourceWiresSessionEvent(unittest.TestCase):
         self.assertIn("def session_current", self._src)
 
     def test_has_events_list_method(self) -> None:
-        self.assertIn("def events_list", self._src)
+        self.assertIn("def events_api", self._src)
 
     def test_api_session_current_route(self) -> None:
         self.assertIn("/api/session/current", self._src)
@@ -250,8 +250,8 @@ class TestHttpRoutesSourcePresence(unittest.TestCase):
 
     def test_get_events_dispatches(self) -> None:
         self.assertTrue(
-            "events_list" in self._src,
-            "AdminGuiServer must expose events_list method"
+            "events_api" in self._src,
+            "AdminGuiServer must expose events_api method"
         )
 
     def test_api_session_current_in_allowed_list(self) -> None:
