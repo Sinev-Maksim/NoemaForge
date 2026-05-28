@@ -33,7 +33,7 @@ jobs:
           fi
 
           # Forbidden RUNTIME_VERSION
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
+          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" . \
             | grep -v "noemaforge/src/noemaforge_version.py" \
             | grep -v ".git" || true)
           if [ -n "$hits" ]; then FAILED="$FAILED runtime-version-leak"; fi
@@ -134,19 +134,21 @@ jobs:
             const v = '${{ steps.bump.outputs.new_version || '0.32.2.x' }}';
             const sha = context.sha.substring(0, 8);
 
-            const body = `## QA gate failure — ${v} (${sha})
-
-**Failed gates**: \`${failed}\`
-
-**Triggered at**: ${new Date().toISOString()}
-
-### What to do
-
-1. Fix the issues listed above on \`release/0.32.2-hardening\`
-2. Push a fix commit (Claude Code or manually)
-3. The pipeline will re-run automatically
-
-_This issue was created automatically by the QA version bump workflow._`;
+            const body = [
+              `## QA gate failure — ${v} (${sha})`,
+              '',
+              `**Failed gates**: \`${failed}\``,
+              '',
+              `**Triggered at**: ${new Date().toISOString()}`,
+              '',
+              '### What to do',
+              '',
+              '1. Fix the issues listed above on `release/0.32.2-hardening`',
+              '2. Push a fix commit (Claude Code or manually)',
+              '3. The pipeline will re-run automatically',
+              '',
+              '_This issue was created automatically by the QA version bump workflow._'
+            ].join('\n');
 
             await github.rest.issues.create({
               owner: context.repo.owner,
