@@ -42,6 +42,28 @@
 - [x] Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path. Closed by `setup-mode-matrix-core`
 - [x] Onboarding ladder boundary: README.md is the 5-minute overview, docs/QUICKSTART_VM.md is the first-success VM path, docs/SETUP_MODES.md explains host/VM/docker-dev/macOS-dev differences, and docs/PRODUCTION_INSTALL_TRIXIE.md is only entered after quickstart validation; primary docs do not lead with Windows lab workflow. Closed by `onboarding-ladder-core`
 
+## 0.32.2 P0/P1 gaps — identified 2026-05-28
+
+### P0-B — docs/release.json active fields (Windows-doable)
+
+- [x] Fix `docs/release.json`: set `release`, `package`, `release_name`, `channel`, `status`, `summary`, `version_audit`, `generated_at`, `updated_at` to 0.32.2. — Done 2026-05-28 in claude/task-15-frontend-event-polling.
+
+### P0-C — Windows premerge audit script (Windows-doable)
+
+- [x] Create `noemaforge/tools/prep/noemaforge-premerge-check.ps1`: Windows-native premerge audit covering VERSION files, `docs/release.json` active fields, no RUNTIME_VERSION= outside `noemaforge_version.py`, `py_compile` 286 src/*.py, JSON parse 169 configs, YAML parse 70 configs, no tracked `__pycache__`. 13/13 PASS (2026-05-28).
+
+### P0-G — CI workflow (not yet created)
+
+- [ ] Create `.github/workflows/premerge-quality.yml`: CI workflow that runs on PRs targeting `release/0.32.2-hardening` and `main`. Steps: `python -m py_compile noemaforge/src/*.py`, JSON parse `noemaforge/configs/*.json`, YAML parse `noemaforge/configs/*.yaml`, no hardcoded RUNTIME_VERSION outside version module, no tracked `__pycache__` or `*.pyc`, `docs/release.json` version check. Optional: `bash -n` syntax check on .sh files (Linux only). Exit non-zero on failure.
+
+### P1 — safety review of autonomous workflow files (audit only)
+
+- [ ] Review `.github/workflows/autonomous-pipeline.yml`, `.github/workflows/qa-version-bump.yml`, `.codex/instructions.md`, `CLAUDE.md` for: dangerous auto-push/merge without operator approval, unauthorized network/secrets exfiltration, overly broad `permissions:` grants, any auto-job that can modify `main` without PR review. Record findings in `noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md`.
+
+### P1 — PR #2 reviewability (manual action)
+
+- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
+
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 
 - [x] Added file-backed JobManager (noemaforge/src/job_manager.py): queued/running/done/failed/cancel_requested/cancelled states, idempotency keys, durable JSONL job log.

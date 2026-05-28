@@ -81,6 +81,7 @@ modified_file_groups:
   prep_tools:
     - noemaforge/tools/prep/noemaforge-version-audit.sh
     - noemaforge/tools/prep/apply-runtime-version-centralization.py
+    - noemaforge/tools/prep/noemaforge-premerge-check.ps1
   canonical_metadata:
     - VERSION
     - noemaforge/VERSION
@@ -109,6 +110,8 @@ completed_items:
   - "RUNTIME_VERSION fixes: 8 src/ files replaced hardcoded '0.32.1' strings with RUNTIME_VERSION import."
   - "Version centralization tool: changed_count=0 (all sources clean)."
   - "286/286 Python source files pass py_compile."
+  - "docs/release.json: release, package, release_name, channel, status, summary, version_audit, timestamps updated to 0.32.2 — done in claude/task-15-frontend-event-polling."
+  - "Windows premerge audit script created: noemaforge/tools/prep/noemaforge-premerge-check.ps1 — 13/13 checks PASS (VERSION files, docs/release.json, RUNTIME_VERSION centralization, py_compile 286, JSON parse 169, YAML parse 70, no tracked __pycache__)."
 
 known_open_items_before_final_merge:
   - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
