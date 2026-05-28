@@ -1,0 +1,75 @@
+# === NoemaForge .gitignore ===
+# Python cache — must never be committed
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+*.egg
+MANIFEST
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+.envrc
+
+# Testing and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.ruff_cache/
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.sw[op]
+*~
+.DS_Store
+Thumbs.db
+
+# Local scratch / developer temp
+scratch/
+tmp/
+*.tmp
+*.bak
+
+# NoemaForge-specific: project trash (stale / deprecated files moved here)
+trash/
+
+# NoemaForge runtime state (never commit live runtime artifacts)
+*.jsonl.lock
+*.pid
+noemaforge_run_*.log
+
+# Secrets and credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets.yaml
+secrets.json
+.secrets/
+
+# Generated release artifacts (regenerated from source, not tracked)
+SHA256SUMS
+*.tar.gz
+*.tar.gz.sha256
+noemaforge-*.tar.gz
+noemaforge_*.tar.gz
+
+# PyYAML build artifacts (pip install local)
+PyYAML/
+PyYAML.egg-info/
+pytest/
