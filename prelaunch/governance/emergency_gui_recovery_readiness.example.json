@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.emergency-gui-recovery-readiness/v1",
+  "kind": "EmergencyGuiRecoveryReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-emergency-gui-recovery-evidence-readiness",
+      "trace_id": "trace:patched10:emergency-gui-recovery",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "trixie-display-baseline",
+        "pause-runtime-before-recovery",
+        "gui-rescue-wait",
+        "display-manager-gdm-alias",
+        "nologin-display-guard",
+        "emergency-gui-recovery-archive"
+      ],
+      "expected_outputs": [
+        "emergency_gui_recovery_summary",
+        "blocked_completion_notice",
+        "target_recovery_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

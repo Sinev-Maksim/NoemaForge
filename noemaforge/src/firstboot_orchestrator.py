@@ -33,6 +33,7 @@ import dataset_inventory
 import role_tournament
 import runtime_safety
 import model_inventory_normalize
+import model_profiles
 
 NOEMAFORGE_ROOT = "/opt/noemaforge"
 DEFAULT_POLICY = "/opt/noemaforge/configs/firstboot-policy.yaml"
@@ -71,6 +72,10 @@ def _normalize_selection_mode(value: str) -> str:
     return value if value in {"fast", "normal", "full", "full_composite"} else "normal"
 
 
+def normalize_launcher_paths(*, share_root: str, vault_root: str = "", shortlist_file: str = "") -> Dict[str, Any]:
+    return runtime_safety.normalize_launcher_paths(share_root=share_root, vault_root=vault_root, shortlist_file=shortlist_file)
+
+
 def _selection_mode_contract(mode: str, composite_top_n: int) -> Dict[str, Any]:
     return {
         "mode": mode,
@@ -99,7 +104,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "CandidateSelectionPlan",
         "created_at": _nowz(),
-        "version": "0.31.13.alpha",
+        "version": "0.32.1",
         "selection": _selection_mode_contract(mode, composite_top_n),
         "dry_run": bool(dry_run),
         "artifacts": {
@@ -118,7 +123,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionDecision",
         "created_at": _nowz(),
-        "version": "0.31.13.alpha",
+        "version": "0.32.1",
         "mode": mode,
         "dry_run": bool(dry_run),
         "staffing_state": staffing_summary.get("staffing_state"),
@@ -133,7 +138,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionRollbackPlan",
         "created_at": _nowz(),
-        "version": "0.31.13.alpha",
+        "version": "0.32.1",
         "mode": mode,
         "steps": [
             "Do not delete previous epoch contracts.",
@@ -433,6 +438,7 @@ def orchestrate(
     share_root: str,
     vault_root: str = "",
     shortlist_file: str = "",
+    model_profile: str = "minimal",
     candidate_limit: int = 0,
     top_k: int = 0,
     no_reboot: bool = False,
@@ -452,7 +458,18 @@ def orchestrate(
     strict_any_fail: bool = False,
     allow_failed_selection: bool = False,
 ) -> Dict[str, Any]:
+    path_normalization = normalize_launcher_paths(share_root=share_root, vault_root=vault_root, shortlist_file=shortlist_file)
+    share_root = str(path_normalization["share_root"])
+    vault_root = str(path_normalization["vault_root"])
+    shortlist_file = str(path_normalization["shortlist_file"])
     policy = _load_yaml(DEFAULT_POLICY)
+    profile_catalog = model_profiles.load_profiles(Path(NOEMAFORGE_ROOT))
+    profile_report = model_profiles.validate_profiles(profile_catalog)
+    if not profile_report.get("ok"):
+        raise ValueError(f"model_profile_config_invalid:{profile_report.get('failures')}")
+    if model_profile not in profile_catalog:
+        raise ValueError(f"unknown_model_profile:{model_profile}")
+    profile_manifest = model_profiles.build_profile_manifest(profile_catalog, model_profile)
     status_path = str(policy.get("status_path") or DEFAULT_STATUS)
     events_path = str(policy.get("events_path") or DEFAULT_EVENTS)
     modelstore_root = str(policy.get("modelstore_root") or "/var/lib/modelstore")
@@ -468,7 +485,7 @@ def orchestrate(
         # Evaluation is full because role_tournament iterates every runnable model.
         # top_k_per_role controls how many measured candidates are retained for review/composition.
         top_k_per_role = max(1, top_k_per_role)
-    # 0.31.13.alpha: preserve effective tournament options for
+    # 0.32.1: preserve effective tournament options for
     # direct and systemd-rehomed first-start runs. role_tournament reads these
     # from the environment, so CLI flags must be materialized before calling it.
     default_per_model, default_total = role_tournament._selection_timeout_defaults(selection_mode)
@@ -489,6 +506,7 @@ def orchestrate(
     vault = vault_inventory.choose_vault_root(share_root, vault_root)
     effective_options = {
         "selection_mode": selection_mode,
+        "model_profile": model_profile,
         "composite_top_n": composite_top_n,
         "dry_run": bool(dry_run),
         "show_candidates": bool(show_candidates),
@@ -503,12 +521,28 @@ def orchestrate(
         "top_k_per_role": top_k_per_role,
         "share_root": share_root,
         "vault_root": vault,
+        "path_normalization": path_normalization,
     }
-    _write_json(os.path.join(STATE_DIR, "effective-first-start-options.json"), effective_options)
+    run_lease = firstboot_status.acquire_run_lease(status_path, events_path, state_dir=STATE_DIR, force=force)
+    if not run_lease.get("ok"):
+        return {"ok": False, "reason": "firstboot_already_running", "lease": run_lease}
     firstboot_status.mark_started(status_path, events_path, share_root=share_root, vault_root=vault)
+    effective_options["run_lease"] = run_lease.get("lock_path")
+    _write_json(os.path.join(STATE_DIR, "effective-first-start-options.json"), effective_options)
+    _write_json(os.path.join(STATE_DIR, "model-profile-manifest.json"), profile_manifest)
 
     firstboot_status.mark_step(status_path, events_path, step="vault", state="running", message="Normalizing and scanning canonical Vault.")
     _normalize_vault(vault)
+
+    firstboot_status.mark_step(status_path, events_path, step="dataset_assurance", state="running", message="Ensuring firstboot role-eval datasets exist before scoring.")
+    dataset_assurance_path = os.path.join(STATE_DIR, "dataset-assurance.json")
+    dataset_assurance = dataset_inventory.assure_role_eval_dataset()
+    dataset_inventory.write_dataset_assurance(dataset_assurance, dataset_assurance_path)
+    effective_options["dataset_assurance"] = dataset_assurance_path
+    _write_json(os.path.join(STATE_DIR, "effective-first-start-options.json"), effective_options)
+    if not dataset_assurance.get("ok"):
+        firstboot_status.mark_finished(status_path, events_path, state="blocked_dataset_assurance", message="Firstboot role-eval datasets are missing or invalid; scoring was not started.", extra={"dataset_assurance": dataset_assurance_path, "report": dataset_assurance})
+        return {"ok": False, "reason": "dataset_assurance_failed", "dataset_assurance": dataset_assurance}
 
     firstboot_status.mark_step(status_path, events_path, step="inventory", state="running", message="Inventorying all model artifacts and datasets.")
     inventory = vault_inventory.scan_inventory(share_root, vault, strict_shards=not allow_incomplete_shards)
@@ -556,7 +590,7 @@ def orchestrate(
     if selected_total <= 0:
         diagnostics = (candidate_map.get("selection_diagnostics") or {}) if isinstance(candidate_map, dict) else {}
         reason = str(diagnostics.get("no_candidates_reason") or "no_role_candidates")
-        firstboot_status.mark_finished(status_path, events_path, state="blocked_no_role_candidates", message=f"No model candidates selected: {reason}.", extra={"inventory": inventory_path, "tournament": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing": staffing_summary, "selection_diagnostics": diagnostics})
+        firstboot_status.mark_finished(status_path, events_path, state="blocked_no_role_candidates", message=f"No model candidates selected: {reason}.", extra={"inventory": inventory_path, "tournament": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing": staffing_summary, "selection_diagnostics": diagnostics, "model_profile": model_profile, "model_profile_manifest": os.path.join(STATE_DIR, "model-profile-manifest.json")})
         return {"ok": False, "reason": reason, "inventory": inventory_path, "tournament": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing": staffing_summary, "selection_diagnostics": diagnostics}
     if staffing_summary.get("all_scorecards_zero"):
         firstboot_status.mark_finished(status_path, events_path, state="blocked_all_zero_scorecards", message="All selected firstboot scorecards are zero; refusing epoch apply/reboot.", extra={"staffing": staffing_summary, "tournament": os.path.join(STATE_DIR, "role-tournament-results.json")})
@@ -566,7 +600,7 @@ def orchestrate(
         return {"ok": False, "reason": "mandatory_core_roles_unstaffed", "staffing": staffing_summary, "selection_artifacts": selection_artifacts}
 
     if dry_run:
-        final = {"ok": True, "dry_run": True, "reason": "selection_ready_no_apply", "selection_mode": selection_mode, "composite_top_n": composite_top_n, "inventory": inventory_path, "dataset_inventory": dataset_path, "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing_summary": staffing_summary_path, "selection_artifacts": selection_artifacts, "staffing_state": staffing_summary.get("staffing_state"), "show_candidates": bool(show_candidates), "show_compositions": bool(show_compositions)}
+        final = {"ok": True, "dry_run": True, "reason": "selection_ready_no_apply", "selection_mode": selection_mode, "model_profile": model_profile, "model_profile_manifest": os.path.join(STATE_DIR, "model-profile-manifest.json"), "composite_top_n": composite_top_n, "inventory": inventory_path, "dataset_inventory": dataset_path, "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing_summary": staffing_summary_path, "selection_artifacts": selection_artifacts, "staffing_state": staffing_summary.get("staffing_state"), "show_candidates": bool(show_candidates), "show_compositions": bool(show_compositions)}
         firstboot_status.mark_finished(status_path, events_path, state="selection_ready_no_apply", message="Model selection completed in dry-run mode; no services, epoch switch or reboot were performed.", extra=final)
         return final
 
@@ -617,7 +651,7 @@ def orchestrate(
         user_comment=f"Auto-generated role-aware first-boot model staffing request: mode={selection_mode}, top_k={top_k_per_role}, composite_top_n={composite_top_n}.",
     )
     req["status"] = "approved"
-    req["firstboot"] = {"auto_apply": True, "auto_reboot": not no_reboot, "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "top_k_per_role": top_k_per_role, "selection_mode": selection_mode, "composite_top_n": composite_top_n, "selection_artifacts": selection_artifacts, "staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state")}
+    req["firstboot"] = {"auto_apply": True, "auto_reboot": not no_reboot, "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "top_k_per_role": top_k_per_role, "selection_mode": selection_mode, "model_profile": model_profile, "model_profile_manifest": os.path.join(STATE_DIR, "model-profile-manifest.json"), "composite_top_n": composite_top_n, "selection_artifacts": selection_artifacts, "staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state")}
     os.makedirs(requests_dir, exist_ok=True)
     req_path = os.path.join(requests_dir, f"{rid}.prestart_request.yaml")
     with open(req_path, "w", encoding="utf-8") as f:
@@ -649,7 +683,7 @@ def orchestrate(
 
     final_state = "reboot_pending" if reboot_scheduled else "applied_no_reboot"
     msg = "Role-aware first-boot staffing finished; reboot scheduled." if reboot_scheduled else "Role-aware first-boot staffing finished; no reboot scheduled."
-    final = {"ok": True, "request_id": rid, "applied_epoch_id": applied_epoch, "reboot_scheduled": reboot_scheduled, "inventory": inventory_path, "dataset_inventory": dataset_path, "eval_pack_index": eval_index.get("out_root"), "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state"), "main_alias": main_alias, "main_backend_smoke": smoke, "runtime_safety": gate, "picked_models": patches.get("picked_models"), "selection_mode": selection_mode, "composite_top_n": composite_top_n, "selection_artifacts": selection_artifacts}
+    final = {"ok": True, "request_id": rid, "applied_epoch_id": applied_epoch, "reboot_scheduled": reboot_scheduled, "inventory": inventory_path, "dataset_inventory": dataset_path, "eval_pack_index": eval_index.get("out_root"), "role_candidate_map": candidate_map_path, "tournament_results": os.path.join(STATE_DIR, "role-tournament-results.json"), "staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state"), "main_alias": main_alias, "main_backend_smoke": smoke, "runtime_safety": gate, "picked_models": patches.get("picked_models"), "selection_mode": selection_mode, "model_profile": model_profile, "model_profile_manifest": os.path.join(STATE_DIR, "model-profile-manifest.json"), "composite_top_n": composite_top_n, "selection_artifacts": selection_artifacts}
     firstboot_status.mark_finished(status_path, events_path, state=final_state, message=msg, extra=final)
     return final
 
@@ -659,6 +693,7 @@ def main() -> int:
     ap.add_argument("--share-root", default="/mnt/noemaforge-share")
     ap.add_argument("--vault-root", default="")
     ap.add_argument("--shortlist-file", default="")
+    ap.add_argument("--model-profile", default="minimal", choices=["minimal", "balanced", "writer", "research", "gpu-heavy"])
     ap.add_argument("--candidate-limit", type=int, default=0, help="compatibility only; role-aware selection uses top-k-per-role after eval")
     ap.add_argument("--top-k", type=int, default=0, help="top K per role; default 8")
     ap.add_argument("--include-download-mirror", action="store_true")
@@ -694,6 +729,7 @@ def main() -> int:
         share_root=args.share_root,
         vault_root=args.vault_root,
         shortlist_file=args.shortlist_file,
+        model_profile=args.model_profile,
         candidate_limit=args.candidate_limit,
         top_k=args.top_k,
         no_reboot=bool(args.no_reboot),

@@ -1,0 +1,38 @@
+{
+  "apiVersion": "noemaforge.pipeline-toolproxy-stage-binding.examples/v1",
+  "kind": "PipelineToolProxyStageBindingExamples",
+  "id": "pipeline-toolproxy-stage-binding-core",
+  "examples": [
+    {
+      "id": "evolution-development",
+      "pipeline_id": "evolution",
+      "stage": "development",
+      "permission_mode": "ask_before_write",
+      "expect_allowed": ["llm.chat", "fs.read", "fs.write", "task.update", "worktree.enter"],
+      "expect_blocked": ["db.write", "worktree.promote", "voice.capture_live"],
+      "expect_approval_required": true,
+      "expect_sandbox_required": false
+    },
+    {
+      "id": "evolution-unit-testing",
+      "pipeline_id": "evolution",
+      "stage": "unit_testing",
+      "permission_mode": "ask_before_write",
+      "expect_allowed": ["llm.chat", "fs.read", "exec.run", "task.get"],
+      "expect_blocked": ["db.write", "localgw.discover"],
+      "expect_approval_required": true,
+      "expect_sandbox_required": true
+    },
+    {
+      "id": "public-status-check",
+      "pipeline_id": "public_mwp",
+      "stage": "status_check",
+      "permission_mode": "guided_readmostly",
+      "expect_allowed": ["llm.chat", "fs.read", "roadmap.list"],
+      "expect_forbidden_allowed": ["fs.write", "exec.run", "worktree.enter"],
+      "expect_blocked": ["db.write", "team_memory.import"],
+      "expect_approval_required": false,
+      "expect_sandbox_required": false
+    }
+  ]
+}

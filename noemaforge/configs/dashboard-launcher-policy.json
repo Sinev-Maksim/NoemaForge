@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.dashboard-launcher/v1",
+  "kind": "DashboardLauncherPolicy",
+  "id": "dashboard-launcher-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "local_dashboard_launcher",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_cli_commands": ["path", "state", "serve", "start", "stop", "status", "autostart-enable", "autostart-disable", "autostart-status"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "launcher": "tools/prep/noemaforge-dashboard.sh",
+      "dashboard_ui": "templates/pipeline-dashboard/index.html",
+      "state_runtime": "src/pipeline_runtime.py",
+      "gui_runtime": "src/admin_gui_server.py"
+    },
+    "launcher_controls": {
+      "writes_dashboard_state": true,
+      "serves_static_ui": true,
+      "localhost_only": true,
+      "operator_writable_state_required": true,
+      "no_llm_autostart": true,
+      "no_media_autostart": true,
+      "background_pidfile_required": true,
+      "status_command_required": true,
+      "user_systemd_autostart_required": true,
+      "autostart_dry_run_required": true,
+      "no_root_required_for_user_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/dashboard_launcher.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/dashboard-launcher-policy.json",
+    "noemaforge/contracts/dashboard_launcher.schema.json",
+    "noemaforge/src/dashboard_launcher_runtime.py",
+    "noemaforge/tests/test_dashboard_launcher_runtime.py",
+    "noemaforge/tests/test_dashboard_launcher_qa.py",
+    "noemaforge/tests/test_dashboard_launcher_performance.py",
+    "prelaunch/governance/dashboard_launcher.example.json",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/tools/prep/noemaforge-dashboard.sh",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

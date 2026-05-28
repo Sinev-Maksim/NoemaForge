@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/target_gui_recovery_path_readiness.schema.json",
+  "title": "NoemaForge Target GUI Recovery Path Readiness Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.target-gui-recovery-path-readiness/v1" },
+    "kind": { "const": "TargetGuiRecoveryPathReadinessPolicy" },
+    "id": { "const": "target-gui-recovery-path-readiness-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "completion_state",
+        "blocked_todo_refs",
+        "required_safety_controls",
+        "required_checks",
+        "required_outputs",
+        "required_refs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "patched10_target_gui_recovery_path_readiness" },
+        "completion_state": { "const": "blocked_until_target_gui_recovery_path_evidence" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_execution": { "const": true },
+        "blocked_todo_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_safety_controls": {
+          "type": "object",
+          "additionalProperties": { "const": true }
+        },
+        "required_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "target_evidence_required", "requires_operator_approval", "commands", "evidence", "completion_gates"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "target_evidence_required": { "const": true },
+              "requires_operator_approval": { "type": "boolean" },
+              "commands": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "evidence": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "completion_gates": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "type": "string", "minLength": 1 }
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "required_outputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

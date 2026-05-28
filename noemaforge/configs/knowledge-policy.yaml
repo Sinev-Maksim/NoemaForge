@@ -55,6 +55,31 @@ extraction:
   concept_min_token_len: 4
   quote_fingerprint_alg: sha256
 
+core_relations:
+  allowed_types:
+    - passage_cites_source
+    - claim_extracted_from_passage
+    - claim_supported_by_evidence
+    - claim_about_concept
+    - conflict_between_claims
+    - concept_defined_by_passage
+    - trail_step_references_object
+    - lineage_derives_from
+  link_tables:
+    - links
+    - lineage_links
+  frozen_object_types:
+    - Source
+    - Passage
+    - Claim
+    - Entity
+    - Concept
+    - Conflict
+    - Trail
+    - TaskContext
+    - Decision
+    - Artifact
+
 # Gatekeeper scanning budget (most recent objects each run).
 gatekeeper:
   limit_each: 500
@@ -107,6 +132,21 @@ vector_index:
 publication_gates:
   auto_publish_min_confidence: 0.85
   quarantine_on_invariant_violation: true
+  decisions: [auto_publish, review, quarantine]
+  required_object_gates:
+    passage:
+      - source_exists
+      - anchor_kind_present
+    claim:
+      - text_present
+      - extracted_from_passage
+      - confidence_meets_auto_publish_threshold
+    conflict:
+      - entities_present
+      - status_allowed
+      - realm_context_present
+    concept:
+      - labels_present
 
 notes:
   - "Vector similarity is topical, not logical agreement. Contradictions are modeled explicitly (Conflict)."

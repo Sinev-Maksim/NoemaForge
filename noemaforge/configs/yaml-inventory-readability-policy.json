@@ -1,0 +1,73 @@
+{
+  "apiVersion": "noemaforge.yaml-inventory-readability/v1",
+  "kind": "YamlInventoryReadabilityPolicy",
+  "id": "yaml-inventory-readability-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "yaml_inventory_readability_gate",
+    "parse_scope": "readability_and_yaml_lite_syntax_only",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_external_yaml_dependency": true,
+    "require_nonempty_yaml": true,
+    "max_file_bytes": 1048576,
+    "scan_extensions": [
+      ".yaml",
+      ".yml"
+    ],
+    "scan_root_refs": [
+      "noemaforge",
+      "prelaunch"
+    ],
+    "excluded_dir_names": [
+      ".git",
+      ".hg",
+      ".mypy_cache",
+      ".pytest_cache",
+      ".ruff_cache",
+      ".tox",
+      ".venv",
+      "__pycache__",
+      "build",
+      "dist",
+      "node_modules",
+      "trash"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/yaml_inventory_readability_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "lint_yaml_text",
+      "scan_yaml_inventory",
+      "yaml_inventory_readability_gate",
+      "readability_and_yaml_lite_syntax_only",
+      "tab_indentation"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/wiki/prelaunch/prelaunch-tooling.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/yaml-inventory-readability-policy.json",
+    "noemaforge/contracts/yaml_inventory_readability.schema.json",
+    "noemaforge/src/yaml_inventory_readability_runtime.py",
+    "noemaforge/tests/test_yaml_inventory_readability_runtime.py",
+    "noemaforge/tests/test_yaml_inventory_readability_qa.py",
+    "noemaforge/tests/test_yaml_inventory_readability_performance.py",
+    "prelaunch/governance/yaml_inventory_readability.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/wiki/prelaunch/prelaunch-tooling.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

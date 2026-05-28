@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/bundles.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.

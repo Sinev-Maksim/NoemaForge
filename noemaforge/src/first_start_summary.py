@@ -3,14 +3,14 @@
 === NoemaForge File Header ===
 File: noemaforge/src/first_start_summary.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
-Purpose: Provide NoemaForge release functionality for the packaged local runtime.
-Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
-Outputs: Structured command output, files, service state or UI state as documented by the caller.
-Side effects: Limited to the documented NoemaForge paths, runtime state directories or systemd units used by this file.
-Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+Modified: 2026-05-25
+Purpose: Provide a grouped, colored summary of NoemaForge first-start runs.
+Inputs: Bootstrap event JSONL files, staffing summaries, firstboot status and model-selection decisions.
+Outputs: Human-readable summary or JSON summary for operators and GUI wrappers.
+Side effects: None; this module is read-only.
+Tests: python3 -m py_compile noemaforge/src/first_start_summary.py; noemaforge first-start summary --json.
 Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 === End NoemaForge File Header ===
 
@@ -22,7 +22,8 @@ import argparse, json, os, sys
 from pathlib import Path
 from typing import Any
 
-RUNTIME_VERSION = "0.31.13.alpha"
+from noemaforge_version import RUNTIME_VERSION
+
 BOOT = Path(os.environ.get("NOEMAFORGE_BOOTSTRAP", "/var/lib/noemaforge/bootstrap"))
 
 COLORS = {
@@ -155,3 +156,5 @@ def main(argv=None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

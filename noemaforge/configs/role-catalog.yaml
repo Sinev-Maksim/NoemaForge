@@ -1,6 +1,6 @@
 apiVersion: noemaforge.roles/v1
 kind: RoleCatalog
-version: 0.28.5
+version: 0.32.2
 selection:
   top_k_per_role: 8
   tasks_per_role: 10
@@ -30,6 +30,11 @@ roles:
     top_k: 8
     required_capabilities: [chat, instruction_following, safety_review]
     optional_capabilities: [json_output, reasoning, admin_ops]
+    eval_pack: admin_ops_light_10
+  system.guard/scary:
+    top_k: 8
+    required_capabilities: [chat, instruction_following, safety_review]
+    optional_capabilities: [json_output, reasoning, adversarial_review]
     eval_pack: admin_ops_light_10
   system.guard/ssr:
     top_k: 8

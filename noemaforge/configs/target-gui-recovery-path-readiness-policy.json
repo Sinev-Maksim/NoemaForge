@@ -1,0 +1,204 @@
+{
+  "apiVersion": "noemaforge.target-gui-recovery-path-readiness/v1",
+  "kind": "TargetGuiRecoveryPathReadinessPolicy",
+  "id": "target-gui-recovery-path-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_target_gui_recovery_path_readiness",
+    "completion_state": "blocked_until_target_gui_recovery_path_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Confirm GUI recovery path on target hardware: `sudo noemaforge pause --wait` then `sudo noemaforge gui-rescue --wait`."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "pause_before_rescue_required": true,
+      "display_state_required": true,
+      "nologin_guard_required": true,
+      "archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "display-baseline",
+        "title": "Target display baseline before recovery",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl get-default",
+          "systemctl status display-manager --no-pager",
+          "systemctl status gdm3 --no-pager || true",
+          "loginctl seat-status seat0 || true"
+        ],
+        "evidence": [
+          "display_manager_state",
+          "gdm_state",
+          "graphical_target_state",
+          "login_seat_state"
+        ],
+        "completion_gates": [
+          "display_manager_recorded",
+          "graphical_target_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "pause-command-capture",
+        "title": "Operator-approved pause command transcript",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge pause --wait"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "pause_command_transcript",
+          "pause_exit_code",
+          "post_pause_service_state"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "pause_command_completed",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gui-rescue-command-capture",
+        "title": "Operator-approved GUI rescue transcript after pause",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge gui-rescue --wait"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "gui_rescue_command_transcript",
+          "gui_rescue_exit_code",
+          "pause_precedes_rescue_record"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "pause_precedes_rescue",
+          "gui_rescue_command_completed",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "recovery-state-verification",
+        "title": "Post-rescue display and nologin state",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-active graphical.target || true",
+          "systemctl is-active display-manager || true",
+          "systemctl is-active gdm3 || true",
+          "test ! -e /run/nologin"
+        ],
+        "evidence": [
+          "post_rescue_display_manager_state",
+          "post_rescue_gdm_state",
+          "post_rescue_graphical_target_state",
+          "post_rescue_nologin_state",
+          "operator_can_reach_login_or_desktop"
+        ],
+        "completion_gates": [
+          "display_recovered",
+          "run_nologin_absent",
+          "operator_can_reach_login_or_desktop",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gui-recovery-archive",
+        "title": "GUI recovery evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-gui-recovery",
+          "sha256sum <gui-recovery-forensics-bundle>"
+        ],
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "gui_recovery_transcript",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "operator-inspection-followup",
+        "title": "Operator inspection and follow-up routing",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge wiki-patch commit-plan --dry-run"
+        ],
+        "evidence": [
+          "inspector_name_or_role",
+          "findings_summary",
+          "followup_decision",
+          "linked_todo_or_fix_id"
+        ],
+        "completion_gates": [
+          "target_gui_path_inspected",
+          "blocker_or_fix_recorded",
+          "docs_update_decision_recorded"
+        ]
+      }
+    ],
+    "required_outputs": [
+      "target_gui_recovery_summary",
+      "blocked_completion_notice",
+      "target_gui_recovery_command_manifest",
+      "evidence_requirements",
+      "inspection_followup_manifest",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/target-gui-recovery-path-readiness-policy.json",
+      "noemaforge/contracts/target_gui_recovery_path_readiness.schema.json",
+      "noemaforge/src/target_gui_recovery_path_readiness_runtime.py",
+      "noemaforge/tests/test_target_gui_recovery_path_readiness_runtime.py",
+      "noemaforge/tests/test_target_gui_recovery_path_readiness_qa.py",
+      "noemaforge/tests/test_target_gui_recovery_path_readiness_performance.py",
+      "prelaunch/governance/target_gui_recovery_path_readiness.example.json",
+      "noemaforge/bin/noemaforge",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/target-gui-recovery-path-readiness-policy.json",
+    "noemaforge/contracts/target_gui_recovery_path_readiness.schema.json",
+    "noemaforge/src/target_gui_recovery_path_readiness_runtime.py",
+    "noemaforge/tests/test_target_gui_recovery_path_readiness_runtime.py",
+    "noemaforge/tests/test_target_gui_recovery_path_readiness_qa.py",
+    "noemaforge/tests/test_target_gui_recovery_path_readiness_performance.py",
+    "prelaunch/governance/target_gui_recovery_path_readiness.example.json",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

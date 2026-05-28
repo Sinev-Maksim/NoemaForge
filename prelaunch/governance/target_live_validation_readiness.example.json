@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.target-live-validation-readiness/v1",
+  "kind": "TargetLiveValidationReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "nvidia-gdm-llm-target-evidence-readiness",
+      "trace_id": "trace:target-live-validation:nvidia-gdm-llm",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "trixie-preflight",
+        "display-manager-gdm",
+        "nvidia-gpu",
+        "gateway-socket",
+        "main-llm-manual-smoke",
+        "toolproxy-live-llm-smoke",
+        "gui-rescue-recovery",
+        "evidence-archive"
+      ],
+      "expected_outputs": [
+        "readiness_summary",
+        "blocked_completion_notice",
+        "target_command_manifest",
+        "evidence_requirements",
+        "manual_llm_approval_gate"
+      ]
+    }
+  ]
+}

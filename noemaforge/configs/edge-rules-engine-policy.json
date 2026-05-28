@@ -1,0 +1,140 @@
+{
+  "apiVersion": "noemaforge.edge-rules-engine/v1",
+  "kind": "EdgeRulesEnginePolicy",
+  "id": "edge-rules-engine-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_whitebox_only_mode": true,
+    "require_rule_guard_before_ml": true,
+    "require_rule_guard_after_ml": true,
+    "require_thresholds": true,
+    "require_anomaly_route": true,
+    "require_drift_flags": true,
+    "require_signed_model_manifest": true,
+    "default_fallback": "whitebox",
+    "allowed_modes": [
+      "whitebox_only",
+      "ml_guarded",
+      "shadow"
+    ],
+    "allowed_actions": [
+      "allow",
+      "fallback_whitebox",
+      "route_anomaly",
+      "block",
+      "review"
+    ],
+    "allowed_fallbacks": [
+      "whitebox",
+      "manual_review",
+      "previous_rule"
+    ]
+  },
+  "rules": [
+    {
+      "id": "whitebox-temperature-fallback",
+      "version": "0.32.1",
+      "state": "shadow",
+      "mode": "whitebox_only",
+      "stage": "pre_ml",
+      "rule_guard_required": true,
+      "applies_before_ml": true,
+      "applies_after_ml": false,
+      "model_score_may_apply": false,
+      "fallback": "whitebox",
+      "thresholds": [
+        {
+          "metric": "temperature_c",
+          "op": "gte",
+          "value": 80.0,
+          "action": "fallback_whitebox"
+        },
+        {
+          "metric": "sensor_confidence",
+          "op": "lt",
+          "value": 0.55,
+          "action": "review"
+        }
+      ],
+      "anomaly_route": {
+        "enabled": true,
+        "route": "edge.anomaly.review",
+        "action": "route_anomaly"
+      },
+      "drift_flags": {
+        "enabled": true,
+        "metrics": [
+          "sensor_baseline_shift",
+          "rate_of_change"
+        ],
+        "action": "review"
+      },
+      "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+      "refs": [
+        "prelaunch/rules/edge/fallback_rules.json",
+        "prelaunch/manifests/models/example_edge_model.manifest.json"
+      ]
+    },
+    {
+      "id": "guarded-ml-score-postcheck",
+      "version": "0.32.1",
+      "state": "shadow",
+      "mode": "ml_guarded",
+      "stage": "pre_and_post_ml",
+      "rule_guard_required": true,
+      "applies_before_ml": true,
+      "applies_after_ml": true,
+      "model_score_may_apply": true,
+      "fallback": "whitebox",
+      "thresholds": [
+        {
+          "metric": "ml_score",
+          "op": "lt",
+          "value": 0.35,
+          "action": "fallback_whitebox"
+        },
+        {
+          "metric": "ml_score",
+          "op": "gte",
+          "value": 0.90,
+          "action": "allow"
+        }
+      ],
+      "anomaly_route": {
+        "enabled": true,
+        "route": "edge.ml.anomaly.review",
+        "action": "route_anomaly"
+      },
+      "drift_flags": {
+        "enabled": true,
+        "metrics": [
+          "score_distribution_shift",
+          "input_schema_shift"
+        ],
+        "action": "review"
+      },
+      "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+      "refs": [
+        "prelaunch/rules/edge/fallback_rules.json",
+        "prelaunch/manifests/models/example_edge_model.manifest.json",
+        "prelaunch/evidence/ci-model-gates/release_evidence.json"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/edge-rules-engine-policy.json",
+    "noemaforge/contracts/edge_rules_engine.schema.json",
+    "noemaforge/src/edge_rules_engine_runtime.py",
+    "noemaforge/tests/test_edge_rules_engine_runtime.py",
+    "noemaforge/tests/test_edge_rules_engine_qa.py",
+    "noemaforge/tests/test_edge_rules_engine_performance.py",
+    "prelaunch/rules/edge/fallback_rules.json",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

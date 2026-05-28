@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.pipeline_performance_metrics.schema.json",
+  "title": "NoemaForge Pipeline Performance Metrics",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.pipeline-performance-metrics/v1" },
+    "kind": { "const": "PipelinePerformanceMetricsPolicy" },
+    "id": { "const": "pipeline-performance-metrics-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_metric_fields",
+        "metric_units",
+        "allowed_statuses",
+        "controls",
+        "summary_fields"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "pipeline_performance_metrics_contract" },
+        "required_metric_fields": {
+          "type": "array",
+          "contains": { "const": "latency_ms" }
+        },
+        "metric_units": {
+          "type": "object",
+          "required": [
+            "latency_ms",
+            "memory_mb",
+            "operation_count",
+            "artifact_bytes"
+          ]
+        },
+        "allowed_statuses": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "metrics_are_non_negative",
+            "operation_count_integer",
+            "artifact_bytes_integer",
+            "summary_required",
+            "stage_id_required",
+            "no_live_probe",
+            "artifact_only_input"
+          ],
+          "properties": {
+            "metrics_are_non_negative": { "const": true },
+            "operation_count_integer": { "const": true },
+            "artifact_bytes_integer": { "const": true },
+            "summary_required": { "const": true },
+            "stage_id_required": { "const": true },
+            "no_live_probe": { "const": true },
+            "artifact_only_input": { "const": true }
+          }
+        },
+        "summary_fields": {
+          "type": "array",
+          "contains": { "const": "total_artifact_bytes" }
+        }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

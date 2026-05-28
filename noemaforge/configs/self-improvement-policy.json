@@ -1,5 +1,5 @@
 {
-  "version": "0.31.13.alpha",
+  "version": "0.32.1",
   "apiVersion": "noemaforge/v1",
   "kind": "SelfImprovementPolicy",
   "default_mode": "measured_review",
@@ -16,6 +16,7 @@
     "requires_admin_approval": true
   },
   "notes": [
-    "0.31.13.alpha includes code-dev QA sub-team and GUI recovery compatibility checks"
+    "0.32.1 includes code-dev QA sub-team and GUI recovery compatibility checks"
   ]
 }
+

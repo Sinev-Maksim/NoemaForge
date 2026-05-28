@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/production_gui_installer.schema.json",
+  "title": "NoemaForge Production GUI Installer Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "ok", "validated_at", "failures", "metrics"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.production-gui-installer/v1"},
+    "kind": {"const": "ProductionGuiInstallerValidationReport"},
+    "id": {"type": "string", "minLength": 1},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "validated_at": {"type": "string", "minLength": 1},
+    "failures": {"type": "array", "items": {"type": "string"}},
+    "metrics": {
+      "type": "object",
+      "required": ["refs", "resolved_refs", "gui_assets", "gui_units", "existing_contracts", "scenarios", "passing_scenarios"],
+      "properties": {
+        "refs": {"type": "integer", "minimum": 0},
+        "resolved_refs": {"type": "integer", "minimum": 0},
+        "gui_assets": {"type": "integer", "minimum": 0},
+        "gui_units": {"type": "integer", "minimum": 0},
+        "existing_contracts": {"type": "integer", "minimum": 0},
+        "scenarios": {"type": "integer", "minimum": 0},
+        "passing_scenarios": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

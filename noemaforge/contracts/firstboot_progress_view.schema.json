@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/firstboot_progress_view.schema.json",
+  "title": "NoemaForge Firstboot Progress View",
+  "type": "object",
+  "required": ["apiVersion", "kind", "phases", "final_summary"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.firstboot-progress-view/v1"
+    },
+    "kind": {
+      "const": "FirstbootProgressView"
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "state", "message"],
+        "properties": {
+          "id": {"type": "string"},
+          "label": {"type": "string"},
+          "state": {"type": "string", "enum": ["pending", "running", "complete", "warning", "blocked"]},
+          "message": {"type": "string"}
+        }
+      }
+    },
+    "final_summary": {
+      "type": "object",
+      "required": ["state", "current_phase", "completed_phases", "next_actions"],
+      "properties": {
+        "state": {"type": "string"},
+        "current_phase": {"type": "string"},
+        "completed_phases": {"type": "integer", "minimum": 0},
+        "next_actions": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    }
+  }
+}

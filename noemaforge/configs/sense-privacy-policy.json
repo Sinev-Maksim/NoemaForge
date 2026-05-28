@@ -1,0 +1,71 @@
+{
+  "apiVersion": "noemaforge.sense-privacy/v1",
+  "kind": "SensePrivacyPolicy",
+  "id": "sense-privacy-governance-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "require_coarse_host_metrics": true,
+    "require_privacy_filter_before_persistence": true,
+    "forbid_raw_process_metadata": true,
+    "forbid_raw_paths": true,
+    "forbid_raw_usernames": true,
+    "forbid_raw_environment": true,
+    "forbid_raw_command_lines": true,
+    "local_only_default": true,
+    "allowed_metric_groups": [
+      "cpu",
+      "memory",
+      "disk",
+      "network",
+      "load",
+      "runtime"
+    ],
+    "required_metric_groups": [
+      "cpu",
+      "memory",
+      "disk",
+      "network",
+      "load"
+    ],
+    "allowed_pressure_levels": [
+      "unknown",
+      "low",
+      "medium",
+      "high",
+      "critical"
+    ],
+    "forbidden_keys": [
+      "username",
+      "user",
+      "home",
+      "path",
+      "file_path",
+      "env",
+      "environment",
+      "cmdline",
+      "command_line",
+      "process_name",
+      "argv",
+      "secret",
+      "token"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/sense_privacy.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/sense-privacy-policy.json",
+    "noemaforge/contracts/sense_privacy.schema.json",
+    "noemaforge/src/sense_privacy_runtime.py",
+    "noemaforge/tests/test_sense_privacy_runtime.py",
+    "noemaforge/tests/test_sense_privacy_qa.py",
+    "noemaforge/tests/test_sense_privacy_performance.py",
+    "prelaunch/governance/sense_privacy.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

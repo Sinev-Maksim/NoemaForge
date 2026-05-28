@@ -1,0 +1,80 @@
+{
+  "apiVersion": "noemaforge.knowledge-purpose/v1",
+  "kind": "KnowledgePurposePolicy",
+  "id": "knowledge-purpose-artifacts-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "purpose_scoped_knowledge_growth",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Knowledge purpose boundary: Every knowledge realm/project has a typed purpose artifact with mission, scope boundaries, out-of-scope topics, expected source quality and update policy; ingest, lint and review must reference it before adding or approving knowledge.",
+    "required_artifact_fields": [
+      "artifact_kind",
+      "realm_id",
+      "mission",
+      "scope_boundaries",
+      "out_of_scope",
+      "expected_source_quality",
+      "update_policy",
+      "owners",
+      "review_cadence",
+      "applies_to"
+    ],
+    "required_decision_stages": ["ingest", "lint", "review"],
+    "required_decisions": ["accept", "defer", "reject"],
+    "controls": {
+      "purpose_ref_required": true,
+      "mission_required": true,
+      "scope_boundaries_required": true,
+      "out_of_scope_topics_required": true,
+      "source_quality_floor_required": true,
+      "update_policy_required": true,
+      "ingest_uses_purpose": true,
+      "lint_uses_purpose": true,
+      "review_uses_purpose": true,
+      "no_live_host_required": true
+    },
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/knowledge_purpose.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/knowledge-purpose-policy.json",
+    "noemaforge/contracts/knowledge_purpose.schema.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/knowledge_purpose_runtime.py",
+    "noemaforge/tests/test_knowledge_purpose_runtime.py",
+    "noemaforge/tests/test_knowledge_purpose_qa.py",
+    "noemaforge/tests/test_knowledge_purpose_performance.py",
+    "prelaunch/governance/knowledge_purpose.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

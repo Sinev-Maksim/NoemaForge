@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/wiki_patch_commit_helper.schema.json",
+  "title": "NoemaForge WikiPatchCommitPlan",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "ok", "patch_id", "patch_dir", "wiki_repo", "branch", "review", "no_push", "commands", "artifacts"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge/v1"},
+    "kind": {"const": "WikiPatchCommitPlan"},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "patch_id": {"type": "string", "minLength": 1},
+    "patch_dir": {"type": "string", "minLength": 1},
+    "wiki_repo": {"type": "string", "minLength": 1},
+    "branch": {"type": "string", "minLength": 1},
+    "review": {
+      "type": "object",
+      "required": ["required", "reviewed_by", "review_id"],
+      "properties": {
+        "required": {"const": true},
+        "reviewed_by": {"type": "string", "minLength": 1},
+        "review_id": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "no_push": {"const": true},
+    "commands": {"type": "array", "items": {"type": "string"}},
+    "artifacts": {
+      "type": "object",
+      "required": ["plan", "script", "commit_message"],
+      "properties": {
+        "plan": {"type": "string", "minLength": 1},
+        "script": {"type": "string", "minLength": 1},
+        "commit_message": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": true
+    },
+    "source_manifest": {"type": "string"}
+  },
+  "additionalProperties": true
+}

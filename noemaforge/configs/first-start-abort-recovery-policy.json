@@ -1,0 +1,64 @@
+{
+  "apiVersion": "noemaforge.first-start-abort-recovery/v1",
+  "kind": "FirstStartAbortRecoveryPolicy",
+  "id": "first-start-abort-recovery-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "first_start_abort_nonblocking_gui_recovery_regression",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "required_scripts": [
+      "noemaforge/bin/noemaforge",
+      "noemaforge/tools/prep/noemaforge-gui-recover-minimal.sh",
+      "noemaforge/tools/prep/noemaforge-first-launch.sh"
+    ],
+    "required_cli_tokens": [
+      "cmd_first_start_abort()",
+      "--dry-run",
+      "dry-run: systemctl stop noemaforge-first-start.service",
+      "noemaforge-gui-recover-minimal.sh\" --reason first-start-abort --dry-run",
+      "systemctl start --no-block display-manager.service",
+      "systemctl isolate --no-block graphical.target"
+    ],
+    "required_helper_tokens": [
+      "run systemctl start --no-block systemd-user-sessions.service",
+      "run systemctl start --no-block display-manager.service",
+      "run systemctl start --no-block gdm.service",
+      "run systemctl start --no-block gdm3.service",
+      "run systemctl isolate --no-block graphical.target",
+      "[[ \"$DRY_RUN\" == \"1\" ]] || need_root",
+      "[[ \"$DRY_RUN\" != \"1\" ]]"
+    ],
+    "required_first_launch_tokens": [
+      "restore_graphical_after_first_start",
+      "minimal non-blocking recovery",
+      "noemaforge-gui-recover-minimal.sh",
+      "--reason \"first-start-${reason}\""
+    ],
+    "forbidden_dry_run_tokens": [
+      "mount -o remount,rw / 2>/dev/null || true\nloadkeys us",
+      "install -d -m 0755 /var/lib/noemaforge/bootstrap 2>/dev/null || true\nif [[ \"$DRY_RUN\" != \"1\" ]]"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/first-start-abort-recovery-policy.json",
+    "noemaforge/src/first_start_abort_recovery_runtime.py",
+    "noemaforge/tests/test_first_start_abort_recovery_runtime.py",
+    "noemaforge/tests/test_first_start_abort_recovery_qa.py",
+    "noemaforge/tests/test_first_start_abort_recovery_performance.py",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/tools/prep/noemaforge-gui-recover-minimal.sh",
+    "noemaforge/tools/prep/noemaforge-first-launch.sh",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

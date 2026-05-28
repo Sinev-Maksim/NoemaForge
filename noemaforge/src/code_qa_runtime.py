@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: noemaforge/src/code_qa_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
+Modified: 2026-05-25
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge code-development QA sub-team runtime.
 
-0.31.13.alpha scope:
+0.32.2 scope:
 - sequential-by-default code review/test-gap sub-team for code-dev projects;
 - reviewer model selection that avoids the producer model and maximizes diversity;
 - audit ledger of what each reviewer proposed, consensus/unique findings, and handoff context;
@@ -36,8 +36,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
-
-RUNTIME_VERSION = "0.31.13.alpha"
+from noemaforge_version import RUNTIME_VERSION
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_QA_STATE", "/var/lib/noemaforge/code-qa"))
 CONFIG_REL = Path("configs/code-qa-team.json")
@@ -438,3 +437,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

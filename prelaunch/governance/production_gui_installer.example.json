@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.production-gui-installer/v1",
+  "kind": "ProductionGuiInstallerExampleSet",
+  "id": "production-gui-installer-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "production-gui-installer-dry-run",
+      "trace_id": "trace:production-gui-installer-dry-run",
+      "operator_path": [
+        "./setup.sh --mode vm --dry-run --selftest",
+        "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share",
+        "sudo noemaforge boot-mode set gui --apply-systemd",
+        "noemaforge gui admin"
+      ],
+      "expected_outputs": [
+        "dry_run_first",
+        "root_guarded_install",
+        "timer_driven_gui_autostart",
+        "runtime_only_gui",
+        "stateful_admin_gui_available",
+        "recovery_helpers_installed"
+      ],
+      "blocked_side_effects": [
+        "no_live_host_required_for_validation",
+        "no_heavy_llm_autostart",
+        "no_direct_graphical_target_service_enable",
+        "no_hidden_network_dependency"
+      ]
+    }
+  ]
+}

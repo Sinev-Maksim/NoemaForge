@@ -1,0 +1,104 @@
+{
+  "apiVersion": "noemaforge.cross-platform-prep/v1",
+  "kind": "CrossPlatformPrepCorePolicy",
+  "id": "cross-platform-prep-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "python_prep_core_source_of_truth",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "python_core_ref": "tools/prep/noemaforge_prep_core.py",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_windows_dependency": true,
+    "boundary_phrase": "Cross-platform prep boundary: tools/prep/*.py is the source of truth for Vault scan, inbox processing, metadata export and firstboot staging; Windows PowerShell/CMD and Linux/macOS shell scripts are thin wrappers over noemaforge_prep_core.py, so prep can run without a Windows host.",
+    "required_core_commands": [
+      "verify-seed",
+      "check",
+      "lab",
+      "firstboot",
+      "export-vault-metadata",
+      "export-compare-metadata"
+    ],
+    "required_python_surfaces": [
+      "tools/prep/process_inbox.py",
+      "tools/prep/scan_vault.py",
+      "tools/prep/scan_library.py",
+      "tools/prep/noemaforge_prep_core.py"
+    ],
+    "required_windows_wrappers": [
+      "tools/windows/run_verify.cmd",
+      "tools/windows/run_check.cmd",
+      "tools/windows/run_lab.cmd",
+      "tools/windows/run_firstboot.cmd",
+      "tools/windows/run_firstboot.ps1",
+      "tools/windows/Export-NoemaForge-E-Vault-Metadata.ps1",
+      "tools/windows/Export-NoemaForge-E-Compare-Metadata.ps1"
+    ],
+    "required_shell_wrappers": [
+      "tools/prep/run_verify.sh",
+      "tools/prep/run_check.sh",
+      "tools/prep/run_lab.sh",
+      "tools/prep/run_firstboot.sh"
+    ],
+    "required_capabilities": [
+      "vault_scan",
+      "inbox_processing",
+      "metadata_export",
+      "firstboot_staging",
+      "windows_not_required"
+    ],
+    "required_boundary_refs": [
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "docs/TODO.md",
+      "noemaforge/docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/cross_platform_prep_core.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/cross-platform-prep-core-policy.json",
+    "noemaforge/contracts/cross_platform_prep_core.schema.json",
+    "noemaforge/tools/prep/noemaforge_prep_core.py",
+    "noemaforge/src/cross_platform_prep_core_runtime.py",
+    "noemaforge/tools/prep/process_inbox.py",
+    "noemaforge/tools/prep/scan_vault.py",
+    "noemaforge/tools/prep/scan_library.py",
+    "noemaforge/tools/prep/run_verify.sh",
+    "noemaforge/tools/prep/run_check.sh",
+    "noemaforge/tools/prep/run_lab.sh",
+    "noemaforge/tools/prep/run_firstboot.sh",
+    "noemaforge/tools/windows/run_verify.cmd",
+    "noemaforge/tools/windows/run_check.cmd",
+    "noemaforge/tools/windows/run_lab.cmd",
+    "noemaforge/tools/windows/run_firstboot.cmd",
+    "noemaforge/tools/windows/run_firstboot.ps1",
+    "noemaforge/tools/windows/Export-NoemaForge-E-Vault-Metadata.ps1",
+    "noemaforge/tools/windows/Export-NoemaForge-E-Compare-Metadata.ps1",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/tests/test_cross_platform_prep_core_runtime.py",
+    "noemaforge/tests/test_cross_platform_prep_core_qa.py",
+    "noemaforge/tests/test_cross_platform_prep_core_performance.py",
+    "prelaunch/governance/cross_platform_prep_core.example.json",
+    "docs/README.md",
+    "noemaforge/docs/README.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

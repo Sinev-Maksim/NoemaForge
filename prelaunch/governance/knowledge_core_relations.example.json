@@ -1,0 +1,40 @@
+{
+  "apiVersion": "noemaforge.knowledge-core-relations/v1",
+  "kind": "KnowledgeCoreRelationsExampleSet",
+  "id": "knowledge-core-relations-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "passage-source-gate",
+      "object_kind": "passage",
+      "relation": "passage_cites_source",
+      "valid_example": {"source_exists": true, "anchor_kind_present": true},
+      "invalid_gate_code": "passage_missing_source",
+      "expected_decision": "quarantine"
+    },
+    {
+      "id": "claim-passage-support-gate",
+      "object_kind": "claim",
+      "relation": "claim_extracted_from_passage",
+      "valid_example": {"extracted_from_passages": ["passage-1"], "confidence": 0.93},
+      "invalid_gate_code": "claim_no_passage",
+      "expected_decision": "quarantine"
+    },
+    {
+      "id": "conflict-claim-relation-gate",
+      "object_kind": "conflict",
+      "relation": "conflict_between_claims",
+      "valid_example": {"entity_a": "claim-a", "entity_b": "claim-b", "status": "Unresolved", "realm_context": {"domain": "science"}},
+      "invalid_gate_code": "conflict_missing_realm",
+      "expected_decision": "quarantine"
+    },
+    {
+      "id": "concept-definition-gate",
+      "object_kind": "concept",
+      "relation": "concept_defined_by_passage",
+      "valid_example": {"labels": ["bounded retrieval"], "definition_passages": ["passage-1"]},
+      "invalid_gate_code": "concept_missing_labels",
+      "expected_decision": "quarantine"
+    }
+  ]
+}

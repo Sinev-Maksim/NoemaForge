@@ -2,7 +2,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/knowledge/__init__.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -36,16 +36,65 @@ vector indexing via VStore.
 Important: this is infrastructure code. It is not a UI.
 """
 
-from .policy import load_knowledge_policy
-from .store import KnowledgeStore
-from .retrieval import search_keyword, search_semantic
-from .prep_store import PrepStore
-from .prep_pipeline import analyze_book_path, analyze_next_queue_entry, load_prep_processing_config
-from .extraction_pipeline import extract_book, extract_next_book, load_extraction_config
-from .grounded_administrator import answer_query as grounded_answer_query
 from .error_learning import ErrorLearningStore
-from .synthetic_book import write_synthetic_book
-from .eval_runtime import evaluate_extraction_against_gold, evaluate_grounded_queries
+
+
+def _unavailable(name, exc):
+    def _raise(*args, **kwargs):
+        raise RuntimeError(f"knowledge export unavailable:{name}:{exc}") from exc
+    return _raise
+
+
+try:
+    from .policy import load_knowledge_policy
+except Exception as exc:  # pragma: no cover
+    load_knowledge_policy = _unavailable("load_knowledge_policy", exc)
+
+try:
+    from .store import KnowledgeStore
+except Exception as exc:  # pragma: no cover
+    KnowledgeStore = _unavailable("KnowledgeStore", exc)
+
+try:
+    from .retrieval import search_keyword, search_semantic
+except Exception as exc:  # pragma: no cover
+    search_keyword = _unavailable("search_keyword", exc)
+    search_semantic = _unavailable("search_semantic", exc)
+
+try:
+    from .prep_store import PrepStore
+except Exception as exc:  # pragma: no cover
+    PrepStore = _unavailable("PrepStore", exc)
+
+try:
+    from .prep_pipeline import analyze_book_path, analyze_next_queue_entry, load_prep_processing_config
+except Exception as exc:  # pragma: no cover
+    analyze_book_path = _unavailable("analyze_book_path", exc)
+    analyze_next_queue_entry = _unavailable("analyze_next_queue_entry", exc)
+    load_prep_processing_config = _unavailable("load_prep_processing_config", exc)
+
+try:
+    from .extraction_pipeline import extract_book, extract_next_book, load_extraction_config
+except Exception as exc:  # pragma: no cover
+    extract_book = _unavailable("extract_book", exc)
+    extract_next_book = _unavailable("extract_next_book", exc)
+    load_extraction_config = _unavailable("load_extraction_config", exc)
+
+try:
+    from .grounded_administrator import answer_query as grounded_answer_query
+except Exception as exc:  # pragma: no cover
+    grounded_answer_query = _unavailable("grounded_answer_query", exc)
+
+try:
+    from .synthetic_book import write_synthetic_book
+except Exception as exc:  # pragma: no cover
+    write_synthetic_book = _unavailable("write_synthetic_book", exc)
+
+try:
+    from .eval_runtime import evaluate_extraction_against_gold, evaluate_grounded_queries
+except Exception as exc:  # pragma: no cover
+    evaluate_extraction_against_gold = _unavailable("evaluate_extraction_against_gold", exc)
+    evaluate_grounded_queries = _unavailable("evaluate_grounded_queries", exc)
 
 __all__ = [
     "load_knowledge_policy",

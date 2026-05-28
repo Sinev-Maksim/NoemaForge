@@ -44,12 +44,18 @@ try:
 except Exception:  # pragma: no cover
     runtime_safety = None  # type: ignore
 
+try:
+    import model_inventory_normalize  # type: ignore
+except Exception:  # pragma: no cover
+    model_inventory_normalize = None  # type: ignore
+
 DEFAULT_INVENTORY = "/var/lib/noemaforge/bootstrap/model-inventory.json"
 DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
 DEFAULT_PACK_ROOT = "/var/lib/noemaforge/eval-packs/first-start-light"
 DEFAULT_STATE_DIR = "/var/lib/noemaforge/bootstrap"
 DEFAULT_MODELSTORE = "/var/lib/modelstore"
 DEFAULT_SCORECARDS = "/var/lib/noemaforge/model_scorecards"
+SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 
 MANDATORY_CORE_ROLES = [
     "operator.admin/administrator",
@@ -365,7 +371,7 @@ def safe_id(raw: str) -> str:
 
 
 def role_file_id(role_key: str) -> str:
-    # 0.31.13.alpha fix: use the same naming as dataset_inventory.role_safe().
+    # 0.32.1 fix: use the same naming as dataset_inventory.role_safe().
     return safe_id(role_key.replace("/", "__").replace(".", "_"))
 
 
@@ -432,7 +438,14 @@ def runtime_state(model: Dict[str, Any]) -> Dict[str, Any]:
     return {"available": available, "implemented": implemented, "probe": probe}
 
 
+def normalize_inventory_for_scoring(inventory: Dict[str, Any]) -> Dict[str, Any]:
+    if model_inventory_normalize is None:
+        return inventory
+    return model_inventory_normalize.normalize_inventory_models(inventory, require_complete=False)
+
+
 def build_eligibility(inventory: Dict[str, Any], roles: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
+    inventory = normalize_inventory_for_scoring(inventory)
     matrix: Dict[str, Any] = {"apiVersion": "noemaforge.roles/v1", "kind": "RoleEligibilityMatrix", "updated_at": now(), "roles": {}, "models": {}}
     models = list(inventory.get("models") or [])
     for role_key, rdef in roles.items():
@@ -547,7 +560,7 @@ def score_task(task: Dict[str, Any], ok: bool, response: str, latency_ms: float,
     resp_l = response.lower()
     nonempty = bool(response.strip())
 
-    # 0.31.13.alpha fix: no semantic/JSON/contains credit for failed or empty backend calls.
+    # 0.32.1 fix: no semantic/JSON/contains credit for failed or empty backend calls.
     if not ok or not nonempty:
         json_ok = False
         contains_ok = False
@@ -620,7 +633,7 @@ def write_modelstore_manifest(modelstore_root: str, model: Dict[str, Any], model
         "capabilities": model.get("capabilities") or [],
         "runtime_family": model.get("runtime_family"),
         "trust": "unknown",
-        "notes": "staged by role-aware first-start tournament v0.31.13.alpha",
+        "notes": "staged by role-aware first-start tournament v0.32.1",
     }
     if yaml is not None:
         with open(target / "manifest.yaml", "w", encoding="utf-8") as f:
@@ -815,14 +828,20 @@ def write_scorecard(scorecards_dir: str, result: Dict[str, Any]) -> None:
     else:
         stream, role = "unknown", role_key
     model_id = safe_id(str(result.get("model_id") or ""))
+    runtime_device = SCORECARD_DEVICE_ALIASES.get(
+        str(result.get("runtime_device") or os.environ.get("NOEMAFORGE_SCORECARD_DEVICE") or "").strip().lower(),
+        "unspecified",
+    )
+    device_root = os.path.join(scorecards_dir, runtime_device) if runtime_device in {"cpu", "gpu"} else scorecards_dir
     sid = stream.replace("/", "_")
     rid = role.replace("/", "_")
-    path = os.path.join(scorecards_dir, model_id, f"{sid}__{rid}__llm.json")
+    path = os.path.join(device_root, model_id, f"{sid}__{rid}__llm.json")
     card = {
         "schema_version": "noemaforge.model_scorecard/v1",
         "created_at": now(),
-        "source": "role_tournament_v0.31.13.alpha",
+        "source": "role_tournament_v0.32.1",
         "model_id": model_id,
+        "runtime_device": runtime_device,
         "stream_id": stream,
         "role": role,
         "cap": "llm",
@@ -898,7 +917,7 @@ def _violates_composition_constraints(combo: Dict[str, str]) -> List[str]:
 def build_composition_plan(role_candidate_map: Dict[str, Any], *, top_n: int = 0, max_enum: int = 100000) -> Dict[str, Any]:
     """Build a bounded composition plan for --full_composite.
 
-    top_n=0 means no top limit. 0.31.13.alpha never materializes
+    top_n=0 means no top limit. 0.32.1 never materializes
     partial/empty compositions and applies the easy hard constraint QA != Developer
     when enough role metadata is available.
     """
@@ -979,6 +998,7 @@ def run_tournament(
     selection_mode: str = "normal",
     composite_top_n: int = -1,
 ) -> Dict[str, Any]:
+    inventory = normalize_inventory_for_scoring(inventory)
     selection_mode = normalize_selection_mode(selection_mode)
     if runtime_mode == "run":
         install_cleanup_handlers()

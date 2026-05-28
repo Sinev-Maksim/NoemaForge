@@ -1,0 +1,69 @@
+{
+  "apiVersion": "noemaforge.runtime-device-policy-staging/v1",
+  "kind": "RuntimeDevicePolicyStagingPolicy",
+  "id": "runtime-device-policy-staging-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "cpu_gpu_staged_until_switch_or_backend_restart",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_backend_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_ui_files": [
+      "noemaforge/templates/pipeline-dashboard/index.html",
+      "noemaforge/templates/pipeline-dashboard/app.js"
+    ],
+    "allowed_policies": [
+      "auto",
+      "cpu",
+      "gpu",
+      "cuda"
+    ],
+    "normalized_aliases": {
+      "cuda": "gpu"
+    },
+    "required_staged_fields": {
+      "pending_apply": true,
+      "applies_on": "next_persona_or_model_switch_or_backend_restart"
+    },
+    "required_runtime_tokens": [
+      "def device_policy",
+      "def device_policy_set",
+      "pending_apply",
+      "next_persona_or_model_switch_or_backend_restart",
+      "does not migrate the currently running model",
+      "only on the next persona/model switch or backend restart"
+    ],
+    "required_ui_tokens": [
+      "id=\"device-policy\"",
+      "setDevicePolicy",
+      "/api/runtime/device-policy",
+      "device_policy"
+    ],
+    "forbidden_device_policy_set_tokens": [
+      "systemctl restart",
+      "systemctl try-restart",
+      "subprocess.run",
+      "run_json([\"systemctl\"",
+      "noemaforge-llama@main.service",
+      "noemaforge-llm-gateway.service"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/runtime-device-policy-staging-policy.json",
+    "noemaforge/src/runtime_device_policy_staging_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/tests/test_runtime_device_policy_staging_runtime.py",
+    "noemaforge/tests/test_runtime_device_policy_staging_qa.py",
+    "noemaforge/tests/test_runtime_device_policy_staging_performance.py",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

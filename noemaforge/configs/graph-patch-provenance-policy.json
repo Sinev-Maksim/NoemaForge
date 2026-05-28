@@ -1,0 +1,108 @@
+{
+  "apiVersion": "noemaforge.graph-patch-provenance/v1",
+  "kind": "GraphPatchProvenancePolicy",
+  "id": "graph-patch-provenance-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "graph_patch_format_and_provenance_schema",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_graph_mutation": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "closed_todo_refs": [
+      "Add graph patch format and provenance schema."
+    ],
+    "required_patch_fields": [
+      "apiVersion",
+      "kind",
+      "patch_id",
+      "trace_id",
+      "source_graph_ref",
+      "source_graph_digest",
+      "target_graph_ref",
+      "created_at",
+      "actor_role",
+      "review_state",
+      "review_decision",
+      "rollback_plan",
+      "operations"
+    ],
+    "required_operation_fields": [
+      "op_id",
+      "op_type",
+      "entity_type",
+      "payload",
+      "provenance"
+    ],
+    "required_provenance_fields": [
+      "source_refs",
+      "artifact_refs",
+      "rationale",
+      "confidence",
+      "created_by_role"
+    ],
+    "allowed_operation_types": [
+      "add_node",
+      "update_node",
+      "add_edge",
+      "update_edge",
+      "annotate_claim",
+      "resolve_conflict",
+      "attach_artifact"
+    ],
+    "controls": {
+      "source_graph_digest_required": true,
+      "trace_id_required": true,
+      "actor_role_required": true,
+      "review_decision_required": true,
+      "rollback_plan_required": true,
+      "citations_or_artifact_refs_required": true,
+      "graph_patch_is_not_auto_applied": true,
+      "no_live_graph_mutation": true
+    },
+    "required_outputs": [
+      "graph_patch_provenance_summary",
+      "graph_patch_schema_contract",
+      "operation_type_matrix",
+      "provenance_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/graph-patch-provenance-policy.json",
+      "noemaforge/contracts/graph_patch_provenance.schema.json",
+      "noemaforge/src/graph_patch_provenance_runtime.py",
+      "prelaunch/governance/graph_patch_provenance.example.json",
+      "noemaforge/src/graph_projection_views_runtime.py",
+      "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+      "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "noemaforge/docs/wiki/architecture/memory-vector-architecture.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/graph-patch-provenance-policy.json",
+    "noemaforge/contracts/graph_patch_provenance.schema.json",
+    "noemaforge/src/graph_patch_provenance_runtime.py",
+    "noemaforge/tests/test_graph_patch_provenance_runtime.py",
+    "noemaforge/tests/test_graph_patch_provenance_qa.py",
+    "noemaforge/tests/test_graph_patch_provenance_performance.py",
+    "prelaunch/governance/graph_patch_provenance.example.json",
+    "noemaforge/src/graph_projection_views_runtime.py",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+    "noemaforge/docs/wiki/architecture/memory-vector-architecture.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,183 @@
+{
+  "apiVersion": "noemaforge.media-backend-selection-readiness/v1",
+  "kind": "MediaBackendSelectionReadinessPolicy",
+  "id": "media-backend-selection-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "media_backend_selection_readiness",
+    "completion_state": "blocked_until_explicit_media_backend_selection",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Add final live-media backend adapters after explicit backend selection.",
+      "Add real backend adapters for selected Vault non-GGUF models: VLM, STT, TTS, music generation, image generation, video generation and segmentation/masks."
+    ],
+    "required_safety_controls": {
+      "explicit_backend_selection_required": true,
+      "target_machine_validation_required": true,
+      "operator_approval_required": true,
+      "no_auto_backend_start": true,
+      "no_weight_download": true,
+      "privacy_gate_required": true,
+      "telemetry_required": true,
+      "plan_only_fallback_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_backend_slots": [
+      {
+        "id": "vlm",
+        "title": "Vision-language model adapter",
+        "artifact_classes": ["safetensors", "onnx", "pt", "engine"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": false,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "stt",
+        "title": "Speech-to-text adapter",
+        "artifact_classes": ["safetensors", "onnx", "pt"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": true,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "tts",
+        "title": "Text-to-speech adapter",
+        "artifact_classes": ["safetensors", "onnx", "pt"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": false,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "music_generation",
+        "title": "Music generation adapter",
+        "artifact_classes": ["safetensors", "ckpt", "onnx", "pt"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": false,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "image_generation",
+        "title": "Image generation adapter",
+        "artifact_classes": ["safetensors", "ckpt", "onnx"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": false,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "video_generation",
+        "title": "Video generation adapter",
+        "artifact_classes": ["safetensors", "ckpt", "onnx", "pt"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": false,
+        "telemetry_profile": "media_adapter_telemetry"
+      },
+      {
+        "id": "segmentation_masks",
+        "title": "Segmentation and virtual camera mask adapter",
+        "artifact_classes": ["safetensors", "onnx", "pt", "engine"],
+        "explicit_selection_required": true,
+        "target_smoke_required": true,
+        "privacy_gate_required": true,
+        "telemetry_profile": "media_adapter_telemetry"
+      }
+    ],
+    "required_checks": [
+      {
+        "id": "backend-selection-record",
+        "title": "Explicit backend selection record",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "evidence": ["operator_selection_record", "selected_backend_id", "modality", "local_artifact_ref", "license_review_note", "plan_only_fallback"],
+        "completion_gates": ["operator_selection_recorded", "backend_id_recorded", "artifact_ref_recorded", "license_review_recorded", "fallback_recorded"]
+      },
+      {
+        "id": "adapter-contract-surface",
+        "title": "Adapter command and artifact contract",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "evidence": ["command_entrypoint", "input_schema", "output_manifest_schema", "error_model", "artifact_manifest"],
+        "completion_gates": ["command_entrypoint_recorded", "schemas_recorded", "artifact_manifest_recorded", "error_model_recorded"]
+      },
+      {
+        "id": "privacy-consent-boundary",
+        "title": "Privacy and consent boundary",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "evidence": ["camera_microphone_default_off", "operator_consent_record", "visible_privacy_state", "no_autostart_record"],
+        "completion_gates": ["capture_default_off", "operator_consent_recorded", "visible_privacy_state_recorded", "no_autostart_recorded"]
+      },
+      {
+        "id": "telemetry-selftest-boundary",
+        "title": "Telemetry and selftest boundary",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "evidence": ["media_adapter_telemetry_report", "plan_only_selftest_report", "resource_metrics", "artifact_size_record"],
+        "completion_gates": ["telemetry_report_recorded", "selftest_report_recorded", "resource_metrics_recorded", "artifact_size_recorded"]
+      },
+      {
+        "id": "target-live-media-smoke",
+        "title": "Target live media smoke",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "evidence": ["target_smoke_transcript", "generated_artifact_manifest", "artifact_sha256", "operator_review_note"],
+        "completion_gates": ["operator_approval_recorded", "target_smoke_transcript_archived", "artifact_manifest_recorded", "artifact_sha256_recorded", "operator_review_recorded"]
+      }
+    ],
+    "required_outputs": [
+      "media_backend_selection_summary",
+      "blocked_completion_notice",
+      "backend_slot_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/media-backend-selection-readiness-policy.json",
+      "noemaforge/contracts/media_backend_selection_readiness.schema.json",
+      "noemaforge/src/media_backend_selection_readiness_runtime.py",
+      "prelaunch/governance/media_backend_selection_readiness.example.json",
+      "noemaforge/configs/media-adapter-telemetry-policy.json",
+      "noemaforge/configs/media-capture-privacy-policy.json",
+      "noemaforge/src/media_adapter_telemetry_runtime.py",
+      "noemaforge/src/media_capture_privacy_runtime.py",
+      "noemaforge/configs/media-pipeline-catalog.json",
+      "noemaforge/docs/wiki/multimodal/multimodal-vault-readiness-0.32.1.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/media-backend-selection-readiness-policy.json",
+    "noemaforge/contracts/media_backend_selection_readiness.schema.json",
+    "noemaforge/src/media_backend_selection_readiness_runtime.py",
+    "noemaforge/tests/test_media_backend_selection_readiness_runtime.py",
+    "noemaforge/tests/test_media_backend_selection_readiness_qa.py",
+    "noemaforge/tests/test_media_backend_selection_readiness_performance.py",
+    "prelaunch/governance/media_backend_selection_readiness.example.json",
+    "noemaforge/configs/media-adapter-telemetry-policy.json",
+    "noemaforge/configs/media-capture-privacy-policy.json",
+    "noemaforge/src/media_adapter_telemetry_runtime.py",
+    "noemaforge/src/media_capture_privacy_runtime.py",
+    "noemaforge/configs/media-pipeline-catalog.json",
+    "noemaforge/docs/wiki/multimodal/multimodal-vault-readiness-0.32.1.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

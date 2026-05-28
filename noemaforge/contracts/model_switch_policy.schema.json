@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.model_switch_policy.schema.json",
+  "title": "NoemaForge Model Switch Policy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.model-switch-policy/v1" },
+    "kind": { "const": "ModelSwitchPolicy" },
+    "id": { "const": "model-switch-policy-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "controls",
+        "roles",
+        "required_role_fields",
+        "required_candidate_fields",
+        "candidate_order"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "role_preferred_model_switch_with_fallback" },
+        "controls": {
+          "type": "object",
+          "required": [
+            "local_first",
+            "remote_requires_explicit_approval",
+            "remote_disabled_by_default",
+            "failed_or_unhealthy_models_blocked",
+            "silent_fallback_blocked",
+            "na_when_no_candidate"
+          ],
+          "properties": {
+            "local_first": { "const": true },
+            "remote_requires_explicit_approval": { "const": true },
+            "remote_disabled_by_default": { "const": true },
+            "failed_or_unhealthy_models_blocked": { "const": true },
+            "silent_fallback_blocked": { "const": true },
+            "na_when_no_candidate": { "const": true },
+            "max_active_heavy_workers": { "type": "integer", "maximum": 1 },
+            "applies_on": { "type": "string", "minLength": 1 }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "role",
+              "preferred_local_models",
+              "preferred_remote_models",
+              "fallback_models",
+              "allow_remote",
+              "default_when_unavailable"
+            ],
+            "properties": {
+              "role": { "type": "string", "minLength": 1 },
+              "preferred_local_models": {
+                "type": "array",
+                "items": { "type": "string", "pattern": "^local:" }
+              },
+              "preferred_remote_models": {
+                "type": "array",
+                "items": { "type": "string", "pattern": "^remote:" }
+              },
+              "fallback_models": {
+                "type": "array",
+                "items": { "type": "string", "minLength": 1 }
+              },
+              "allow_remote": { "type": "boolean" },
+              "default_when_unavailable": { "const": "N/A" }
+            }
+          }
+        }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

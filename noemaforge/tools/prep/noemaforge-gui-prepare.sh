@@ -116,8 +116,8 @@ find_vault_root() {
 ensure_setup() {
   [[ -f /var/lib/noemaforge/.sys/setup.done ]] || fail "NoemaForge bootstrap marker missing: /var/lib/noemaforge/.sys/setup.done"
   [[ -f /opt/noemaforge/src/gguf_select.py ]] || fail "Missing /opt/noemaforge/src/gguf_select.py; apply model-safe patch first."
-  [[ -f /opt/noemaforge/src/vault_inventory.py ]] || fail "Missing /opt/noemaforge/src/vault_inventory.py; apply 0.28.5 role-aware patch first."
-  [[ -f /opt/noemaforge/src/role_tournament.py ]] || fail "Missing /opt/noemaforge/src/role_tournament.py; apply 0.28.5 role-aware patch first."
+  [[ -f /opt/noemaforge/src/vault_inventory.py ]] || fail "Missing /opt/noemaforge/src/vault_inventory.py; apply 0.32.2 role-aware patch first."
+  [[ -f /opt/noemaforge/src/role_tournament.py ]] || fail "Missing /opt/noemaforge/src/role_tournament.py; apply 0.32.2 role-aware patch first."
   [[ -f /opt/noemaforge/configs/role-catalog.yaml ]] || fail "Missing /opt/noemaforge/configs/role-catalog.yaml."
   # Incremental tar/rsync installs can leave helper scripts as 0644. Since
   # prepare-gui runs as root, repair executable bits here instead of failing late.
@@ -138,9 +138,24 @@ ensure_share_mount() {
   [[ -r "$SHARE_ROOT" ]] || fail "$SHARE_ROOT is not readable."
 }
 
+validate_llama_server_runtime() {
+  local bin="$1" ldd_out="" ldd_rc=0
+  [[ -x "$bin" ]] || fail "llama-server is not executable: $bin"
+  command -v ldd >/dev/null 2>&1 || fail "ldd not found; cannot verify llama-server shared-library readiness."
+  ldd_out="$(ldd "$bin" 2>&1)" || ldd_rc=$?
+  if printf '%s\n' "$ldd_out" | grep -q 'not found'; then
+    fail "llama-server has unresolved shared libraries: $(printf '%s\n' "$ldd_out" | grep 'not found' | head -n 3 | tr '\n' '; ')"
+  fi
+  if [[ "$ldd_rc" -ne 0 ]] && ! printf '%s\n' "$ldd_out" | grep -Eqi 'not a dynamic executable|statically linked'; then
+    fail "llama-server shared-library inspection failed with ldd rc=${ldd_rc}: $(printf '%s\n' "$ldd_out" | head -n 3 | tr '\n' '; ')"
+  fi
+  log "llama-server binary/shared-library gate passed: $bin"
+}
+
 ensure_llama_server() {
   if [[ -x /opt/noemaforge/bin/llama-server ]]; then
     log "llama-server present: /opt/noemaforge/bin/llama-server"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
     return 0
   fi
   log "llama-server missing in /opt/noemaforge/bin; searching local disks/share."
@@ -149,6 +164,7 @@ ensure_llama_server() {
   if [[ -n "$cand" ]]; then
     install -m 0755 "$cand" /opt/noemaforge/bin/llama-server
     log "Installed llama-server from: $cand"
+    validate_llama_server_runtime /opt/noemaforge/bin/llama-server
     return 0
   fi
   cat >&2 <<'ERR'

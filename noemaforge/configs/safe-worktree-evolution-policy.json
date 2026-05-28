@@ -1,0 +1,76 @@
+{
+  "apiVersion": "noemaforge.safe-worktree-evolution/v1",
+  "kind": "SafeWorktreeEvolutionPolicy",
+  "id": "safe-worktree-evolution-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "safe_evolution_worktree_contract",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "closed_todo_refs": [
+      "Add safe worktree creation for evolution pipeline."
+    ],
+    "pipeline_id": "evolution",
+    "branch_namespace": "noemaforge/evolution/",
+    "required_cli": "noemaforge pipeline worktree create",
+    "required_runtime_helpers": [
+      "build_evolution_worktree_plan",
+      "safe_evolution_worktree_branch",
+      "validate_worktree_ref",
+      "path_is_under"
+    ],
+    "controls": {
+      "plan_is_default": true,
+      "apply_requires_explicit_flag": true,
+      "degraded_mutation_guard_required": true,
+      "evolution_pipeline_only": true,
+      "branch_namespace_required": true,
+      "base_ref_sanitized": true,
+      "destination_under_run_worktrees": true,
+      "subprocess_uses_argv_list": true,
+      "no_shell_command_string": true,
+      "artifact_registered_after_apply": true,
+      "event_emitted_for_plan_and_apply": true,
+      "docs_changelog_trace_required": true
+    },
+    "required_outputs": [
+      "SafeWorktreeEvolutionValidationReport",
+      "SafeWorktreeEvolutionSummary"
+    ],
+    "summary_fields": [
+      "helper_count",
+      "controls_true",
+      "blocked_case_count",
+      "plan_default",
+      "destination_guard",
+      "branch_guard"
+    ],
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_refs": [
+      "configs/safe-worktree-evolution-policy.json",
+      "contracts/safe_worktree_evolution.schema.json",
+      "src/safe_worktree_evolution_runtime.py",
+      "src/pipeline_runtime.py",
+      "tests/test_safe_worktree_evolution_runtime.py",
+      "tests/test_safe_worktree_evolution_qa.py",
+      "tests/test_safe_worktree_evolution_performance.py",
+      "prelaunch/governance/safe_worktree_evolution.example.json",
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "configs/safe-worktree-evolution-policy.json",
+    "contracts/safe_worktree_evolution.schema.json",
+    "src/safe_worktree_evolution_runtime.py",
+    "src/pipeline_runtime.py",
+    "prelaunch/governance/safe_worktree_evolution.example.json"
+  ]
+}
+

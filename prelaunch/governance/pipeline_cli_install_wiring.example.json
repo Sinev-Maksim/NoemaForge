@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.pipeline-cli-install-wiring/v1",
+  "kind": "PipelineCliInstallWiringExampleSet",
+  "id": "pipeline-cli-install-wiring-core-example",
+  "install_plan": {
+    "mode": "offline_contract",
+    "public_entrypoint": "/usr/local/bin/noemaforge",
+    "canonical_target": "/opt/noemaforge/bin/noemaforge",
+    "package_cli_ref": "bin/noemaforge",
+    "installer_ref": "install_noemaforge_0.32.1_mvp.sh",
+    "setup_ref": "setup.sh",
+    "dry_run_evidence": "installer emits link <public_path> -> <canonical_target> before any live filesystem mutation"
+  },
+  "pipeline_surface": {
+    "dispatcher": "noemaforge pipeline",
+    "runtime_ref": "src/pipeline_runtime.py",
+    "commands": [
+      "catalog",
+      "run",
+      "approve",
+      "advance",
+      "pause",
+      "resume",
+      "fail",
+      "cancel",
+      "artifact",
+      "worktree",
+      "doctor",
+      "gate",
+      "repair",
+      "readiness",
+      "template-import",
+      "template-append",
+      "context-lint",
+      "compact",
+      "queue",
+      "metrics",
+      "schema-validate",
+      "event-log",
+      "lease",
+      "executor-step",
+      "member",
+      "policy",
+      "export",
+      "list",
+      "show",
+      "snapshot",
+      "dashboard-state",
+      "patterns",
+      "validate"
+    ]
+  },
+  "expected_summary": {
+    "public_symlink_count": 4,
+    "pipeline_command_count": 33,
+    "setup_selftest_cli": true,
+    "dry_run_link_plan": true,
+    "canonical_self_guard": true,
+    "pipeline_runtime_dispatch": true
+  }
+}

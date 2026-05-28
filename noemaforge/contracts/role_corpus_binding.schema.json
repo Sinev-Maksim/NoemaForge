@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/role_corpus_binding.schema.json",
+  "title": "Role Corpus Binding Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "ok", "id", "version", "metrics", "failures"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.role-corpus-binding/v1"},
+    "kind": {"const": "RoleCorpusBindingValidationReport"},
+    "ok": {"type": "boolean"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "validated_at": {"type": "string"},
+    "metrics": {
+      "type": "object",
+      "required": ["roles", "profiles", "available_roles", "na_roles", "jsonl_files", "resolved_refs"],
+      "properties": {
+        "roles": {"type": "integer", "minimum": 1},
+        "profiles": {"type": "integer", "minimum": 1},
+        "available_roles": {"type": "integer", "minimum": 1},
+        "na_roles": {"type": "integer", "minimum": 1},
+        "jsonl_files": {"type": "integer", "minimum": 1},
+        "resolved_refs": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "failures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "kind": "AlphaFeatureCoverage",
-  "version": "0.31.13.alpha",
+  "version": "0.32.1",
   "generated_at_utc": "2026-05-14T15:20:00Z",
   "features": {
     "stateful_admin_gui": "active",
@@ -25,6 +25,18 @@
     "edge_tinyml_ota": "roadmap_only",
     "drag_drop_pipeline_editor": "todo_architecture_only",
     "gpu_generated_avatars": "todo_explicit_only",
-    "privileged_gui_runner": "todo_approval_gated"
+    "privileged_gui_runner": "shadow_polkit_approved_gui_jobs_contract",
+    "production_gui_installer": "shadow_dry_run_gui_installer_readiness_contract"
+  },
+  "p0_display_safety": {
+    "version": "0.32.1",
+    "status": "implemented",
+    "rules": [
+      "display-manager preserved by default during first-start/model-selection",
+      "soft headless requires explicit --allow-display-stop",
+      "GUI continuation is job/plan-only and suggests keep-display commands",
+      "epoch apply suggested command includes --keep-display"
+    ]
   }
 }
+

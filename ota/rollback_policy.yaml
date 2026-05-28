@@ -1,0 +1,8 @@
+apiVersion: noemaforge.ota-update-layer/v1
+kind: OTARollbackPolicy
+id: ota-rollback-policy-core
+rollback_required: true
+previous_bundle_required: true
+health_gate_failure_action: rollback_previous_bundle
+activation_failure_action: hold_shadow
+operator_review_required_after_rollback: true

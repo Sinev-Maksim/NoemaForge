@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.default-model-runtime-policy/v1",
+  "kind": "DefaultModelRuntimePolicyExampleSet",
+  "id": "default-model-runtime-policy-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "default-boot-cpu-safe",
+      "trace_id": "trace:default-model-runtime-policy:cpu-safe-default",
+      "expected_decision": "cpu_safe_always_on_with_gpu_on_demand",
+      "expected_default_device": "cpu",
+      "expected_profile": "minimal",
+      "expected_always_on_policy": "cpu_safe",
+      "expected_gpu_policy": "explicit_on_demand",
+      "expected_gpu_autostart_enabled": false,
+      "expected_boot_autostart_enabled": false,
+      "expected_max_active_heavy_workers": 1
+    },
+    {
+      "id": "gpu-on-demand-request",
+      "trace_id": "trace:default-model-runtime-policy:gpu-on-demand",
+      "expected_decision": "cpu_safe_always_on_with_gpu_on_demand",
+      "expected_default_device": "cpu",
+      "expected_profile": "gpu-heavy",
+      "expected_always_on_policy": "cpu_safe",
+      "expected_gpu_policy": "explicit_on_demand",
+      "expected_gpu_autostart_enabled": false,
+      "expected_boot_autostart_enabled": false,
+      "expected_max_active_heavy_workers": 1
+    }
+  ]
+}

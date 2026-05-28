@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/intent_router_eval_pack.schema.json",
+  "title": "IntentRouterEvalPack",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "cases"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.intent-router-eval/v1"
+    },
+    "kind": {
+      "const": "IntentRouterEvalPack"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "overall_pass_rate_min": {
+          "type": "number"
+        },
+        "per_route_pass_rate_min": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text",
+          "expected_route_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "expected_route_id": {
+            "type": "string"
+          },
+          "expected_intent": {
+            "type": "string"
+          },
+          "expected_abstention_action": {
+            "enum": [
+              "route",
+              "ask_clarification",
+              "defer_admin",
+              "defer_sr",
+              "defer_ssr",
+              "block"
+            ]
+          },
+          "min_confidence": {
+            "type": "number"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

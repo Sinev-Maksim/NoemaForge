@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-first-run-audit.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -22,7 +22,7 @@ STORAGE_SCAN=1
 MVP_SMOKE=1
 REBOOT_READY=0
 OUT=""
-VERSION="0.31.13.alpha"
+VERSION="0.32.1"
 
 usage(){ cat <<'USAGE'
 Usage: noemaforge first-run [options]
@@ -191,3 +191,4 @@ else:
             print(f"- warning {w['id']}: {w['message']} [log: {w['log']}]")
 sys.exit(0 if not failed else 1)
 PY
+

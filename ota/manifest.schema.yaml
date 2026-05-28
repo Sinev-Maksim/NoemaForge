@@ -1,0 +1,23 @@
+apiVersion: noemaforge.ota-update-layer/v1
+kind: OTAUpdateManifestSchema
+required_fields:
+  - id
+  - target
+  - staged_rollout
+  - candidate_bundle
+  - previous_bundle
+  - rollback
+  - health_gate
+  - refs
+targets:
+  - model
+  - container
+  - gateway
+stages:
+  - shadow
+  - canary
+  - stable
+health_gate_checks:
+  - health
+  - ready
+  - metrics

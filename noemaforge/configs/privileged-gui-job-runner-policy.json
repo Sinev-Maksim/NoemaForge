@@ -1,0 +1,114 @@
+{
+  "apiVersion": "noemaforge.privileged-gui-job-runner/v1",
+  "kind": "PrivilegedGuiJobRunnerPolicy",
+  "id": "privileged-gui-job-runner-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "approved_gui_jobs_polkit_runner",
+    "polkit_action": "org.noemaforge.privileged-jobs.run",
+    "gui_default_mode": "dry_run",
+    "approval_state_required_for_apply": "approved",
+    "require_docs_and_changelog_refs": true,
+    "require_registry_attachment": true,
+    "require_no_live_privileged_dependency": true,
+    "required_runtime_refs": {
+      "admin_gui_server": "noemaforge/src/admin_gui_server.py",
+      "contract_runtime": "noemaforge/src/privileged_gui_job_runner.py",
+      "cli_dispatcher": "noemaforge/bin/noemaforge",
+      "polkit_policy": "noemaforge/share/polkit-1/actions/org.noemaforge.privileged-jobs.policy"
+    },
+    "allowed_jobs": [
+      {
+        "kind": "epoch_apply",
+        "allowed_action": "first_start_epoch_apply",
+        "command_prefix": ["sudo", "noemaforge", "first-start"],
+        "required_tokens": ["--keep-display"],
+        "allowed_flags": [
+          "--fast",
+          "--normal",
+          "--full",
+          "--full_composite",
+          "--keep-display",
+          "--show-candidates",
+          "--show-compositions",
+          "--retry-failed-models",
+          "--per-model-timeout",
+          "--total-timeout"
+        ]
+      },
+      {
+        "kind": "model_selection_continue",
+        "allowed_action": "first_start_model_selection_continue",
+        "command_prefix": ["sudo", "noemaforge", "first-start"],
+        "required_tokens": ["--dry-run", "--keep-display", "--retry-failed-models"],
+        "allowed_flags": [
+          "--fast",
+          "--normal",
+          "--full",
+          "--full_composite",
+          "--dry-run",
+          "--keep-display",
+          "--show-candidates",
+          "--show-compositions",
+          "--retry-failed-models",
+          "--per-model-timeout",
+          "--total-timeout"
+        ]
+      },
+      {
+        "kind": "vault_reinventory",
+        "allowed_action": "vault_reinventory_scan",
+        "command_steps": [
+          ["sudo", "noemaforge", "inventory", "scan"],
+          ["sudo", "noemaforge", "datasets", "scan"],
+          ["sudo", "noemaforge", "tournament", "eligibility"]
+        ],
+        "required_tokens": ["inventory", "datasets", "tournament"]
+      }
+    ],
+    "forbidden_command_fragments": [";", "&&", "||", "|", "$(", "`", ">", "<"],
+    "required_admin_tokens": [
+      "def epoch_apply",
+      "def model_selection_continue",
+      "def vault_reinventory",
+      "privileged_runner_command",
+      "polkit_approval_required",
+      "org.noemaforge.privileged-jobs.run",
+      "approved job-runner action",
+      "--dry-run"
+    ],
+    "required_cli_tokens": [
+      "cmd_privileged_job()",
+      "privileged-job|privileged-jobs|job-runner)"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/privileged_gui_job_runner.example.json"
+    ],
+    "selected_todos": [
+      "Convert GUI epoch apply request into privileged, polkit-mediated local action after safety review.",
+      "Add polkit/root job-runner for approved privileged GUI jobs after alpha."
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/privileged-gui-job-runner-policy.json",
+    "noemaforge/contracts/privileged_gui_job_runner.schema.json",
+    "noemaforge/configs/alpha-feature-coverage.json",
+    "noemaforge/configs/unified-registry.json",
+    "noemaforge/src/privileged_gui_job_runner.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/share/polkit-1/actions/org.noemaforge.privileged-jobs.policy",
+    "noemaforge/tests/test_privileged_gui_job_runner_runtime.py",
+    "noemaforge/tests/test_privileged_gui_job_runner_qa.py",
+    "noemaforge/tests/test_privileged_gui_job_runner_performance.py",
+    "prelaunch/governance/privileged_gui_job_runner.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

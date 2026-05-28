@@ -1,0 +1,33 @@
+{
+  "apiVersion": "noemaforge.media-backend-selection-readiness/v1",
+  "kind": "MediaBackendSelectionReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "final-live-media-backend-selection-gate",
+      "trace_id": "trace:media:backend-selection",
+      "blocked_completion": true,
+      "expected_backend_slots": [
+        "vlm",
+        "stt",
+        "tts",
+        "music_generation",
+        "image_generation",
+        "video_generation",
+        "segmentation_masks"
+      ],
+      "expected_check_ids": [
+        "backend-selection-record",
+        "adapter-contract-surface",
+        "privacy-consent-boundary",
+        "telemetry-selftest-boundary",
+        "target-live-media-smoke"
+      ],
+      "expected_outputs": [
+        "media_backend_selection_summary",
+        "blocked_completion_notice",
+        "backend_slot_manifest",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

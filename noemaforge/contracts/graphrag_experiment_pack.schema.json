@@ -1,0 +1,239 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/graphrag_experiment_pack.schema.json",
+  "title": "GraphRAGExperimentPack",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "thresholds", "graph", "cases", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.graphrag-experiment/v1"
+    },
+    "kind": {
+      "const": "GraphRAGExperimentPack"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["disabled", "draft", "shadow", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "baseline_eval_pack_ref",
+        "require_classic_rag_baseline",
+        "require_evaluation_gate",
+        "require_trace_id",
+        "require_release_evidence_before_promotion",
+        "network",
+        "max_graph_depth",
+        "max_expansion_nodes",
+        "allowed_node_types",
+        "allowed_edge_relations"
+      ],
+      "properties": {
+        "mode": {
+          "const": "experiment"
+        },
+        "baseline_eval_pack_ref": {
+          "type": "string"
+        },
+        "require_classic_rag_baseline": {
+          "const": true
+        },
+        "require_evaluation_gate": {
+          "const": true
+        },
+        "require_trace_id": {
+          "const": true
+        },
+        "require_release_evidence_before_promotion": {
+          "const": true
+        },
+        "network": {
+          "const": "deny"
+        },
+        "max_graph_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "max_expansion_nodes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
+        "allowed_node_types": {
+          "type": "array",
+          "items": {
+            "enum": ["concept", "source", "control"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_edge_relations": {
+          "type": "array",
+          "items": {
+            "enum": ["describes", "requires", "gates", "cites", "supports"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "retrieval_hit_rate_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_coverage_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "groundedness_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "answer_helpfulness_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "graph_path_coverage_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "multi_hop_coverage_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "baseline_floor_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "graph": {
+      "type": "object",
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "type", "title"],
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "type": {
+                "enum": ["concept", "source", "control"]
+              },
+              "title": {
+                "type": "string"
+              },
+              "source_ref": {
+                "type": "string"
+              },
+              "terms": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "additionalProperties": true
+          },
+          "minItems": 1
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["source", "target", "relation"],
+            "properties": {
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": "string"
+              },
+              "relation": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "query", "seed_node_ids", "expected_source_refs", "expected_answer_terms", "expected_graph_paths"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "seed_node_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_answer_terms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_graph_paths": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "additionalProperties": true
+      },
+      "minItems": 1
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

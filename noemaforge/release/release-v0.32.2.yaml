@@ -1,0 +1,108 @@
+# === NoemaForge File Header ===
+# File: noemaforge/release/release-v0.32.2.yaml
+# Zone: release/metadata
+# Version: 0.32.2
+# Created: 2026-05-25
+# Modified: 2026-05-25
+# Purpose: Document the 0.32.2 hardening release contents, validation gates and merge rationale.
+# Inputs: 0.32.2 branch reconciliation audit, P0 issue, release PR and runtime hardening commits.
+# Outputs: Release metadata consumed by operators, release audit and archive generation.
+# Side effects: None.
+# Tests: YAML parse validation and release checklist review.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+apiVersion: noemaforge.release/v1
+kind: Release
+version: 0.32.2
+date: 2026-05-25
+title: "NoemaForge 0.32.2 — orchestration hardening and version centralization"
+channel: alpha-hardening
+status: draft
+base_branch: v0.32.1-prelaunch
+release_branch: release/0.32.2-hardening
+pull_request: 2
+tracking_issue: 1
+
+summary: >-
+  NoemaForge 0.32.2 is a safety and reliability release. It centralizes runtime
+  version handling, restores license metadata, documents branch reconciliation,
+  adds durable orchestration primitives, and makes display-preserving first-start
+  behavior the default expectation before deeper model-selection or evolution work.
+
+highlights:
+  - "Centralized Python runtime version source via noemaforge/src/noemaforge_version.py."
+  - "Canonical VERSION files updated to 0.32.2."
+  - "Release branch reconciled against v0.32.1-prelaunch; v0.32.0 and v0.32.0-alpha are included by ancestry."
+  - "AGPL-3.0 LICENSE restored from main."
+  - "Display-safe stop helpers preserve GDM and the graphical desktop by default."
+  - "Model-selection generated first-start commands now include --keep-display."
+  - "Job/session/event primitives added for duplicate-safe, refresh-safe Admin GUI orchestration."
+
+changes:
+  version_management:
+    - "Added noemaforge/src/noemaforge_version.py."
+    - "Updated noemaforge/tools/prep/noemaforge-version-audit.sh to verify the central module and reject hardcoded runtime assignments."
+    - "Added noemaforge/tools/prep/apply-runtime-version-centralization.py for deterministic local migration."
+  orchestration:
+    - "Added noemaforge/src/orchestration_state.py."
+    - "Added noemaforge/src/job_manager.py."
+    - "Added noemaforge/src/session_store.py."
+    - "Added noemaforge/src/event_log.py."
+  display_safety:
+    - "Updated helpers/noemaforge-stop to avoid GUI shutdown by default."
+    - "Converted helpers/noemaforge-llm-stop and helpers/noemaforge-service-stop into wrappers over the canonical stop helper."
+    - "Updated model_selection_runtime.py generated commands to include --keep-display."
+  branch_reconciliation:
+    - "Added noemaforge/docs/quality/BRANCH_RECONCILIATION_0.32.2.md."
+    - "Restored LICENSE."
+  validation:
+    - "Added noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md."
+    - "Added noemaforge/docs/architecture/ORCHESTRATION_HARDENING_0.32.2.md."
+
+modified_file_groups:
+  runtime:
+    - noemaforge/src/noemaforge_version.py
+    - noemaforge/src/orchestration_state.py
+    - noemaforge/src/job_manager.py
+    - noemaforge/src/session_store.py
+    - noemaforge/src/event_log.py
+    - noemaforge/src/model_selection_runtime.py
+    - noemaforge/src/first_start_summary.py
+    - noemaforge/src/wiki_patch_runtime.py
+  helpers:
+    - helpers/noemaforge-stop
+    - helpers/noemaforge-llm-stop
+    - helpers/noemaforge-service-stop
+  release_and_quality_docs:
+    - noemaforge/docs/architecture/ORCHESTRATION_HARDENING_0.32.2.md
+    - noemaforge/docs/quality/BRANCH_RECONCILIATION_0.32.2.md
+    - noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md
+    - noemaforge/release/release-v0.32.2.yaml
+  prep_tools:
+    - noemaforge/tools/prep/noemaforge-version-audit.sh
+    - noemaforge/tools/prep/apply-runtime-version-centralization.py
+  canonical_metadata:
+    - VERSION
+    - noemaforge/VERSION
+    - docs/VERSION
+    - LICENSE
+
+known_open_items_before_final_merge:
+  - "Wire JobManager, SessionStore and EventLog into admin_gui_server.py endpoints."
+  - "Run version-audit, py_compile, bash -n and JSON/YAML validation in a local or CI environment."
+  - "Regenerate checksums after final files are frozen."
+  - "Create a clean release archive and SHA256 sidecar."
+  - "Update docs/release.json from 0.32.1 to 0.32.2 before release publication."
+
+validation_commands:
+  local_static:
+    - "python3 noemaforge/tools/prep/apply-runtime-version-centralization.py --check"
+    - "python3 -m py_compile noemaforge/src/*.py"
+    - "find . -name '*.sh' -type f -exec bash -n {} \\;"
+    - "noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all"
+  target_machine:
+    - "noemaforge dashboard status"
+    - "noemaforge persona gui-status --json"
+    - "sudo noemaforge first-start --normal --dry-run --keep-display --show-candidates"
+
+merge_recommendation: "Do not merge until runtime wiring, validation evidence, checksums and archive are complete."

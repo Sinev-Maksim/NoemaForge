@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trajectory_eval_suite.schema.json",
+  "title": "TrajectoryEvalSuite",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "thresholds",
+    "safe_final_states",
+    "applies_to"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.trajectory-eval/v1"
+    },
+    "kind": {
+      "const": "TrajectoryEvalSuite"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "step_success_rate_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "artifact_coverage_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "max_safety_flags": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "require_budget_compliance": {
+          "type": "boolean"
+        },
+        "require_safe_final_state": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "safe_final_states": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "applies_to": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

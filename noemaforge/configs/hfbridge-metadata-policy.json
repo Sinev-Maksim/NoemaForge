@@ -1,0 +1,65 @@
+{
+  "apiVersion": "noemaforge.hfbridge/v1",
+  "kind": "HFBridgeMetadataPolicy",
+  "id": "hfbridge-metadata-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "metadata_first_read_mostly",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "git_exchange_policy_ref": "configs/git-exchange-quarantine-policy.json",
+    "peft_lora_policy_ref": "configs/peft-lora-lab-policy.json",
+    "allowed_operations": [
+      "metadata_query",
+      "model_card_summary",
+      "license_scan",
+      "eval_metadata_snapshot",
+      "repository_listing"
+    ],
+    "blocked_operations": [
+      "weight_download",
+      "dataset_download",
+      "runtime_import",
+      "auto_install",
+      "auto_prompt_activation",
+      "production_model_delta_import"
+    ],
+    "read_policy": {
+      "metadata_only": true,
+      "read_mostly": true,
+      "network_optional": true,
+      "offline_cache_allowed": true,
+      "runtime_write_allowed": false,
+      "external_artifact_import_allowed": false
+    },
+    "promotion_requirements": {
+      "quarantine_first": true,
+      "signed_manifest_required": true,
+      "evaluation_gate_required": true,
+      "admin_approval_required": true,
+      "model_delta_lab_only": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/hfbridge_metadata.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/hfbridge-metadata-policy.json",
+    "noemaforge/contracts/hfbridge_metadata.schema.json",
+    "noemaforge/src/hfbridge_metadata_runtime.py",
+    "noemaforge/tests/test_hfbridge_metadata_runtime.py",
+    "noemaforge/tests/test_hfbridge_metadata_qa.py",
+    "noemaforge/tests/test_hfbridge_metadata_performance.py",
+    "prelaunch/governance/hfbridge_metadata.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

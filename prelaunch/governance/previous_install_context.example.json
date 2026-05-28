@@ -1,0 +1,26 @@
+{
+  "apiVersion": "noemaforge.previous-install-context/v1",
+  "kind": "PreviousInstallContextExample",
+  "active_runtime": {
+    "install_root": "/opt/noemaforge",
+    "state_root": "/var/lib/noemaforge",
+    "share_root": "/mnt/noemaforge-share",
+    "modelstore_root": "/var/lib/modelstore",
+    "bootstrap_state_dir": "/var/lib/noemaforge/bootstrap"
+  },
+  "previous_install": {
+    "path": "/var/lib/noemaforge/firstboot-attempt-archive/2026-05-20T000000Z",
+    "mode": "archive_only",
+    "active": false
+  },
+  "backup": {
+    "path": "/var/backups/noemaforge/prelaunch-0.32.1",
+    "mode": "readonly_evidence",
+    "active": false
+  },
+  "migration": {
+    "path": "/var/lib/noemaforge/migration-records/legacy-share-normalization.json",
+    "mode": "migrate_once_then_detach",
+    "active": false
+  }
+}

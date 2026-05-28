@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/executor_stage_worker.schema.json",
+  "title": "NoemaForge ExecutorStageWorkerResult",
+  "type": "object",
+  "required": ["ok", "run_id", "stage", "ready", "action", "apply", "worker_contract_version", "stage_contract", "quality", "artifact_count", "contract_artifact_count", "warnings"],
+  "properties": {
+    "ok": {"const": true},
+    "run_id": {"type": "string", "minLength": 1},
+    "stage": {"type": "string", "minLength": 1},
+    "ready": {"type": "boolean"},
+    "action": {"enum": ["wait", "advance", "complete"]},
+    "apply": {"type": "boolean"},
+    "next_stage": {"type": ["string", "null"]},
+    "worker_contract_version": {"const": "noemaforge.pipeline.executor-stage-worker/v1"},
+    "stage_contract": {
+      "type": "object",
+      "required": ["requires", "artifact_types"],
+      "properties": {
+        "requires": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "artifact_types": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      },
+      "additionalProperties": true
+    },
+    "quality": {
+      "type": "object",
+      "required": ["exists", "looks_placeholder", "has_decision", "has_risk", "has_handoff", "quality_score"],
+      "properties": {
+        "exists": {"type": "boolean"},
+        "looks_placeholder": {"type": "boolean"},
+        "has_decision": {"type": "boolean"},
+        "has_risk": {"type": "boolean"},
+        "has_handoff": {"type": "boolean"},
+        "quality_score": {"type": "integer", "minimum": 0, "maximum": 100}
+      },
+      "additionalProperties": true
+    },
+    "artifact_count": {"type": "integer", "minimum": 0},
+    "contract_artifact_count": {"type": "integer", "minimum": 0},
+    "warnings": {"type": "array", "items": {"type": "string"}},
+    "status": {"type": "string"},
+    "current_stage": {"type": "string"}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"ready": {"const": true}}},
+      "then": {"properties": {"contract_artifact_count": {"minimum": 1}, "warnings": {"maxItems": 0}}}
+    },
+    {
+      "if": {"properties": {"ready": {"const": false}}},
+      "then": {"properties": {"action": {"const": "wait"}, "warnings": {"minItems": 1}}}
+    }
+  ],
+  "additionalProperties": true
+}

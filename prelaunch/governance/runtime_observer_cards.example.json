@@ -1,0 +1,20 @@
+{
+  "apiVersion": "noemaforge.runtime-observer-cards/v1",
+  "kind": "RuntimeObserverCardsExample",
+  "endpoint": "/api/runtime/observer-cards",
+  "observer_cards": [
+    {
+      "id": "gateway-service",
+      "status": "ok",
+      "state": "active",
+      "smoke_affirmation": "affirmed"
+    },
+    {
+      "id": "main-backend-socket",
+      "status": "warn",
+      "state": "missing",
+      "smoke_affirmation": "not_affirmed"
+    }
+  ],
+  "expected_result": "gateway_backend_smoke_observer_cards"
+}

@@ -1,0 +1,113 @@
+{
+  "apiVersion": "noemaforge.grounded-administrator/v1",
+  "kind": "GroundedAdministratorPolicy",
+  "id": "grounded-administrator-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "default_hypergraph_knowledge_surface",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Grounded Administrator is the default knowledge surface: Administrator answers query the hypergraph first, cite graph-backed provenance, and say unknown with ingest or research next steps when the graph cannot answer.",
+    "administrator_role_ref": "persona:operator-admin-administrator:0.32.1",
+    "role_kernel_policy_ref": "configs/role-kernel-policy.json",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "docs_rag_policy_ref": "configs/docs-rag-policy.json",
+    "graphrag_pack_ref": "configs/graphrag-experiment-pack.json",
+    "grounded_answer_runtime_ref": "src/knowledge/grounded_administrator.py",
+    "default_query_surface": "operator.admin/administrator",
+    "retrieval_order": [
+      "hypergraph_claims",
+      "graph_neighbors",
+      "docs_rag_citations",
+      "knowledge_gap_notice"
+    ],
+    "required_answer_modes": [
+      "grounded_answer",
+      "knowledge_gap_notice"
+    ],
+    "required_citation_fields": [
+      "claim_id",
+      "human_address",
+      "score"
+    ],
+    "required_gap_followups": [
+      "ingest_relevant_source",
+      "ask_narrower_scope",
+      "propose_research"
+    ],
+    "controls": {
+      "admin_defaults_to_hypergraph": true,
+      "claims_require_provenance": true,
+      "citations_required_for_grounded_answers": true,
+      "graph_gap_emits_unknown": true,
+      "gap_followup_suggests_ingest_or_research": true,
+      "docs_rag_is_cited_fallback": true,
+      "graphrag_experiment_gated": true,
+      "no_improvised_answer_on_gap": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "grounded_answer",
+      "knowledge_gap_notice",
+      "citations",
+      "followup",
+      "retrieved_refs",
+      "graph_provenance"
+    ],
+    "blocked_answer_claims": [
+      "answer without citations",
+      "improvise when graph has no answer",
+      "skip hypergraph retrieval",
+      "hide unknown state"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/grounded_administrator.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/grounded-administrator-policy.json",
+    "noemaforge/contracts/grounded_administrator.schema.json",
+    "noemaforge/configs/role-kernel-policy.json",
+    "noemaforge/configs/docs-rag-policy.json",
+    "noemaforge/configs/graphrag-experiment-pack.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/grounded_administrator_runtime.py",
+    "noemaforge/src/knowledge/grounded_administrator.py",
+    "noemaforge/src/docs_rag_runtime.py",
+    "noemaforge/src/graphrag_experiment_runtime.py",
+    "noemaforge/tests/test_grounded_administrator_runtime.py",
+    "noemaforge/tests/test_grounded_administrator_qa.py",
+    "noemaforge/tests/test_grounded_administrator_performance.py",
+    "prelaunch/governance/grounded_administrator.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

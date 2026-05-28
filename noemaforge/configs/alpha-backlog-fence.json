@@ -1,0 +1,50 @@
+{
+  "apiVersion": "noemaforge.alpha-backlog/v1",
+  "kind": "AlphaBacklogFencePolicy",
+  "id": "alpha-backlog-fence-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "backlog_only",
+    "allow_auto_promotion": false,
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "promotion_blocked_until": "manual_alpha_gate_stability_review",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "protected_refs": [
+      {
+        "ref": "eval-pack:typed-governance-track-core:0.32.1",
+        "allowed_statuses": ["draft", "shadow"],
+        "blocked_statuses": ["promoted"],
+        "reason": "Typed governance remains backlog-only until alpha gates are declared stable by manual release review."
+      }
+    ],
+    "required_gate_refs": [
+      "eval-pack:docs-hygiene-prelaunch:0.32.1",
+      "eval-pack:ci-model-gates-core:0.32.1",
+      "eval-pack:signed-model-manifest-core:0.32.1",
+      "eval-pack:typed-governance-track-core:0.32.1"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/alpha_backlog_fence.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/alpha-backlog-fence.json",
+    "noemaforge/contracts/alpha_backlog_fence.schema.json",
+    "noemaforge/src/alpha_backlog_fence_runtime.py",
+    "noemaforge/tests/test_alpha_backlog_fence_runtime.py",
+    "noemaforge/tests/test_alpha_backlog_fence_qa.py",
+    "noemaforge/tests/test_alpha_backlog_fence_performance.py",
+    "prelaunch/governance/alpha_backlog_fence.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+
+

@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.gateway-main-live-smoke-readiness/v1",
+  "kind": "GatewayMainLiveSmokeReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-target-gateway-main-live-smoke-evidence-readiness",
+      "trace_id": "trace:patched10:gateway-main-live-smoke",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "target-service-baseline",
+        "operator-approval",
+        "main-backend-manual-start",
+        "gateway-socket-live",
+        "gateway-chat-smoke",
+        "backend-stop-and-archive"
+      ],
+      "expected_outputs": [
+        "gateway_main_live_smoke_summary",
+        "blocked_completion_notice",
+        "target_gateway_main_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

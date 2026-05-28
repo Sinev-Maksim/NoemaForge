@@ -1,0 +1,44 @@
+{
+  "apiVersion": "noemaforge.live-testbench-suite-readiness/v1",
+  "kind": "LiveTestbenchSuiteReadinessExampleSet",
+  "examples": [
+    {
+      "id": "target-evidence-placeholder",
+      "completion_state": "blocked_until_target_live_testbench_suite_evidence",
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "evidence": [
+        "boot_id",
+        "target_timestamp",
+        "target_host",
+        "noemaforge_status_json",
+        "testbench_catalog_json",
+        "operator_approval_record",
+        "approved_scope",
+        "approved_target_host",
+        "approval_timestamp",
+        "live_suite_case_ids",
+        "include_live_flag_recorded",
+        "live_case_count",
+        "suite_catalog_digest",
+        "live_testbench_command",
+        "live_testbench_exit_code",
+        "live_testbench_stdout_json",
+        "live_testbench_stderr_excerpt",
+        "selftest_report_path",
+        "case_result_paths",
+        "duration_sec_metrics",
+        "max_rss_kib_metrics",
+        "disk_io_metrics",
+        "gpu_ecc_metrics_or_na",
+        "baseline_compare_json",
+        "wiki_patch_manifest",
+        "archive_path",
+        "archive_sha256",
+        "redaction_manifest",
+        "review_followup_record"
+      ],
+      "notes": "Shape fixture only. It records the evidence fields required from a real target live testbench run."
+    }
+  ]
+}

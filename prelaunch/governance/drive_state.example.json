@@ -1,0 +1,121 @@
+{
+  "apiVersion": "noemaforge.drive-state/v1",
+  "kind": "DriveStateSet",
+  "id": "drive-state-examples",
+  "version": "0.32.1",
+  "states": [
+    {
+      "apiVersion": "noemaforge.drive-state/v1",
+      "kind": "DriveState",
+      "id": "drive-state-coarse-host-bounded",
+      "trace_id": "trace:drive-state:coarse-host-bounded",
+      "sense_state_ref": "prelaunch/governance/sense_privacy.example.json",
+      "source_state_id": "sense-state-coarse-host-ok",
+      "privacy": {
+        "source_filtered": true,
+        "local_only": true,
+        "no_raw_telemetry": true
+      },
+      "signals": {
+        "pressure": 0.8,
+        "fatigue": 0.65,
+        "urgency": 0.695,
+        "curiosity": 0.233
+      },
+      "signal_sources": {
+        "pressure": [
+          "cpu.pressure",
+          "memory.pressure",
+          "load.pressure"
+        ],
+        "fatigue": [
+          "memory.pressure",
+          "load.pressure"
+        ],
+        "urgency": [
+          "network.state",
+          "runtime.backend",
+          "runtime.gateway"
+        ],
+        "curiosity": [
+          "runtime.health",
+          "inverse_pressure"
+        ]
+      },
+      "modulation": {
+        "actions": [
+          "slow_down",
+          "defer"
+        ],
+        "cooldown_seconds": 120,
+        "clipping_applied": true,
+        "hysteresis_applied": true,
+        "explanation": "High memory pressure and degraded network recommend pacing changes without changing goals or policy."
+      },
+      "guards": {
+        "can_rewrite_goals": false,
+        "can_override_policy": false,
+        "can_expand_permissions": false
+      },
+      "refs": [
+        "prelaunch/governance/sense_privacy.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+      ]
+    }
+  ],
+  "modulation_cases": [
+    {
+      "id": "high-pressure-degraded-network",
+      "sense_state": {
+        "apiVersion": "noemaforge.sense-privacy/v1",
+        "kind": "SenseState",
+        "id": "sense-state-coarse-host-ok",
+        "trace_id": "trace:sense-privacy:coarse-host-ok",
+        "privacy": {
+          "filtered": true,
+          "local_only": true
+        },
+        "metrics": {
+          "cpu": {
+            "pressure": "medium",
+            "usage_percent": 57.2
+          },
+          "memory": {
+            "pressure": "high",
+            "used_percent": 81.4
+          },
+          "disk": {
+            "pressure": "low",
+            "used_percent": 44.0
+          },
+          "network": {
+            "state": "degraded",
+            "rx_kbps": 12.4,
+            "tx_kbps": 3.1
+          },
+          "load": {
+            "pressure": "medium",
+            "one_min": 1.4
+          },
+          "runtime": {
+            "backend": "healthy",
+            "gateway": "healthy",
+            "toolproxy": "healthy"
+          }
+        }
+      },
+      "expected_actions_include": [
+        "slow_down",
+        "defer"
+      ],
+      "expected_signal_min": {
+        "pressure": 0.7,
+        "fatigue": 0.6,
+        "urgency": 0.5
+      },
+      "expected_signal_max": {
+        "curiosity": 0.4
+      }
+    }
+  ]
+}

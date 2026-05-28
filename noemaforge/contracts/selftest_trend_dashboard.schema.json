@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/selftest_trend_dashboard.schema.json",
+  "title": "NoemaForge SelfTestTrendDashboard",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "run_count", "case_count", "summaries", "case_series", "warnings"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge/v1"},
+    "kind": {"const": "SelfTestTrendDashboard"},
+    "version": {"type": "string", "minLength": 1},
+    "title": {"type": "string"},
+    "generated_at": {"type": "string"},
+    "ok": {"type": "boolean"},
+    "run_count": {"type": "integer", "minimum": 0},
+    "case_count": {"type": "integer", "minimum": 0},
+    "latest": {"type": "object"},
+    "summaries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id", "suite", "ok", "case_count", "passed", "failed", "duration_total_sec", "max_rss_kib"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "suite": {"type": "string"},
+          "started_at": {"type": "string"},
+          "finished_at": {"type": "string"},
+          "ok": {"type": "boolean"},
+          "case_count": {"type": "integer", "minimum": 0},
+          "passed": {"type": "integer", "minimum": 0},
+          "failed": {"type": "integer", "minimum": 0},
+          "duration_total_sec": {"type": "number", "minimum": 0},
+          "duration_max_sec": {"type": "number", "minimum": 0},
+          "max_rss_kib": {"type": "integer", "minimum": 0},
+          "disk_write_bytes_total": {"type": "integer", "minimum": 0},
+          "ecc_delta_total": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": true
+      }
+    },
+    "case_series": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["run_id", "status", "duration_sec", "max_rss_kib"],
+          "properties": {
+            "run_id": {"type": "string"},
+            "suite": {"type": "string"},
+            "finished_at": {"type": "string"},
+            "status": {"type": "string"},
+            "duration_sec": {"type": "number", "minimum": 0},
+            "max_rss_kib": {"type": "integer", "minimum": 0},
+            "disk_write_bytes": {"type": "integer", "minimum": 0},
+            "module": {"type": "string"},
+            "tier": {"type": "string"}
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["kind"],
+        "properties": {
+          "kind": {"type": "string"},
+          "case_id": {"type": "string"},
+          "run_id": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "outputs": {"type": "object"}
+  },
+  "additionalProperties": true
+}

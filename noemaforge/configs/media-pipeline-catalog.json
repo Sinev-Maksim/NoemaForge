@@ -1,7 +1,38 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "MediaPipelineCatalog",
-  "version": "0.31.13.alpha",
+  "version": "0.32.1",
+  "adapter_telemetry_contract": {
+    "id": "media-adapter-telemetry-core",
+    "live_backend_required": false,
+    "required_metrics": [
+      "wall_time_ms",
+      "cpu_time_ms",
+      "max_rss_mb",
+      "disk_read_bytes",
+      "disk_write_bytes",
+      "artifact_bytes",
+      "status"
+    ],
+    "optional_hardware_metrics": [
+      "gpu_vram_mb",
+      "gpu_utilization_pct",
+      "ecc_error_count"
+    ],
+    "required_selftest_cases": [
+      "metadata_probe",
+      "plan_only_smoke",
+      "artifact_review_stub"
+    ],
+    "adapter_map": {
+      "voice_generation": "audio.tts_generate",
+      "music_generation": "audio.music_generate",
+      "photo_generation": "image.photo_generate",
+      "video_generation": "video.generate",
+      "image_analysis": "image.metadata_and_caption",
+      "camera_mask_bridge": "video_call.masks_virtual_camera"
+    }
+  },
   "pipelines": [
     {
       "id": "image.metadata_and_caption",
@@ -43,7 +74,7 @@
       "stage": "prepared",
       "autostart": false,
       "entrypoint": "noemaforge multimodal mask-plan",
-      "notes": "Checks v4l2/OBS/PipeWire/segmentation assets and emits setup plan."
+      "notes": "Checks v4l2/OBS/PipeWire/segmentation assets and emits setup plan. Manual-only: no camera hijack, no implicit capture, visible privacy state required."
     },
     {
       "id": "gui.persona_portraits",
@@ -75,3 +106,4 @@
     }
   ]
 }
+

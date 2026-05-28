@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/artifact_card_affordance.schema.json",
+  "title": "ArtifactCardAffordancePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.artifact-card-affordance/v1"},
+    "kind": {"const": "ArtifactCardAffordancePolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_first_default",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_guarded_path_resolution",
+        "required_api_paths",
+        "required_runtime_tokens",
+        "required_frontend_tokens",
+        "allowed_root_tokens",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "local_first_default": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_guarded_path_resolution": {"const": true},
+        "required_api_paths": {"type": "array", "items": {"enum": ["/api/artifacts/open", "/api/artifacts/download"]}, "minItems": 2, "uniqueItems": true},
+        "required_runtime_tokens": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "required_frontend_tokens": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true},
+        "allowed_root_tokens": {"type": "array", "items": {"enum": ["data_root", "state", "model_selection_state", "evolution_state", "dev_team_state"]}, "minItems": 5, "uniqueItems": true},
+        "required_docs": {"type": "array", "items": {"type": "string"}, "minItems": 5, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

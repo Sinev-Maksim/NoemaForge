@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: noemaforge/src/team_member_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
+Modified: 2026-05-25
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge pipeline team-member runtime.
 
-0.31.13.alpha scope:
+0.32.2 scope:
 - every pipeline member can be standalone or a sequentially executed multi-model cell;
 - each cell writes proposal logs, consensus artifacts, unique artifacts and a typed handoff;
 - code-dev cells include consistency gates: developer auto-tests, QA loop detection,
@@ -39,8 +39,7 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
-
-RUNTIME_VERSION = "0.31.13.alpha"
+from noemaforge_version import RUNTIME_VERSION
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MEMBER_STATE", "/var/lib/noemaforge/pipeline-members"))
 DEFAULT_PIPELINE_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -669,3 +668,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

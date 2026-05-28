@@ -1,0 +1,17 @@
+{
+  "apiVersion": "noemaforge.backlog-status-legend/v1",
+  "kind": "BacklogStatusLegendExample",
+  "legacy_status_legend": [
+    "- [ ] planned",
+    "- [~] in progress / partially covered",
+    "- [x] done",
+    "- [!] explicit non-goal for the ASAP window"
+  ],
+  "canonical_status_legend": [
+    "- `planned`: open/not started.",
+    "- `in progress`: partially covered.",
+    "- `done`: complete.",
+    "- `explicit non-goal`: outside the ASAP window."
+  ],
+  "expected_result": "status_legend_not_task_list"
+}

@@ -1,0 +1,49 @@
+{
+  "apiVersion": "noemaforge.pipeline-template-append/v1",
+  "kind": "PipelineTemplateAppendPolicy",
+  "id": "pipeline-template-append-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "reviewed_template_catalog_append",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_commands": ["template-import", "template-append"],
+    "required_outputs": ["review_required", "approved_append", "local_catalog_json"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/pipeline_runtime.py",
+      "contract_runtime": "src/pipeline_template_append_runtime.py"
+    },
+    "controls": {
+      "operator_review_required": true,
+      "draft_before_append": true,
+      "approve_flag_required": true,
+      "approved_by_recorded": true,
+      "local_catalog_output": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/pipeline_template_append.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-template-append-policy.json",
+    "noemaforge/contracts/pipeline_template_append.schema.json",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/pipeline_template_append_runtime.py",
+    "noemaforge/tests/test_pipeline_template_append_runtime.py",
+    "noemaforge/tests/test_pipeline_template_append_qa.py",
+    "noemaforge/tests/test_pipeline_template_append_performance.py",
+    "prelaunch/governance/pipeline_template_append.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

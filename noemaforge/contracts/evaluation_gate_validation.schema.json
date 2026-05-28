@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evaluation_gate_validation.schema.json",
+  "title": "EvaluationGateValidationReport",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "ok",
+    "created_at",
+    "failures",
+    "domain_coverage",
+    "missing_domains",
+    "metrics",
+    "fixtures"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.production-ai/v1"
+    },
+    "kind": {
+      "const": "EvaluationGateValidationReport"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "domain_coverage": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "missing_domains": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_checks_by_domain": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "fixture_total",
+        "fixture_passed",
+        "fixture_failed",
+        "domain_total",
+        "domain_covered"
+      ],
+      "properties": {
+        "fixture_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixture_passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fixture_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "domain_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "domain_covered": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "fixtures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "ok",
+          "domain",
+          "expected_ok",
+          "actual_ok",
+          "decision",
+          "failures"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "domain": {
+            "type": "string"
+          },
+          "expected_ok": {
+            "type": "boolean"
+          },
+          "actual_ok": {
+            "type": "boolean"
+          },
+          "expected_failure": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "string"
+          },
+          "failures": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "required_checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "passed_checks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

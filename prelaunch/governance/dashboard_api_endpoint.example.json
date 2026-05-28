@@ -1,0 +1,21 @@
+{
+  "apiVersion": "noemaforge.dashboard-api-endpoint/v1",
+  "kind": "DashboardApiEndpointExampleSet",
+  "id": "dashboard-api-endpoint-examples",
+  "version": "0.32.1",
+  "examples": [
+    {
+      "name": "installed_gui_dashboard_backend",
+      "request": {"method": "GET", "path": "/api/dashboard"},
+      "expect": {
+        "ok": true,
+        "dashboard_backend": {
+          "endpoint": "/api/dashboard",
+          "compatibility_endpoint": "/api/gui/state",
+          "contract": "dashboard-api-endpoint-core"
+        },
+        "sections": ["dashboard", "conversation", "tasks", "jobs", "persona", "pipelines", "telemetry"]
+      }
+    }
+  ]
+}

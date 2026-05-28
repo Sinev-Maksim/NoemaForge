@@ -1,0 +1,52 @@
+{
+  "apiVersion": "noemaforge.selftest-rss-slope/v1",
+  "kind": "SelfTestRssSlopePolicy",
+  "id": "selftest-rss-slope-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "rss_slope_stress_repeat_runner",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_selftest_commands": ["stress"],
+    "required_outputs": ["selftest-rss-slope.json"],
+    "default_warn_slope_kib": 512,
+    "default_fail_slope_kib": 2048,
+    "default_min_repeats": 3,
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/selftest_runtime.py",
+      "contract_runtime": "src/selftest_rss_slope_runtime.py"
+    },
+    "controls": {
+      "repeat_samples_required": true,
+      "linear_rss_slope": true,
+      "warn_fail_thresholds": true,
+      "json_export": true,
+      "fail_on_leak": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/selftest_rss_slope.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/selftest-rss-slope-policy.json",
+    "noemaforge/contracts/selftest_rss_slope.schema.json",
+    "noemaforge/src/selftest_runtime.py",
+    "noemaforge/src/selftest_rss_slope_runtime.py",
+    "noemaforge/tests/test_selftest_rss_slope_runtime.py",
+    "noemaforge/tests/test_selftest_rss_slope_qa.py",
+    "noemaforge/tests/test_selftest_rss_slope_performance.py",
+    "prelaunch/governance/selftest_rss_slope.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,19 @@
+{
+  "apiVersion": "noemaforge.wiki-patch-commit-helper/v1",
+  "kind": "WikiPatchCommitHelperExampleSet",
+  "id": "wiki-patch-commit-helper-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "offline-reviewed-local-commit-plan",
+      "trace_id": "trace:wiki-patch:commit-helper:offline-plan",
+      "patch_id": "wiki_patch_example",
+      "branch": "noemaforge/wiki/wiki_patch_example",
+      "reviewed_by": "operator",
+      "review_id": "review-001",
+      "expected_outputs": ["reviewed_commit_plan.json", "commit_helper.sh", "commit_message.txt"],
+      "expect_no_push": true,
+      "expect_review_required": true
+    }
+  ]
+}

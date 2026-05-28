@@ -1,0 +1,115 @@
+{
+  "apiVersion": "noemaforge.model-route-distinction/v1",
+  "kind": "ModelRouteDistinctionPolicy",
+  "id": "model-route-distinction-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "gui_model_selection_evolution_distinction",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_model_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_runtime.py",
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_ui_files": [
+      "noemaforge/templates/pipeline-dashboard/index.html",
+      "noemaforge/templates/pipeline-dashboard/app.js"
+    ],
+    "selection_route": {
+      "id": "model_selection",
+      "intent": "model_selection",
+      "execute_mode": "model_selection_plan",
+      "persona": "Optimizer",
+      "endpoint": "/api/model-selection/plan",
+      "artifact_group": "Model selection / epoch"
+    },
+    "evolution_route": {
+      "id": "model_evolution",
+      "intent": "model_evolution",
+      "execute_mode": "pipeline_and_model_evolution",
+      "persona": "Model Evolution",
+      "endpoint": "/api/model-evolution/run",
+      "artifact_group": "Model evolution"
+    },
+    "route_samples": [
+      {
+        "text": "оптимизируй модель для dev team normal",
+        "expected_id": "model_selection"
+      },
+      {
+        "text": "model selection full_composite 4 for dev team",
+        "expected_id": "model_selection"
+      },
+      {
+        "text": "проведи эволюцию модели для ревью кода",
+        "expected_id": "model_evolution"
+      },
+      {
+        "text": "run model evolution scorecard cycle for code review",
+        "expected_id": "model_evolution"
+      }
+    ],
+    "required_selection_tokens": [
+      "отбор runtime-модели",
+      "candidate-selection-plan",
+      "model-selection-decision",
+      "Эпоха не меняется",
+      "План отбора модели создан",
+      "Эпоха не применена"
+    ],
+    "required_evolution_tokens": [
+      "measured improvement cycle",
+      "baseline_snapshot",
+      "mutation_plan",
+      "scorecard",
+      "не скрытое production-обучение",
+      "Measured model-evolution cycle is ready"
+    ],
+    "required_ui_tokens": [
+      "Epoch / model selection",
+      "Continue model selection",
+      "Model selection / epoch",
+      "Model evolution",
+      "Optimizer",
+      "Model Evolution"
+    ],
+    "forbidden_cross_route_tokens": {
+      "selection_execute_modes": [
+        "pipeline_and_model_evolution"
+      ],
+      "evolution_execute_modes": [
+        "model_selection_plan"
+      ],
+      "selection_endpoints": [
+        "/api/model-evolution/run"
+      ],
+      "evolution_endpoints": [
+        "/api/model-selection/plan"
+      ]
+    }
+  },
+  "refs": [
+    "noemaforge/configs/model-route-distinction-policy.json",
+    "noemaforge/src/model_route_distinction_runtime.py",
+    "noemaforge/src/admin_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/tests/test_model_route_distinction_runtime.py",
+    "noemaforge/tests/test_model_route_distinction_qa.py",
+    "noemaforge/tests/test_model_route_distinction_performance.py",
+    "TODO.md",
+    "noemaforge/TODO.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "CHANGELOG.md",
+    "RELEASE_NOTES.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

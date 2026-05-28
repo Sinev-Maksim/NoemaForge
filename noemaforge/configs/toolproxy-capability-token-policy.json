@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.toolproxy-capability/v1",
+  "kind": "ToolProxyCapabilityTokenPolicy",
+  "id": "toolproxy-capability-token-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "capability_token_issuance_ux",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_policy_schema_runtime_tests": true,
+    "require_docs_and_changelog_refs": true,
+    "required_tool_policy_ref": "tool-policy:tool-policy-main:0.32.1",
+    "required_runtime_refs": [
+      "src/caps.py",
+      "src/noemaforge_toolproxy_diag.py",
+      "contracts/capability_token.schema.json"
+    ],
+    "required_ux_commands": ["issue", "list", "verify", "revoke", "smoke"],
+    "token_controls": {
+      "short_lived_required": true,
+      "max_default_ttl_sec": 600,
+      "default_secret_redaction": true,
+      "full_secret_requires_explicit_flag": true,
+      "persisted_secret_plaintext_allowed": false,
+      "secret_sha256_required": true,
+      "epoch_binding_required": true,
+      "issued_to_binding_required": true,
+      "live_llm_optional": true,
+      "offline_smoke_required": true,
+      "revoke_moves_to_revoked": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/toolproxy_capability_token.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/toolproxy-capability-token-policy.json",
+    "noemaforge/contracts/toolproxy_capability_token.schema.json",
+    "noemaforge/contracts/capability_token.schema.json",
+    "noemaforge/src/caps.py",
+    "noemaforge/src/noemaforge_toolproxy_diag.py",
+    "noemaforge/src/toolproxy_capability_token_runtime.py",
+    "noemaforge/tests/test_toolproxy_capability_token_runtime.py",
+    "noemaforge/tests/test_toolproxy_capability_token_qa.py",
+    "noemaforge/tests/test_toolproxy_capability_token_performance.py",
+    "prelaunch/governance/toolproxy_capability_token.example.json",
+    "docs/README.md",
+    "noemaforge/docs/README.md",
+    "docs/TODO.md",
+    "noemaforge/docs/TODO.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,184 @@
+{
+  "apiVersion": "noemaforge.model-switch-policy/v1",
+  "kind": "ModelSwitchPolicy",
+  "id": "model-switch-policy-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "role_preferred_model_switch_with_fallback",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_backend_dependency": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "closed_todo_refs": [
+      "Add model switch policy: role -> preferred local/remote model -> fallback."
+    ],
+    "controls": {
+      "local_first": true,
+      "remote_requires_explicit_approval": true,
+      "remote_disabled_by_default": true,
+      "failed_or_unhealthy_models_blocked": true,
+      "silent_fallback_blocked": true,
+      "na_when_no_candidate": true,
+      "max_active_heavy_workers": 1,
+      "applies_on": "next_persona_or_model_switch_or_backend_restart"
+    },
+    "required_role_fields": [
+      "role",
+      "preferred_local_models",
+      "preferred_remote_models",
+      "fallback_models",
+      "allow_remote",
+      "default_when_unavailable"
+    ],
+    "required_candidate_fields": [
+      "model_id",
+      "backend",
+      "status",
+      "health",
+      "approved"
+    ],
+    "candidate_order": [
+      "preferred_local_models",
+      "preferred_remote_models_when_approved",
+      "fallback_models",
+      "default_when_unavailable"
+    ],
+    "roles": [
+      {
+        "role": "administrator",
+        "preferred_local_models": [
+          "local:qwen2.5-7b-instruct",
+          "local:llama-3.1-8b-instruct"
+        ],
+        "preferred_remote_models": [
+          "remote:frontier-admin"
+        ],
+        "fallback_models": [
+          "local:phi-3-mini",
+          "local:main"
+        ],
+        "allow_remote": true,
+        "default_when_unavailable": "N/A"
+      },
+      {
+        "role": "surgeon",
+        "preferred_local_models": [
+          "local:qwen2.5-7b-instruct",
+          "local:phi-3-mini"
+        ],
+        "preferred_remote_models": [],
+        "fallback_models": [
+          "local:main"
+        ],
+        "allow_remote": false,
+        "default_when_unavailable": "N/A"
+      },
+      {
+        "role": "scary",
+        "preferred_local_models": [
+          "local:phi-3-mini",
+          "local:qwen2.5-7b-instruct"
+        ],
+        "preferred_remote_models": [],
+        "fallback_models": [
+          "local:main"
+        ],
+        "allow_remote": false,
+        "default_when_unavailable": "N/A"
+      },
+      {
+        "role": "writer",
+        "preferred_local_models": [
+          "local:llama-3.1-8b-instruct",
+          "local:gemma-2-9b"
+        ],
+        "preferred_remote_models": [
+          "remote:frontier-writer"
+        ],
+        "fallback_models": [
+          "local:qwen2.5-7b-instruct",
+          "local:main"
+        ],
+        "allow_remote": true,
+        "default_when_unavailable": "N/A"
+      },
+      {
+        "role": "researcher",
+        "preferred_local_models": [
+          "local:qwen2.5-14b-instruct",
+          "local:llama-3.1-8b-instruct"
+        ],
+        "preferred_remote_models": [
+          "remote:frontier-research"
+        ],
+        "fallback_models": [
+          "local:qwen2.5-7b-instruct",
+          "local:main"
+        ],
+        "allow_remote": true,
+        "default_when_unavailable": "N/A"
+      },
+      {
+        "role": "developer",
+        "preferred_local_models": [
+          "local:qwen2.5-coder-7b",
+          "local:qwen2.5-7b-instruct"
+        ],
+        "preferred_remote_models": [
+          "remote:frontier-coder"
+        ],
+        "fallback_models": [
+          "local:phi-3-mini",
+          "local:main"
+        ],
+        "allow_remote": true,
+        "default_when_unavailable": "N/A"
+      }
+    ],
+    "required_outputs": [
+      "model_switch_policy_summary",
+      "role_resolution_matrix",
+      "fallback_decisions",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/model-switch-policy.json",
+      "noemaforge/contracts/model_switch_policy.schema.json",
+      "noemaforge/configs/role-model-policy.yaml",
+      "noemaforge/configs/model-profiles.json",
+      "noemaforge/configs/default-model-runtime-policy.json",
+      "noemaforge/src/model_switch_policy_runtime.py",
+      "noemaforge/src/model_selection_runtime.py",
+      "noemaforge/src/model_health_candidate_filter_runtime.py",
+      "prelaunch/governance/model_switch_policy.example.json",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/model-switch-policy.json",
+    "noemaforge/contracts/model_switch_policy.schema.json",
+    "noemaforge/configs/role-model-policy.yaml",
+    "noemaforge/configs/model-profiles.json",
+    "noemaforge/configs/default-model-runtime-policy.json",
+    "noemaforge/src/model_switch_policy_runtime.py",
+    "noemaforge/src/model_selection_runtime.py",
+    "noemaforge/src/model_health_candidate_filter_runtime.py",
+    "noemaforge/tests/test_model_switch_policy_runtime.py",
+    "noemaforge/tests/test_model_switch_policy_qa.py",
+    "noemaforge/tests/test_model_switch_policy_performance.py",
+    "prelaunch/governance/model_switch_policy.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

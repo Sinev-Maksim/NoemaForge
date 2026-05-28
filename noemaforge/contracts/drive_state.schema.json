@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/drive_state.schema.json",
+  "title": "DriveStatePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.drive-state/v1"
+    },
+    "kind": {
+      "const": "DriveStatePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_sense_state_ref",
+        "require_privacy_filtered_source",
+        "require_bounded_signals",
+        "require_clipping",
+        "require_hysteresis",
+        "require_cooldown",
+        "forbid_goal_rewrite",
+        "forbid_policy_override",
+        "signals",
+        "bounds",
+        "hysteresis",
+        "cooldown_seconds",
+        "allowed_actions",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_sense_state_ref": {
+          "const": true
+        },
+        "require_privacy_filtered_source": {
+          "const": true
+        },
+        "require_bounded_signals": {
+          "const": true
+        },
+        "require_clipping": {
+          "const": true
+        },
+        "require_hysteresis": {
+          "const": true
+        },
+        "require_cooldown": {
+          "const": true
+        },
+        "forbid_goal_rewrite": {
+          "const": true
+        },
+        "forbid_policy_override": {
+          "const": true
+        },
+        "signals": {
+          "type": "array",
+          "items": {
+            "enum": ["pressure", "fatigue", "urgency", "curiosity"]
+          },
+          "minItems": 4,
+          "maxItems": 4,
+          "uniqueItems": true
+        },
+        "bounds": {
+          "type": "object",
+          "required": ["min", "max"],
+          "properties": {
+            "min": {
+              "const": 0.0
+            },
+            "max": {
+              "const": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "hysteresis": {
+          "type": "object",
+          "required": ["min_delta", "decay"],
+          "properties": {
+            "min_delta": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            },
+            "decay": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          },
+          "additionalProperties": false
+        },
+        "cooldown_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "enum": ["allow", "slow_down", "ask_clarification", "defer", "rest", "explore"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

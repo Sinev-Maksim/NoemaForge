@@ -1,0 +1,70 @@
+{
+  "apiVersion": "noemaforge.provenance-watermark/v1",
+  "kind": "ProvenanceWatermarkPolicy",
+  "id": "provenance-watermark-verdict-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "advisory_by_default": true,
+    "no_single_detector_truth": true,
+    "require_trace_id": true,
+    "require_source_manifest": true,
+    "require_watermark_hooks": true,
+    "require_aggregated_detection_verdict": true,
+    "require_critic_aggregation_before_final": true,
+    "hook_types": [
+      "manifest",
+      "signature",
+      "watermark",
+      "content_hash"
+    ],
+    "signal_inputs": [
+      "provenance_manifest",
+      "signature_check",
+      "watermark_signal",
+      "content_consistency"
+    ],
+    "risk_weights": {
+      "manifest_missing": 0.25,
+      "signature_invalid": 0.25,
+      "watermark_unverified": 0.2,
+      "content_mismatch": 0.3
+    },
+    "thresholds": {
+      "allow_max": 0.2,
+      "revise_max": 0.45,
+      "abstain_max": 0.7
+    },
+    "actions": [
+      "allow",
+      "revise",
+      "abstain",
+      "escalate"
+    ],
+    "verdict_decisions": [
+      "clean",
+      "advisory_ai_likely",
+      "advisory_manipulated",
+      "unknown"
+    ],
+    "minimum_watermark_confidence": 0.7,
+    "required_example_sets": [
+      "prelaunch/governance/provenance_watermark.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/provenance-watermark-policy.json",
+    "noemaforge/contracts/provenance_watermark.schema.json",
+    "noemaforge/src/provenance_watermark_runtime.py",
+    "noemaforge/tests/test_provenance_watermark_runtime.py",
+    "noemaforge/tests/test_provenance_watermark_qa.py",
+    "noemaforge/tests/test_provenance_watermark_performance.py",
+    "prelaunch/governance/provenance_watermark.example.json",
+    "prelaunch/governance/slop_critic.example.json",
+    "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

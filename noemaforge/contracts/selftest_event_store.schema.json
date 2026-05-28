@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/selftest_event_store.schema.json",
+  "title": "NoemaForge SelfTestEventExport",
+  "type": "object",
+  "required": ["apiVersion", "kind", "version", "ok", "event_count", "events"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge/v1"},
+    "kind": {"const": "SelfTestEventExport"},
+    "version": {"type": "string", "minLength": 1},
+    "ok": {"type": "boolean"},
+    "run_id": {"type": "string"},
+    "event_count": {"type": "integer", "minimum": 0},
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["event_id", "run_id", "case_id", "event_type", "status", "severity", "ts", "summary", "metrics", "source"],
+        "properties": {
+          "event_id": {"type": "string", "minLength": 16},
+          "run_id": {"type": "string", "minLength": 1},
+          "case_id": {"type": "string"},
+          "event_type": {"enum": ["selftest.run.summary", "selftest.case.result"]},
+          "status": {"type": "string"},
+          "severity": {"enum": ["info", "warning", "error"]},
+          "ts": {"type": "string"},
+          "summary": {"type": "object"},
+          "metrics": {"type": "object"},
+          "source": {"type": "object"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

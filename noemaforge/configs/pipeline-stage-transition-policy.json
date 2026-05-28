@@ -1,0 +1,50 @@
+{
+  "apiVersion": "noemaforge.pipeline.stage-transition/v1",
+  "kind": "PipelineStageTransitionPolicy",
+  "id": "pipeline-stage-transition-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "deterministic_stage_transition_commands",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_commands": ["run", "approve", "advance", "pause", "resume", "fail", "event-log", "show"],
+    "required_event_types": ["pipeline_created", "pipeline_approved", "pipeline_paused", "pipeline_resumed", "pipeline_stage_updated", "pipeline_failed"],
+    "required_outputs": ["approved_status", "paused_status", "resumed_status", "advanced_stage", "failed_status", "event_log_evidence", "invalid_stage_rejected"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/pipeline_runtime.py",
+      "contract_runtime": "src/pipeline_stage_transition_runtime.py"
+    },
+    "controls": {
+      "stage_validation_required": true,
+      "event_log_required": true,
+      "terminal_fail_state_required": true,
+      "deterministic_state_dir_required": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/pipeline_stage_transition.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-stage-transition-policy.json",
+    "noemaforge/contracts/pipeline_stage_transition.schema.json",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/pipeline_stage_transition_runtime.py",
+    "noemaforge/tests/test_pipeline_stage_transition_runtime.py",
+    "noemaforge/tests/test_pipeline_stage_transition_qa.py",
+    "noemaforge/tests/test_pipeline_stage_transition_performance.py",
+    "prelaunch/governance/pipeline_stage_transition.example.json",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

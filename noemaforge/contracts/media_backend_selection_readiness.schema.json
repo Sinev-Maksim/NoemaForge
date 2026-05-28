@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.media_backend_selection_readiness.schema.json",
+  "title": "NoemaForge Media Backend Selection Readiness Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.media-backend-selection-readiness/v1" },
+    "kind": { "const": "MediaBackendSelectionReadinessPolicy" },
+    "id": { "const": "media-backend-selection-readiness-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "completion_state",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_no_live_execution",
+        "blocked_todo_refs",
+        "required_safety_controls",
+        "required_backend_slots",
+        "required_checks",
+        "required_outputs",
+        "required_refs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "media_backend_selection_readiness" },
+        "completion_state": { "const": "blocked_until_explicit_media_backend_selection" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_execution": { "const": true },
+        "blocked_todo_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "required_safety_controls": { "type": "object", "additionalProperties": { "type": "boolean" } },
+        "required_backend_slots": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "artifact_classes", "explicit_selection_required", "target_smoke_required", "privacy_gate_required", "telemetry_profile"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+              "title": { "type": "string", "minLength": 1 },
+              "artifact_classes": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+              "explicit_selection_required": { "const": true },
+              "target_smoke_required": { "const": true },
+              "privacy_gate_required": { "type": "boolean" },
+              "telemetry_profile": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "required_checks": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "target_evidence_required", "requires_operator_approval", "evidence", "completion_gates"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]*$" },
+              "title": { "type": "string", "minLength": 1 },
+              "target_evidence_required": { "const": true },
+              "requires_operator_approval": { "type": "boolean" },
+              "evidence": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+              "completion_gates": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+            }
+          }
+        },
+        "required_outputs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+        "required_refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "refs": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+  }
+}

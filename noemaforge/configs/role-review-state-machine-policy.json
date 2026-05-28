@@ -1,0 +1,134 @@
+{
+  "apiVersion": "noemaforge.role-review-state-machine/v1",
+  "kind": "RoleReviewStateMachinePolicy",
+  "id": "role-review-state-machine-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "explicit_admin_surgeon_scary_state_machine",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Admin/Surgeon/Scary review flows are explicit state machines with Scary risk gates, Surgeon repair proposals, Admin approvals and rollback-ready terminal states.",
+    "role_kernel_policy_ref": "configs/role-kernel-policy.json",
+    "roleflow_policy_ref": "configs/roleflow-orchestration-policy.json",
+    "required_roles": [
+      "operator.admin/administrator",
+      "system.guard/scary",
+      "system.guard/surgeon"
+    ],
+    "required_state_kinds": [
+      "start",
+      "guard",
+      "approval",
+      "repair",
+      "terminal"
+    ],
+    "required_terminal_states": [
+      "applied",
+      "rolled_back",
+      "blocked"
+    ],
+    "states": [
+      {"id": "admin_intake", "kind": "start", "role_key": "operator.admin/administrator"},
+      {"id": "scary_risk_review", "kind": "guard", "role_key": "system.guard/scary"},
+      {"id": "admin_decision", "kind": "approval", "role_key": "operator.admin/administrator"},
+      {"id": "surgeon_repair_plan", "kind": "repair", "role_key": "system.guard/surgeon"},
+      {"id": "scary_repair_review", "kind": "guard", "role_key": "system.guard/scary"},
+      {"id": "admin_apply_approval", "kind": "approval", "role_key": "operator.admin/administrator"},
+      {"id": "applied", "kind": "terminal", "role_key": "operator.admin/administrator"},
+      {"id": "rolled_back", "kind": "terminal", "role_key": "operator.admin/administrator"},
+      {"id": "blocked", "kind": "terminal", "role_key": "system.guard/scary"}
+    ],
+    "mandatory_transitions": [
+      {"from": "admin_intake", "to": "scary_risk_review", "kind": "next"},
+      {"from": "scary_risk_review", "to": "blocked", "kind": "guard_blocked", "condition_required": true},
+      {"from": "scary_risk_review", "to": "admin_decision", "kind": "guard_pass", "condition_required": true},
+      {"from": "admin_decision", "to": "surgeon_repair_plan", "kind": "approval", "approver_role": "operator.admin/administrator"},
+      {"from": "surgeon_repair_plan", "to": "scary_repair_review", "kind": "repair_review"},
+      {"from": "scary_repair_review", "to": "admin_apply_approval", "kind": "guard_pass", "condition_required": true},
+      {"from": "admin_apply_approval", "to": "applied", "kind": "approval", "approver_role": "operator.admin/administrator"},
+      {"from": "admin_apply_approval", "to": "rolled_back", "kind": "rollback", "rollback_target": "admin_intake"}
+    ],
+    "baton_requirements": {
+      "durable": true,
+      "sleep_wake": true,
+      "required_fields": [
+        "id",
+        "from_state",
+        "to_state",
+        "role_key",
+        "payload",
+        "handoff_reason",
+        "resume_policy"
+      ]
+    },
+    "controls": {
+      "explicit_state_machine": true,
+      "scary_first_risk_gate": true,
+      "surgeon_repair_only_after_admin_approval": true,
+      "admin_final_apply_approval": true,
+      "rollback_terminal_state": true,
+      "blocked_terminal_state": true,
+      "durable_baton_per_handoff": true,
+      "no_auto_apply_without_admin": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "state_transition_log",
+      "scary_verdict",
+      "surgeon_repair_plan",
+      "admin_approval",
+      "rollback_record",
+      "terminal_state"
+    ],
+    "blocked_transition_claims": [
+      "surgeon applies without admin approval",
+      "skip scary review",
+      "auto-apply repair plan",
+      "terminal state without rollback record"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/role_review_state_machine.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/role-review-state-machine-policy.json",
+    "noemaforge/contracts/role_review_state_machine.schema.json",
+    "noemaforge/configs/role-kernel-policy.json",
+    "noemaforge/configs/roleflow-orchestration-policy.json",
+    "noemaforge/src/role_review_state_machine_runtime.py",
+    "noemaforge/tests/test_role_review_state_machine_runtime.py",
+    "noemaforge/tests/test_role_review_state_machine_qa.py",
+    "noemaforge/tests/test_role_review_state_machine_performance.py",
+    "prelaunch/governance/role_review_state_machine.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

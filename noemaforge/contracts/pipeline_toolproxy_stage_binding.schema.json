@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/pipeline_toolproxy_stage_binding.schema.json",
+  "title": "NoemaForge pipeline ToolProxy stage binding",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "policy_ref",
+    "capability_schema_ref",
+    "pipeline_id",
+    "stage",
+    "scope",
+    "capability_token_required",
+    "approval_required",
+    "sandbox_required",
+    "network_allowed",
+    "allowed_actions",
+    "mutating_actions",
+    "sandboxed_actions",
+    "blocked_actions"
+  ],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.pipeline.toolproxy-stage-binding/v1"},
+    "policy_ref": {"type": "string", "pattern": "^tool-policy:"},
+    "capability_schema_ref": {"const": "contracts/capability_token.schema.json"},
+    "pipeline_id": {"type": "string", "minLength": 1},
+    "stage": {"type": "string", "minLength": 1},
+    "scope": {"type": "string", "pattern": "^pipeline:[A-Za-z0-9_.-]+:stage:[A-Za-z0-9_.-]+$"},
+    "capability_token_required": {"const": true},
+    "approval_required": {"type": "boolean"},
+    "sandbox_required": {"type": "boolean"},
+    "network_allowed": {"const": false},
+    "allowed_actions": {
+      "type": "array",
+      "items": {"type": "string", "pattern": "^[a-z0-9_]+\\.[a-z0-9_]+$"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "mutating_actions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "sandboxed_actions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
+    "blocked_actions": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "issue_hint": {"type": "string"}
+  },
+  "additionalProperties": true
+}

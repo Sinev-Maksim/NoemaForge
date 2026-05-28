@@ -1,0 +1,116 @@
+{
+  "apiVersion": "noemaforge.a2a-interop/v1",
+  "kind": "A2AInteropRegistry",
+  "id": "optional-reviewed-a2a-interoperability",
+  "version": "0.32.1",
+  "policy": {
+    "default_state": "disabled",
+    "default_direction": "none",
+    "default_network": "deny",
+    "require_trace_id": true,
+    "require_capability_token": true,
+    "require_registry_entry": true,
+    "require_operator_review": true,
+    "require_release_evidence_before_enable": true,
+    "allowed_transports": ["offline_manifest", "local_loopback"],
+    "blocked_transports": ["http", "grpc", "websocket", "tcp"],
+    "allowed_payload_classes": [
+      "capability_manifest",
+      "task_summary",
+      "review_request",
+      "release_evidence"
+    ],
+    "max_peer_risk": "medium"
+  },
+  "peers": [
+    {
+      "id": "admin-review-envelope",
+      "version": "0.32.1",
+      "protocol": "a2a",
+      "state": "disabled",
+      "transport": "offline_manifest",
+      "direction": "inbound",
+      "network": "deny",
+      "risk": "low",
+      "autonomy_increase": false,
+      "capability_scopes": ["a2a.review_request.read", "a2a.task_summary.read"],
+      "allowed_payload_classes": ["task_summary", "review_request"],
+      "allowed_actions": ["propose_task", "request_review"],
+      "trace_required": true,
+      "capability_token_required": true,
+      "registry_entry_required": true,
+      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
+      "audit_logging": true,
+      "human_review_required": true,
+      "sandbox": {
+        "profile": "a2a_offline_review_envelope",
+        "write": false,
+        "egress": "deny",
+        "external_identity": "none"
+      },
+      "review": {
+        "required": true,
+        "route": "SR/SSR",
+        "reviewers": ["SR", "SSR"]
+      },
+      "release_evidence": {
+        "required_before_enable": true,
+        "evidence_ref": ""
+      },
+      "rollback_plan": "Keep this peer disabled, remove its manifest from the registry, and rerun A2A interop plus Unified Registry validation.",
+      "refs": [
+        "configs/a2a-interop-registry.json",
+        "contracts/a2a_interop_registry.schema.json",
+        "src/a2a_interop_registry_runtime.py",
+        "configs/tool-policy.yaml",
+        "configs/tool-registry.yaml",
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+      ]
+    },
+    {
+      "id": "capability-manifest-export",
+      "version": "0.32.1",
+      "protocol": "a2a",
+      "state": "disabled",
+      "transport": "offline_manifest",
+      "direction": "outbound",
+      "network": "deny",
+      "risk": "medium",
+      "autonomy_increase": false,
+      "capability_scopes": ["a2a.capability_manifest.write", "a2a.release_evidence.read"],
+      "allowed_payload_classes": ["capability_manifest", "release_evidence"],
+      "allowed_actions": ["export_manifest", "attach_release_evidence"],
+      "trace_required": true,
+      "capability_token_required": true,
+      "registry_entry_required": true,
+      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
+      "audit_logging": true,
+      "human_review_required": true,
+      "sandbox": {
+        "profile": "a2a_offline_manifest_export",
+        "write": false,
+        "egress": "deny",
+        "external_identity": "none"
+      },
+      "review": {
+        "required": true,
+        "route": "SR/SSR",
+        "reviewers": ["SR", "SSR"]
+      },
+      "release_evidence": {
+        "required_before_enable": true,
+        "evidence_ref": ""
+      },
+      "rollback_plan": "Keep outbound A2A manifests disabled until release evidence exists, then remove the peer entry and rerun interop validation if rollback is needed.",
+      "refs": [
+        "configs/a2a-interop-registry.json",
+        "contracts/a2a_interop_registry.schema.json",
+        "src/a2a_interop_registry_runtime.py",
+        "src/production_ai_contracts.py",
+        "contracts/production_ai_contracts.schema.json",
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+      ]
+    }
+  ]
+}
+

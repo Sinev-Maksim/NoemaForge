@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "TeamMemberRuntimePolicy",
-  "version": "0.31.13.alpha",
+  "version": "0.32.1",
   "invariant": {
     "llm_mode": "switchable",
     "max_active_llms": 1,
@@ -220,3 +220,4 @@
     "analyser_diagrams"
   ]
 }
+

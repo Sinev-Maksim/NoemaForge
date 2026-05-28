@@ -1,0 +1,97 @@
+{
+  "apiVersion": "noemaforge.systemd-happy-path/v1",
+  "kind": "SystemdHappyPathPolicy",
+  "id": "systemd-happy-path-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "refs": [
+    "configs/systemd-happy-path-policy.json",
+    "contracts/systemd_happy_path.schema.json",
+    "src/systemd_happy_path_runtime.py",
+    "tools/prep/noemaforge-boot-mode.sh",
+    "bin/noemaforge",
+    "tests/test_systemd_happy_path_runtime.py",
+    "tests/test_systemd_happy_path_qa.py",
+    "tests/test_systemd_happy_path_performance.py",
+    "prelaunch/governance/systemd_happy_path.example.json",
+    "README.md",
+    "docs/README.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md"
+  ],
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "operator_cli_owned_systemd_happy_path",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "No happy-path install or boot-mode flow requires hand-editing systemd units",
+    "required_outputs": [
+      "operator_cli_boot_mode",
+      "install_units_wrapper",
+      "dry_run_available",
+      "daemon_reload_owned_by_wrapper",
+      "no_manual_unit_editor_happy_path",
+      "registry_attachment",
+      "docs_changelog_refs"
+    ],
+    "controls": {
+      "no_manual_systemd_unit_editing": true,
+      "boot_mode_cli_wrapper": true,
+      "install_units_wrapper": true,
+      "dry_run_before_apply": true,
+      "daemon_reload_owned_by_wrapper": true,
+      "operator_docs_boundary": true,
+      "no_live_host_required": true
+    },
+    "required_static_tokens": {
+      "cli": [
+        "noemaforge boot-mode show|status",
+        "sudo noemaforge boot-mode set manual|gui|wogui",
+        "cmd_boot_mode"
+      ],
+      "boot_mode_script": [
+        "install-units [--dry-run]",
+        "--apply-systemd|--enable-autostart|--enable",
+        "install -D -m 0644",
+        "systemctl daemon-reload",
+        "dry-run"
+      ]
+    },
+    "blocked_happy_path_tokens": [
+      "systemctl edit",
+      "sudoedit /etc/systemd/system",
+      "sudo nano /etc/systemd/system",
+      "sudo vi /etc/systemd/system",
+      "edit /etc/systemd/system/noemaforge"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/systemd_happy_path.example.json"
+    ]
+  }
+}
+

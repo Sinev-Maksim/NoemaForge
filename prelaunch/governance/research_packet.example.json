@@ -1,0 +1,285 @@
+{
+  "apiVersion": "noemaforge.research-packet/v1",
+  "kind": "ResearchPacketSet",
+  "id": "research-packet-examples",
+  "version": "0.32.1",
+  "packets": [
+    {
+      "apiVersion": "noemaforge.research-packet/v1",
+      "kind": "ResearchPacket",
+      "id": "research-packet-freshness-official-sources",
+      "trace_id": "trace:research-packet:freshness-official-sources",
+      "status": "ready",
+      "query": "How should NoemaForge packetize freshness-bounded cited scouting?",
+      "collected_at": "2026-05-20T00:00:00Z",
+      "freshness_window_days": 30,
+      "source_allowlist": [
+        "docs.python.org",
+        "github.com",
+        "noemaforge.local",
+        "openai.com",
+        "www.openai.com"
+      ],
+      "sources": [
+        {
+          "id": "source:python-docs-json",
+          "kind": "official_docs",
+          "title": "Python json documentation",
+          "url": "https://docs.python.org/3/library/json.html",
+          "domain": "docs.python.org",
+          "published_at": "2026-05-10T00:00:00Z",
+          "accessed_at": "2026-05-20T00:00:00Z",
+          "primary": true,
+          "excerpt": "The json module documents serialization and deserialization APIs."
+        },
+        {
+          "id": "source:github-artifact-policy",
+          "kind": "repository",
+          "title": "Repository evidence policy",
+          "url": "https://github.com/noemaforge/noemaforge/blob/main/docs/policies/POLICIES.md",
+          "domain": "github.com",
+          "published_at": "2026-05-12T00:00:00Z",
+          "accessed_at": "2026-05-20T00:00:00Z",
+          "primary": true,
+          "excerpt": "Repository policy evidence is tracked as a reviewed artifact reference."
+        },
+        {
+          "id": "source:local-typed-governance",
+          "kind": "local_evidence",
+          "title": "Typed control-plane governance RFC",
+          "url": "noemaforge.local://docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+          "domain": "noemaforge.local",
+          "published_at": "2026-05-19T00:00:00Z",
+          "accessed_at": "2026-05-20T00:00:00Z",
+          "primary": true,
+          "excerpt": "The governance track requires packetized scouting with freshness and source bounds."
+        }
+      ],
+      "claims": [
+        {
+          "id": "claim:offline-validation",
+          "text": "Research_Packet validation must be offline and verify already collected source metadata rather than fetch network data.",
+          "citation_ids": [
+            "citation:local-typed-governance"
+          ]
+        },
+        {
+          "id": "claim:source-bound",
+          "text": "Fresh scouting requires allowlisted source domains and citation-backed claims.",
+          "citation_ids": [
+            "citation:github-artifact-policy",
+            "citation:local-typed-governance-bound"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "citation:local-typed-governance",
+          "claim_id": "claim:offline-validation",
+          "source_id": "source:local-typed-governance",
+          "supports": true,
+          "cited_text": "packetized scouting with freshness and source bounds"
+        },
+        {
+          "id": "citation:github-artifact-policy",
+          "claim_id": "claim:source-bound",
+          "source_id": "source:github-artifact-policy",
+          "supports": true,
+          "cited_text": "reviewed artifact reference"
+        },
+        {
+          "id": "citation:local-typed-governance-bound",
+          "claim_id": "claim:source-bound",
+          "source_id": "source:local-typed-governance",
+          "supports": true,
+          "cited_text": "freshness and source bounds"
+        }
+      ],
+      "finalization": {
+        "network_fetch_performed": false,
+        "all_claims_cited": true,
+        "all_sources_allowlisted": true,
+        "freshness_checked": true
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "prelaunch/governance/provenance_watermark.example.json"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.research-packet/v1",
+      "kind": "ResearchPacket",
+      "id": "research-packet-local-evidence-safe",
+      "trace_id": "trace:research-packet:local-evidence-safe",
+      "status": "ready",
+      "query": "How should local evidence be cited inside NoemaForge governance packets?",
+      "collected_at": "2026-05-20T00:00:00Z",
+      "freshness_window_days": 45,
+      "source_allowlist": [
+        "docs.python.org",
+        "github.com",
+        "noemaforge.local",
+        "openai.com",
+        "www.openai.com"
+      ],
+      "sources": [
+        {
+          "id": "source:local-provenance-watermark",
+          "kind": "local_evidence",
+          "title": "Provenance watermark example",
+          "url": "noemaforge.local://prelaunch/governance/provenance_watermark.example.json",
+          "domain": "noemaforge.local",
+          "published_at": "2026-05-20T00:00:00Z",
+          "accessed_at": "2026-05-20T00:00:00Z",
+          "primary": true,
+          "excerpt": "The provenance packet records manifest, signature, watermark and content consistency hooks."
+        },
+        {
+          "id": "source:local-roadmap",
+          "kind": "local_evidence",
+          "title": "NoemaForge roadmap",
+          "url": "noemaforge.local://docs/backlog/ROADMAP_AND_TODO.md",
+          "domain": "noemaforge.local",
+          "published_at": "2026-05-20T00:00:00Z",
+          "accessed_at": "2026-05-20T00:00:00Z",
+          "primary": true,
+          "excerpt": "The roadmap tracks Research_Packet as source-allowlisted and freshness-bounded scouting."
+        }
+      ],
+      "claims": [
+        {
+          "id": "claim:local-evidence",
+          "text": "Local governance evidence can be cited as noemaforge.local sources when it is tracked by package refs.",
+          "citation_ids": [
+            "citation:local-provenance-watermark",
+            "citation:local-roadmap"
+          ]
+        }
+      ],
+      "citations": [
+        {
+          "id": "citation:local-provenance-watermark",
+          "claim_id": "claim:local-evidence",
+          "source_id": "source:local-provenance-watermark",
+          "supports": true,
+          "cited_text": "manifest, signature, watermark and content consistency hooks"
+        },
+        {
+          "id": "citation:local-roadmap",
+          "claim_id": "claim:local-evidence",
+          "source_id": "source:local-roadmap",
+          "supports": true,
+          "cited_text": "source-allowlisted and freshness-bounded scouting"
+        }
+      ],
+      "finalization": {
+        "network_fetch_performed": false,
+        "all_claims_cited": true,
+        "all_sources_allowlisted": true,
+        "freshness_checked": true
+      },
+      "refs": [
+        "prelaunch/governance/provenance_watermark.example.json",
+        "docs/backlog/ROADMAP_AND_TODO.md"
+      ]
+    }
+  ],
+  "scoring_cases": [
+    {
+      "id": "packet-fresh-ready",
+      "packet": {
+        "query": "What is the policy?",
+        "collected_at": "2026-05-20T00:00:00Z",
+        "sources": [
+          {
+            "id": "source:docs",
+            "kind": "official_docs",
+            "url": "https://docs.python.org/3/library/json.html",
+            "domain": "docs.python.org",
+            "published_at": "2026-05-19T00:00:00Z",
+            "accessed_at": "2026-05-20T00:00:00Z",
+            "primary": true,
+            "excerpt": "Official docs source."
+          },
+          {
+            "id": "source:repo",
+            "kind": "repository",
+            "url": "https://github.com/noemaforge/noemaforge",
+            "domain": "github.com",
+            "published_at": "2026-05-19T00:00:00Z",
+            "accessed_at": "2026-05-20T00:00:00Z",
+            "primary": true,
+            "excerpt": "Repository source."
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim:one",
+            "text": "The packet cites both sources.",
+            "citation_ids": [
+              "citation:one",
+              "citation:two"
+            ]
+          }
+        ],
+        "citations": [
+          {
+            "id": "citation:one",
+            "claim_id": "claim:one",
+            "source_id": "source:docs",
+            "supports": true,
+            "cited_text": "Official docs source."
+          },
+          {
+            "id": "citation:two",
+            "claim_id": "claim:one",
+            "source_id": "source:repo",
+            "supports": true,
+            "cited_text": "Repository source."
+          }
+        ]
+      },
+      "expected_status": "ready",
+      "expected_ok": true
+    },
+    {
+      "id": "packet-stale-needs-refresh",
+      "packet": {
+        "query": "What is stale?",
+        "collected_at": "2026-05-20T00:00:00Z",
+        "sources": [
+          {
+            "id": "source:stale",
+            "kind": "official_docs",
+            "url": "https://docs.python.org/3/library/json.html",
+            "domain": "docs.python.org",
+            "published_at": "2026-01-01T00:00:00Z",
+            "accessed_at": "2026-05-20T00:00:00Z",
+            "primary": true,
+            "excerpt": "Stale source."
+          }
+        ],
+        "claims": [
+          {
+            "id": "claim:stale",
+            "text": "This packet is stale.",
+            "citation_ids": [
+              "citation:stale"
+            ]
+          }
+        ],
+        "citations": [
+          {
+            "id": "citation:stale",
+            "claim_id": "claim:stale",
+            "source_id": "source:stale",
+            "supports": true,
+            "cited_text": "Stale source."
+          }
+        ]
+      },
+      "expected_status": "needs_refresh",
+      "expected_ok": false
+    }
+  ]
+}

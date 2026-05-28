@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.safe_worktree_evolution.schema.json",
+  "title": "NoemaForge Safe Worktree Evolution",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.safe-worktree-evolution/v1" },
+    "kind": { "const": "SafeWorktreeEvolutionPolicy" },
+    "id": { "const": "safe-worktree-evolution-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "pipeline_id",
+        "branch_namespace",
+        "required_cli",
+        "required_runtime_helpers",
+        "controls",
+        "summary_fields"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "safe_evolution_worktree_contract" },
+        "pipeline_id": { "const": "evolution" },
+        "branch_namespace": { "const": "noemaforge/evolution/" },
+        "required_cli": { "const": "noemaforge pipeline worktree create" },
+        "required_runtime_helpers": {
+          "type": "array",
+          "contains": { "const": "build_evolution_worktree_plan" }
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "plan_is_default",
+            "apply_requires_explicit_flag",
+            "degraded_mutation_guard_required",
+            "evolution_pipeline_only",
+            "branch_namespace_required",
+            "base_ref_sanitized",
+            "destination_under_run_worktrees",
+            "subprocess_uses_argv_list",
+            "no_shell_command_string",
+            "artifact_registered_after_apply",
+            "event_emitted_for_plan_and_apply",
+            "docs_changelog_trace_required"
+          ],
+          "properties": {
+            "plan_is_default": { "const": true },
+            "apply_requires_explicit_flag": { "const": true },
+            "degraded_mutation_guard_required": { "const": true },
+            "evolution_pipeline_only": { "const": true },
+            "branch_namespace_required": { "const": true },
+            "base_ref_sanitized": { "const": true },
+            "destination_under_run_worktrees": { "const": true },
+            "subprocess_uses_argv_list": { "const": true },
+            "no_shell_command_string": { "const": true },
+            "artifact_registered_after_apply": { "const": true },
+            "event_emitted_for_plan_and_apply": { "const": true },
+            "docs_changelog_trace_required": { "const": true }
+          }
+        },
+        "summary_fields": {
+          "type": "array",
+          "contains": { "const": "destination_guard" }
+        }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

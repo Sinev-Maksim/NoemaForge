@@ -1,6 +1,6 @@
 apiVersion: noemaforge.llmbackends/v1
 kind: LLMBackendsPolicy
-version: 0.29.06
+version: 0.32.2
 
 # Contract Epoch: which llama-server backend instance should be active.
 #

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.artifact_registry_table.schema.json",
+  "title": "NoemaForge Artifact Registry Table",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.artifact-registry-table/v1" },
+    "kind": { "const": "ArtifactRegistryTablePolicy" },
+    "id": { "const": "artifact-registry-table-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "required_tables",
+        "required_columns",
+        "allowed_artifact_types",
+        "allowed_review_states",
+        "controls",
+        "summary_fields"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "artifact_registry_table_contract" },
+        "required_tables": {
+          "type": "array",
+          "contains": { "const": "graph_patches" }
+        },
+        "required_columns": {
+          "type": "array",
+          "contains": { "const": "sha256" }
+        },
+        "allowed_artifact_types": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "allowed_review_states": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "sha256_required",
+            "relative_paths_only",
+            "trace_id_required",
+            "review_rows_require_reviewer",
+            "graph_patch_rows_require_graph_patch_ref",
+            "no_live_filesystem_mutation",
+            "docs_changelog_trace_required"
+          ],
+          "properties": {
+            "sha256_required": { "const": true },
+            "relative_paths_only": { "const": true },
+            "trace_id_required": { "const": true },
+            "review_rows_require_reviewer": { "const": true },
+            "graph_patch_rows_require_graph_patch_ref": { "const": true },
+            "no_live_filesystem_mutation": { "const": true },
+            "docs_changelog_trace_required": { "const": true }
+          }
+        },
+        "summary_fields": {
+          "type": "array",
+          "contains": { "const": "graph_patch_records" }
+        }
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    }
+  }
+}

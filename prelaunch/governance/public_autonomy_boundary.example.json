@@ -1,0 +1,23 @@
+{
+  "apiVersion": "noemaforge.public-autonomy-boundary/v1",
+  "kind": "PublicAutonomyBoundaryExampleSet",
+  "id": "public-autonomy-boundary-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "public-copy-keeps-alpha-boundary",
+      "trace_id": "trace:public-autonomy-boundary:example:001",
+      "allowed_copy": "Self-modification/autonomy is not public-ready; it is alpha/lab-only, approval-gated, and has no automatic apply.",
+      "rejected_claims": [
+        "production-ready autonomous self-modification",
+        "fully autonomous self-improvement"
+      ],
+      "expected_outputs": [
+        "public_copy_boundary",
+        "alpha_lab_only_qualifier",
+        "operator_approval_required",
+        "no_automatic_apply_claim"
+      ]
+    }
+  ]
+}

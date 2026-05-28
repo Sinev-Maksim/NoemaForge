@@ -1,0 +1,71 @@
+{
+  "apiVersion": "noemaforge.default-model-runtime-policy/v1",
+  "kind": "DefaultModelRuntimePolicy",
+  "id": "default-model-runtime-policy-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "decision": "cpu_safe_always_on_with_gpu_on_demand",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "default_cpu_safe_gpu_on_demand",
+    "default_device": "cpu",
+    "selected_profile": "minimal",
+    "gpu_profile": "gpu-heavy",
+    "always_on_policy": "cpu_safe",
+    "gpu_policy": "explicit_on_demand",
+    "gpu_autostart_enabled": false,
+    "boot_autostart_enabled": false,
+    "max_active_heavy_workers": 1,
+    "apply_boundary": "next_persona_or_model_switch_or_backend_restart",
+    "require_docs_and_changelog_refs": true,
+    "require_registry_attachment": true,
+    "require_no_live_backend_dependency": true,
+    "required_runtime_refs": {
+      "runtime_device_policy": "noemaforge/configs/runtime-device-policy.json",
+      "model_profiles": "noemaforge/configs/model-profiles.json",
+      "runtime_default_safety": "noemaforge/configs/runtime-default-safety-policy.json",
+      "runtime_device_staging": "noemaforge/configs/runtime-device-policy-staging-policy.json",
+      "admin_gui_server": "noemaforge/src/admin_gui_server.py",
+      "contract_runtime": "noemaforge/src/default_model_runtime_policy.py"
+    },
+    "required_controls": {
+      "default_cpu_safe": true,
+      "minimal_profile_cpu_eligible": true,
+      "gpu_explicit_on_demand": true,
+      "gpu_heavy_never_always_on": true,
+      "one_active_heavy_worker": true,
+      "staged_device_apply": true,
+      "no_boot_llm_autostart": true
+    },
+    "required_decision_tokens": [
+      "cpu_safe_always_on_with_gpu_on_demand",
+      "CPU-safe",
+      "GPU-on-demand",
+      "explicit_on_demand",
+      "max_active_heavy_workers"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/default_model_runtime_policy.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/default-model-runtime-policy.json",
+    "noemaforge/contracts/default_model_runtime_policy.schema.json",
+    "noemaforge/configs/runtime-device-policy.json",
+    "noemaforge/configs/model-profiles.json",
+    "noemaforge/configs/runtime-default-safety-policy.json",
+    "noemaforge/configs/runtime-device-policy-staging-policy.json",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/src/default_model_runtime_policy.py",
+    "noemaforge/tests/test_default_model_runtime_policy_runtime.py",
+    "noemaforge/tests/test_default_model_runtime_policy_qa.py",
+    "noemaforge/tests/test_default_model_runtime_policy_performance.py",
+    "prelaunch/governance/default_model_runtime_policy.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

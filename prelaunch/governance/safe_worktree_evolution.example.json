@@ -1,0 +1,40 @@
+{
+  "apiVersion": "noemaforge.safe-worktree-evolution/v1",
+  "kind": "SafeWorktreeEvolutionExampleSet",
+  "id": "safe-worktree-evolution-core-example",
+  "accepted_plan": {
+    "pipeline_id": "evolution",
+    "task_id": "patch-review",
+    "repo_has_git_marker": true,
+    "branch": "noemaforge/evolution/patch-review",
+    "base": "HEAD",
+    "destination_root": "run_dir/worktrees",
+    "applied_by_default": false
+  },
+  "blocked_cases": [
+    {
+      "case": "non_evolution_pipeline",
+      "reason": "worktree_requires_evolution_pipeline"
+    },
+    {
+      "case": "branch_outside_namespace",
+      "reason": "unsafe_branch_namespace"
+    },
+    {
+      "case": "destination_escape",
+      "reason": "worktree_path_outside_run_dir"
+    },
+    {
+      "case": "unsafe_base_ref",
+      "reason": "unsafe_base_ref"
+    }
+  ],
+  "expected_summary": {
+    "helper_count": 4,
+    "controls_true": 12,
+    "blocked_case_count": 4,
+    "plan_default": true,
+    "destination_guard": true,
+    "branch_guard": true
+  }
+}

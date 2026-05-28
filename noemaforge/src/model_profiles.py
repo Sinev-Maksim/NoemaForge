@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/model_profiles.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.1
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -26,6 +26,8 @@ from pathlib import Path
 from typing import Any
 
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+API_VERSION = "noemaforge.model-profile/v1"
+REQUIRED_PROFILE_NAMES = ["minimal", "balanced", "writer", "research", "gpu-heavy"]
 
 
 def load_profiles(root: Path) -> dict[str, Any]:
@@ -73,9 +75,78 @@ def recommend(profiles: dict[str, Any], ram: float, vram: float) -> str:
     return "minimal"
 
 
+def validate_profiles(profiles: dict[str, Any]) -> dict[str, Any]:
+    failures: list[str] = []
+    for name in REQUIRED_PROFILE_NAMES:
+        spec = profiles.get(name)
+        if not isinstance(spec, dict):
+            failures.append(f"profile_missing:{name}")
+            continue
+        if int(spec.get("max_active_llms") or 0) != 1:
+            failures.append(f"profile_max_active_llms_not_one:{name}")
+        if not str(spec.get("description") or "").strip():
+            failures.append(f"profile_description_missing:{name}")
+        if not str(spec.get("default_runtime") or "").strip():
+            failures.append(f"profile_default_runtime_missing:{name}")
+        if not isinstance(spec.get("model_hints"), list) or not spec.get("model_hints"):
+            failures.append(f"profile_model_hints_missing:{name}")
+        if not isinstance(spec.get("roles"), list) or not spec.get("roles"):
+            failures.append(f"profile_roles_missing:{name}")
+        if float(spec.get("ram_gib_min") or 0) < 0:
+            failures.append(f"profile_ram_floor_invalid:{name}")
+        if float(spec.get("vram_gib_min") or 0) < 0:
+            failures.append(f"profile_vram_floor_invalid:{name}")
+    return {
+        "apiVersion": API_VERSION,
+        "kind": "ModelProfileValidationReport",
+        "ok": not failures,
+        "profile_count": len(profiles),
+        "required_profiles": REQUIRED_PROFILE_NAMES,
+        "failures": failures,
+    }
+
+
+def build_profile_manifest(profiles: dict[str, Any], profile_name: str) -> dict[str, Any]:
+    profile_name = str(profile_name or "minimal").strip()
+    if profile_name not in profiles:
+        raise ValueError(f"unknown_profile:{profile_name}")
+    spec = profiles[profile_name]
+    hints = [str(item) for item in spec.get("model_hints") or []]
+    roles = [str(item) for item in spec.get("roles") or []]
+    return {
+        "apiVersion": API_VERSION,
+        "kind": "ModelProfileManifest",
+        "profile": profile_name,
+        "description": str(spec.get("description") or ""),
+        "resource_floor": {
+            "ram_gib_min": float(spec.get("ram_gib_min") or 0),
+            "vram_gib_min": float(spec.get("vram_gib_min") or 0),
+        },
+        "runtime": {
+            "default_runtime": str(spec.get("default_runtime") or "manual"),
+            "max_active_llms": int(spec.get("max_active_llms") or 1),
+            "heavy_llm_autostart": False,
+        },
+        "fetch_candidates": [
+            {
+                "artifact_hint": hint,
+                "source": "operator_staged_or_existing_vault",
+                "auto_download": False,
+            }
+            for hint in hints
+        ],
+        "stage_roles": roles,
+        "selection_policy": {
+            "operator_chooses_profile_not_individual_files": True,
+            "candidate_hints_are_filters_not_downloads": True,
+            "fallback_profile": "minimal",
+        },
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description="NoemaForge model profiles; no model download or runtime start.")
-    ap.add_argument("cmd", nargs="?", default="list", choices=["list", "show", "recommend"])
+    ap.add_argument("cmd", nargs="?", default="list", choices=["list", "show", "recommend", "plan", "manifest", "validate"])
     ap.add_argument("profile", nargs="?", default="")
     ap.add_argument("--root", default="")
     ap.add_argument("--json", action="store_true")
@@ -95,6 +166,15 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit(f"unknown profile: {name}")
         print(json.dumps({name: profiles[name]}, ensure_ascii=False, indent=2) if ns.json else f"{name}: {profiles[name]['description']}\nmodel_hints: {', '.join(profiles[name].get('model_hints', []))}\nruntime: {profiles[name].get('default_runtime')}\nmax_active_llms: {profiles[name].get('max_active_llms')}")
         return 0
+    if ns.cmd in {"plan", "manifest"}:
+        name = ns.profile or "minimal"
+        manifest = build_profile_manifest(profiles, name)
+        print(json.dumps(manifest, ensure_ascii=False, indent=2) if ns.json else f"profile={name}\nmodel_hints: {', '.join(x['artifact_hint'] for x in manifest['fetch_candidates'])}\nstage_roles: {', '.join(manifest['stage_roles'])}\nauto_download=false\nmax_active_llms=1")
+        return 0
+    if ns.cmd == "validate":
+        report = validate_profiles(profiles)
+        print(json.dumps(report, ensure_ascii=False, indent=2) if ns.json else f"ok={str(report['ok']).lower()} profile_count={report['profile_count']} failures={len(report['failures'])}")
+        return 0 if report["ok"] else 1
     ram = read_meminfo_gib()
     vram = detect_vram_gib()
     rec = recommend(profiles, ram, vram)

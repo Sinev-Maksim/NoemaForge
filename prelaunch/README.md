@@ -1,6 +1,6 @@
 # NoemaForge Prelaunch Tools
 
-Version: 0.29.13.
+Version: 0.32.1.
 
 This folder contains manual prelaunch utilities extracted from the uploaded Windows packs and wrapped for Debian Trixie and macOS.
 
@@ -9,7 +9,7 @@ This folder contains manual prelaunch utilities extracted from the uploaded Wind
 - `tools/common/` — Python scripts shared across platforms.
 - `tools/trixie/` — Debian Trixie wrappers.
 - `tools/macos/` — macOS wrappers.
-- `tools/windows_original/` — original Windows artifacts preserved for traceability.
+- `tools/windows_original/` — original Windows artifacts preserved for traceability when they remain readable active files; duplicated unreadable packs are quarantined under project trash after the canonical `tools/source/` copy is retained.
 
 ## Quick start: Trixie
 

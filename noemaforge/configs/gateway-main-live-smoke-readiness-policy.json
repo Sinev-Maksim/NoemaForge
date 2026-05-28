@@ -1,0 +1,218 @@
+{
+  "apiVersion": "noemaforge.gateway-main-live-smoke-readiness/v1",
+  "kind": "GatewayMainLiveSmokeReadinessPolicy",
+  "id": "gateway-main-live-smoke-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_gateway_main_live_smoke_readiness",
+    "completion_state": "blocked_until_target_gateway_main_live_smoke_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Add live target-machine smoke for gateway + `noemaforge-llama@main`.",
+      "Run live gateway + `noemaforge-llama@main` validation on NoemaForge."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "gateway_service_required": true,
+      "main_backend_manual_only": true,
+      "socket_evidence_required": true,
+      "archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "target-service-baseline",
+        "title": "Target gateway and main-backend baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl status noemaforge-llm-gateway.service --no-pager -l || true",
+          "systemctl status noemaforge-llama@main.service --no-pager -l || true",
+          "ss -lx | grep -E 'noemaforge.*/(gateway|main).sock' || true"
+        ],
+        "evidence": [
+          "gateway_service_state",
+          "main_backend_service_state",
+          "gateway_socket_state",
+          "main_backend_socket_state",
+          "target_boot_id"
+        ],
+        "completion_gates": [
+          "gateway_service_recorded",
+          "main_backend_state_recorded",
+          "socket_state_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval scoped to gateway and main-backend smoke",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "printf '%s\\n' 'operator approves live gateway plus main-backend smoke'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_gateway_main_smoke",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "main-backend-manual-start",
+        "title": "Operator-approved manual main backend start",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo systemctl start noemaforge-llama@main.service",
+          "systemctl is-active noemaforge-llama@main.service || true",
+          "find /run/noemaforge/llm/backends -maxdepth 1 -type s -ls 2>/dev/null || true"
+        ],
+        "evidence": [
+          "manual_start_transcript",
+          "manual_start_exit_code",
+          "main_backend_active_state",
+          "main_backend_socket_path",
+          "backend_runtime_log_excerpt"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "main_backend_start_completed",
+          "main_backend_socket_present",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gateway-socket-live",
+        "title": "Gateway socket and status smoke",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl is-active noemaforge-llm-gateway.service || true",
+          "test -S /run/noemaforge/llm/gateway.sock",
+          "noemaforge status --json"
+        ],
+        "evidence": [
+          "gateway_active_state",
+          "gateway_socket_path",
+          "gateway_status_json",
+          "gateway_socket_owner"
+        ],
+        "completion_gates": [
+          "gateway_active_or_blocker_recorded",
+          "gateway_socket_present",
+          "status_json_archived",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "gateway-chat-smoke",
+        "title": "Operator-approved gateway chat smoke",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge smoke",
+          "noemaforge chat --role admin --once 'reply with noemaforge-live-smoke-ok'"
+        ],
+        "evidence": [
+          "gateway_smoke_transcript",
+          "chat_completion_transcript",
+          "chat_completion_status",
+          "model_name_or_ref"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "gateway_smoke_completed",
+          "chat_completion_returned",
+          "model_identity_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "backend-stop-and-archive",
+        "title": "Main backend stop and redacted smoke archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo systemctl stop noemaforge-llama@main.service",
+          "systemctl is-active noemaforge-llama@main.service || true",
+          "sudo noemaforge forensics --include-gateway-main-smoke",
+          "sha256sum <gateway-main-live-smoke-bundle>"
+        ],
+        "evidence": [
+          "manual_stop_transcript",
+          "post_stop_backend_state",
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "main_backend_stopped_after_smoke",
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review",
+          "evidence_file_archived"
+        ]
+      }
+    ],
+    "required_outputs": [
+      "gateway_main_live_smoke_summary",
+      "blocked_completion_notice",
+      "target_gateway_main_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/gateway-main-live-smoke-readiness-policy.json",
+      "noemaforge/contracts/gateway_main_live_smoke_readiness.schema.json",
+      "noemaforge/src/gateway_main_live_smoke_readiness_runtime.py",
+      "noemaforge/tests/test_gateway_main_live_smoke_readiness_runtime.py",
+      "noemaforge/tests/test_gateway_main_live_smoke_readiness_qa.py",
+      "noemaforge/tests/test_gateway_main_live_smoke_readiness_performance.py",
+      "prelaunch/governance/gateway_main_live_smoke_readiness.example.json",
+      "noemaforge/configs/target-live-validation-readiness-policy.json",
+      "noemaforge/configs/post-reboot-service-health-readiness-policy.json",
+      "noemaforge/src/target_live_validation_readiness_runtime.py",
+      "noemaforge/src/post_reboot_service_health_readiness_runtime.py",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/gateway-main-live-smoke-readiness-policy.json",
+    "noemaforge/contracts/gateway_main_live_smoke_readiness.schema.json",
+    "noemaforge/src/gateway_main_live_smoke_readiness_runtime.py",
+    "noemaforge/tests/test_gateway_main_live_smoke_readiness_runtime.py",
+    "noemaforge/tests/test_gateway_main_live_smoke_readiness_qa.py",
+    "noemaforge/tests/test_gateway_main_live_smoke_readiness_performance.py",
+    "prelaunch/governance/gateway_main_live_smoke_readiness.example.json",
+    "noemaforge/configs/target-live-validation-readiness-policy.json",
+    "noemaforge/configs/post-reboot-service-health-readiness-policy.json",
+    "noemaforge/src/target_live_validation_readiness_runtime.py",
+    "noemaforge/src/post_reboot_service_health_readiness_runtime.py",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

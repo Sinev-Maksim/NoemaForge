@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.systemd-gdm-nvidia-live-validation-readiness/v1",
+  "kind": "SystemdGdmNvidiaLiveValidationReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-target-systemd-gdm-nvidia-live-validation-evidence-readiness",
+      "trace_id": "trace:patched10:systemd-gdm-nvidia-live-validation",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "target-boot-baseline",
+        "operator-approval",
+        "display-manager-gdm",
+        "nvidia-driver-device",
+        "secure-boot-kernel",
+        "post-reboot-recovery-check",
+        "evidence-archive"
+      ],
+      "expected_outputs": [
+        "systemd_gdm_nvidia_live_validation_summary",
+        "blocked_completion_notice",
+        "target_systemd_gdm_nvidia_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

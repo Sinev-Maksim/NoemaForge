@@ -1,0 +1,666 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/production_ai_contracts.schema.json",
+  "title": "ProductionAIContracts",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/unifiedRegistry"
+    },
+    {
+      "$ref": "#/$defs/evaluationGateResult"
+    },
+    {
+      "$ref": "#/$defs/rolloutDecision"
+    },
+    {
+      "$ref": "#/$defs/releaseEvidence"
+    },
+    {
+      "$ref": "#/$defs/registryPromotionResult"
+    },
+    {
+      "$ref": "#/$defs/artifactCard"
+    },
+    {
+      "$ref": "#/$defs/productionAICardSet"
+    },
+    {
+      "$ref": "#/$defs/dataCentricErrorLoopArtifact"
+    },
+    {
+      "$ref": "#/$defs/ragEvalReport"
+    },
+    {
+      "$ref": "#/$defs/trajectoryEvalReport"
+    },
+    {
+      "$ref": "#/$defs/abstentionPolicy"
+    },
+    {
+      "$ref": "#/$defs/abstentionDecision"
+    }
+  ],
+  "$defs": {
+    "registryKind": {
+      "enum": [
+        "model",
+        "prompt",
+        "retriever",
+        "reranker",
+        "tool-policy",
+        "pipeline",
+        "persona",
+        "task",
+        "epoch",
+        "eval-pack"
+      ]
+    },
+    "rolloutState": {
+      "enum": [
+        "draft",
+        "shadow",
+        "canary",
+        "promoted",
+        "rolled_back"
+      ]
+    },
+    "artifactCardKind": {
+      "enum": [
+        "ModelCard",
+        "PromptCard",
+        "PipelineCard",
+        "EpochCard",
+        "ToolPolicyCard"
+      ]
+    },
+    "errorSeverity": {
+      "enum": [
+        "info",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "unifiedRegistry": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "entries"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "UnifiedRegistry"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "entries": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "kind",
+              "id",
+              "version",
+              "status"
+            ],
+            "properties": {
+              "kind": {
+                "$ref": "#/$defs/registryKind"
+              },
+              "id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "string"
+              },
+              "status": {
+                "$ref": "#/$defs/rolloutState"
+              },
+              "channels": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "digest": {
+                "type": "string"
+              },
+              "refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "eval_pack_refs": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "metadata": {
+                "type": "object"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "evaluationGateResult": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "change_id",
+        "domain",
+        "decision",
+        "ok",
+        "required_checks"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "EvaluationGateResult"
+        },
+        "domain": {
+          "enum": [
+            "code",
+            "prompt",
+            "model",
+            "rag",
+            "pipeline",
+            "router"
+          ]
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "block"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "rolloutDecision": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "from",
+        "to",
+        "decision",
+        "ok"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "RolloutDecision"
+        },
+        "from": {
+          "$ref": "#/$defs/rolloutState"
+        },
+        "to": {
+          "$ref": "#/$defs/rolloutState"
+        },
+        "decision": {
+          "enum": [
+            "allow",
+            "block"
+          ]
+        },
+        "ok": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "releaseEvidence": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "trace_id",
+        "change",
+        "gate",
+        "rollout",
+        "registry_refs"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "ReleaseEvidence"
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "registry_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "registryPromotionResult": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "ok",
+        "entry_ref",
+        "requested_status",
+        "entry",
+        "registry",
+        "release_evidence",
+        "failures"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "RegistryPromotionResult"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "entry_ref": {
+          "type": "string"
+        },
+        "requested_status": {
+          "$ref": "#/$defs/rolloutState"
+        },
+        "entry": {
+          "type": "object"
+        },
+        "registry": {
+          "$ref": "#/$defs/unifiedRegistry"
+        },
+        "release_evidence": {
+          "$ref": "#/$defs/releaseEvidence"
+        },
+        "failures": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "artifactCard": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "card_id",
+        "artifact",
+        "evaluation",
+        "rollout",
+        "rollback"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "$ref": "#/$defs/artifactCardKind"
+        },
+        "card_id": {
+          "type": "string"
+        },
+        "artifact": {
+          "type": "object",
+          "required": [
+            "kind",
+            "id",
+            "version",
+            "status"
+          ],
+          "properties": {
+            "kind": {
+              "$ref": "#/$defs/registryKind"
+            },
+            "id": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "status": {
+              "$ref": "#/$defs/rolloutState"
+            }
+          },
+          "additionalProperties": true
+        },
+        "release_evidence_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "productionAICardSet": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "cards",
+        "coverage"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "ProductionAICardSet"
+        },
+        "cards": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/artifactCard"
+          }
+        },
+        "coverage": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataCentricErrorLoopArtifact": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "trace_id",
+        "error",
+        "taxonomy",
+        "regression_case",
+        "eval_case",
+        "task_item",
+        "fix_candidate",
+        "review"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "DataCentricErrorLoopArtifact"
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "error": {
+          "type": "object",
+          "required": [
+            "error_id",
+            "component",
+            "domain",
+            "error_type",
+            "severity",
+            "input",
+            "expected",
+            "actual"
+          ],
+          "properties": {
+            "domain": {
+              "enum": [
+                "code",
+                "prompt",
+                "model",
+                "rag",
+                "pipeline",
+                "router"
+              ]
+            },
+            "severity": {
+              "$ref": "#/$defs/errorSeverity"
+            }
+          },
+          "additionalProperties": true
+        },
+        "taxonomy": {
+          "type": "object"
+        },
+        "regression_case": {
+          "type": "object",
+          "required": [
+            "regression_case_id",
+            "source_error_id",
+            "component",
+            "input_payload",
+            "expected_payload",
+            "acceptance_policy"
+          ]
+        },
+        "eval_case": {
+          "type": "object",
+          "required": [
+            "kind",
+            "target_pack_kind",
+            "case"
+          ]
+        },
+        "task_item": {
+          "type": "object",
+          "required": [
+            "id",
+            "title",
+            "priority",
+            "labels",
+            "evidence_refs"
+          ]
+        },
+        "review": {
+          "type": "object",
+          "required": [
+            "required",
+            "reviewers_required"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "ragEvalReport": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "ok",
+        "trace_id",
+        "metrics",
+        "checks",
+        "results"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "RAGEvalReport"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "metrics": {
+          "type": "object",
+          "required": [
+            "total_cases",
+            "retrieval_hit_rate",
+            "citation_coverage",
+            "groundedness",
+            "answer_helpfulness"
+          ],
+          "properties": {
+            "total_cases": {
+              "type": "integer"
+            },
+            "retrieval_hit_rate": {
+              "type": "number"
+            },
+            "citation_coverage": {
+              "type": "number"
+            },
+            "groundedness": {
+              "type": "number"
+            },
+            "answer_helpfulness": {
+              "type": "number"
+            }
+          }
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "status",
+              "score",
+              "threshold"
+            ]
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "trajectoryEvalReport": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "ok",
+        "trace_id",
+        "final_state",
+        "metrics",
+        "checks",
+        "steps"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "TrajectoryEvalReport"
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "trace_id": {
+          "type": "string"
+        },
+        "final_state": {
+          "type": "string"
+        },
+        "metrics": {
+          "type": "object",
+          "required": [
+            "total_steps",
+            "failed_steps",
+            "tool_calls",
+            "step_success_rate",
+            "artifact_coverage",
+            "safety_flag_count",
+            "budget_compliant",
+            "safe_final_state"
+          ]
+        },
+        "checks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "status",
+              "score",
+              "threshold"
+            ]
+          }
+        },
+        "steps": {
+          "type": "array"
+        }
+      },
+      "additionalProperties": true
+    },
+    "abstentionPolicy": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "auto_route_min_confidence",
+        "clarify_min_confidence"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "AbstentionPolicy"
+        },
+        "auto_route_min_confidence": {
+          "type": "number"
+        },
+        "clarify_min_confidence": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": true
+    },
+    "abstentionDecision": {
+      "type": "object",
+      "required": [
+        "apiVersion",
+        "kind",
+        "action",
+        "ok_to_route",
+        "reason"
+      ],
+      "properties": {
+        "apiVersion": {
+          "const": "noemaforge.production-ai/v1"
+        },
+        "kind": {
+          "const": "AbstentionDecision"
+        },
+        "action": {
+          "enum": [
+            "route",
+            "ask_clarification",
+            "defer_admin",
+            "defer_sr",
+            "defer_ssr",
+            "block"
+          ]
+        },
+        "ok_to_route": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

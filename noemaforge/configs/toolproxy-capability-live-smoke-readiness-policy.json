@@ -1,0 +1,205 @@
+{
+  "apiVersion": "noemaforge.toolproxy-capability-live-smoke-readiness/v1",
+  "kind": "ToolProxyCapabilityLiveSmokeReadinessPolicy",
+  "id": "toolproxy-capability-live-smoke-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_toolproxy_capability_live_smoke_readiness",
+    "completion_state": "blocked_until_target_toolproxy_capability_live_smoke_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Add live target-machine smoke for ToolProxy capability issue/verify."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "toolproxy_service_required": true,
+      "redacted_token_required": true,
+      "revocation_required": true,
+      "archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "target-toolproxy-baseline",
+        "title": "Target ToolProxy baseline before capability smoke",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl status noemaforge-toolproxy.service --no-pager",
+          "noemaforge toolproxy status --json",
+          "ss -lx | grep noemaforge-toolproxy || true"
+        ],
+        "evidence": [
+          "toolproxy_service_state",
+          "toolproxy_status_json",
+          "toolproxy_socket_state",
+          "target_boot_id"
+        ],
+        "completion_gates": [
+          "toolproxy_service_recorded",
+          "socket_state_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval scoped to live issue and verify",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "printf '%s\\n' 'operator approves live ToolProxy capability issue/verify smoke'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_issue_verify",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "capability-issue-live",
+        "title": "Operator-approved live capability issue",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge toolproxy capability issue --scope llm.chat --ttl 120 --json"
+        ],
+        "evidence": [
+          "capability_issue_json",
+          "issued_token_id",
+          "issued_scope",
+          "issued_ttl_seconds",
+          "redacted_token_preview"
+        ],
+        "completion_gates": [
+          "issue_command_completed",
+          "scope_matches_llm_chat",
+          "ttl_within_limit",
+          "token_secret_redacted",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "capability-verify-live",
+        "title": "Operator-approved live capability verify",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge toolproxy capability verify --token <redacted-token> --json"
+        ],
+        "evidence": [
+          "capability_verify_json",
+          "verify_status",
+          "verify_scope",
+          "verify_token_id"
+        ],
+        "completion_gates": [
+          "verify_command_completed",
+          "verify_status_valid",
+          "verified_scope_matches_issue",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "token-redaction-and-revocation",
+        "title": "Capability token redaction and revocation proof",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge toolproxy capability revoke --token-id <token-id> --json",
+          "noemaforge toolproxy capability verify --token-id <token-id> --json"
+        ],
+        "evidence": [
+          "revoke_json",
+          "post_revoke_verify_json",
+          "secret_scan_summary",
+          "token_hash_only_record"
+        ],
+        "completion_gates": [
+          "revoke_command_completed",
+          "post_revoke_verify_rejected",
+          "token_secret_not_archived",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "live-smoke-archive",
+        "title": "Redacted live smoke archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-toolproxy",
+          "sha256sum <toolproxy-live-smoke-bundle>"
+        ],
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "live_smoke_transcript",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review",
+          "evidence_file_archived"
+        ]
+      }
+    ],
+    "required_outputs": [
+      "toolproxy_capability_live_smoke_summary",
+      "blocked_completion_notice",
+      "target_toolproxy_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/toolproxy-capability-live-smoke-readiness-policy.json",
+      "noemaforge/contracts/toolproxy_capability_live_smoke_readiness.schema.json",
+      "noemaforge/src/toolproxy_capability_live_smoke_readiness_runtime.py",
+      "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_runtime.py",
+      "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_qa.py",
+      "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_performance.py",
+      "prelaunch/governance/toolproxy_capability_live_smoke_readiness.example.json",
+      "noemaforge/configs/toolproxy-capability-token-policy.json",
+      "noemaforge/src/toolproxy_capability_token_runtime.py",
+      "noemaforge/src/noemaforge_toolproxy_diag.py",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/toolproxy-capability-live-smoke-readiness-policy.json",
+    "noemaforge/contracts/toolproxy_capability_live_smoke_readiness.schema.json",
+    "noemaforge/src/toolproxy_capability_live_smoke_readiness_runtime.py",
+    "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_runtime.py",
+    "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_qa.py",
+    "noemaforge/tests/test_toolproxy_capability_live_smoke_readiness_performance.py",
+    "prelaunch/governance/toolproxy_capability_live_smoke_readiness.example.json",
+    "noemaforge/configs/toolproxy-capability-token-policy.json",
+    "noemaforge/src/toolproxy_capability_token_runtime.py",
+    "noemaforge/src/noemaforge_toolproxy_diag.py",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

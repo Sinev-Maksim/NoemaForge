@@ -1,0 +1,196 @@
+{
+  "apiVersion": "noemaforge.slop-critic/v1",
+  "kind": "SlopCriticSet",
+  "id": "slop-critic-examples",
+  "version": "0.32.1",
+  "cases": [
+    {
+      "apiVersion": "noemaforge.slop-critic/v1",
+      "kind": "SlopCriticCase",
+      "id": "slop-critic-grounded-clean",
+      "trace_id": "trace:slop-critic:grounded-clean",
+      "artifact": {
+        "modality": "text",
+        "content": "The local contract requires trace_id, refs, and an advisory verdict before final release.",
+        "evidence_refs": [
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        ],
+        "provenance": {
+          "present": true,
+          "manifest_ref": "prelaunch/governance/honesty_protocol.example.json"
+        }
+      },
+      "slop_score": {
+        "bands": {
+          "genericity": 0.1,
+          "repetition": 0.0,
+          "unsupportedness": 0.1,
+          "provenance_gap": 0.0
+        },
+        "aggregate_score": 0.06,
+        "action": "allow",
+        "reasons": [
+          "grounded_text",
+          "provenance_present"
+        ]
+      },
+      "critic_stack": [
+        {
+          "id": "critic:text:grounding",
+          "type": "text",
+          "score": 0.1,
+          "action": "allow",
+          "advisory": true,
+          "findings": [
+            "specific_contract_claim"
+          ]
+        },
+        {
+          "id": "critic:provenance:manifest",
+          "type": "provenance",
+          "score": 0.0,
+          "action": "allow",
+          "advisory": true,
+          "findings": [
+            "manifest_ref_present"
+          ]
+        },
+        {
+          "id": "critic:slop:bands",
+          "type": "slop",
+          "score": 0.06,
+          "action": "allow",
+          "advisory": true,
+          "findings": [
+            "low_aggregate_score"
+          ]
+        }
+      ],
+      "detection_verdict": {
+        "decision": "clean",
+        "confidence": 0.86,
+        "action": "allow",
+        "advisory": true,
+        "single_detector_decision": false,
+        "summary": "Layered critics found low slop with provenance present."
+      },
+      "finalization": {
+        "critics_required": true,
+        "critic_aggregation_complete": true,
+        "final_without_critic_aggregation": false
+      },
+      "refs": [
+        "prelaunch/governance/honesty_protocol.example.json",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.slop-critic/v1",
+      "kind": "SlopCriticCase",
+      "id": "slop-critic-generic-unsupported",
+      "trace_id": "trace:slop-critic:generic-unsupported",
+      "artifact": {
+        "modality": "text",
+        "content": "This is a cutting-edge seamless solution that always optimizes everything. It is cutting-edge and seamless. It always works perfectly.",
+        "evidence_refs": [],
+        "provenance": {
+          "present": false,
+          "manifest_ref": ""
+        }
+      },
+      "slop_score": {
+        "bands": {
+          "genericity": 0.8,
+          "repetition": 0.6,
+          "unsupportedness": 0.9,
+          "provenance_gap": 1.0
+        },
+        "aggregate_score": 0.835,
+        "action": "escalate",
+        "reasons": [
+          "generic_language",
+          "unsupported_claims",
+          "missing_provenance"
+        ]
+      },
+      "critic_stack": [
+        {
+          "id": "critic:text:genericity",
+          "type": "text",
+          "score": 0.8,
+          "action": "escalate",
+          "advisory": true,
+          "findings": [
+            "generic_claims",
+            "repetition"
+          ]
+        },
+        {
+          "id": "critic:provenance:missing",
+          "type": "provenance",
+          "score": 1.0,
+          "action": "escalate",
+          "advisory": true,
+          "findings": [
+            "manifest_ref_missing"
+          ]
+        },
+        {
+          "id": "critic:slop:aggregate",
+          "type": "slop",
+          "score": 0.835,
+          "action": "escalate",
+          "advisory": true,
+          "findings": [
+            "aggregate_over_abstain_threshold"
+          ]
+        }
+      ],
+      "detection_verdict": {
+        "decision": "unknown",
+        "confidence": 0.72,
+        "action": "escalate",
+        "advisory": true,
+        "single_detector_decision": false,
+        "summary": "High slop and missing provenance require human review; this is not a definitive detector claim."
+      },
+      "finalization": {
+        "critics_required": true,
+        "critic_aggregation_complete": true,
+        "final_without_critic_aggregation": false
+      },
+      "refs": [
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+      ]
+    }
+  ],
+  "scoring_cases": [
+    {
+      "id": "score-generic-unsupported-escalates",
+      "artifact": {
+        "content": "This cutting-edge solution always works. This cutting-edge solution always works. It optimizes everything.",
+        "evidence_refs": [],
+        "provenance": {
+          "present": false
+        }
+      },
+      "expected_min_score": 0.6,
+      "expected_action": "escalate"
+    },
+    {
+      "id": "score-grounded-specific-allows",
+      "artifact": {
+        "content": "The policy file declares advisory_by_default=true and requires text, provenance, and slop critics.",
+        "evidence_refs": [
+          "noemaforge/configs/slop-critic-policy.json"
+        ],
+        "provenance": {
+          "present": true,
+          "manifest_ref": "prelaunch/governance/slop_critic.example.json"
+        }
+      },
+      "expected_max_score": 0.3,
+      "expected_action": "allow"
+    }
+  ]
+}

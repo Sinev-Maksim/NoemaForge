@@ -1,0 +1,10 @@
+{
+  "apiVersion": "noemaforge.tinyml-node/v1",
+  "kind": "StaticArenaReport",
+  "id": "example-edge-model-static-arena",
+  "model_id": "example_edge_model",
+  "arena_bytes": 32768,
+  "peak_bytes": 24576,
+  "scratch_bytes": 4096,
+  "tensor_count": 16
+}

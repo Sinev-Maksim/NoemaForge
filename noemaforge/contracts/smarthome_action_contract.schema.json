@@ -1,8 +1,25 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/smarthome_action_contract.schema.json",
   "title": "NoemaForge SmartHome Action Contract",
   "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "trace_id",
+    "device_id",
+    "action",
+    "requires_approval",
+    "emergency_pause_checked",
+    "human_override_allowed",
+    "audit_required"
+  ],
   "properties": {
+    "apiVersion": {"const": "noemaforge.smarthome/v1"},
+    "kind": {"const": "SmartHomeAction"},
+    "id": {"type": "string"},
+    "trace_id": {"type": "string"},
     "device_id": {
       "type": "string"
     },
@@ -11,6 +28,25 @@
     },
     "requires_approval": {
       "type": "boolean"
+    },
+    "emergency_pause_checked": {
+      "const": true
+    },
+    "human_override_allowed": {
+      "const": true
+    },
+    "audit_required": {
+      "const": true
+    },
+    "sr_ssr_review": {
+      "type": "object",
+      "required": ["required", "reason"],
+      "properties": {
+        "required": {"type": "boolean"},
+        "reason": {"type": "string"}
+      },
+      "additionalProperties": false
     }
-  }
+  },
+  "additionalProperties": false
 }

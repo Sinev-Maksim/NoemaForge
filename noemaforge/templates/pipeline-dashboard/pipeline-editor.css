@@ -1,0 +1,31 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/pipeline-editor.css
+Zone: gui/shell
+Version: 0.32.1
+Created: 2026-05-20
+Modified: 2026-05-20
+Purpose: Style the draft-only drag/drop pipeline stage editor.
+Inputs: Pipeline editor markup rendered by app.js.
+Outputs: Compact editable stage list and review-gated draft controls.
+Tests: noemaforge/tests/test_pipeline_dragdrop_editor_qa.py
+=== End NoemaForge File Header ===
+*/
+.pipeline-editor{display:grid;gap:10px;margin-top:10px;border:1px solid var(--line);border-radius:14px;padding:10px;background:#0b1118}
+.pipeline-editor-head{display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.pipeline-editor-title{display:grid;gap:2px;min-width:0}
+.pipeline-editor-title b,.pipeline-editor-title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pipeline-editor-title span{color:var(--muted);font-size:12px}
+.pipeline-stage-list{display:grid;gap:6px}
+.editor-stage{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;min-width:0;padding:8px;border:1px solid var(--line);border-radius:10px;background:#090d12}
+.editor-stage.dragging{border-color:var(--accent);opacity:.72}
+.editor-stage span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage-grip{color:var(--muted);cursor:grab}
+.stage-actions{display:flex;gap:4px}
+.pipeline-editor-actions{display:flex;gap:8px;flex-wrap:wrap}
+.public-showcase{display:grid;gap:8px}
+.showcase-step{display:grid;gap:5px;padding:10px;border:1px solid var(--line);border-radius:14px;background:#0b1118}
+.showcase-step b{color:var(--accent)}
+.showcase-step span{color:var(--muted);font-size:12px}
+.showcase-step-actions{display:flex;gap:6px;flex-wrap:wrap}
+@media(max-width:620px){.editor-stage{grid-template-columns:1fr}.stage-actions{justify-content:start}}

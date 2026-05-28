@@ -1,0 +1,62 @@
+{
+  "apiVersion": "noemaforge.pytest-suite-partition/v1",
+  "kind": "PytestSuitePartitionPolicy",
+  "id": "pytest-suite-partition-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "monolithic_pytest_replaced_by_bounded_shards",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "max_tests_per_shard": 12,
+    "max_shard_seconds": 120,
+    "required_timeout_seconds": 120,
+    "pipeline_runtime_patterns": [
+      "test_pipeline_*.py",
+      "test_*pipeline*.py"
+    ],
+    "forbidden_monolithic_commands": [
+      "pytest",
+      "pytest noemaforge/tests",
+      "python -m pytest",
+      "python -m pytest noemaforge/tests"
+    ],
+    "required_shard_labels": [
+      "pipeline_runtime",
+      "general"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/pytest_suite_partition_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_pytest_command",
+      "partition_tests",
+      "monolithic_pytest_replaced_by_bounded_shards",
+      "pipeline_runtime"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pytest-suite-partition-policy.json",
+    "noemaforge/contracts/pytest_suite_partition.schema.json",
+    "noemaforge/src/pytest_suite_partition_runtime.py",
+    "noemaforge/tests/test_pytest_suite_partition_runtime.py",
+    "noemaforge/tests/test_pytest_suite_partition_qa.py",
+    "noemaforge/tests/test_pytest_suite_partition_performance.py",
+    "prelaunch/governance/pytest_suite_partition.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

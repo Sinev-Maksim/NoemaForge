@@ -1,0 +1,87 @@
+{
+  "apiVersion": "noemaforge.knowledge-graph-lint/v1",
+  "kind": "KnowledgeGraphLintPolicy",
+  "id": "knowledge-graph-lint-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "graph_lint_maintenance_loop",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
+    "knowledge_purpose_policy_ref": "configs/knowledge-purpose-policy.json",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Knowledge graph lint boundary: Graph maintenance detects orphan concepts, unsupported claims, stale passages, unresolved conflicts and weak realm bridges, then surfaces explicit Administrator/Surgeon maintenance work for pre-start or scheduled maintenance loops.",
+    "required_finding_types": [
+      "orphan_concept",
+      "unsupported_claim",
+      "stale_passage",
+      "unresolved_conflict",
+      "weak_realm_bridge"
+    ],
+    "required_target_roles": ["Administrator", "Surgeon"],
+    "required_loop_targets": ["prestart", "scheduled_maintenance"],
+    "stale_after_days": 45,
+    "weak_bridge_strength_below": 0.5,
+    "controls": {
+      "orphan_concepts_detected": true,
+      "unsupported_claims_detected": true,
+      "stale_passages_detected": true,
+      "unresolved_conflicts_detected": true,
+      "weak_realm_bridges_detected": true,
+      "administrator_work_items_required": true,
+      "surgeon_work_items_required": true,
+      "prestart_loop_target_required": true,
+      "scheduled_maintenance_loop_target_required": true,
+      "no_live_host_required": true
+    },
+    "required_boundary_refs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+    ],
+    "required_loop_refs": [
+      "src/prestart.py",
+      "src/maintenance.py",
+      "src/knowledge_maintainer.py"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/knowledge_graph_lint.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/knowledge-graph-lint-policy.json",
+    "noemaforge/contracts/knowledge_graph_lint.schema.json",
+    "noemaforge/configs/knowledge-purpose-policy.json",
+    "noemaforge/manifests/functional/knowledge.hypergraph.yaml",
+    "noemaforge/src/knowledge_graph_lint_runtime.py",
+    "noemaforge/src/prestart.py",
+    "noemaforge/src/maintenance.py",
+    "noemaforge/src/knowledge_maintainer.py",
+    "noemaforge/tests/test_knowledge_graph_lint_runtime.py",
+    "noemaforge/tests/test_knowledge_graph_lint_qa.py",
+    "noemaforge/tests/test_knowledge_graph_lint_performance.py",
+    "prelaunch/governance/knowledge_graph_lint.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md"
+  ]
+}
+

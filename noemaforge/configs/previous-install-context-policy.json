@@ -1,0 +1,81 @@
+{
+  "apiVersion": "noemaforge.previous-install-context/v1",
+  "kind": "PreviousInstallContextPolicy",
+  "id": "previous-install-context-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "previous_install_context_is_archive_only",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "canonical_runtime_roots": {
+      "install_root": "/opt/noemaforge",
+      "state_root": "/var/lib/noemaforge",
+      "share_root": "/mnt/noemaforge-share"
+    },
+    "active_runtime_path_keys": [
+      "install_root",
+      "state_root",
+      "share_root",
+      "modelstore_root",
+      "bootstrap_state_dir"
+    ],
+    "archive_only_context_keys": [
+      "previous_install",
+      "backup",
+      "migration"
+    ],
+    "allowed_archive_modes": [
+      "archive_only",
+      "readonly_evidence",
+      "migrate_once_then_detach"
+    ],
+    "forbidden_active_path_fragments": [
+      "backup",
+      "migration",
+      "previous_install",
+      "previous-install",
+      "firstboot-attempt-archive",
+      "trash"
+    ],
+    "legacy_runtime_prefixes": [
+      "/mnt/brainos-share",
+      "/mnt/brainos-share/brainos-lab"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/previous_install_context_runtime.py",
+      "noemaforge/src/runtime_safety.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_previous_install_context",
+      "archive_only",
+      "canonicalize_noemaforge_path",
+      "CANONICAL_SHARE_ROOT"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/previous-install-context-policy.json",
+    "noemaforge/contracts/previous_install_context.schema.json",
+    "noemaforge/src/previous_install_context_runtime.py",
+    "noemaforge/src/runtime_safety.py",
+    "noemaforge/tests/test_previous_install_context_runtime.py",
+    "noemaforge/tests/test_previous_install_context_qa.py",
+    "noemaforge/tests/test_previous_install_context_performance.py",
+    "prelaunch/governance/previous_install_context.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

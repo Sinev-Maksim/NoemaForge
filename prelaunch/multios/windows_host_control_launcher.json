@@ -1,0 +1,15 @@
+{
+  "apiVersion": "noemaforge.runtime/v1",
+  "kind": "HostControlLauncherPlan",
+  "id": "windows-control-host",
+  "platform": "windows",
+  "status": "planned",
+  "enabled_by_default": false,
+  "role": "control_host",
+  "allows_heavy_local_inference": false,
+  "connector": "remote_http",
+  "notes": [
+    "Control-only launcher path for future Windows host support.",
+    "No local runtime, WSL2, Ollama, or remote network dependency is enabled by this plan."
+  ]
+}

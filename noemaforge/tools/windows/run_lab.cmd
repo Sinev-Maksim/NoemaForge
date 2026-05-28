@@ -25,12 +25,8 @@ if not "%~1"=="" set "LAB_ROOT=%~1"
 
 REM Optional explicit python.exe path (if python is not on PATH)
 set "PY_EXE=%~2"
-if not "%PY_EXE%"=="" set "NOEMAFORGE_PYTHON=%PY_EXE%"
+if "%PY_EXE%"=="" set "PY_EXE=%NOEMAFORGE_PYTHON%"
+if "%PY_EXE%"=="" set "PY_EXE=py"
 
-REM If python path provided, pass it explicitly to PowerShell too (belt + suspenders)
-if not "%PY_EXE%"=="" (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_lab.ps1" -SeedRoot "%BRAIN_ROOT%" -LabRoot "%LAB_ROOT%" -AutoManifest -PythonExe "%PY_EXE%"
-) else (
-  powershell -NoProfile -ExecutionPolicy Bypass -File "%SCRIPT_DIR%\noemaforge_lab.ps1" -SeedRoot "%BRAIN_ROOT%" -LabRoot "%LAB_ROOT%" -AutoManifest
-)
+"%PY_EXE%" "%BRAIN_ROOT%\tools\prep\noemaforge_prep_core.py" lab --repo-root "%BRAIN_ROOT%" --lab-root "%LAB_ROOT%" --auto-manifest
 exit /b %ERRORLEVEL%

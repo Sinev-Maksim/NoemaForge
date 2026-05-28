@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.pipeline-template-append/v1",
+  "kind": "PipelineTemplateAppendExampleSet",
+  "id": "pipeline-template-append-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "offline-reviewed-template-catalog-append",
+      "trace_id": "trace:pipeline:template-append:offline-reviewed",
+      "pipeline_id": "offline_reviewed_template_append",
+      "reviewed_by": "operator",
+      "source_template": {
+        "name": "Offline reviewed template",
+        "nodes": [
+          {"name": "Webhook"},
+          {"name": "Normalize"},
+          {"name": "Admin Review"}
+        ],
+        "connections": {}
+      },
+      "expected_outputs": ["review_required", "approved_append", "local_catalog_json"],
+      "expect_unapproved_requires": "--approve",
+      "expect_review_recorded": true,
+      "expect_no_live_host": true
+    }
+  ]
+}

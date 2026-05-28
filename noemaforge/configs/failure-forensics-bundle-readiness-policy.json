@@ -1,0 +1,211 @@
+{
+  "apiVersion": "noemaforge.failure-forensics-bundle-readiness/v1",
+  "kind": "FailureForensicsBundleReadinessPolicy",
+  "id": "failure-forensics-bundle-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_failure_forensics_bundle_readiness",
+    "completion_state": "blocked_until_target_failure_forensics_bundle_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Run `sudo noemaforge forensics` after any launcher/runtime failure and inspect the bundle."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "failure_context_required": true,
+      "operator_approval_required": true,
+      "archive_required": true,
+      "redaction_required": true,
+      "inspection_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "failure-trigger-baseline",
+        "title": "Target failure trigger and host baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "hostnamectl",
+          "cat /proc/sys/kernel/random/boot_id",
+          "date --iso-8601=seconds"
+        ],
+        "evidence": [
+          "failure_timestamp",
+          "failure_surface",
+          "operator_failure_note",
+          "target_hostname",
+          "target_boot_id"
+        ],
+        "completion_gates": [
+          "failure_context_recorded",
+          "target_host_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "forensics-command-capture",
+        "title": "Operator-approved forensics command transcript",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge forensics --dry-run",
+          "sudo noemaforge forensics"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "forensics_dry_run_transcript",
+          "forensics_command_transcript",
+          "forensics_bundle_path"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "dry_run_reviewed",
+          "bundle_path_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "bundle-integrity",
+        "title": "Forensics bundle integrity and inventory",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sha256sum <forensics-bundle>",
+          "tar -tf <forensics-bundle>",
+          "du -b <forensics-bundle>"
+        ],
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "bundle_file_list",
+          "bundle_size_bytes"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "file_list_reviewed",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "redaction-inspection",
+        "title": "Sensitive data exclusion and redaction review",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "tar -tf <forensics-bundle> | sed -n '1,120p'",
+          "grep -R \"TOKEN\\|SECRET\\|PASSWORD\" <unpacked-redacted-review> || true"
+        ],
+        "evidence": [
+          "redaction_manifest",
+          "secret_scan_summary",
+          "excluded_sensitive_paths",
+          "model_weight_exclusion_record",
+          "vault_exclusion_record"
+        ],
+        "completion_gates": [
+          "secrets_redacted",
+          "model_weights_excluded",
+          "vault_contents_excluded",
+          "browser_profiles_excluded",
+          "token_paths_excluded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "runtime-log-coverage",
+        "title": "Failure-related runtime log coverage",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "systemctl --failed --no-pager",
+          "journalctl -u noemaforge-llm-gateway.service -n 200 --no-pager",
+          "journalctl -u noemaforge-toolproxy.service -n 200 --no-pager",
+          "noemaforge status --json"
+        ],
+        "evidence": [
+          "failed_service_status",
+          "journal_excerpt",
+          "launcher_error_context",
+          "firstboot_status",
+          "admin_gui_log_tail"
+        ],
+        "completion_gates": [
+          "failure_context_recorded",
+          "service_log_recorded",
+          "journal_excerpt_recorded",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "inspection-followup",
+        "title": "Reviewed findings and follow-up routing",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge wiki-patch commit-plan --dry-run"
+        ],
+        "evidence": [
+          "inspector_name_or_role",
+          "findings_summary",
+          "remediation_plan",
+          "docs_update_decision",
+          "linked_todo_or_fix_id"
+        ],
+        "completion_gates": [
+          "bundle_inspected",
+          "blocker_or_fix_recorded",
+          "canonical_docs_updated_after_review"
+        ]
+      }
+    ],
+    "required_outputs": [
+      "failure_forensics_summary",
+      "blocked_completion_notice",
+      "target_forensics_command_manifest",
+      "evidence_requirements",
+      "inspection_followup_manifest",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/failure-forensics-bundle-readiness-policy.json",
+      "noemaforge/contracts/failure_forensics_bundle_readiness.schema.json",
+      "noemaforge/src/failure_forensics_bundle_readiness_runtime.py",
+      "noemaforge/tests/test_failure_forensics_bundle_readiness_runtime.py",
+      "noemaforge/tests/test_failure_forensics_bundle_readiness_qa.py",
+      "noemaforge/tests/test_failure_forensics_bundle_readiness_performance.py",
+      "prelaunch/governance/failure_forensics_bundle_readiness.example.json",
+      "noemaforge/bin/noemaforge",
+      "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/failure-forensics-bundle-readiness-policy.json",
+    "noemaforge/contracts/failure_forensics_bundle_readiness.schema.json",
+    "noemaforge/src/failure_forensics_bundle_readiness_runtime.py",
+    "noemaforge/tests/test_failure_forensics_bundle_readiness_runtime.py",
+    "noemaforge/tests/test_failure_forensics_bundle_readiness_qa.py",
+    "noemaforge/tests/test_failure_forensics_bundle_readiness_performance.py",
+    "prelaunch/governance/failure_forensics_bundle_readiness.example.json",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

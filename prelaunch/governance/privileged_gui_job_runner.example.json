@@ -1,0 +1,69 @@
+{
+  "apiVersion": "noemaforge.privileged-gui-job-runner/v1",
+  "kind": "PrivilegedGuiJobRunnerExampleSet",
+  "id": "privileged-gui-job-runner-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "approved-epoch-apply-dry-run",
+      "job": {
+        "job_id": "job_20260520T194954Z_epoch_apply",
+        "kind": "epoch_apply",
+        "status": "needs_privilege",
+        "command": "sudo noemaforge first-start --full_composite 4 --keep-display",
+        "allowed_action": "first_start_epoch_apply",
+        "approval_state": "approved",
+        "polkit_action": "org.noemaforge.privileged-jobs.run"
+      },
+      "expect_ok": true,
+      "dry_run": true
+    },
+    {
+      "id": "blocked-shell-fragment",
+      "job": {
+        "job_id": "job_20260520T194954Z_shell_fragment",
+        "kind": "epoch_apply",
+        "status": "needs_privilege",
+        "command": "sudo noemaforge first-start --normal --keep-display; reboot",
+        "allowed_action": "first_start_epoch_apply",
+        "approval_state": "approved",
+        "polkit_action": "org.noemaforge.privileged-jobs.run"
+      },
+      "expect_ok": false,
+      "dry_run": true
+    },
+    {
+      "id": "approved-continue-selection-dry-run",
+      "job": {
+        "job_id": "job_20260520T201324Z_model_selection_continue",
+        "kind": "model_selection_continue",
+        "status": "needs_privilege",
+        "command": "sudo noemaforge first-start --full_composite 4 --dry-run --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display",
+        "allowed_action": "first_start_model_selection_continue",
+        "approval_state": "approved",
+        "polkit_action": "org.noemaforge.privileged-jobs.run"
+      },
+      "expect_ok": true,
+      "dry_run": true
+    },
+    {
+      "id": "approved-vault-reinventory-steps-dry-run",
+      "job": {
+        "job_id": "job_20260520T201324Z_vault_reinventory",
+        "kind": "vault_reinventory",
+        "status": "needs_privilege",
+        "command": "sudo noemaforge inventory scan && sudo noemaforge datasets scan && sudo noemaforge tournament eligibility",
+        "allowed_action": "vault_reinventory_scan",
+        "approval_state": "approved",
+        "polkit_action": "org.noemaforge.privileged-jobs.run",
+        "privileged_steps": [
+          "sudo noemaforge inventory scan",
+          "sudo noemaforge datasets scan",
+          "sudo noemaforge tournament eligibility"
+        ]
+      },
+      "expect_ok": true,
+      "dry_run": true
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/noemaforge_runtime.schema.json",
+  "title": "NoemaForgeRuntimePolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "profiles", "health_report", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.runtime/v1"
+    },
+    "kind": {
+      "const": "NoemaForgeRuntimePolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "linux_reference_required",
+        "preserve_linux_systemd_launch",
+        "windows_control_only_by_default",
+        "macos_control_only_by_default",
+        "remote_http_disabled_by_default",
+        "forbid_new_required_first_start_dependencies",
+        "host_detection_smoke_required",
+        "alpha_gate_required",
+        "allowed_host_os",
+        "allowed_roles",
+        "required_profiles"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "linux_reference_required": {
+          "const": true
+        },
+        "preserve_linux_systemd_launch": {
+          "const": true
+        },
+        "windows_control_only_by_default": {
+          "const": true
+        },
+        "macos_control_only_by_default": {
+          "const": true
+        },
+        "remote_http_disabled_by_default": {
+          "const": true
+        },
+        "forbid_new_required_first_start_dependencies": {
+          "const": true
+        },
+        "host_detection_smoke_required": {
+          "const": true
+        },
+        "alpha_gate_required": {
+          "const": true
+        },
+        "allowed_host_os": {
+          "type": "array",
+          "items": {
+            "enum": ["linux", "windows", "macos", "remote"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_roles": {
+          "type": "array",
+          "items": {
+            "enum": ["reference_runtime", "control_host", "runtime_connector"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_profiles": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 4,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "host_os",
+          "role",
+          "connector",
+          "launcher",
+          "enabled",
+          "optional",
+          "required_for_first_start",
+          "allow_heavy_local_inference",
+          "preserve_existing_launch",
+          "refs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "host_os": {
+            "enum": ["linux", "windows", "macos", "remote"]
+          },
+          "role": {
+            "enum": ["reference_runtime", "control_host", "runtime_connector"]
+          },
+          "connector": {
+            "type": "string"
+          },
+          "launcher": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "optional": {
+            "type": "boolean"
+          },
+          "required_for_first_start": {
+            "type": "boolean"
+          },
+          "allow_heavy_local_inference": {
+            "type": "boolean"
+          },
+          "preserve_existing_launch": {
+            "type": "boolean"
+          },
+          "health_report_required": {
+            "type": "boolean"
+          },
+          "live_network_check_default": {
+            "type": "boolean"
+          },
+          "refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "health_report": {
+      "type": "object",
+      "required": ["kind", "example_ref", "required_fields"],
+      "properties": {
+        "kind": {
+          "const": "RuntimeHealthReport"
+        },
+        "example_ref": {
+          "type": "string"
+        },
+        "required_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

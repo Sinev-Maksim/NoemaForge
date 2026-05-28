@@ -1,0 +1,56 @@
+{
+  "apiVersion": "noemaforge.media-capture-privacy/v1",
+  "kind": "MediaCapturePrivacyExampleSet",
+  "id": "media-capture-privacy-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "blocked-hidden-microphone-capture",
+      "trace_id": "trace:media-capture-privacy:hidden-microphone",
+      "request": {
+        "action": "voice.capture_live",
+        "source": "microphone",
+        "operator_consent": false,
+        "visible_privacy_state": false,
+        "manual_operator_command": false,
+        "autostart": true,
+        "max_seconds": 60
+      },
+      "expected_decision": "block",
+      "expected_failures": [
+        "operator_consent_required",
+        "visible_privacy_state_required",
+        "manual_operator_command_required",
+        "autostart_forbidden",
+        "max_seconds_exceeds_policy"
+      ],
+      "refs": [
+        "noemaforge/src/voice_ingest.py",
+        "noemaforge/src/toolproxy.py",
+        "noemaforge/configs/voice-backends-policy.yaml"
+      ]
+    },
+    {
+      "id": "allowed-manual-virtual-camera-mask-plan",
+      "trace_id": "trace:media-capture-privacy:virtual-camera-mask",
+      "request": {
+        "action": "camera.mask_virtual_camera",
+        "source": "camera",
+        "target": "virtual_camera",
+        "operator_consent": true,
+        "visible_privacy_state": true,
+        "manual_operator_command": true,
+        "user_selected_target": true,
+        "autostart": false,
+        "max_seconds": 0
+      },
+      "expected_decision": "allow",
+      "expected_failures": [],
+      "refs": [
+        "noemaforge/configs/media-pipeline-catalog.json",
+        "noemaforge/configs/pipelines.json",
+        "noemaforge/src/admin_runtime.py"
+      ]
+    }
+  ]
+}

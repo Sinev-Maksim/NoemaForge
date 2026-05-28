@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/honesty_protocol.schema.json",
+  "title": "HonestyProtocolPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.honesty-protocol/v1"
+    },
+    "kind": {
+      "const": "HonestyProtocolPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_trace_id",
+        "require_honesty_state",
+        "require_uncertainty_reason",
+        "require_next_action",
+        "require_error_attribution",
+        "require_repair_action_for_errors",
+        "forbid_confident_unknowns",
+        "forbid_fabricated_citations",
+        "forbid_blame_shift",
+        "max_uncertain_confidence",
+        "honesty_states",
+        "uncertain_states",
+        "required_template_states",
+        "allowed_actions",
+        "error_classes",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_trace_id": {
+          "const": true
+        },
+        "require_honesty_state": {
+          "const": true
+        },
+        "require_uncertainty_reason": {
+          "const": true
+        },
+        "require_next_action": {
+          "const": true
+        },
+        "require_error_attribution": {
+          "const": true
+        },
+        "require_repair_action_for_errors": {
+          "const": true
+        },
+        "forbid_confident_unknowns": {
+          "const": true
+        },
+        "forbid_fabricated_citations": {
+          "const": true
+        },
+        "forbid_blame_shift": {
+          "const": true
+        },
+        "max_uncertain_confidence": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0
+        },
+        "honesty_states": {
+          "type": "array",
+          "items": {
+            "enum": ["sufficient_evidence", "unknown", "need_research", "insufficient_evidence", "policy_blocked", "error_attribution"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "uncertain_states": {
+          "type": "array",
+          "items": {
+            "enum": ["unknown", "need_research", "insufficient_evidence", "policy_blocked"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_template_states": {
+          "type": "array",
+          "items": {
+            "enum": ["unknown", "need_research", "error_attribution"]
+          },
+          "minItems": 3,
+          "uniqueItems": true
+        },
+        "allowed_actions": {
+          "type": "array",
+          "items": {
+            "enum": ["answer", "ask_clarification", "request_research", "defer", "correct_error", "block"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "error_classes": {
+          "type": "array",
+          "items": {
+            "enum": ["model_error", "source_error", "data_missing", "policy_block", "external_constraint", "operator_input_ambiguous", "tool_error"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

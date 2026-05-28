@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.role-kernel/v1",
+  "kind": "RoleKernelSet",
+  "id": "role-kernel-examples",
+  "version": "0.32.1",
+  "kernels": [
+    {
+      "apiVersion": "noemaforge.role-kernel/v1",
+      "kind": "RoleKernel",
+      "id": "role-kernel-default-four",
+      "trace_id": "trace:role-kernel:default-four",
+      "status": "ready",
+      "default_role_keys": [
+        "operator.admin/administrator",
+        "system.guard/surgeon",
+        "system.guard/scary",
+        "selfdev.learning/coach"
+      ],
+      "always_present_supervisors": [
+        "operator.admin/administrator",
+        "system.guard/scary"
+      ],
+      "active_heavy_workers": [
+        "system.guard/surgeon"
+      ],
+      "optional_rolepacks_active": [],
+      "batons": [
+        {
+          "id": "baton:surgeon:default",
+          "role_key": "system.guard/surgeon",
+          "state": "awake",
+          "durable": true,
+          "sleep_wake": true
+        },
+        {
+          "id": "baton:evolver-darwin:default",
+          "role_key": "selfdev.learning/coach",
+          "state": "sleeping",
+          "durable": true,
+          "sleep_wake": true
+        }
+      ],
+      "evolve_boundary": {
+        "mutation_scope": "lab_only",
+        "production_weight_mutation": false,
+        "promotion_path": [
+          "system.guard/scary",
+          "system.guard/surgeon",
+          "operator.admin/administrator"
+        ]
+      },
+      "refs": [
+        "noemaforge/configs/persona-catalog.json",
+        "noemaforge/configs/role-catalog.yaml",
+        "docs/backlog/ROADMAP_AND_TODO.md"
+      ]
+    }
+  ]
+}

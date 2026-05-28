@@ -1,0 +1,82 @@
+{
+  "apiVersion": "noemaforge.locale-main-chat-surface/v1",
+  "kind": "LocaleMainChatSurfacePolicy",
+  "id": "locale-main-chat-surface-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "local_first_default": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "api_path": "/api/locales",
+    "required_locales": ["de", "en", "es", "it", "ja", "ko", "pt", "ru", "uk", "zh-CN"],
+    "required_message_keys": [
+      "section.main_chat",
+      "chat.placeholder",
+      "chat.send",
+      "status.ready",
+      "status.running",
+      "startup.ready",
+      "artifact.download",
+      "depth.steps",
+      "depth.minutes",
+      "depth.until_stop",
+      "pipeline.dock",
+      "pipeline.search",
+      "pipeline.new",
+      "workflow.stop",
+      "role.admin",
+      "role.user"
+    ],
+    "required_frontend_tokens": [
+      "applyLocaleMessages",
+      "setPlaceholder",
+      "speakerLabel",
+      "role.user",
+      "depth-steps-label",
+      "pipeline-dock-title"
+    ],
+    "required_main_chat_ids": [
+      "main-chat-title",
+      "chat-status",
+      "admin-message",
+      "admin-send",
+      "depth-steps-label",
+      "depth-minutes-label",
+      "depth-until-stop-label",
+      "workflow-stop",
+      "pipeline-dock-title",
+      "pipeline-search",
+      "pipeline-new"
+    ],
+    "ru_disallowed_fragments": ["Ready.", "No artifacts yet.", "Open", "Download", "Stop loop", "Pipeline Dock", "Search pipeline", "User"],
+    "required_docs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "configs/locale-main-chat-surface-policy.json",
+    "contracts/locale_main_chat_surface.schema.json",
+    "src/locale_main_chat_surface_runtime.py",
+    "src/admin_gui_server.py",
+    "templates/pipeline-dashboard/index.html",
+    "templates/pipeline-dashboard/app.js",
+    "configs/locales/en.json",
+    "configs/locales/ru.json",
+    "tests/test_locale_main_chat_surface_runtime.py",
+    "tests/test_locale_main_chat_surface_qa.py",
+    "tests/test_locale_main_chat_surface_performance.py",
+    "prelaunch/governance/locale_main_chat_surface.example.json",
+    "docs/README.md",
+    "docs/TODO.md",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/reference/PROJECT_CONTEXT.md",
+    "docs/history/CHANGELOG.md"
+  ]
+}
+

@@ -1,0 +1,234 @@
+{
+  "apiVersion": "noemaforge.final-gui-scenario-replay-readiness/v1",
+  "kind": "FinalGuiScenarioReplayReadinessPolicy",
+  "policy": {
+    "id": "final-gui-scenario-replay-readiness-core",
+    "status": "shadow",
+    "completion_state": "blocked_until_target_final_gui_scenario_replay_evidence",
+    "blocked_todo": "Run `0.32.1` on the target machine from GUI start through Admin greeting, routed pipeline launch, Dev Team action and model-evolution action.",
+    "secondary_blocked_todo": "On NoemaForge, replay the final GUI scenario and capture transcript before bumping to `0.32.1`.",
+    "required_showcase_id": "polished_admin_gui_guided_scenario",
+    "local_validator_only": true,
+    "target_machine_required": true,
+    "operator_approval_required": true,
+    "safety_controls": [
+      "no_auto_gui_execution",
+      "target_machine_required",
+      "operator_approval_required",
+      "public_showcase_selection_required",
+      "transcript_required",
+      "artifact_hashes_required",
+      "archive_required",
+      "local_validator_has_no_subprocess"
+    ],
+    "output_artifacts": [
+      "final_gui_scenario_replay_summary",
+      "blocked_completion_notice",
+      "target_gui_scenario_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_checks": [
+      {
+        "id": "target-baseline",
+        "title": "Target baseline and selected public-showcase scenario",
+        "target_evidence_required": true,
+        "commands": [
+          "cat /proc/sys/kernel/random/boot_id",
+          "date --iso-8601=seconds",
+          "hostnamectl --static || hostname",
+          "noemaforge status --json",
+          "noemaforge public-showcase scenario --id polished_admin_gui_guided_scenario --json"
+        ],
+        "evidence": [
+          "boot_id",
+          "target_timestamp",
+          "target_host",
+          "noemaforge_status_json",
+          "version_under_test",
+          "public_showcase_scenario_json",
+          "selected_showcase",
+          "scenario_id"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "status_json_archived",
+          "version_under_test_recorded",
+          "public_showcase_scenario_recorded",
+          "selected_showcase_matches_policy"
+        ]
+      },
+      {
+        "id": "operator-approval",
+        "title": "Operator approval for final Admin GUI replay",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "printf '%s\\n' '<operator records approval before final Admin GUI replay>'"
+        ],
+        "evidence": [
+          "operator_approval_record",
+          "approved_scope",
+          "approved_target_host",
+          "approval_timestamp"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "scope_limited_to_final_gui_scenario_replay",
+          "evidence_file_archived"
+        ]
+      },
+      {
+        "id": "admin-gui-start",
+        "title": "Admin GUI startup and health",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge admin-gui start --target --scenario polished_admin_gui_guided_scenario --json",
+          "noemaforge admin-gui health --json"
+        ],
+        "evidence": [
+          "admin_gui_start_json",
+          "admin_gui_health_json",
+          "admin_gui_pid_or_session",
+          "gui_screenshot_refs"
+        ],
+        "completion_gates": [
+          "admin_gui_started_on_target",
+          "admin_gui_health_recorded",
+          "initial_screenshot_archived"
+        ]
+      },
+      {
+        "id": "admin-greeting",
+        "title": "Admin greeting transcript",
+        "target_evidence_required": true,
+        "commands": [
+          "noemaforge admin-gui transcript --capture admin-greeting --json"
+        ],
+        "evidence": [
+          "admin_greeting_transcript",
+          "admin_greeting_response_json",
+          "greeting_language_observed"
+        ],
+        "completion_gates": [
+          "admin_greeting_transcript_recorded",
+          "admin_greeting_response_archived",
+          "language_observation_recorded"
+        ]
+      },
+      {
+        "id": "routed-pipeline-launch",
+        "title": "Routed pipeline launch from Admin GUI",
+        "target_evidence_required": true,
+        "commands": [
+          "noemaforge admin-gui route --scenario polished_admin_gui_guided_scenario --step routed-pipeline-launch --json",
+          "noemaforge pipeline status --last --json"
+        ],
+        "evidence": [
+          "routed_pipeline_request",
+          "routed_pipeline_response_json",
+          "pipeline_artifact_manifest",
+          "pipeline_route_name"
+        ],
+        "completion_gates": [
+          "routed_pipeline_request_recorded",
+          "pipeline_response_archived",
+          "pipeline_artifact_manifest_archived"
+        ]
+      },
+      {
+        "id": "dev-team-action",
+        "title": "Dev Team action from Admin GUI route",
+        "target_evidence_required": true,
+        "commands": [
+          "noemaforge admin-gui route --scenario polished_admin_gui_guided_scenario --step dev-team-action --json",
+          "noemaforge dev-team status --last --json"
+        ],
+        "evidence": [
+          "dev_team_request",
+          "dev_team_response_json",
+          "dev_team_artifact_manifest",
+          "dev_team_route_name"
+        ],
+        "completion_gates": [
+          "dev_team_request_recorded",
+          "dev_team_response_archived",
+          "dev_team_artifact_manifest_archived"
+        ]
+      },
+      {
+        "id": "model-evolution-action",
+        "title": "Model-evolution action from Admin GUI route",
+        "target_evidence_required": true,
+        "commands": [
+          "noemaforge admin-gui route --scenario polished_admin_gui_guided_scenario --step model-evolution-action --json",
+          "noemaforge model-evolution status --last --json"
+        ],
+        "evidence": [
+          "model_evolution_request",
+          "model_evolution_response_json",
+          "model_evolution_artifact_manifest",
+          "rollback_plan_ref"
+        ],
+        "completion_gates": [
+          "model_evolution_request_recorded",
+          "model_evolution_response_archived",
+          "model_evolution_artifact_manifest_archived",
+          "rollback_plan_recorded"
+        ]
+      },
+      {
+        "id": "transcript-and-archive",
+        "title": "Full transcript, hashes, redaction and archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "noemaforge admin-gui transcript --scenario polished_admin_gui_guided_scenario --json",
+          "noemaforge admin-gui artifact-manifest --scenario polished_admin_gui_guided_scenario --json",
+          "sha256sum <final-gui-scenario-archive>"
+        ],
+        "evidence": [
+          "full_transcript_path",
+          "artifact_hash_manifest",
+          "archive_path",
+          "archive_sha256",
+          "redaction_manifest",
+          "review_followup_record",
+          "version_bump_guard_record"
+        ],
+        "completion_gates": [
+          "full_transcript_archived",
+          "artifact_hash_manifest_recorded",
+          "archive_sha256_recorded",
+          "redaction_manifest_recorded",
+          "review_followup_recorded",
+          "version_bump_guard_recorded"
+        ]
+      }
+    ],
+    "registry_refs": [
+      "noemaforge/configs/final-gui-scenario-replay-readiness-policy.json",
+      "noemaforge/contracts/final_gui_scenario_replay_readiness.schema.json",
+      "noemaforge/src/final_gui_scenario_replay_readiness_runtime.py",
+      "noemaforge/tests/test_final_gui_scenario_replay_readiness_runtime.py",
+      "noemaforge/tests/test_final_gui_scenario_replay_readiness_qa.py",
+      "noemaforge/tests/test_final_gui_scenario_replay_readiness_performance.py",
+      "prelaunch/governance/final_gui_scenario_replay_readiness.example.json"
+    ],
+    "docs_refs": [
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md",
+      "noemaforge/docs/wiki/gui/admin-console-and-admin-routing-0.32.1.md",
+      "noemaforge/docs/wiki/evolution/model-evolution-control-plane-0.32.1.md",
+      "noemaforge/docs/wiki/gui/persona-portraits-and-dashboard-0.32.1.md"
+    ],
+    "example_refs": [
+      "prelaunch/governance/final_gui_scenario_replay_readiness.example.json"
+    ]
+  }
+}

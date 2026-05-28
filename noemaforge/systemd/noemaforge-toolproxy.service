@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: systemd/noemaforge-toolproxy.service
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Define a systemd unit used by NoemaForge runtime or recovery.

@@ -1,0 +1,84 @@
+{
+  "apiVersion": "noemaforge.noemashell/v1",
+  "kind": "NoemaShellLiteSessionSet",
+  "id": "noemashell-lite-examples",
+  "version": "0.32.1",
+  "sessions": [
+    {
+      "apiVersion": "noemaforge.noemashell/v1",
+      "kind": "NoemaShellLiteSession",
+      "id": "noemashell-lite-primary-repair",
+      "trace_id": "trace:noemashell:primary-repair",
+      "status": "ready",
+      "launch_mode": "normal_window",
+      "surfaces": {
+        "active_worker": {
+          "role_key": "system.guard/surgeon",
+          "flow_ref": "roleflow-admin-scary-surgeon-repair",
+          "worker_slot": "awake",
+          "baton_id": "baton:roleflow:surgeon-repair"
+        },
+        "approvals": [
+          {
+            "id": "approval:repair-session:001",
+            "approver_role": "operator.admin/administrator",
+            "decision_state": "pending",
+            "visible_reason": "Surgeon repair session requires Admin confirmation before applying a guarded change.",
+            "trace_id": "trace:noemashell:approval:repair-session:001"
+          }
+        ],
+        "artifacts": [
+          {
+            "id": "artifact:repair-plan:001",
+            "type": "repair_plan",
+            "path": "artifacts/noemashell/repair-plan-001.json",
+            "provenance": "roleflow-admin-scary-surgeon-repair",
+            "retention": "session_and_audit"
+          }
+        ],
+        "resource_budgets": {
+          "profile_id": "repair_session",
+          "max_active_heavy_workers": 1,
+          "heavy_backend_autostart": false,
+          "requires_operator_confirmation": true,
+          "visible_reason": "Keep one heavy worker active while NoemaShell shows approvals and recovery controls."
+        },
+        "safe_mode": {
+          "enabled": true,
+          "entry_command": "noemaforge safe-mode wait",
+          "visible_reason": "Enter low-pressure mode without hidden privileged action."
+        },
+        "recovery": {
+          "enabled": true,
+          "entry_command": "noemaforge gui-rescue --wait",
+          "rollback_target": "admin_intake",
+          "visible_reason": "Return to Admin intake and preserve the repair baton."
+        }
+      },
+      "operator_controls": [
+        "pause",
+        "resume",
+        "stop",
+        "approve",
+        "reject",
+        "recover",
+        "open_artifact",
+        "switch_role"
+      ],
+      "privileged_actions": [
+        {
+          "id": "privileged:safe-mode:001",
+          "action": "safe_mode",
+          "requires_approval": true,
+          "visible_reason": "Safe mode may stop NoemaForge-owned heavy workers and must be operator-visible."
+        }
+      ],
+      "refs": [
+        "noemaforge/configs/noemashell-lite-policy.json",
+        "noemaforge/configs/roleflow-orchestration-policy.json",
+        "noemaforge/configs/gui-shell-policy.json",
+        "docs/backlog/ROADMAP_AND_TODO.md"
+      ]
+    }
+  ]
+}

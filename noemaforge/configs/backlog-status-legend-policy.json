@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.backlog-status-legend/v1",
+  "kind": "BacklogStatusLegendPolicy",
+  "id": "backlog-status-legend-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "status_legend_not_task_list",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "legend_window_lines": 8,
+    "legend_docs": [
+      "docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "forbidden_legend_markers": [
+      "- [ ] planned",
+      "- [~] in progress / partially covered",
+      "- [x] done",
+      "- [!] explicit non-goal for the ASAP window"
+    ],
+    "required_legend_markers": [
+      "- `planned`: open/not started.",
+      "- `in progress`: partially covered.",
+      "- `done`: complete.",
+      "- `explicit non-goal`: outside the ASAP window."
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/backlog_status_legend_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "find_status_legend_violations",
+      "status_legend_not_task_list",
+      "forbidden_legend_markers",
+      "required_legend_markers"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/backlog-status-legend-policy.json",
+    "noemaforge/contracts/backlog_status_legend.schema.json",
+    "noemaforge/src/backlog_status_legend_runtime.py",
+    "noemaforge/tests/test_backlog_status_legend_runtime.py",
+    "noemaforge/tests/test_backlog_status_legend_qa.py",
+    "noemaforge/tests/test_backlog_status_legend_performance.py",
+    "prelaunch/governance/backlog_status_legend.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

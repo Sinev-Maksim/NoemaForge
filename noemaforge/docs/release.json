@@ -17,15 +17,15 @@
     ],
     "runtime_impact": "none; no hard dependency for first-start/Admin GUI/Dev Team/model-selection/localized docs",
     "status": "candidate architecture backlog; documentation only",
-    "tracking_id": "NFG-ARCH-0.31.13-kernel-shell-exchange",
-    "wiki": "docs/wiki/architecture/consolidated-mvp-kernel-roadmap-0.31.13.alpha.md"
+    "tracking_id": "NFG-ARCH-0.32.1-kernel-shell-exchange",
+    "wiki": "docs/wiki/architecture/consolidated-mvp-kernel-roadmap-0.32.1.md"
   },
   "edge_tinyml_ota_backlog": {
     "mvp_recommendation": "docker-compose + MQTT + gateway inference + manifest + rules + health metrics",
     "runtime_impact": "none; no hard dependency for first-start/Admin GUI/Dev Team/model-selection/localized HOW2START",
     "status": "candidate backlog pack; experimental only",
-    "tracking_id": "NFG-PROP-0.31.13-edge-ml-pack",
-    "wiki": "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha.md"
+    "tracking_id": "NFG-PROP-0.32.1-edge-ml-pack",
+    "wiki": "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
   },
   "first_start_watchdog_fix": {
     "fixes": [
@@ -49,7 +49,7 @@
     ],
     "source_bundle": "noemaforge_03113_firststart_hang_20260511-150449.tar.gz",
     "status": "implemented",
-    "tracking_id": "NFG-FIX-0.31.13-firststart-watchdog"
+    "tracking_id": "NFG-FIX-0.32.1-firststart-watchdog"
   },
   "generated_at": "2026-05-14T00:11:02Z",
   "localized_docs_delta": {
@@ -79,10 +79,10 @@
     "runtime_impact": "none; no hard dependency for install/first-start/Admin GUI/model-selection",
     "source": "docs/source_reports/noemaforge-patch-31-13-multiOS.md",
     "status": "candidate alpha backlog; documentation only",
-    "tracking_id": "NFG-PROP-0.31.13-multiOS-runtime-pack",
-    "wiki": "docs/wiki/multios/multios-runtime-host-roadmap-0.31.13.alpha.md"
+    "tracking_id": "NFG-PROP-0.32.1-multiOS-runtime-pack",
+    "wiki": "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
   },
-  "package": "noemaforge_0.31.13.alpha_prelaunch",
+  "package": "noemaforge_0.32.1_prelaunch",
   "patched_delta": {
     "composite": "missing role pools are not materialized; QA!=Developer filter applied",
     "first_start_dry_run": "selection-only; skips headless/service/smoke/reboot",
@@ -94,9 +94,9 @@
   "quality_gate": {
     "admin_dev_clarification": "PASS: code/dev-team request without project path asks clarification",
     "admin_route_music_regression": "PASS: создай музыку для приветственного демо NoemaForge routes to music",
-    "consistency_audit": "PASS: updated consistency audit includes locale packs and 0.31.13.alpha wiki docs",
+    "consistency_audit": "PASS: updated consistency audit includes locale packs and 0.32.1 wiki docs",
     "first_start_modes": "PASS: CLI/wrapper/parser surfaces exist for fast/normal/full/full_composite dry-run/apply",
-    "installer_selftest": "PASS: install_noemaforge_0.31.13.alpha_mvp.sh --rootfs <temp> --dry-run --selftest",
+    "installer_selftest": "PASS: install_noemaforge_0.32.1_mvp.sh --rootfs <temp> --dry-run --selftest",
     "known_limits": [
       "Full NoemaForge first-start dry-run/apply must be validated on target machine",
       "Live media backend adapters remain explicit/manual",
@@ -104,7 +104,7 @@
     ],
     "model_selection_bridge": "PASS: chat/CLI model-selection plan creates candidate, decision and rollback artifacts",
     "setup_selftest": "PASS: ./setup.sh --mode vm --dry-run --selftest",
-    "version_audit": "PASS: active metadata/runtime versions aligned to 0.31.13.alpha; large-binary skip warning only"
+    "version_audit": "PASS: active metadata/runtime versions aligned to 0.32.1; large-binary skip warning only"
   },
   "release": "pre-alpha",
   "release_name": "pre-alpha-admin-chat-model-selection",
@@ -131,8 +131,8 @@
     "runtime_impact": "none; no hard dependency for install/first-start/Admin GUI/model-selection",
     "source": "docs/source_reports/deep-research-report-7-sense-privacy-honesty-critics-rfc.md",
     "status": "candidate alpha backlog; documentation only",
-    "tracking_id": "NFG-PROP-0.31.13-sense-quality-governance-pack",
-    "wiki": "docs/wiki/safety/sense-privacy-honesty-critics-rfc-roadmap-0.31.13.alpha.md"
+    "tracking_id": "NFG-PROP-0.32.1-sense-quality-governance-pack",
+    "wiki": "docs/wiki/safety/sense-privacy-honesty-critics-rfc-roadmap-0.32.1.md"
   },
   "source_reports": [
     "docs/source_reports/deep-research-report-6-consolidated-architecture.md",
@@ -141,15 +141,15 @@
     "docs/source_reports/deep-research-report-8-noemaforge-governance-quality-pack.md"
   ],
   "status": "pre-alpha",
-  "summary": "NoemaForge 0.31.13.alpha: stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
-  "version": "0.31.13.alpha",
+  "summary": "NoemaForge 0.32.1: stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
+  "version": "0.32.1",
   "product": "NoemaForge",
   "roadmap_packs": [
-    "NFG-ARCH-0.31.13-noemaforge-governance-quality-pack"
+    "NFG-ARCH-0.32.1-noemaforge-governance-quality-pack"
   ],
   "roadmap_inclusions": [
     {
-      "id": "NFG-ARCH-0.31.13-typed-governance-sense-critics-rfc",
+      "id": "NFG-ARCH-0.32.1-typed-governance-sense-critics-rfc",
       "status": "backlog_only",
       "runtime_impact": "none",
       "source": "docs/source_reports/deep-research-report-8-typed-governance-sense-critics-rfc.md"
@@ -162,7 +162,7 @@
   ],
   "first_start_emergency_recovery": {
     "status": "implemented",
-    "tracking_id": "NFG-FIX-0.31.13-patched10-emergency-gui-recovery",
+    "tracking_id": "NFG-FIX-0.32.1-patched10-emergency-gui-recovery",
     "fixes": [
       "minimal GUI recovery helper avoids headless off as first emergency step",
       "display-manager.service is started before gdm.service",
@@ -172,11 +172,11 @@
       "fstab share lines are hardened with nofail automount and device timeout"
     ],
     "helper": "tools/prep/noemaforge-gui-recover-minimal.sh",
-    "wiki": "docs/wiki/first-start/emergency-gui-recovery-0.31.13.alpha.md"
+    "wiki": "docs/wiki/first-start/emergency-gui-recovery-0.32.1.md"
   },
   "patched10_emergency_recovery": {
     "status": "implemented",
-    "tracking_id": "NFG-FIX-0.31.13-patched10-emergency-gui-recovery",
+    "tracking_id": "NFG-FIX-0.32.1-patched10-emergency-gui-recovery",
     "changes": [
       "first-start abort uses minimal no-block GUI recovery",
       "display-manager starts before gdm/gdm3",

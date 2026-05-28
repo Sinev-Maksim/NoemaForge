@@ -1,0 +1,27 @@
+{
+  "apiVersion": "noemaforge.trixie-preflight-target-readiness/v1",
+  "kind": "TrixiePreflightTargetReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-trixie-preflight-target-evidence-readiness",
+      "trace_id": "trace:patched10:trixie-preflight-target",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "preflight-command-baseline",
+        "preflight-json-shape",
+        "distro-kernel-baseline",
+        "dependency-surface",
+        "runtime-socket-snapshot",
+        "preflight-evidence-archive"
+      ],
+      "expected_outputs": [
+        "trixie_preflight_summary",
+        "blocked_completion_notice",
+        "target_preflight_command_manifest",
+        "evidence_requirements",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "apiVersion": "noemaforge.knowledge-purpose/v1",
+  "kind": "KnowledgePurposeExampleSet",
+  "id": "knowledge-purpose-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "admin-grounding-realm-purpose",
+      "trace_id": "trace:knowledge-purpose:admin-grounding",
+      "purpose_artifact": {
+        "artifact_kind": "KnowledgeRealmPurpose",
+        "realm_id": "realm:admin-grounding",
+        "mission": "Keep Administrator answers grounded in graph-backed local knowledge.",
+        "scope_boundaries": [
+          "Administrator grounded answer policy",
+          "Hypergraph provenance and citation behavior",
+          "Knowledge gap notices and ingest followups"
+        ],
+        "out_of_scope": [
+          "Unreviewed public marketing claims",
+          "Live target-machine validation transcripts"
+        ],
+        "expected_source_quality": {
+          "minimum": "reviewed_local_doc",
+          "accepted": ["reviewed_local_doc", "signed_release_artifact", "operator_captured_transcript"],
+          "rejected": ["uncited_web_snippet", "manual_memory_only"]
+        },
+        "update_policy": {
+          "cadence": "per_release_or_policy_change",
+          "requires_review": true,
+          "stale_after_days": 45
+        },
+        "owners": ["Administrator", "Surgeon"],
+        "review_cadence": "release",
+        "applies_to": ["ingest", "lint", "review"]
+      },
+      "decisions": [
+        {
+          "stage": "ingest",
+          "knowledge_item": {
+            "id": "item:grounded-policy",
+            "topic": "Administrator grounded answer policy",
+            "source_quality": "reviewed_local_doc",
+            "age_days": 4
+          },
+          "expected_decision": "accept"
+        },
+        {
+          "stage": "lint",
+          "knowledge_item": {
+            "id": "item:marketing-claim",
+            "topic": "Unreviewed public marketing claims",
+            "source_quality": "reviewed_local_doc",
+            "age_days": 2
+          },
+          "expected_decision": "reject"
+        },
+        {
+          "stage": "review",
+          "knowledge_item": {
+            "id": "item:stale-gap-note",
+            "topic": "Knowledge gap notices and ingest followups",
+            "source_quality": "reviewed_local_doc",
+            "age_days": 60
+          },
+          "expected_decision": "defer"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/rag_eval_suite.schema.json",
+  "title": "RAGEvalSuite",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "thresholds",
+    "cases"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.rag-eval/v1"
+    },
+    "kind": {
+      "const": "RAGEvalSuite"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "thresholds": {
+      "type": "object",
+      "properties": {
+        "retrieval_hit_rate_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "citation_coverage_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "groundedness_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "answer_helpfulness_min": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "query",
+          "expected_source_refs",
+          "expected_answer_terms"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "expected_source_refs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "expected_answer_terms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

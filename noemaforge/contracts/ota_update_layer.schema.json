@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/ota_update_layer.schema.json",
+  "title": "OTAUpdateLayerPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "update_manifests", "refs"],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.ota-update-layer/v1"
+    },
+    "kind": {
+      "const": "OTAUpdateLayerPolicy"
+    },
+    "id": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "status": {
+      "enum": ["draft", "shadow", "stable", "retired"]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "require_staged_rollout",
+        "require_rollback_bundle",
+        "require_health_gate",
+        "require_signed_model_manifest",
+        "require_ci_release_evidence",
+        "forbid_activation_without_health_gate",
+        "allowed_targets",
+        "allowed_stages",
+        "required_health_checks"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "require_staged_rollout": {
+          "const": true
+        },
+        "require_rollback_bundle": {
+          "const": true
+        },
+        "require_health_gate": {
+          "const": true
+        },
+        "require_signed_model_manifest": {
+          "const": true
+        },
+        "require_ci_release_evidence": {
+          "const": true
+        },
+        "forbid_activation_without_health_gate": {
+          "const": true
+        },
+        "allowed_targets": {
+          "type": "array",
+          "items": {
+            "enum": ["model", "container", "gateway"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowed_stages": {
+          "type": "array",
+          "items": {
+            "enum": ["shadow", "canary", "stable"]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_health_checks": {
+          "type": "array",
+          "items": {
+            "enum": ["health", "ready", "metrics"]
+          },
+          "minItems": 3,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "update_manifests": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "ref"],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

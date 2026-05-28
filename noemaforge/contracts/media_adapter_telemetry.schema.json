@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/media_adapter_telemetry.schema.json",
+  "title": "MediaAdapterTelemetryPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.media-adapter-telemetry/v1"},
+    "kind": {"const": "MediaAdapterTelemetryPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "local_first_default",
+        "require_registry_attachment",
+        "require_docs_and_changelog_refs",
+        "require_media_catalog_attachment",
+        "required_metrics",
+        "optional_hardware_metrics",
+        "required_selftest_cases",
+        "required_media_adapters",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "local_first_default": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "require_media_catalog_attachment": {"const": true},
+        "required_metrics": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "wall_time_ms",
+              "cpu_time_ms",
+              "max_rss_mb",
+              "disk_read_bytes",
+              "disk_write_bytes",
+              "artifact_bytes",
+              "status"
+            ]
+          },
+          "minItems": 7,
+          "uniqueItems": true
+        },
+        "optional_hardware_metrics": {
+          "type": "array",
+          "items": {"enum": ["gpu_vram_mb", "gpu_utilization_pct", "ecc_error_count"]},
+          "minItems": 3,
+          "uniqueItems": true
+        },
+        "required_selftest_cases": {
+          "type": "array",
+          "items": {"enum": ["metadata_probe", "plan_only_smoke", "artifact_review_stub"]},
+          "minItems": 3,
+          "uniqueItems": true
+        },
+        "required_media_adapters": {
+          "type": "array",
+          "minItems": 6,
+          "items": {
+            "type": "object",
+            "required": ["pipeline_id", "catalog_id", "adapter_family", "telemetry_profile", "live_backend_required"],
+            "properties": {
+              "pipeline_id": {
+                "enum": [
+                  "voice_generation",
+                  "music_generation",
+                  "photo_generation",
+                  "video_generation",
+                  "image_analysis",
+                  "camera_mask_bridge"
+                ]
+              },
+              "catalog_id": {"type": "string"},
+              "adapter_family": {"type": "string"},
+              "telemetry_profile": {"type": "string"},
+              "live_backend_required": {"const": false}
+            },
+            "additionalProperties": false
+          }
+        },
+        "required_example_sets": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+      },
+      "additionalProperties": false
+    },
+    "refs": {"type": "array", "items": {"type": "string"}, "minItems": 1, "uniqueItems": true}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,46 @@
+{
+  "apiVersion": "noemaforge.model-health-candidate-filter/v1",
+  "kind": "ModelHealthCandidateFilterExample",
+  "id": "model-health-candidate-filter-synthetic",
+  "candidate_map": {
+    "kind": "RoleCandidateMap",
+    "roles": {
+      "administrator": {
+        "selected": [
+          {
+            "model_id": "good-model",
+            "selection_status": "valid_measured",
+            "score": 0.91
+          }
+        ],
+        "chosen": {
+          "model_id": "good-model",
+          "selection_status": "valid_measured",
+          "score": 0.91
+        }
+      }
+    },
+    "unique_selected_model_ids": ["good-model"],
+    "health_registry": "model-health-registry.json",
+    "excluded_model_count": 1,
+    "selection_diagnostics": {
+      "no_candidates_reason": null
+    }
+  },
+  "model_health_registry": {
+    "kind": "ModelHealthRegistry",
+    "models": {
+      "bad-model": {
+        "logical_model_id": "bad-model",
+        "health_state": "failed_runtime",
+        "exclude_from_selection": true,
+        "reason": "warmup_failed"
+      },
+      "good-model": {
+        "logical_model_id": "good-model",
+        "health_state": "healthy",
+        "exclude_from_selection": false
+      }
+    }
+  }
+}

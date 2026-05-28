@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: helpers/noemaforge-safe-start
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide a compatibility helper that delegates to the canonical NoemaForge CLI.
@@ -17,7 +17,7 @@ set -euo pipefail
 noemaforge_require_root
 RESTART=0; WAIT=0
 for arg in "$@"; do case "$arg" in --restart) RESTART=1 ;; --wait) WAIT=1 ;; -h|--help) echo 'usage: sudo noemaforge safe-start [--wait] [--restart]'; exit 0 ;; esac; done
-echo '=== NoemaForge safe-start 0.29.10 ==='; noemaforge_print_runtime_policy
+echo '=== NoemaForge safe-start 0.32.1 ==='; noemaforge_print_runtime_policy
 systemctl disable --now $NOEMAFORGE_RUNTIME_TIMERS 2>/dev/null || true
 install -d -o "$NOEMAFORGE_USER" -g "$(noemaforge_group)" -m 0750 /run/noemaforge /run/noemaforge/llm "${NOEMAFORGE_BACKEND_SOCKET_DIR:-/run/noemaforge/llm/backends}" 2>/dev/null || true
 /usr/local/sbin/noemaforge-sel-fix 2>/dev/null || true

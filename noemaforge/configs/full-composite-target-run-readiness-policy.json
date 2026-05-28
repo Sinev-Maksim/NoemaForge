@@ -1,0 +1,172 @@
+{
+  "apiVersion": "noemaforge.full-composite-target-run-readiness/v1",
+  "kind": "FullCompositeTargetRunReadinessPolicy",
+  "id": "full-composite-target-run-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_full_composite_target_run_readiness",
+    "completion_state": "blocked_until_target_full_composite_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Validate full-composite real run on NoemaForge after patched10 install.",
+      "Validate full-composite real run with SSH available.",
+      "Confirm `/run/nologin` is cleared after recovery on NoemaForge."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "patched10_install_required": true,
+      "clean_install_share_evidence_required": true,
+      "nologin_guard_required": true,
+      "display_recovery_required": true,
+      "evidence_archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "patched10-install-baseline",
+        "title": "Patched10 install baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge version",
+          "test ! -e /run/nologin",
+          "findmnt /mnt/noemaforge-share || true"
+        ],
+        "evidence": ["installed_version", "run_nologin_state", "canonical_share_mount"],
+        "completion_gates": ["patched10_or_later_installed", "no_run_nologin_block", "share_mount_evidence_archived", "evidence_file_archived"]
+      },
+      {
+        "id": "target-preflight",
+        "title": "Target preflight before full composite",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge trixie-preflight --json",
+          "NOEMAFORGE_PIPELINE_STATE=/var/lib/noemaforge/pipelines noemaforge pipeline validate",
+          "systemctl status noemaforge-llm-gateway.service --no-pager -l"
+        ],
+        "evidence": ["trixie_preflight_json", "pipeline_validate_output", "gateway_service_state"],
+        "completion_gates": ["preflight_json_parse_ok", "pipeline_validate_ok", "gateway_state_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "full-composite-command-plan",
+        "title": "Full composite command plan",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge first-start --full_composite 0 --show-candidates --show-compositions --clear-model-health --per-model-timeout 240 --total-timeout 7200"
+        ],
+        "evidence": ["operator_approval_record", "command_line", "risk_acknowledgement"],
+        "completion_gates": ["operator_approval_recorded", "full_composite_zero_recorded", "timeouts_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "full-composite-run-transcript",
+        "title": "Full composite run transcript",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL=10 sudo noemaforge first-start --full_composite 0 --show-candidates --show-compositions --clear-model-health --per-model-timeout 240 --total-timeout 7200"
+        ],
+        "evidence": ["run_transcript", "tty_status_updates", "model_run_records", "composite_selection_plan"],
+        "completion_gates": ["operator_approval_recorded", "transcript_archived", "summary_artifacts_written", "evidence_file_archived"]
+      },
+      {
+        "id": "summary-artifacts",
+        "title": "First-start summary and artifacts",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "noemaforge first-start summary --latest",
+          "ls -l /var/lib/noemaforge/firstboot"
+        ],
+        "evidence": ["first_start_summary", "candidate_selection_plan", "role_candidate_map", "model_run_records", "rollback_plan", "composite_selection_plan"],
+        "completion_gates": ["summary_has_pass_warn_fail_markers", "candidate_artifacts_exist", "rollback_plan_exists", "evidence_file_archived"]
+      },
+      {
+        "id": "display-and-abort-recovery",
+        "title": "Display, abort and GUI recovery",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge first-start abort 2>/dev/null || true",
+          "sudo systemctl set-default graphical.target",
+          "sudo systemctl start --no-block display-manager.service 2>/dev/null || true",
+          "systemctl is-active display-manager.service"
+        ],
+        "evidence": ["abort_result", "graphical_target_state", "display_manager_state", "run_nologin_state_after_recovery"],
+        "completion_gates": ["operator_approval_recorded", "display_manager_active_after_recovery", "no_run_nologin_block", "evidence_file_archived"]
+      },
+      {
+        "id": "evidence-archive",
+        "title": "Full composite evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-first-start --include-install-validation"
+        ],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "full_composite_readiness_summary",
+      "blocked_completion_notice",
+      "target_command_manifest",
+      "artifact_requirements",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+      "noemaforge/contracts/full_composite_target_run_readiness.schema.json",
+      "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+      "prelaunch/governance/full_composite_target_run_readiness.example.json",
+      "prelaunch/tools/noemaforge_03113_patched11_validation_logger.sh",
+      "noemaforge/configs/clean-install-share-readiness-policy.json",
+      "noemaforge/configs/target-live-validation-readiness-policy.json",
+      "noemaforge/configs/first-start-summary-policy.json",
+      "noemaforge/src/first_start_summary.py",
+      "noemaforge/src/role_tournament.py",
+      "noemaforge/src/firstboot_orchestrator.py",
+      "noemaforge/src/privileged_gui_job_runner.py",
+      "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+      "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+    "noemaforge/contracts/full_composite_target_run_readiness.schema.json",
+    "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+    "noemaforge/tests/test_full_composite_target_run_readiness_runtime.py",
+    "noemaforge/tests/test_full_composite_target_run_readiness_qa.py",
+    "noemaforge/tests/test_full_composite_target_run_readiness_performance.py",
+    "prelaunch/governance/full_composite_target_run_readiness.example.json",
+    "prelaunch/tools/noemaforge_03113_patched11_validation_logger.sh",
+    "noemaforge/configs/clean-install-share-readiness-policy.json",
+    "noemaforge/configs/target-live-validation-readiness-policy.json",
+    "noemaforge/configs/first-start-summary-policy.json",
+    "noemaforge/src/first_start_summary.py",
+    "noemaforge/src/role_tournament.py",
+    "noemaforge/src/firstboot_orchestrator.py",
+    "noemaforge/src/privileged_gui_job_runner.py",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+    "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

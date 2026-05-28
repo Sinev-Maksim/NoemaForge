@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/abstention_policy_validation.schema.json",
+  "title": "AbstentionPolicyValidationReport",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "ok",
+    "created_at",
+    "failures",
+    "metrics",
+    "scenario_results"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.production-ai/v1"
+    },
+    "kind": {
+      "const": "AbstentionPolicyValidationReport"
+    },
+    "ok": {
+      "type": "boolean"
+    },
+    "created_at": {
+      "type": "string"
+    },
+    "policy_path": {
+      "type": "string"
+    },
+    "failures": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "thresholds": {
+      "type": "object",
+      "required": [
+        "auto_route_min_confidence",
+        "clarify_min_confidence"
+      ],
+      "properties": {
+        "auto_route_min_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "clarify_min_confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "metrics": {
+      "type": "object",
+      "required": [
+        "scenario_total",
+        "scenario_passed",
+        "scenario_failed"
+      ],
+      "properties": {
+        "scenario_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scenario_passed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "scenario_failed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "missing_actions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "scenario_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "ok",
+          "expected_action",
+          "actual_action",
+          "decision"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "ok": {
+            "type": "boolean"
+          },
+          "expected_action": {
+            "type": "string"
+          },
+          "actual_action": {
+            "type": "string"
+          },
+          "decision": {
+            "type": "object"
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

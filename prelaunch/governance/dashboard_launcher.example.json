@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.dashboard-launcher/v1",
+  "kind": "DashboardLauncherExampleSet",
+  "id": "dashboard-launcher-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "dashboard-path-state",
+      "trace_id": "trace:dashboard:launcher:path-state",
+      "commands": ["path", "state"],
+      "expected": {
+        "writes_dashboard_state": true,
+        "uses_operator_writable_state": true,
+        "starts_llm": false,
+        "starts_media_backend": false,
+        "requires_root": false
+      },
+      "refs": [
+        "noemaforge/bin/noemaforge",
+        "noemaforge/tools/prep/noemaforge-dashboard.sh",
+        "noemaforge/src/pipeline_runtime.py",
+        "noemaforge/templates/pipeline-dashboard/index.html"
+      ]
+    },
+    {
+      "id": "dashboard-serve-start-status-stop",
+      "trace_id": "trace:dashboard:launcher:serve-start-stop",
+      "commands": ["serve", "start", "status", "stop"],
+      "expected": {
+        "serves_static_ui": true,
+        "localhost_only": true,
+        "background_pidfile": true,
+        "starts_llm": false,
+        "starts_media_backend": false,
+        "requires_root": false
+      },
+      "refs": [
+        "noemaforge/tools/prep/noemaforge-dashboard.sh",
+        "noemaforge/src/admin_gui_server.py",
+        "noemaforge/templates/pipeline-dashboard/app.js"
+      ]
+    },
+    {
+      "id": "dashboard-user-autostart-enable-disable",
+      "trace_id": "trace:dashboard:launcher:user-autostart",
+      "commands": ["autostart-enable", "autostart-status", "autostart-disable"],
+      "expected": {
+        "user_systemd_timer": true,
+        "dry_run_available": true,
+        "starts_llm": false,
+        "starts_media_backend": false,
+        "requires_root": false
+      },
+      "refs": [
+        "noemaforge/bin/noemaforge",
+        "noemaforge/tools/prep/noemaforge-dashboard.sh",
+        "noemaforge/templates/pipeline-dashboard/index.html"
+      ]
+    }
+  ]
+}

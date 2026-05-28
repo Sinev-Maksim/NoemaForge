@@ -96,3 +96,42 @@ noemaforge_list_llama_units() {
     | grep -E '^noemaforge-llama@.+\.service$' \
     | sort -u || true
 }
+
+noemaforge_ops_unit_control_group() {
+  local unit="$1" cg
+  cg="$(systemctl show -p ControlGroup --value "$unit" 2>/dev/null || true)"
+  [[ -n "$cg" && "$cg" != "/" ]] || return 1
+  printf '%s\n' "$cg"
+}
+
+noemaforge_ops_cgroup_pids() {
+  local cg="$1" root
+  [[ "$cg" == /* ]] || return 0
+  root="/sys/fs/cgroup${cg}"
+  [[ -d "$root" ]] || return 0
+  find "$root" -type f \( -name cgroup.procs -o -name cgroup.threads \) -print0 2>/dev/null \
+    | xargs -0 -r cat 2>/dev/null \
+    | awk '/^[0-9]+$/ {print $1}' \
+    | sort -u
+}
+
+noemaforge_ops_drain_unit_cgroups() {
+  local signal="${1:-TERM}" unit cg pid
+  shift || true
+  for unit in "$@"; do
+    [[ -n "$unit" ]] || continue
+    cg="$(noemaforge_ops_unit_control_group "$unit" || true)"
+    [[ -n "$cg" ]] || continue
+    mapfile -t _noemaforge_ops_cgroup_pids < <(noemaforge_ops_cgroup_pids "$cg")
+    [[ ${#_noemaforge_ops_cgroup_pids[@]} -gt 0 ]] || continue
+    _noemaforge_ops_safe_pids=()
+    for pid in "${_noemaforge_ops_cgroup_pids[@]}"; do
+      [[ "$pid" =~ ^[0-9]+$ ]] || continue
+      [[ "$pid" != "$$" && "$pid" != "1" ]] || continue
+      _noemaforge_ops_safe_pids+=("$pid")
+    done
+    [[ ${#_noemaforge_ops_safe_pids[@]} -gt 0 ]] || continue
+    echo "[noemaforge-cgroup] $signal $unit pids: ${_noemaforge_ops_safe_pids[*]}"
+    kill "-$signal" "${_noemaforge_ops_safe_pids[@]}" 2>/dev/null || true
+  done
+}

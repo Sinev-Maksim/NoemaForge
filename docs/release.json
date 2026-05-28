@@ -1,0 +1,207 @@
+{
+  "alpha_status": {
+    "conversation_history": true,
+    "gui_stateful_shell": true,
+    "pipeline_dock": true,
+    "privileged_gui_actions": "plan_or_job_first",
+    "smarthome_backlog": true,
+    "sr_ssr_review_inbox": true,
+    "task_governance": true,
+    "telemetry_dashboard": true
+  },
+  "boot_modes": {
+    "gui": "timer-driven runtime/toolproxy only by default; no LLM in runtime_only",
+    "manual": "no runtime autostart",
+    "wogui": "headless runtime with CPU bootstrap LLM allowed; heavy LLM manual only"
+  },
+  "channel": "pre-alpha",
+  "consolidated_architecture_backlog": {
+    "focus": [
+      "protected MVP kernel",
+      "NoemaShell Lite",
+      "RoleFlow/orchestration_graph",
+      "git_exchange quarantine-first",
+      "HFBridge metadata-first",
+      "Evolve lab boundaries",
+      "allowlist release hygiene"
+    ],
+    "runtime_impact": "none; no hard dependency for first-start/Admin GUI/Dev Team/model-selection/localized docs",
+    "status": "candidate architecture backlog; documentation only",
+    "tracking_id": "NFG-ARCH-0.32.1-kernel-shell-exchange",
+    "wiki": "docs/wiki/architecture/consolidated-mvp-kernel-roadmap-0.32.1.md"
+  },
+  "edge_tinyml_ota_backlog": {
+    "mvp_recommendation": "docker-compose + MQTT + gateway inference + manifest + rules + health metrics",
+    "runtime_impact": "none; no hard dependency for first-start/Admin GUI/Dev Team/model-selection/localized HOW2START",
+    "status": "candidate backlog pack; experimental only",
+    "tracking_id": "NFG-PROP-0.32.1-edge-ml-pack",
+    "wiki": "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
+  },
+  "first_start_emergency_recovery": {
+    "fixes": [
+      "minimal GUI recovery helper avoids headless off as first emergency step",
+      "display-manager.service is started before gdm.service",
+      "all recovery systemctl start/isolate calls use --no-block",
+      "first-start abort and Ctrl+C/direct traps use minimal GUI recovery",
+      "systemd-user-sessions is requested and /run/nologin is cleared",
+      "fstab share lines are hardened with nofail automount and device timeout"
+    ],
+    "helper": "tools/prep/noemaforge-gui-recover-minimal.sh",
+    "status": "implemented",
+    "tracking_id": "NFG-FIX-0.32.1-patched10-emergency-gui-recovery",
+    "wiki": "docs/wiki/first-start/emergency-gui-recovery-0.32.1.md"
+  },
+  "first_start_watchdog_fix": {
+    "fixes": [
+      "per-model hard timeout",
+      "total tournament timeout",
+      "streaming progress artifacts",
+      "model-run-records incremental artifact",
+      "backend stop/kill fallback",
+      "fresh firstboot status writes",
+      "default safety-name filter for unverified/uncensored/aggressive models"
+    ],
+    "operator_flags": [
+      "--per-model-timeout SEC",
+      "--total-timeout SEC",
+      "--include-unverified"
+    ],
+    "progress_artifacts": [
+      "/var/lib/noemaforge/bootstrap/role-tournament-progress.json",
+      "/var/lib/noemaforge/bootstrap/role-tournament-progress.jsonl",
+      "/var/lib/noemaforge/bootstrap/model-run-records.json"
+    ],
+    "source_bundle": "noemaforge_03113_firststart_hang_20260511-150449.tar.gz",
+    "status": "implemented",
+    "tracking_id": "NFG-FIX-0.32.1-firststart-watchdog"
+  },
+  "generated_at": "2026-05-21T00:00:00Z",
+  "localized_docs_delta": {
+    "first_start_dry_run": "direct selection-only path; no systemd rehome, soft-headless, package install, systemd override, service start, smoke or epoch switch",
+    "localized_user_information": "docs/i18n/<locale> contains README, HOW2START, RELEASE_NOTES and USER_GUIDE for all supported locales",
+    "manifest": "MANIFEST and SHA256SUMS regenerated after final files were written",
+    "model_selection_api": "/api/model-selection/plan returns top-level reply/artifacts/raw chat contract",
+    "yaml_hygiene": "all YAML files parse successfully"
+  },
+  "multimodal": {
+    "image_metadata": "enabled_with_ffprobe_exiftool_or_identify",
+    "live_generation": "prepared_manual_backends_required",
+    "non_gguf_model_scan": "enabled",
+    "persona_portraits": "checked_by_first_run",
+    "vault_discovery": "enabled",
+    "video_call_masks": "prepared_manual_virtual_camera_required"
+  },
+  "multios_runtime_backlog": {
+    "focus": [
+      "Linux reference runtime",
+      "Windows/macOS host/control nodes",
+      "runtime registry",
+      "runtime connectors",
+      "remote runtime gateway",
+      "runtime health report"
+    ],
+    "runtime_impact": "none; no hard dependency for install/first-start/Admin GUI/model-selection",
+    "source": "docs/source_reports/noemaforge-patch-31-13-multiOS.md",
+    "status": "candidate alpha backlog; documentation only",
+    "tracking_id": "NFG-PROP-0.32.1-multiOS-runtime-pack",
+    "wiki": "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
+  },
+  "package": "noemaforge_0.32.1_prelaunch",
+  "patched10_emergency_recovery": {
+    "changes": [
+      "first-start abort uses minimal no-block GUI recovery",
+      "display-manager starts before gdm/gdm3",
+      "noemaforge headless off is not the first emergency recovery step",
+      "recovery removes /run/nologin and restores graphical.target",
+      "share fstab entries are normalized with nofail and automount",
+      "first-start diagnostics bundle command added"
+    ],
+    "commands": [
+      "sudo noemaforge first-start abort",
+      "sudo noemaforge emergency-recover",
+      "sudo noemaforge first-start diagnostics"
+    ],
+    "status": "implemented",
+    "tracking_id": "NFG-FIX-0.32.1-patched10-emergency-gui-recovery"
+  },
+  "patched10_notes": [
+    "Runtime safety gate now scans structured runtime paths only and ignores free-form model answers that mention non-head shards.",
+    "Added canonical NoemaForge path helper for legacy /mnt/brainos-share paths.",
+    "Full composite real launch runbook added: sudo noemaforge first-start --full_composite 0 --per-model-timeout 240 --total-timeout 7200."
+  ],
+  "patched_delta": {
+    "composite": "missing role pools are not materialized; QA!=Developer filter applied",
+    "first_start_dry_run": "selection-only; skips headless/service/smoke/reboot",
+    "gui_i18n": "/api/locales returns message dictionaries; browser UI localizes labels",
+    "normal_mode": "candidate counting uses valid_measured results",
+    "scoring": "failed/loading/empty/no-pass calls get zero score and are not selected",
+    "version_audit": "recognizes the full patched version token as full version token"
+  },
+  "product": "NoemaForge",
+  "quality_gate": {
+    "admin_dev_clarification": "PASS: code/dev-team request without project path asks clarification",
+    "admin_route_music_regression": "PASS: создай музыку для приветственного демо NoemaForge routes to music",
+    "consistency_audit": "PASS: updated consistency audit includes locale packs, 0.32.1 metadata and legacy 0.32.1 wiki docs",
+    "first_start_modes": "PASS: CLI/wrapper/parser surfaces exist for fast/normal/full/full_composite dry-run/apply",
+    "installer_selftest": "PASS: install_noemaforge_0.32.1_mvp.sh --rootfs <temp> --dry-run --selftest",
+    "known_limits": [
+      "Full legacy live-validation host first-start dry-run/apply must be validated on target machine",
+      "Live media backend adapters remain explicit/manual",
+      "Full composite search may require operator review of estimated combination count"
+    ],
+    "model_selection_bridge": "PASS: chat/CLI model-selection plan creates candidate, decision and rollback artifacts",
+    "setup_selftest": "PASS: ./setup.sh --mode vm --dry-run --selftest",
+    "version_audit": "PASS: active metadata/runtime versions aligned to 0.32.1; legacy reference warnings only"
+  },
+  "release": "0.32.1",
+  "release_name": "NoemaForge 0.32.1",
+  "roadmap_inclusions": [
+    {
+      "id": "NFG-ARCH-0.32.1-typed-governance-sense-critics-rfc",
+      "runtime_impact": "none",
+      "source": "docs/source_reports/deep-research-report-8-typed-governance-sense-critics-rfc.md",
+      "status": "backlog_only"
+    }
+  ],
+  "roadmap_packs": [
+    "NFG-ARCH-0.32.1-noemaforge-governance-quality-pack"
+  ],
+  "runtime_policy": {
+    "gui_autostart_profile_default": "runtime_only",
+    "heavy_llm_autostart": "manual_only",
+    "max_active_llms": 1,
+    "non_text_media_autostart": "manual_or_pipeline_explicit_only",
+    "wogui_autostart_profile_default": "bootstrap_cpu_llm"
+  },
+  "sense_quality_governance_backlog": {
+    "focus": [
+      "Concept_Frame",
+      "Sense_Layer",
+      "Privacy_Filter",
+      "Drive_Adapter",
+      "Honesty Protocol",
+      "Slop_Score",
+      "Critic_Stack",
+      "Detection_Verdict",
+      "Research_Packet",
+      "Pipeline_RFC"
+    ],
+    "runtime_impact": "none; no hard dependency for install/first-start/Admin GUI/model-selection",
+    "source": "docs/source_reports/deep-research-report-7-sense-privacy-honesty-critics-rfc.md",
+    "status": "candidate alpha backlog; documentation only",
+    "tracking_id": "NFG-PROP-0.32.1-sense-quality-governance-pack",
+    "wiki": "docs/wiki/safety/sense-privacy-honesty-critics-rfc-roadmap-0.32.1.md"
+  },
+  "source_reports": [
+    "docs/source_reports/deep-research-report-6-consolidated-architecture.md",
+    "docs/source_reports/noemaforge-patch-31-13-multiOS.md",
+    "docs/source_reports/deep-research-report-7-sense-privacy-honesty-critics-rfc.md",
+    "docs/source_reports/deep-research-report-8-noemaforge-governance-quality-pack.md"
+  ],
+  "status": "pre-alpha",
+  "summary": "NoemaForge 0.32.1: stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
+  "version": "0.32.2",
+  "branch": "release/0.32.2-hardening",
+  "title": "NoemaForge 0.32.2 — orchestration hardening and version centralization",
+  "updated_at": "2026-05-25"
+}

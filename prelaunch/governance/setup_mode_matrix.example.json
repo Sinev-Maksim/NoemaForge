@@ -1,0 +1,32 @@
+{
+  "apiVersion": "noemaforge.setup-modes/v1",
+  "kind": "SetupModeMatrixExampleSet",
+  "id": "setup-mode-matrix-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "friend-first-success",
+      "start_mode": "vm",
+      "command": "./setup.sh --mode vm --dry-run --selftest",
+      "expected": ["recommended_first_success", "dry_run_default", "no_risk_onboarding"]
+    },
+    {
+      "id": "explicit-linux-host",
+      "start_mode": "host",
+      "command": "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share",
+      "expected": ["native_services", "local_paths", "requires_root_for_apply"]
+    },
+    {
+      "id": "macos-light-validation",
+      "start_mode": "macos-dev",
+      "command": "./setup.sh --mode macos-dev --dry-run --selftest",
+      "expected": ["non_privileged", "light_workflows", "no_privileged_writes"]
+    },
+    {
+      "id": "docker-ci-only",
+      "start_mode": "docker-dev",
+      "command": "./setup.sh --mode docker-dev --dry-run --selftest",
+      "expected": ["development_test_only", "not_production_runtime_path"]
+    }
+  ]
+}

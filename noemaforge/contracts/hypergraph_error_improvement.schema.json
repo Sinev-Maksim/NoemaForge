@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/hypergraph_error_improvement.schema.json",
+  "title": "Hypergraph Error Improvement Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "ok", "id", "version", "metrics", "failures"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.hypergraph-error-improvement/v1"},
+    "kind": {"const": "HypergraphErrorImprovementValidationReport"},
+    "ok": {"type": "boolean"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "validated_at": {"type": "string"},
+    "metrics": {
+      "type": "object",
+      "required": ["stores", "defect_classes", "approved_reuse_targets", "resolved_refs", "scenarios"],
+      "properties": {
+        "stores": {"type": "integer", "minimum": 3},
+        "defect_classes": {"type": "integer", "minimum": 5},
+        "approved_reuse_targets": {"type": "integer", "minimum": 2},
+        "tracked_errors": {"type": "integer", "minimum": 1},
+        "approved_retraining_deltas": {"type": "integer", "minimum": 1},
+        "approved_regression_cases": {"type": "integer", "minimum": 1},
+        "resolved_refs": {"type": "integer", "minimum": 0},
+        "scenarios": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": true
+    },
+    "failures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

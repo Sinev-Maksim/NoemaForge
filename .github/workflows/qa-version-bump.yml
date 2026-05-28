@@ -1,0 +1,159 @@
+name: QA — Version bump (0.32.2.x → x+1)
+
+on:
+  workflow_dispatch:          # manual trigger or from batch-counter
+  workflow_call:
+
+jobs:
+  qa-and-bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/0.32.2-hardening
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install pyyaml --quiet
+
+      # ── Re-run all basic gates ──────────────────────────────────────────
+      - name: Full gate check
+        id: gates
+        run: |
+          FAILED=""
+
+          # Python compile
+          if ! find noemaforge/src -name "*.py" | xargs python -m py_compile 2>&1; then
+            FAILED="$FAILED python-compile"
+          fi
+
+          # Forbidden RUNTIME_VERSION
+          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" . \
+            | grep -v "noemaforge/src/noemaforge_version.py" \
+            | grep -v ".git" || true)
+          if [ -n "$hits" ]; then FAILED="$FAILED runtime-version-leak"; fi
+
+          # VERSION files
+          for f in VERSION noemaforge/VERSION docs/VERSION; do
+            if [ -f "$f" ]; then
+              v=$(cat "$f" | tr -d '[:space:]')
+              # Extract x from 0.32.2.x or just 0.32.2
+              base=$(echo "$v" | grep -oP '0\.32\.2')
+              if [ "$base" != "0.32.2" ]; then FAILED="$FAILED version-mismatch($f)"; fi
+            fi
+          done
+
+          # No __pycache__ tracked
+          tracked=$(git ls-files | grep '__pycache__' || true)
+          if [ -n "$tracked" ]; then FAILED="$FAILED pycache-in-git"; fi
+
+          # gitignore covers pyc
+          if ! grep -q '__pycache__' .gitignore 2>/dev/null; then
+            FAILED="$FAILED gitignore-missing-pycache"
+          fi
+
+          echo "failed=$FAILED" >> $GITHUB_OUTPUT
+          if [ -n "$FAILED" ]; then
+            echo "Gates FAILED: $FAILED"; exit 1
+          fi
+          echo "All gates PASSED"
+
+      # ── On PASS: read current patch, bump, commit ──────────────────────
+      - name: Read and bump patch version
+        if: success()
+        id: bump
+        run: |
+          python - <<'PYEOF'
+          import pathlib, re, json
+
+          # Detect current patch from release.yaml or default to 0
+          release_yaml = pathlib.Path('noemaforge/release/release-v0.32.2.yaml')
+          patch = 0
+          if release_yaml.exists():
+              content = release_yaml.read_text()
+              m = re.search(r'patch:\s*(\d+)', content)
+              if m: patch = int(m.group(1))
+
+          new_patch = patch + 1
+          new_version = f"0.32.2.{new_patch}"
+          print(f"Bumping 0.32.2.{patch} → {new_version}")
+
+          # Update release yaml
+          if release_yaml.exists():
+              content = re.sub(r'patch:\s*\d+', f'patch: {new_patch}', content)
+              content = re.sub(r'version:\s*0\.32\.2(\.\d+)?', f'version: {new_version}', content)
+              release_yaml.write_text(content)
+
+          # Update docs/release.json if exists
+          rj = pathlib.Path('docs/release.json')
+          if rj.exists():
+              data = json.loads(rj.read_text())
+              data['version'] = new_version
+              rj.write_text(json.dumps(data, indent=2))
+
+          with open('new_version.txt', 'w') as f:
+              f.write(new_version)
+          PYEOF
+          echo "new_version=$(cat new_version.txt)" >> $GITHUB_OUTPUT
+
+      - name: Commit version bump
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add noemaforge/release/release-v0.32.2.yaml docs/release.json || true
+          git commit -m "chore(release): bump patch to ${{ steps.bump.outputs.new_version }} [automated]" || echo "nothing to commit"
+          git push origin release/0.32.2-hardening
+
+      - name: Create GitHub release tag
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const v = '${{ steps.bump.outputs.new_version }}';
+            await github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: `refs/tags/v${v}`,
+              sha: context.sha
+            });
+            core.info(`Tagged v${v}`);
+
+      # ── On FAIL: create failure report issue ──────────────────────────
+      - name: Create failure report on gate fail
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failed = '${{ steps.gates.outputs.failed }}';
+            const v = '${{ steps.bump.outputs.new_version || '0.32.2.x' }}';
+            const sha = context.sha.substring(0, 8);
+
+            const body = [
+              `## QA gate failure — ${v} (${sha})`,
+              '',
+              `**Failed gates**: \`${failed}\``,
+              '',
+              `**Triggered at**: ${new Date().toISOString()}`,
+              '',
+              '### What to do',
+              '',
+              '1. Fix the issues listed above on `release/0.32.2-hardening`',
+              '2. Push a fix commit (Claude Code or manually)',
+              '3. The pipeline will re-run automatically',
+              '',
+              '_This issue was created automatically by the QA version bump workflow._'
+            ].join('\n');
+
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `QA FAIL: gates blocked version bump at ${v}`,
+              body,
+              labels: ['qa-failure', 'automated']
+            });

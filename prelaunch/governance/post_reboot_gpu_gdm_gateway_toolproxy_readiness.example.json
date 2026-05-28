@@ -1,0 +1,44 @@
+{
+  "apiVersion": "noemaforge.post-reboot-gpu-gdm-gateway-toolproxy-readiness/v1",
+  "kind": "PostRebootGpuGdmGatewayToolproxyReadinessExampleSet",
+  "examples": [
+    {
+      "id": "target-evidence-placeholder",
+      "completion_state": "blocked_until_target_post_reboot_gpu_gdm_gateway_toolproxy_evidence",
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "evidence": [
+        "boot_id",
+        "target_timestamp",
+        "system_running_state",
+        "failed_units",
+        "target_host",
+        "operator_approval_record",
+        "approved_scope",
+        "approved_target_host",
+        "approval_timestamp",
+        "display_manager_state",
+        "gdm_state",
+        "graphical_target_state",
+        "nvidia_smi_csv",
+        "nvidia_device_nodes",
+        "gateway_service_state",
+        "toolproxy_service_state",
+        "noemaforge_status_json",
+        "gateway_status_excerpt",
+        "toolproxy_status_excerpt",
+        "gateway_socket_path",
+        "toolproxy_socket_path",
+        "gateway_smoke_transcript",
+        "toolproxy_smoke_json",
+        "llm_chat_capability_result",
+        "forensics_bundle_path",
+        "bundle_sha256",
+        "redaction_manifest",
+        "secret_scan_summary",
+        "review_followup_record"
+      ],
+      "notes": "This is a shape fixture only. It records the evidence fields required from a real NoemaForge target after reboot; it is not live evidence."
+    }
+  ]
+}

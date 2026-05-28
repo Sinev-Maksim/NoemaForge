@@ -1,0 +1,24 @@
+{
+  "apiVersion": "noemaforge.nologin-recovery-readiness/v1",
+  "kind": "NologinRecoveryReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-nologin-recovery-evidence-readiness",
+      "trace_id": "trace:full-composite:nologin-recovery",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "pre-recovery-baseline",
+        "abort-cleanup-plan",
+        "nologin-cleared-after-recovery",
+        "display-recovery-confirmation",
+        "nologin-recovery-archive"
+      ],
+      "expected_outputs": [
+        "nologin_recovery_summary",
+        "blocked_completion_notice",
+        "target_recovery_command_manifest",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

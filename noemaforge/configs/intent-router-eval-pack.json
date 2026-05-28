@@ -1,0 +1,77 @@
+{
+  "apiVersion": "noemaforge.intent-router-eval/v1",
+  "kind": "IntentRouterEvalPack",
+  "id": "admin-intent-router-core",
+  "version": "0.32.1",
+  "thresholds": {
+    "overall_pass_rate_min": 1.0,
+    "per_route_pass_rate_min": 1.0
+  },
+  "cases": [
+    {
+      "id": "greeting_ru",
+      "text": "Привет",
+      "expected_route_id": "greeting",
+      "expected_intent": "greeting",
+      "expected_abstention_action": "route",
+      "min_confidence": 0.5
+    },
+    {
+      "id": "code_missing_project_context_ru",
+      "text": "Доработай код",
+      "expected_route_id": "code",
+      "expected_intent": "code_change",
+      "expected_abstention_action": "ask_clarification",
+      "min_confidence": 0.75
+    },
+    {
+      "id": "code_with_project_context_ru",
+      "text": "Исправь баг в проекте C:/work/noemaforge/src/app.py",
+      "expected_route_id": "code",
+      "expected_intent": "code_change",
+      "expected_abstention_action": "route",
+      "min_confidence": 0.75
+    },
+    {
+      "id": "model_selection_full_composite_ru",
+      "text": "Оптимизируй используемую модель full_composite 4 для dev team",
+      "expected_route_id": "model_selection",
+      "expected_intent": "model_selection",
+      "expected_abstention_action": "route",
+      "min_confidence": 0.9
+    },
+    {
+      "id": "model_evolution_ru",
+      "text": "Проведи эволюцию модели для ревью кода",
+      "expected_route_id": "model_evolution",
+      "expected_intent": "model_evolution",
+      "expected_abstention_action": "route",
+      "min_confidence": 0.9
+    },
+    {
+      "id": "music_generation_ru",
+      "text": "Создай музыку для запуска",
+      "expected_route_id": "music",
+      "expected_intent": "music_generation",
+      "expected_abstention_action": "route",
+      "min_confidence": 0.8
+    },
+    {
+      "id": "camera_mask_ru",
+      "text": "Подготовь маску камеры для OBS",
+      "expected_route_id": "mask",
+      "expected_intent": "camera_mask_bridge",
+      "expected_abstention_action": "ask_clarification",
+      "min_confidence": 0.75
+    },
+    {
+      "id": "release_prep_ru",
+      "text": "Подготовь релиз, changelog и sha256 архив",
+      "expected_route_id": "release",
+      "expected_intent": "release_prep",
+      "expected_abstention_action": "ask_clarification",
+      "min_confidence": 0.75
+    }
+  ]
+}
+

@@ -1,0 +1,77 @@
+{
+  "apiVersion": "noemaforge.ota-update-layer/v1",
+  "kind": "OTAUpdateManifest",
+  "id": "edge-gateway-shadow-update",
+  "target": "gateway",
+  "version": "0.32.1",
+  "state": "shadow",
+  "staged_rollout": {
+    "enabled": true,
+    "stages": [
+      "shadow",
+      "canary",
+      "stable"
+    ],
+    "current_stage": "shadow",
+    "max_canary_percent": 10
+  },
+  "candidate_bundle": {
+    "id": "edge-gateway-bundle-0.32.1-alpha",
+    "kind": "gateway",
+    "version": "0.32.1",
+    "sha256": "fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210",
+    "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "gateway_service_ref": "noemaforge/configs/gateway-inference-service.json",
+    "release_evidence_ref": "prelaunch/evidence/ci-model-gates/release_evidence.json"
+  },
+  "previous_bundle": {
+    "id": "edge-gateway-bundle-0.32.1-alpha-patched1",
+    "kind": "gateway",
+    "version": "0.32.1",
+    "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "gateway_service_ref": "noemaforge/configs/gateway-inference-service.json"
+  },
+  "rollback": {
+    "enabled": true,
+    "policy_ref": "ota/rollback_policy.yaml",
+    "failure_action": "rollback_previous_bundle",
+    "operator_review_required": true
+  },
+  "health_gate": {
+    "required": true,
+    "status": "passed",
+    "checks": [
+      {
+        "id": "health",
+        "endpoint": "/health",
+        "status": "passed"
+      },
+      {
+        "id": "ready",
+        "endpoint": "/ready",
+        "status": "passed"
+      },
+      {
+        "id": "metrics",
+        "endpoint": "/metrics",
+        "status": "passed"
+      }
+    ]
+  },
+  "activation": {
+    "enabled": true,
+    "requires_health_gate": true,
+    "activated": false
+  },
+  "refs": [
+    "ota/manifest.schema.yaml",
+    "ota/rollback_policy.yaml",
+    "ota/update_agent.py",
+    "ota/mender_module_model_update/README.md",
+    "ota/rauc_bundle_notes.md",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "noemaforge/configs/gateway-inference-service.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json"
+  ]
+}

@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-boot-mode.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -12,7 +12,7 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.31.13.alpha boot/autostart mode and profile manager.
+# NoemaForge 0.32.1 boot/autostart mode and profile manager.
 set -euo pipefail
 MODE_FILE="${NOEMAFORGE_BOOT_MODE_FILE:-/etc/noemaforge/boot-mode}"
 PROFILE_DIR="${NOEMAFORGE_AUTOSTART_PROFILE_DIR:-/etc/noemaforge}"

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/job_progress_stream.schema.json",
+  "title": "NoemaForge Job Progress Stream Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.job-progress-stream/v1" },
+    "kind": { "const": "JobProgressStreamPolicy" },
+    "id": { "const": "job-progress-stream-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "stream_endpoint",
+        "stream_content_type",
+        "required_events",
+        "required_server_tokens",
+        "required_frontend_tokens",
+        "required_runtime_scripts",
+        "required_runtime_tokens",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "sse_snapshot_stream" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_host_dependency": { "const": true },
+        "stream_endpoint": { "const": "/api/jobs/stream" },
+        "stream_content_type": { "const": "text/event-stream" },
+        "required_events": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_server_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_frontend_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_scripts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

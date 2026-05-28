@@ -1,0 +1,57 @@
+{
+  "apiVersion": "noemaforge.vault-reinventory-job/v1",
+  "kind": "VaultReinventoryJobPolicy",
+  "id": "vault-reinventory-job-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "vault_reinventory_privileged_job_fallback_command_regression",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_gui_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py",
+      "noemaforge/bin/noemaforge"
+    ],
+    "required_gui_tokens": [
+      "def vault_reinventory",
+      "status=\"needs_privilege\"",
+      "idempotency_key=\"vault-reinventory\"",
+      "\"privileged_fallback_command\"",
+      "\"fallback_command\": command",
+      "\"privilege_required\": True",
+      "gui_plan_only_operator_terminal_or_approved_root_job_runner",
+      "approved root job-runner"
+    ],
+    "required_cli_tokens": [
+      "cmd_inventory()",
+      "cmd_datasets()",
+      "cmd_tournament()",
+      "inventory|model-inventory)",
+      "datasets|dataset)",
+      "tournament|role-tournament)"
+    ],
+    "required_command_parts": [
+      "sudo noemaforge inventory scan",
+      "sudo noemaforge datasets scan",
+      "sudo noemaforge tournament eligibility"
+    ],
+    "forbidden_runtime_tokens": [
+      "subprocess.run(command",
+      "shell=True"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/vault-reinventory-job-policy.json",
+    "noemaforge/src/vault_reinventory_job_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/bin/noemaforge",
+    "noemaforge/tests/test_vault_reinventory_job_runtime.py",
+    "noemaforge/tests/test_vault_reinventory_job_qa.py",
+    "noemaforge/tests/test_vault_reinventory_job_performance.py",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

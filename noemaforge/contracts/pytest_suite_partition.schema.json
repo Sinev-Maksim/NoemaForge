@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/pytest_suite_partition.schema.json",
+  "title": "NoemaForge Pytest Suite Partition Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.pytest-suite-partition/v1" },
+    "kind": { "const": "PytestSuitePartitionPolicy" },
+    "id": { "const": "pytest-suite-partition-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "max_tests_per_shard",
+        "max_shard_seconds",
+        "required_timeout_seconds",
+        "pipeline_runtime_patterns",
+        "forbidden_monolithic_commands",
+        "required_shard_labels",
+        "required_runtime_scripts",
+        "required_runtime_tokens",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "monolithic_pytest_replaced_by_bounded_shards" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_host_dependency": { "const": true },
+        "max_tests_per_shard": { "type": "integer", "minimum": 1 },
+        "max_shard_seconds": { "type": "integer", "minimum": 1 },
+        "required_timeout_seconds": { "type": "integer", "minimum": 1 },
+        "pipeline_runtime_patterns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "forbidden_monolithic_commands": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_shard_labels": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_scripts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

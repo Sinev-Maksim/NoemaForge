@@ -1,0 +1,73 @@
+{
+  "apiVersion": "noemaforge.tinyml-node/v1",
+  "kind": "TinyMLNodePolicy",
+  "id": "tinyml-node-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_validation",
+    "require_golden_vectors": true,
+    "require_latency_budget": true,
+    "require_ram_arena_budget": true,
+    "require_model_size_gate": true,
+    "require_model_hash": true,
+    "require_signed_model_manifest": true,
+    "require_edge_rules_fallback": true,
+    "forbid_direct_control_decisions": true,
+    "min_golden_vectors": 3,
+    "allowed_runtimes": [
+      "tflm",
+      "mock"
+    ],
+    "allowed_decision_modes": [
+      "advisory_only",
+      "fallback_only"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "example-mcu-floor-controller",
+      "version": "0.32.1",
+      "state": "shadow",
+      "target_mcu": "generic-cortex-m",
+      "runtime": "tflm",
+      "decision_mode": "advisory_only",
+      "model_ref": "model:model-registry-local:0.32.1",
+      "signed_model_manifest_ref": "prelaunch/manifests/models/example_edge_model.manifest.json",
+      "edge_rules_ref": "noemaforge/configs/edge-rules-engine-policy.json",
+      "golden_vectors_ref": "prelaunch/tinyml/golden_vectors/example_edge_model_vectors.jsonl",
+      "static_arena_report_ref": "prelaunch/tinyml/static_arena_report.json",
+      "model_hash": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "latency_budget_ms": 20.0,
+      "observed_latency_ms": 8.5,
+      "ram_arena_budget_bytes": 65536,
+      "observed_ram_arena_bytes": 32768,
+      "model_size_budget_bytes": 262144,
+      "observed_model_size_bytes": 131072,
+      "direct_control_decisions": false,
+      "fallback_rules_required": true,
+      "refs": [
+        "prelaunch/tinyml/golden_vectors/example_edge_model_vectors.jsonl",
+        "prelaunch/tinyml/static_arena_report.json",
+        "prelaunch/manifests/models/example_edge_model.manifest.json",
+        "noemaforge/configs/edge-rules-engine-policy.json"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/tinyml-node-policy.json",
+    "noemaforge/contracts/tinyml_node.schema.json",
+    "noemaforge/src/tinyml_node_runtime.py",
+    "noemaforge/tests/test_tinyml_node_runtime.py",
+    "noemaforge/tests/test_tinyml_node_qa.py",
+    "noemaforge/tests/test_tinyml_node_performance.py",
+    "prelaunch/tinyml/golden_vectors/example_edge_model_vectors.jsonl",
+    "prelaunch/tinyml/static_arena_report.json",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "prelaunch/rules/edge/fallback_rules.json",
+    "noemaforge/configs/edge-rules-engine-policy.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

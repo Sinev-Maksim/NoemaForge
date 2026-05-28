@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/manifest_checksum_exclusion.schema.json",
+  "title": "NoemaForge Manifest Checksum Exclusion Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.manifest-checksum-exclusion/v1" },
+    "kind": { "const": "ManifestChecksumExclusionPolicy" },
+    "id": { "const": "manifest-checksum-exclusion-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "project_manifest_ref",
+        "project_manifest_sha_refs",
+        "project_checksum_refs",
+        "package_root_ref",
+        "package_manifest_ref",
+        "package_manifest_sha_refs",
+        "package_checksum_ref",
+        "excluded_dir_names",
+        "project_checksum_self_exclusions",
+        "package_checksum_self_exclusions",
+        "required_runtime_scripts",
+        "required_runtime_tokens",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "trash_and_cache_excluded_from_release_evidence" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_live_host_dependency": { "const": true },
+        "project_manifest_ref": { "type": "string", "minLength": 1 },
+        "project_manifest_sha_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "project_checksum_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "package_root_ref": { "type": "string", "minLength": 1 },
+        "package_manifest_ref": { "type": "string", "minLength": 1 },
+        "package_manifest_sha_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "package_checksum_ref": { "type": "string", "minLength": 1 },
+        "excluded_dir_names": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "project_checksum_self_exclusions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "package_checksum_self_exclusions": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_scripts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

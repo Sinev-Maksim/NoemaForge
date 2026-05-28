@@ -1,0 +1,100 @@
+{
+  "apiVersion": "noemaforge.memory-budgeted-retrieval/v1",
+  "kind": "MemoryBudgetedRetrievalExampleSet",
+  "id": "memory-budgeted-retrieval-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "over-budget-chain-degrades-to-coherent-subchunks",
+      "trace_id": "trace:memory-budgeted-retrieval:example:001",
+      "active_memory_budget": {
+        "max_tokens": 235,
+        "budget_remaining": 5
+      },
+      "chunk_chain": {
+        "chain_id": "chain:knowledge-admin:001",
+        "estimated_tokens": 420,
+        "topic_signature": "knowledge|administrator|provenance"
+      },
+      "subchunks": [
+        {
+          "chunk_id": "chunk:knowledge-admin:primary:a",
+          "chunk_parent_id": "chain:knowledge-admin:001",
+          "chunk_split_reason": "active_memory_budget",
+          "leaf_sequence_no": 1,
+          "coherence_score": 0.94,
+          "estimated_tokens": 100
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:primary:b",
+          "chunk_parent_id": "chain:knowledge-admin:001",
+          "chunk_split_reason": "active_memory_budget",
+          "leaf_sequence_no": 2,
+          "coherence_score": 0.86,
+          "estimated_tokens": 90
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:primary:c",
+          "chunk_parent_id": "chain:knowledge-admin:001",
+          "chunk_split_reason": "active_memory_budget",
+          "leaf_sequence_no": 3,
+          "coherence_score": 0.55,
+          "estimated_tokens": 100,
+          "rejected_reason": "token budget exceeded"
+        }
+      ],
+      "support_neighbors": [
+        {
+          "chunk_id": "chunk:knowledge-admin:support:left",
+          "adjacency_group_id": "adj:knowledge-admin:001",
+          "neighbor_side": "left",
+          "coherence_score": 0.71,
+          "estimated_tokens": 40
+        },
+        {
+          "chunk_id": "chunk:knowledge-admin:support:right",
+          "adjacency_group_id": "adj:knowledge-admin:001",
+          "neighbor_side": "right",
+          "coherence_score": 0.69,
+          "estimated_tokens": 60,
+          "rejected_reason": "token budget exceeded"
+        }
+      ],
+      "selected_subchunks": [
+        "chunk:knowledge-admin:primary:a",
+        "chunk:knowledge-admin:primary:b"
+      ],
+      "selected_support_neighbors": [
+        "chunk:knowledge-admin:support:left"
+      ],
+      "partial_context_notice": "Knowledge is partial under current context budget; lower-coherence subchunks or neighbors were omitted.",
+      "rejected_plans": [
+        {
+          "claim": "add support neighbors before coherent subchunks",
+          "reason": "Subchunks are selected and budgeted before adjacent support neighbors."
+        },
+        {
+          "claim": "ignore active memory budget",
+          "reason": "Every selected chunk is admitted only when it fits the remaining budget."
+        },
+        {
+          "claim": "drop split lineage",
+          "reason": "Selected subchunks retain parent ids, split reasons and leaf sequence numbers."
+        },
+        {
+          "claim": "hide partial context truncation",
+          "reason": "The response includes a partial context notice when candidates are omitted."
+        }
+      ],
+      "expected_outputs": [
+        "degradation_mode",
+        "selected_subchunks",
+        "selected_support_neighbors",
+        "budget_remaining",
+        "partial_context_notice",
+        "rejected_neighbors",
+        "retrieval_trace"
+      ]
+    }
+  ]
+}

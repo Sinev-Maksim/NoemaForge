@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.canonical-model-eval-matrix-readiness/v1",
+  "kind": "CanonicalModelEvalMatrixReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "canonical-model-cpu-gpu-matrix-target-evidence-readiness",
+      "trace_id": "trace:canonical-model-eval-matrix:cpu-gpu",
+      "blocked_completion": true,
+      "expected_dimension_ids": [
+        "canonical-model-inventory",
+        "cpu-scorecard-run",
+        "gpu-scorecard-run",
+        "role-coverage",
+        "eval-suite-coverage",
+        "health-filter-coverage",
+        "scorecard-separation",
+        "evidence-archive"
+      ],
+      "expected_outputs": [
+        "matrix_readiness_summary",
+        "blocked_completion_notice",
+        "runtime_device_dimensions",
+        "canonical_model_matrix_manifest",
+        "evidence_requirements"
+      ]
+    }
+  ]
+}

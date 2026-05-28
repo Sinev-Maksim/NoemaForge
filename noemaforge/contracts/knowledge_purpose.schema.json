@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/knowledge_purpose.schema.json",
+  "title": "Knowledge Purpose Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "ok", "id", "version", "metrics", "failures"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.knowledge-purpose/v1"},
+    "kind": {"const": "KnowledgePurposeValidationReport"},
+    "ok": {"type": "boolean"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "validated_at": {"type": "string"},
+    "metrics": {
+      "type": "object",
+      "required": ["artifact_fields", "decision_stages", "scenarios", "passing_scenarios", "resolved_refs"],
+      "properties": {
+        "artifact_fields": {"type": "integer", "minimum": 10},
+        "decision_stages": {"type": "integer", "minimum": 3},
+        "scenarios": {"type": "integer", "minimum": 1},
+        "passing_scenarios": {"type": "integer", "minimum": 0},
+        "resolved_refs": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "failures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

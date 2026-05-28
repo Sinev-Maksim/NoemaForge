@@ -1,0 +1,94 @@
+{
+  "apiVersion": "noemaforge.pipeline-performance-metrics/v1",
+  "kind": "PipelinePerformanceMetricsPolicy",
+  "id": "pipeline-performance-metrics-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "pipeline_performance_metrics_contract",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_probe": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "closed_todo_refs": [
+      "Add performance metrics: latency, memory, operation count, artifact size."
+    ],
+    "required_metric_fields": [
+      "stage_id",
+      "latency_ms",
+      "memory_mb",
+      "operation_count",
+      "artifact_bytes",
+      "status"
+    ],
+    "metric_units": {
+      "latency_ms": "milliseconds",
+      "memory_mb": "mebibytes",
+      "operation_count": "count",
+      "artifact_bytes": "bytes"
+    },
+    "allowed_statuses": [
+      "passed",
+      "warn",
+      "failed",
+      "skipped"
+    ],
+    "controls": {
+      "metrics_are_non_negative": true,
+      "operation_count_integer": true,
+      "artifact_bytes_integer": true,
+      "summary_required": true,
+      "stage_id_required": true,
+      "no_live_probe": true,
+      "artifact_only_input": true
+    },
+    "summary_fields": [
+      "sample_count",
+      "max_latency_ms",
+      "max_memory_mb",
+      "total_operation_count",
+      "total_artifact_bytes",
+      "status_counts"
+    ],
+    "required_outputs": [
+      "pipeline_performance_metrics_summary",
+      "metric_sample_contract",
+      "stage_metric_matrix",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/pipeline-performance-metrics-policy.json",
+      "noemaforge/contracts/pipeline_performance_metrics.schema.json",
+      "noemaforge/src/pipeline_performance_metrics_runtime.py",
+      "noemaforge/src/pipeline_runtime.py",
+      "noemaforge/src/model_switch_policy_runtime.py",
+      "prelaunch/governance/pipeline_performance_metrics.example.json",
+      "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/pipeline-performance-metrics-policy.json",
+    "noemaforge/contracts/pipeline_performance_metrics.schema.json",
+    "noemaforge/src/pipeline_performance_metrics_runtime.py",
+    "noemaforge/tests/test_pipeline_performance_metrics_runtime.py",
+    "noemaforge/tests/test_pipeline_performance_metrics_qa.py",
+    "noemaforge/tests/test_pipeline_performance_metrics_performance.py",
+    "prelaunch/governance/pipeline_performance_metrics.example.json",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/model_switch_policy_runtime.py",
+    "noemaforge/docs/wiki/pipelines/wiki-incremental-patch-pipeline.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

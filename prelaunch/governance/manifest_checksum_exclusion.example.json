@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.manifest-checksum-exclusion/v1",
+  "kind": "ManifestChecksumExclusionReport",
+  "created_at": "2026-05-21T00:00:00Z",
+  "ok": true,
+  "id": "manifest-checksum-exclusion-core",
+  "version": "0.32.1",
+  "metrics": {
+    "project_active_files": 1886,
+    "package_active_files": 1619,
+    "project_checksum_entries": 1884,
+    "package_checksum_entries": 1618,
+    "excluded_path_hits": 0,
+    "hash_mismatches": 0,
+    "manifest_sha_files": 3
+  },
+  "failures": [],
+  "manifests": [
+    {
+      "ref": "MANIFEST.json",
+      "ok": true,
+      "file_count": 1886
+    },
+    {
+      "ref": "noemaforge/docs/MANIFEST.json",
+      "ok": true,
+      "file_count": 1619
+    }
+  ]
+}

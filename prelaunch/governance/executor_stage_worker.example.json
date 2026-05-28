@@ -1,0 +1,20 @@
+{
+  "apiVersion": "noemaforge.pipeline.executor-stage-worker/v1",
+  "kind": "ExecutorStageWorkerExampleSet",
+  "id": "executor-stage-worker-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "offline-contract-driven-stage-advance",
+      "trace_id": "trace:pipeline:executor-stage-worker:offline-advance",
+      "pipeline_id": "public_mwp",
+      "task_id": "executor_contract",
+      "stage": "orient",
+      "artifact_type": "note",
+      "expected_next_stage": "status_check",
+      "expected_outputs": ["stage_contract", "contract_artifact_gate", "pipeline_executor_step_event", "pipeline_executor_wait_event"],
+      "expect_no_live_host": true,
+      "expect_no_llm_autostart": true
+    }
+  ]
+}

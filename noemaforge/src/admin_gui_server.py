@@ -4,9 +4,9 @@
 === NoemaForge File Header ===
 File: src/admin_gui_server.py
 Zone: gui/control-plane
-Version: 0.31.13.alpha
+Version: 0.32.2
 Created: 2026-05-11
-Modified: 2026-05-14
+Modified: 2026-05-25
 Purpose: Serve the localhost Admin GUI and JSON APIs for conversation memory,
   persona portraits, epoch/model-selection status, telemetry, task governance,
   job registry, pipeline catalog/diagrams/stats, and safe control-plane actions.
@@ -23,7 +23,8 @@ Safety notes:
   - No LLM, media backend, camera, microphone, model-selection or epoch switch is
     started implicitly by loading the GUI.
   - Privileged actions are represented as whitelisted job/plan records unless a
-    separate operator-approved sudo command is executed outside the browser.
+    separate operator-approved sudo or polkit job-runner action is executed
+    outside the browser.
 Tests:
   - python3 -m py_compile src/admin_gui_server.py
   - curl http://127.0.0.1:8765/api/health
@@ -47,9 +48,15 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
-from urllib.parse import unquote, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlparse
 
-RUNTIME_VERSION = "0.31.13.alpha"
+import production_ai_contracts
+from privileged_gui_job_runner import enrich_privileged_job
+from noemaforge_version import RUNTIME_VERSION
+from event_log import EventLog
+from session_store import SessionStore
+
+PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
 DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
@@ -58,6 +65,7 @@ DEFAULT_MODEL_SELECTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_
 DEFAULT_DEV_TEAM_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/lib/noemaforge/dev-team"))
 DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaforge"))
 MAX_BODY = 512 * 1024
+MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
 
 def now_iso() -> str:
@@ -71,6 +79,163 @@ def json_dumps(obj: Any) -> str:
 def safe_id(text: str, default: str = "item") -> str:
     raw = re.sub(r"[^A-Za-z0-9_.-]+", "-", text.strip()).strip("-._")
     return raw[:96] or default
+
+
+def artifact_action_url(action: str, path: str) -> str:
+    clean_action = safe_id(action, "open")
+    clean_path = str(path or "").strip()
+    return f"/api/artifacts/{clean_action}?path={quote(clean_path, safe='')}" if clean_path else ""
+
+
+def enrich_artifact_card(card: Dict[str, Any]) -> Dict[str, Any]:
+    out = dict(card)
+    path = str(out.get("path") or "").strip()
+    if path:
+        out.setdefault("open_url", artifact_action_url("open", path))
+        out.setdefault("preview_url", out["open_url"])
+        out.setdefault("download_url", artifact_action_url("download", path))
+        out.setdefault("can_download", True)
+    else:
+        out.setdefault("can_download", False)
+    return out
+
+
+def enrich_artifact_cards(items: Optional[Iterable[Dict[str, Any]]]) -> List[Dict[str, Any]]:
+    return [enrich_artifact_card(item) for item in (items or []) if isinstance(item, dict)]
+
+
+def _service_state(result: Dict[str, Any]) -> str:
+    stdout = str(result.get("stdout") or "").strip()
+    if stdout == "active":
+        return "active"
+    if result.get("available") is False:
+        return "command_unavailable"
+    if stdout:
+        return stdout.splitlines()[0][:80]
+    if result.get("returncode") == 0:
+        return "ok"
+    return "inactive"
+
+
+def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]]:
+    sockets = runtime.get("sockets") if isinstance(runtime.get("sockets"), dict) else {}
+    gateway_state = _service_state(runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {})
+    backend_state = _service_state(runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {})
+    gateway_socket = bool(sockets.get("/run/noemaforge/llm/gateway.sock") or sockets.get("/run/brainos/llm/gateway.sock"))
+    backend_socket = bool(sockets.get("/run/noemaforge/llm/backends/main.sock"))
+    manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
+    model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
+    policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
+    device_policy = str(policy.get("policy") or policy or "auto")
+    return [
+        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
+        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": "/run/noemaforge/llm/gateway.sock"},
+        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": "ok" if backend_state == "active" else "warn", "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llama@main.service"},
+        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": "/run/noemaforge/llm/backends/main.sock"},
+        {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
+        {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
+    ]
+
+
+def normalize_pipeline_editor_draft(body: Dict[str, Any]) -> Dict[str, Any]:
+    raw_stages = body.get("stages") if isinstance(body.get("stages"), list) else []
+    stages: List[str] = []
+    for item in raw_stages[:32]:
+        stage = safe_id(str(item), "stage")
+        if stage and stage not in stages:
+            stages.append(stage)
+    if not stages:
+        stages = ["intake", "plan", "review"]
+    title = str(body.get("title") or body.get("id") or "Pipeline draft").strip()[:120]
+    draft_id = "draft_" + safe_id(str(body.get("id") or title or now_iso()), "pipeline")
+    return {
+        "id": safe_id(str(body.get("id") or title), "pipeline"),
+        "title": title,
+        "description": str(body.get("description") or "").strip()[:1000],
+        "stages": stages,
+        "editor_mode": "drag_drop_pipeline_editor",
+        "activation_state": "draft_only",
+        "review_required": True,
+        "review_gate": "Scary/Architecture/Admin approval required before catalog append",
+        "draft_id": draft_id,
+    }
+
+
+def build_public_showcase_scenario(locale: str = "") -> Dict[str, Any]:
+    steps = [
+        {
+            "id": "health",
+            "title": "Confirm local Admin health",
+            "surface": "topbar",
+            "endpoint": "/api/health",
+            "request": "Show local health without starting a backend.",
+            "expected": "Admin GUI reports localhost control-plane health.",
+        },
+        {
+            "id": "admin_greeting",
+            "title": "Greet Admin",
+            "surface": "main_chat",
+            "endpoint": "/api/admin/message",
+            "request": "Првиет!",
+            "expected": "Admin answers conversationally and keeps control routing available.",
+        },
+        {
+            "id": "routed_pipeline",
+            "title": "Stage the public pipeline",
+            "surface": "pipeline_dock",
+            "endpoint": "/api/pipeline/run",
+            "pipeline_id": "public_mwp",
+            "request": "Запусти public_mwp по стандартному сценарию",
+            "expected": "Pipeline run is routed with artifacts and reviewable state.",
+        },
+        {
+            "id": "dev_team_plan",
+            "title": "Ask Dev Team for a plan",
+            "surface": "main_chat",
+            "endpoint": "/api/admin/message",
+            "request": "доработай код через dev team: summarize the next safe patch",
+            "expected": "Admin routes to Dev Team planning without hidden auto-apply.",
+        },
+        {
+            "id": "model_evolution_plan",
+            "title": "Stage model-evolution review",
+            "surface": "main_chat",
+            "endpoint": "/api/admin/message",
+            "request": "проведи эволюцию модели для ревью кода",
+            "expected": "Model Evolution produces review artifacts and rollback context.",
+        },
+    ]
+    return {
+        "ok": True,
+        "version": RUNTIME_VERSION,
+        "scenario_id": "admin_gui_guided_scenario",
+        "selection": "polished_admin_gui_guided_scenario",
+        "status": "selected_local_first",
+        "locale": locale or "default",
+        "live_backend_demo_enabled": False,
+        "requires_live_target": False,
+        "requires_packaging": False,
+        "operator_note": "Use this guided Admin GUI path as the public 0.32.2 polish scenario; run the final live replay separately on the target machine.",
+        "steps": steps,
+        "expected_ui_surfaces": ["topbar", "main_chat", "pipeline_dock", "artifacts", "jobs", "runtime_cards"],
+        "safety": {
+            "no_network_required": True,
+            "no_hidden_backend_start": True,
+            "no_auto_apply": True,
+            "final_target_replay_required": True,
+        },
+    }
+
+
+def sse_event(event: str, data: Dict[str, Any], *, event_id: str = "") -> str:
+    lines: List[str] = []
+    if event_id:
+        lines.append(f"id: {safe_id(event_id)}")
+    lines.append(f"event: {safe_id(event, 'message')}")
+    payload = json.dumps(data, ensure_ascii=False, sort_keys=True)
+    for line in payload.splitlines() or ["{}"]:
+        lines.append(f"data: {line}")
+    return "\n".join(lines) + "\n\n"
 
 
 def run_json(cmd: Sequence[str], *, env: Optional[Dict[str, str]] = None, timeout: int = 60) -> Dict[str, Any]:
@@ -120,6 +285,21 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 
+    def _send_sse(self, events: Sequence[Dict[str, Any]], status: int = 200) -> None:
+        text = "retry: 3000\n\n" + "".join(
+            sse_event(str(item.get("event") or "message"), item.get("data") if isinstance(item.get("data"), dict) else {}, event_id=str(item.get("id") or ""))
+            for item in events
+        )
+        data = text.encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "text/event-stream; charset=utf-8")
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Connection", "close")
+        self.send_header("X-Accel-Buffering", "no")
+        self.end_headers()
+        self.wfile.write(data)
+
     def _send_bytes(self, data: bytes, content_type: str = "application/octet-stream", status: int = 200, *, head_only: bool = False) -> None:
         self.send_response(status)
         self.send_header("Content-Type", content_type)
@@ -152,6 +332,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path in {"/api/state", "/api/gui/state"}:
             self._send_json(self.server.gui_state())
             return
+        if path in {"/api/dashboard", "/api/dashboard/state"}:
+            self._send_json(self.server.dashboard_api())
+            return
         if path == "/api/locales":
             self._send_json(self.server.locales())
             return
@@ -160,6 +343,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/runtime/status":
             self._send_json(self.server.runtime_status())
+            return
+        if path == "/api/runtime/observer-cards":
+            self._send_json(self.server.runtime_observer_cards())
             return
         if path == "/api/runtime/device-policy":
             self._send_json(self.server.device_policy())
@@ -170,11 +356,48 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path == "/api/usecases":
             self._send_json(self.server.usecases())
             return
+        if path == "/api/public-showcase/scenario":
+            self._send_json(self.server.public_showcase_scenario())
+            return
+
+        if path == "/api/events":
+            query = parse_qs(urlparse(self.path).query)
+            try:
+                after = int((query.get("after_index") or ["0"])[0])
+            except (TypeError, ValueError):
+                self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
+                return
+            if after < 0:
+                self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
+                return
+            self._send_json(self.server.events_api(after_index=after))
+        if path == "/api/session/current":
+            self._send_json(self.server.session_current())
+            return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
             return
         if path == "/api/conversation/history":
             self._send_json(self.server.conversation_history())
+            return
+        if path == "/api/artifacts/open":
+            query = parse_qs(urlparse(self.path).query)
+            self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
+            return
+        if path == "/api/artifacts/download":
+            query = parse_qs(urlparse(self.path).query)
+            payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
+            if not payload.get("ok"):
+                self._send_json(payload, status=404 if payload.get("error") == "artifact not found" else 403)
+                return
+            data = payload.get("data") if isinstance(payload.get("data"), bytes) else b""
+            self.send_response(200)
+            self.send_header("Content-Type", str(payload.get("content_type") or "application/octet-stream"))
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Disposition", f"attachment; filename=\"{safe_id(str(payload.get('filename') or 'artifact'), 'artifact')}\"")
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
             return
         if path == "/api/tasks":
             self._send_json(self.server.tasks_list())
@@ -184,6 +407,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/jobs":
             self._send_json(self.server.jobs_list())
+            return
+        if path == "/api/jobs/stream":
+            self._send_sse(self.server.job_stream_events())
             return
         if path == "/api/persona/current":
             self._send_json(self.server.persona_current())
@@ -251,6 +477,15 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             if path in {"/api/tasks/update", "/api/tasks/edit"}:
                 self._send_json(self.server.task_update(body))
+                return
+            if path == "/api/tasks/block":
+                self._send_json(self.server.task_block(body))
+                return
+            if path == "/api/tasks/complete":
+                self._send_json(self.server.task_complete(body))
+                return
+            if path == "/api/tasks/prioritize":
+                self._send_json(self.server.task_prioritize(body))
                 return
             if path == "/api/admin/modify-pipeline":
                 self._send_json(self.server.modify_pipeline(
@@ -357,6 +592,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.dev_team_state = dev_team_state.resolve()
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
+        self.event_log = EventLog(self.data_root / "events")
+        self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
@@ -397,6 +634,68 @@ class AdminGuiServer(ThreadingHTTPServer):
         with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(obj, ensure_ascii=False, sort_keys=True) + "\n")
 
+    def artifact_allowed_roots(self) -> List[Path]:
+        roots = [self.data_root, self.state, self.model_selection_state, self.evolution_state, self.dev_team_state]
+        return [root.resolve() for root in roots if str(root)]
+
+    def resolve_artifact_path(self, raw_path: str) -> Dict[str, Any]:
+        text = str(raw_path or "").strip()
+        if not text or text.startswith("~"):
+            return {"ok": False, "error": "artifact path is required", "path": text}
+        candidate = Path(text)
+        if not candidate.is_absolute():
+            return {"ok": False, "error": "artifact path must be absolute", "path": text}
+        try:
+            resolved = candidate.resolve()
+        except Exception as exc:
+            return {"ok": False, "error": f"artifact path resolution failed: {exc}", "path": text}
+        allowed = any(resolved == root or root in resolved.parents for root in self.artifact_allowed_roots())
+        if not allowed:
+            return {"ok": False, "error": "artifact path outside allowed roots", "path": str(resolved)}
+        if not resolved.exists():
+            return {"ok": False, "error": "artifact not found", "path": str(resolved)}
+        return {"ok": True, "path": str(resolved), "is_dir": resolved.is_dir(), "size": resolved.stat().st_size if resolved.is_file() else 0}
+
+    def artifact_open(self, raw_path: str) -> Dict[str, Any]:
+        resolved = self.resolve_artifact_path(raw_path)
+        if not resolved.get("ok"):
+            return {"ok": False, "version": RUNTIME_VERSION, **resolved}
+        path = Path(str(resolved["path"]))
+        if path.is_dir():
+            children = [{"name": child.name, "is_dir": child.is_dir()} for child in sorted(path.iterdir(), key=lambda item: item.name.lower())[:80]]
+            return {"ok": True, "version": RUNTIME_VERSION, "kind": "directory", "path": str(path), "children": children, "download_url": ""}
+        data = path.read_bytes()[:MAX_ARTIFACT_PREVIEW_BYTES]
+        content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+        preview = data.decode("utf-8", errors="replace") if content_type.startswith("text/") or path.suffix.lower() in {".json", ".md", ".txt", ".log", ".yaml", ".yml"} else ""
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "kind": "file",
+            "path": str(path),
+            "filename": path.name,
+            "content_type": content_type,
+            "size": resolved.get("size", 0),
+            "truncated": int(resolved.get("size", 0)) > len(data),
+            "preview": preview,
+            "download_url": artifact_action_url("download", str(path)),
+        }
+
+    def artifact_download_payload(self, raw_path: str) -> Dict[str, Any]:
+        resolved = self.resolve_artifact_path(raw_path)
+        if not resolved.get("ok"):
+            return {"ok": False, "version": RUNTIME_VERSION, **resolved}
+        path = Path(str(resolved["path"]))
+        if path.is_dir():
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "directory download is not supported", "path": str(path)}
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "path": str(path),
+            "filename": path.name,
+            "content_type": mimetypes.guess_type(str(path))[0] or "application/octet-stream",
+            "data": path.read_bytes(),
+        }
+
     def health(self) -> Dict[str, Any]:
         return {
             "ok": True,
@@ -406,14 +705,28 @@ class AdminGuiServer(ThreadingHTTPServer):
             "root": str(self.root),
             "state": str(self.state),
             "api": [
-                "/api/admin/message", "/api/conversation/current", "/api/conversation/history",
-                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/pipelines/catalog",
+                "/api/admin/message", "/api/events", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/conversation/current", "/api/conversation/history",
+                "/api/dashboard", "/api/dashboard/state",
+                "/api/artifacts/open", "/api/artifacts/download",
+                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/stream", "/api/pipelines/catalog",
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
-                "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
+                "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
-                "/api/vault/reinventory", "/api/usecases", "/api/locales", "/api/shutdown",
+                "/api/vault/reinventory", "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
+
+    # --- event log -----------------------------------------------------------------
+    def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
+        """Return append-only event log entries for GUI polling."""
+        events = self.event_log.read(after_index=after_index, limit=limit)
+        return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+    # --- session state ----------------------------------------------------------------
+    def session_current(self) -> Dict[str, Any]:
+        """Return the current GUI session record (default session)."""
+        session = self.session_store.load("default")
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
     def conversation_file(self) -> Path:
@@ -430,11 +743,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         conv["updated_at"] = now_iso()
         self._write_json(self.conversation_file(), conv)
 
-    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False) -> Dict[str, Any]:
+    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
         conv = self._conversation()
         idx = len(conv.get("messages", [])) + 1
+        raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
+        tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
+        affordance_artifacts = enrich_artifact_cards(artifacts)
         msg = {
             "message_id": f"msg_{int(time.time())}_{idx}",
+            "trace_id": tid,
             "conversation_id": conv["conversation_id"],
             "ts": now_iso(),
             "role": role,
@@ -442,12 +759,12 @@ class AdminGuiServer(ThreadingHTTPServer):
             "locale": locale or conv.get("locale", "ru"),
             "intent": intent,
             "text": text,
-            "artifacts": artifacts or [],
+            "artifacts": affordance_artifacts,
             "system_event": bool(system_event),
         }
         conv.setdefault("messages", []).append(msg)
-        if artifacts:
-            conv.setdefault("artifacts", []).extend(artifacts)
+        if affordance_artifacts:
+            conv.setdefault("artifacts", []).extend(affordance_artifacts)
         if locale:
             conv["locale"] = locale
         if persona:
@@ -472,11 +789,24 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     def conversation_current(self) -> Dict[str, Any]:
         conv = self._conversation()
+        conv = dict(conv)
+        conv["artifacts"] = enrich_artifact_cards(conv.get("artifacts") if isinstance(conv.get("artifacts"), list) else [])
+        conv["messages"] = [
+            {**msg, "artifacts": enrich_artifact_cards(msg.get("artifacts") if isinstance(msg.get("artifacts"), list) else [])}
+            for msg in conv.get("messages", [])
+            if isinstance(msg, dict)
+        ]
         return {"ok": True, "version": RUNTIME_VERSION, "conversation": conv}
 
     def conversation_history(self) -> Dict[str, Any]:
         conv = self._conversation()
-        return {"ok": True, "version": RUNTIME_VERSION, "conversation_id": conv.get("conversation_id"), "messages": conv.get("messages", []), "artifacts": conv.get("artifacts", []), "pending_intent": conv.get("pending_intent"), "pending_payload": conv.get("pending_payload", {})}
+        messages = [
+            {**msg, "artifacts": enrich_artifact_cards(msg.get("artifacts") if isinstance(msg.get("artifacts"), list) else [])}
+            for msg in conv.get("messages", [])
+            if isinstance(msg, dict)
+        ]
+        artifacts = enrich_artifact_cards(conv.get("artifacts") if isinstance(conv.get("artifacts"), list) else [])
+        return {"ok": True, "version": RUNTIME_VERSION, "conversation_id": conv.get("conversation_id"), "messages": messages, "artifacts": artifacts, "pending_intent": conv.get("pending_intent"), "pending_payload": conv.get("pending_payload", {})}
 
     def conversation_reset(self) -> Dict[str, Any]:
         old = self._conversation()
@@ -605,6 +935,33 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.save_message("system", f"Task updated: {task_id}", persona="Task Manager", intent="task_update", raw=found)
         return {"ok": True, "version": RUNTIME_VERSION, "task": found, "reply": f"Task updated: {task_id}"}
 
+    def task_block(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        update = dict(body)
+        update["status"] = "blocked"
+        if body.get("reason") and not body.get("notes"):
+            update["notes"] = "Blocked: " + str(body.get("reason"))
+        result = self.task_update(update)
+        if result.get("ok"):
+            result["reply"] = f"Task blocked: {result['task']['task_id']}"
+        return result
+
+    def task_complete(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        update = dict(body)
+        update["status"] = "completed"
+        result = self.task_update(update)
+        if result.get("ok"):
+            result["reply"] = f"Task completed: {result['task']['task_id']}"
+        return result
+
+    def task_prioritize(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        update = dict(body)
+        if "priority" not in update:
+            update["priority"] = 80
+        result = self.task_update(update)
+        if result.get("ok"):
+            result["reply"] = f"Task priority updated: {result['task']['task_id']} -> {result['task']['priority']}"
+        return result
+
     def jobs_file(self) -> Path:
         return self.jobs_dir / "jobs.json"
 
@@ -626,14 +983,61 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
         return job
 
-    def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "") -> Dict[str, Any]:
+    def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
-        job = {"job_id": job_id, "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": artifacts or [], "idempotency_key": idempotency_key}
+        job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
         return self._upsert_job(job, idempotency_key=idempotency_key)
+
+    def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
+        data = self.jobs_data()
+        jobs = data.setdefault("jobs", [])
+        replaced = False
+        for index, existing in enumerate(jobs):
+            if existing.get("job_id") == job.get("job_id"):
+                jobs[index] = job
+                replaced = True
+                break
+        if not replaced:
+            jobs.append(job)
+        self._write_json(self.jobs_file(), data)
+        self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
+        return job
 
     def jobs_list(self) -> Dict[str, Any]:
         data = self.jobs_data()
-        return {"ok": True, "version": RUNTIME_VERSION, "jobs": data.get("jobs", [])}
+        jobs = []
+        for job in data.get("jobs", []):
+            if isinstance(job, dict):
+                item = dict(job)
+                item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+                jobs.append(item)
+        return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
+
+    def job_stream_events(self) -> List[Dict[str, Any]]:
+        jobs = self.jobs_list().get("jobs", [])
+        snapshot = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "stream": "job_progress_sse",
+            "created_at": now_iso(),
+            "jobs": jobs,
+        }
+        events: List[Dict[str, Any]] = [{"event": "jobs_snapshot", "id": "jobs-snapshot", "data": snapshot}]
+        for job in jobs[-20:]:
+            if not isinstance(job, dict):
+                continue
+            events.append({
+                "event": "job_progress",
+                "id": f"{job.get('updated_at') or job.get('created_at') or now_iso()}-{job.get('job_id') or 'job'}",
+                "data": {
+                    "ok": True,
+                    "version": RUNTIME_VERSION,
+                    "stream": "job_progress_sse",
+                    "job": job,
+                    "progress": job.get("progress") if isinstance(job.get("progress"), dict) else {},
+                },
+            })
+        return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
         job = self._read_json(self.jobs_dir / f"{safe_id(job_id)}.json", None)
@@ -642,6 +1046,9 @@ class AdminGuiServer(ThreadingHTTPServer):
                 if j.get("job_id") == job_id:
                     job = j
                     break
+        if isinstance(job, dict):
+            job = dict(job)
+            job["artifacts"] = enrich_artifact_cards(job.get("artifacts") if isinstance(job.get("artifacts"), list) else [])
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
@@ -669,10 +1076,29 @@ class AdminGuiServer(ThreadingHTTPServer):
         persona = self.persona_current()
         doc["persona"] = persona.get("persona", doc.get("persona", {}))
         doc["persona"]["portrait_url"] = persona.get("portrait_url")
-        doc["conversation"] = self._conversation()
+        conv = dict(self._conversation())
+        conv["artifacts"] = enrich_artifact_cards(conv.get("artifacts") if isinstance(conv.get("artifacts"), list) else [])
+        doc["conversation"] = conv
         doc["tasks"] = self.tasks_list().get("summary")
         doc["jobs"] = self.jobs_list().get("jobs", [])[-5:]
         return doc
+
+    def dashboard_api(self) -> Dict[str, Any]:
+        state = self.gui_state()
+        state["endpoint"] = "/api/dashboard"
+        state["dashboard_backend"] = {
+            "endpoint": "/api/dashboard",
+            "compatibility_endpoint": "/api/gui/state",
+            "alias_endpoint": "/api/dashboard/state",
+            "contract": "dashboard-api-endpoint-core",
+            "state_source": "pipeline_runtime.dashboard-state",
+        }
+        dashboard = state.get("dashboard")
+        if isinstance(dashboard, dict):
+            dashboard.setdefault("backend_endpoint", "/api/dashboard")
+            dashboard.setdefault("compatibility_endpoint", "/api/gui/state")
+            dashboard.setdefault("backend_contract", "dashboard-api-endpoint-core")
+        return state
 
     def gui_state(self) -> Dict[str, Any]:
         return {"ok": True, "version": RUNTIME_VERSION, "dashboard": self.dashboard_state(), "conversation": self.conversation_history(), "epoch": self.epoch_status(), "telemetry": self.telemetry_status(), "tasks": self.tasks_list(), "jobs": self.jobs_list(), "persona": self.persona_current(), "inactivity": self.inactivity_status(), "pipelines": self.pipeline_catalog_api()}
@@ -696,18 +1122,24 @@ class AdminGuiServer(ThreadingHTTPServer):
         svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
         main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
         main_manifest = self._read_json(Path("/var/lib/modelstore/models/main/noemaforge-model.json"), {}) or self._read_json(Path("/var/lib/modelstore/models/main/brainos-model.json"), {})
-        return {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "device_policy": self.device_policy().get("policy")}
+        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "device_policy": self.device_policy().get("policy")}
+        doc["observer_cards"] = build_runtime_observer_cards(doc)
+        return doc
+
+    def runtime_observer_cards(self) -> Dict[str, Any]:
+        runtime = self.runtime_status()
+        return {"ok": True, "version": RUNTIME_VERSION, "observer_cards": runtime.get("observer_cards", []), "runtime": runtime}
 
     def device_policy(self) -> Dict[str, Any]:
         path = self.runtime_dir / "device-policy.json"
-        policy = self._read_json(path, {"policy": "auto", "pending_apply": False, "applies_on": "next_persona_or_model_switch", "updated_at": now_iso()})
+        policy = self._read_json(path, {"policy": "cpu", "decision": "cpu_safe_always_on_with_gpu_on_demand", "pending_apply": False, "applies_on": "next_persona_or_model_switch_or_backend_restart", "gpu_policy": "explicit_on_demand", "gpu_autostart_enabled": False, "max_active_heavy_workers": 1, "updated_at": now_iso()})
         return {"ok": True, "version": RUNTIME_VERSION, "policy": policy}
 
     def device_policy_set(self, policy: str) -> Dict[str, Any]:
         if policy not in {"auto", "cpu", "gpu", "cuda"}:
             return {"ok": False, "version": RUNTIME_VERSION, "error": "policy must be auto|cpu|gpu"}
         normalized = "gpu" if policy == "cuda" else policy
-        doc = {"policy": normalized, "pending_apply": True, "applies_on": "next_persona_or_model_switch", "updated_at": now_iso(), "note": "Changing device policy does not migrate the currently running model; it applies on the next persona/model switch or backend restart."}
+        doc = {"policy": normalized, "pending_apply": True, "applies_on": "next_persona_or_model_switch_or_backend_restart", "updated_at": now_iso(), "note": "Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart."}
         self._write_json(self.runtime_dir / "device-policy.json", doc)
         self.save_message("system", f"Runtime device policy staged: {normalized}", persona="Runtime", intent="device_policy", raw=doc)
         return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": doc}
@@ -734,7 +1166,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         staff = self._read_json(Path("/var/lib/noemaforge/bootstrap/firstboot-staffing-summary.json"), {})
         decision = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-selection-decision.json"), {})
         hardware = {"memory": {"MemTotal": meminfo.get("MemTotal"), "MemAvailable": meminfo.get("MemAvailable"), "SwapTotal": meminfo.get("SwapTotal"), "SwapFree": meminfo.get("SwapFree")}, "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
-        product = {"model_selection": {"staffing_state": staff.get("staffing_state"), "selected_model_count": staff.get("selected_model_count"), "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"), "decision": decision}}
+        creative_media = {
+            "quality_evaluation_state": "not_measured_without_explicit_evaluator",
+            "quality_claim_policy": "metadata_and_review_required",
+            "note": "Telemetry cards show availability and metadata only; creative-media quality is not claimed without an explicit evaluator or review artifact.",
+        }
+        product = {
+            "model_selection": {"staffing_state": staff.get("staffing_state"), "selected_model_count": staff.get("selected_model_count"), "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"), "decision": decision},
+            "creative_media": creative_media,
+        }
         return {"ok": True, "version": RUNTIME_VERSION, "hardware": hardware, "runtime": runtime, "product": product, "creative_metrics_policy": "creative media uses metadata/review-required metrics unless an explicit evaluator is configured"}
 
     # --- epoch/model-selection -------------------------------------------------------
@@ -769,22 +1209,26 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan)}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
-        cmd = [sys.executable, str(self.root / "src" / "model_selection_runtime.py"), "--root", str(self.root), "--state", str(self.model_selection_state), "plan", "--request", request, "--mode", mode, "--scope", scope, "--composite-top-n", str(composite_top_n), "--json"]
+        trace_id = production_ai_contracts.new_trace_id("model-selection")
+        cmd = [sys.executable, str(self.root / "src" / "model_selection_runtime.py"), "--root", str(self.root), "--state", str(self.model_selection_state), "plan", "--request", request, "--mode", mode, "--scope", scope, "--composite-top-n", str(composite_top_n), "--trace-id", trace_id, "--json"]
         if apply:
             cmd.append("--apply")
-        result = run_json(cmd, env=self.env(), timeout=120)
+        env = self.env()
+        env["NOEMAFORGE_TRACE_ID"] = trace_id
+        result = run_json(cmd, env=env, timeout=120)
         stdout = result.get("stdout")
         if result.get("ok") and isinstance(stdout, dict):
+            stdout.setdefault("trace_id", trace_id)
             artifacts = []
             artifact_map = stdout.get("artifacts") if isinstance(stdout.get("artifacts"), dict) else {}
             for key, path in artifact_map.items():
                 artifacts.append({"type": "model_selection_artifact", "status": "created", "label": str(key).replace("_", "-"), "path": str(path), "open_command": "cat " + str(path)})
             reply = f"Режим отбора выбран: {stdout.get('mode', mode)}. Область: {stdout.get('scope', scope)}. План отбора модели создан; кандидаты, решение и rollback-plan прикреплены. Эпоха не применена без отдельного approve/apply."
-            out = {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "run_id": stdout.get("run_id"), "run_dir": stdout.get("run_dir"), "mode": stdout.get("mode", mode), "scope": stdout.get("scope", scope), "status": stdout.get("status"), "artifacts": artifacts, "raw": stdout, "api": {"inside_gui_supported": True, "endpoint": "/api/model-selection/plan", "cmd": cmd}}
-            self.save_message("model", reply, persona="Optimizer", locale="ru", intent="model_selection", artifacts=artifacts, raw=out)
+            out = {"ok": True, "version": RUNTIME_VERSION, "trace_id": trace_id, "reply": reply, "run_id": stdout.get("run_id"), "run_dir": stdout.get("run_dir"), "mode": stdout.get("mode", mode), "scope": stdout.get("scope", scope), "status": stdout.get("status"), "artifacts": artifacts, "raw": stdout, "api": {"inside_gui_supported": True, "endpoint": "/api/model-selection/plan", "cmd": cmd}}
+            self.save_message("model", reply, persona="Optimizer", locale="ru", intent="model_selection", artifacts=artifacts, raw=out, trace_id=trace_id)
             return out
-        out = {"ok": False, "version": RUNTIME_VERSION, "reply": "Model-selection plan failed.", "artifacts": [], "raw": result, "api": {"inside_gui_supported": True, "endpoint": "/api/model-selection/plan", "cmd": cmd}}
-        self.save_message("model", out["reply"], persona="Optimizer", intent="model_selection", raw=out)
+        out = {"ok": False, "version": RUNTIME_VERSION, "trace_id": trace_id, "reply": "Model-selection plan failed.", "artifacts": [], "raw": result, "api": {"inside_gui_supported": True, "endpoint": "/api/model-selection/plan", "cmd": cmd}}
+        self.save_message("model", out["reply"], persona="Optimizer", intent="model_selection", raw=out, trace_id=trace_id)
         return out
 
     def model_selection_continue(self, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -792,15 +1236,24 @@ class AdminGuiServer(ThreadingHTTPServer):
         mode = str(body.get("mode") or "full_composite")
         n = int(body.get("composite_top_n") or 4)
         idkey = f"model-selection-continue:{mode}:{n}"
-        active = self.create_job("model_selection_continue", status="needs_privilege", progress=progress, command=(f"sudo noemaforge first-start --full_composite {n} --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200" if mode == "full_composite" else f"sudo noemaforge first-start --{mode} --show-candidates --retry-failed-models --per-model-timeout 240 --total-timeout 7200"), idempotency_key=idkey)
+        safe_command = (f"sudo noemaforge first-start --full_composite {n} --dry-run --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display" if mode == "full_composite" else f"sudo noemaforge first-start --{mode} --dry-run --show-candidates --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display")
+        real_command = (f"sudo noemaforge first-start --full_composite {n} --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display" if mode == "full_composite" else f"sudo noemaforge first-start --{mode} --show-candidates --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display")
+        active = self.create_job("model_selection_continue", status="needs_privilege", progress=progress, command=safe_command, idempotency_key=idkey)
+        active["safe_command"] = safe_command
+        active["real_command_requires_operator_terminal"] = real_command
+        active["display_policy"] = "preserve_display_manager"
         out = self.model_selection_state / "continue-selection-plan.json"
-        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), "progress": progress, "job": active, "note": "Continuation plan created. A privileged terminal command or job runner is required for real continuation."}
+        artifact = {"type": "model_selection_continue", "status": "created", "label": "continue-selection-plan.json", "path": str(out), "open_command": "cat " + str(out)}
+        artifacts = active.setdefault("artifacts", [])
+        if not any(item.get("type") == artifact["type"] and item.get("path") == artifact["path"] for item in artifacts if isinstance(item, dict)):
+            artifacts.append(artifact)
+        active = enrich_privileged_job(active, job_file=out)
+        active = self._persist_job(active)
+        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), "progress": progress, "job": active, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "note": "Continuation plan created. GUI does not start a real selection process; use safe_command for dry-run or real_command_requires_operator_terminal for an operator-approved run. Display-manager is preserved by default."}
         self._write_json(out, doc)
-        active.setdefault("artifacts", []).append({"type": "model_selection_continue", "status": "created", "label": "continue-selection-plan.json", "path": str(out), "open_command": "cat " + str(out)})
-        self._write_json(self.jobs_dir / f"{active['job_id']}.json", active)
         reply = f"Continuation plan ready: tested {progress.get('tested_models')} of {progress.get('total_models')} models; failed {progress.get('failed_models')}; remaining {progress.get('remaining_models')}."
         self.save_message("model", reply, persona="Optimizer", intent="model_selection_continue", artifacts=active.get("artifacts", []), raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "progress": progress, "job": active, "suggested_command": active.get("command"), "artifacts": active.get("artifacts", [])}
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "progress": progress, "job": active, "suggested_command": active.get("command"), "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": active.get("artifacts", [])}
 
     def epoch_apply(self, body: Dict[str, Any]) -> Dict[str, Any]:
         status = self.epoch_status()
@@ -808,15 +1261,18 @@ class AdminGuiServer(ThreadingHTTPServer):
         mode = str(body.get("mode") or plan.get("mode") or "normal")
         scope = str(body.get("scope") or plan.get("scope") or "active runtime")
         composite_top_n = int(body.get("composite_top_n") or plan.get("composite_top_n") or 0)
-        command = f"sudo noemaforge first-start --{mode}" if mode != "full_composite" else f"sudo noemaforge first-start --full_composite {composite_top_n}"
+        command = f"sudo noemaforge first-start --{mode} --keep-display" if mode != "full_composite" else f"sudo noemaforge first-start --full_composite {composite_top_n} --keep-display"
         job = self.create_job("epoch_apply", status="needs_privilege", progress=status.get("progress", {}), command=command, idempotency_key=f"epoch-apply:{mode}:{composite_top_n}:{scope}")
         out = self.model_selection_state / "epoch-apply-request.json"
-        apply_doc = {"created_at": now_iso(), "mode": mode, "scope": scope, "composite_top_n": composite_top_n, "request": body.get("request") or "GUI epoch apply request", "suggested_command": command, "job": job, "status": status}
+        job = enrich_privileged_job(job, job_file=out)
+        job = self._persist_job(job)
+        apply_doc = {"created_at": now_iso(), "mode": mode, "scope": scope, "composite_top_n": composite_top_n, "request": body.get("request") or "GUI epoch apply request", "suggested_command": command, "privileged_runner_command": job.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "job": job, "status": status}
         self._write_json(out, apply_doc)
         artifacts = [{"type": "epoch_apply_request", "status": "created", "label": "epoch-apply-request.json", "path": str(out), "open_command": "cat " + str(out)}]
+        artifacts.extend(job.get("artifacts", []))
         reply = "Epoch transition request is ready. Review artifacts, then run the suggested sudo first-start apply command or approved job-runner action."
         self.save_message("system", reply, persona="Optimizer", intent="epoch_apply", artifacts=artifacts, raw=apply_doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "job": job, "suggested_command": command, "artifacts": artifacts}
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "job": job, "suggested_command": command, "privileged_runner_command": job.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": artifacts}
 
     # --- pipeline catalog ------------------------------------------------------------
     def pipeline_catalog_api(self) -> Dict[str, Any]:
@@ -848,7 +1304,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             stages = ["intake", "plan", "review"]
         nodes = [safe_id(str(s), "stage") for s in stages]
         mermaid = "flowchart LR\n" + "\n".join([f"  {nodes[i]}[{stages[i]}] --> {nodes[i+1]}[{stages[i+1]}]" for i in range(len(nodes)-1)]) if len(nodes) > 1 else f"flowchart LR\n  {nodes[0]}[{stages[0]}]"
-        return {"ok": True, "version": RUNTIME_VERSION, "pipeline_id": pipeline_id, "stages": stages, "mermaid": mermaid, "editable": "todo_draft_only"}
+        return {"ok": True, "version": RUNTIME_VERSION, "pipeline_id": pipeline_id, "stages": stages, "mermaid": mermaid, "editable": "drag_drop_draft_editor"}
 
     def pipeline_stats(self, pipeline_id: str) -> Dict[str, Any]:
         runs_dir = self.state / "runs"
@@ -860,11 +1316,103 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "pipeline_id": pipeline_id, "stats": {"runs_total": len(runs), "last_runs": runs[-10:], "runs_passed": None, "runs_failed": None, "avg_duration_sec": None, "note": "Full pipeline metrics will be accumulated by the job/pipeline event store."}}
 
     def pipeline_draft(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        draft_id = "draft_" + safe_id(str(body.get("id") or body.get("title") or now_iso()), "pipeline")
+        normalized = normalize_pipeline_editor_draft(body)
+        draft_id = normalized["draft_id"]
         out = self.data_root / "pipelines" / "drafts" / f"{draft_id}.json"
-        draft = {"draft_id": draft_id, "created_at": now_iso(), "status": "draft_only", "body": body, "safety": "not active until Scary/Architecture/Admin approval"}
+        draft = {"draft_id": draft_id, "created_at": now_iso(), "status": "draft_only", "body": normalized, "safety": "not active until Scary/Architecture/Admin approval"}
         self._write_json(out, draft)
         return {"ok": True, "version": RUNTIME_VERSION, "reply": "New pipeline draft created; it is not active until review/approval.", "draft": draft, "artifacts": [{"type": "pipeline_draft", "status": "created", "label": f"{draft_id}.json", "path": str(out), "open_command": "cat " + str(out)}]}
+
+    # --- GUI intent helpers ---------------------------------------------------------
+    def _explicit_control_request(self, low: str) -> bool:
+        """Return True when the user is asking the GUI to run or open a NoemaForge action."""
+        control_verbs = [
+            "запусти", "запуск", "запустить", "открой", "покажи", "проведи", "создай",
+            "доработай", "оптимизируй", "переключи", "продолжи", "инвентар",
+            "run", "start", "open", "execute", "launch", "continue", "inventory",
+        ]
+        control_terms = [
+            "pipeline", "пайп", "public_mwp", "evolution", "model evolution", "model-selection",
+            "model selection", "dev team", "vault", "epoch", "media", "mask", "video", "book",
+        ]
+        return any(v in low for v in control_verbs) or any(t in low for t in control_terms)
+
+    def _detect_pipeline_id(self, text: str) -> str:
+        """Detect an explicit pipeline id/name mentioned by the operator."""
+        low = str(text or "").lower().replace("-", "_")
+        try:
+            catalog = self.pipeline_catalog_api().get("pipelines", [])
+        except Exception:
+            catalog = []
+        candidates = []
+        for item in catalog:
+            pid = str(item.get("id") or "")
+            if not pid:
+                continue
+            aliases = {pid.lower(), pid.lower().replace("_", " "), pid.lower().replace("_", "-")}
+            if any(a and a in low for a in aliases):
+                candidates.append(pid)
+        if candidates:
+            return sorted(candidates, key=len, reverse=True)[0]
+        if "public" in low and "mwp" in low:
+            return "public_mwp"
+        if "evolution" in low or "эволюц" in low:
+            return "evolution"
+        return ""
+
+    def _pipeline_persona(self, pipeline_id: str) -> str:
+        """Map pipeline families to the persona shown in the GUI."""
+        low = pipeline_id.lower()
+        if "evolution" in low:
+            return "Model Evolution"
+        if "dev" in low or "code" in low:
+            return "Dev Team"
+        if "music" in low:
+            return "Music Team"
+        if "video" in low:
+            return "Video Team"
+        if "vision" in low or "image" in low or "mask" in low:
+            return "Vision Team"
+        if "model" in low or "epoch" in low:
+            return "Optimizer"
+        return "Admin"
+
+    def _run_explicit_pipeline_from_chat(self, text: str, pipeline_id: str, locale: str, allow_degraded: bool) -> Dict[str, Any]:
+        """Run an explicitly named pipeline from chat and return a GUI-friendly response."""
+        result = self.pipeline_run(pipeline_id, text, allow_degraded=allow_degraded)
+        stdout = result.get("stdout") if isinstance(result, dict) else {}
+        run_dir = stdout.get("run_dir") if isinstance(stdout, dict) else ""
+        run_id = stdout.get("run_id") if isinstance(stdout, dict) else ""
+        artifacts = []
+        if run_dir:
+            artifacts.append({
+                "type": "run_dir", "status": stdout.get("status", "created") if isinstance(stdout, dict) else "created",
+                "label": "run_dir", "path": str(run_dir), "open_command": "ls -lah " + str(run_dir),
+            })
+        persona = self._pipeline_persona(pipeline_id)
+        if locale == "ru":
+            reply = f"Запускаю pipeline {pipeline_id} по стандартному сценарию. Run: {run_id or 'создан/ожидает подтверждения'}."
+        else:
+            reply = f"Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id or 'created/waiting for approval'}."
+        switch = None if persona == "Admin" else {"from": "Admin", "to": persona, "switch_line": f"-- смена персоны с Admin на {persona} --", "switch_line_key": "persona.switch_line"}
+        doc = {
+            "ok": bool(result.get("ok", False)),
+            "version": RUNTIME_VERSION,
+            "mode": "pipeline_run",
+            "reply": reply,
+            "route": {"id": "pipeline", "intent": "pipeline_run", "label": f"Pipeline / {pipeline_id}", "pipeline_id": pipeline_id},
+            "persona_switch": switch,
+            "artifacts": artifacts,
+            "actions": [{"type": "pipeline_run", "pipeline_id": pipeline_id, "result": result}],
+            "internal_events": [f"Admin routed explicit chat command to pipeline {pipeline_id}"],
+            "raw": result,
+        }
+        self.save_message("admin", reply, persona=persona, locale=locale, intent="pipeline_run", artifacts=artifacts, raw=doc)
+        if switch:
+            conv = self._conversation()
+            conv["active_persona"] = persona
+            self._save_conversation(conv)
+        return doc
 
     # --- action wrappers -------------------------------------------------------------
     def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False) -> Dict[str, Any]:
@@ -880,10 +1428,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        if self._explicit_control_request(low):
+            pipeline_id = self._detect_pipeline_id(text)
+            if pipeline_id:
+                return self._run_explicit_pipeline_from_chat(text, pipeline_id, locale, allow_degraded)
         if self._conversational(low):
-            reply = self.try_llm_admin_reply(text, locale) or self.fallback_conversation_reply(text, locale)
+            convo = self.conversational_admin_reply(text, locale)
+            reply = convo["reply"]
             self.save_message("admin", reply, persona=conv.get("active_persona", "Admin"), locale=locale, intent="conversation")
-            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "artifacts": []}
+            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "conversation_backend": convo["backend"], "artifacts": []}
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "--state", str(self.state), "--evolution-state", str(self.evolution_state), "message", "--message", text, "--json"]
         if execute: cmd.append("--execute")
         if prepare_media: cmd.append("--prepare-media")
@@ -908,22 +1461,76 @@ class AdminGuiServer(ThreadingHTTPServer):
         return result
 
     def _task_intent(self, low: str) -> bool:
-        return any(k in low for k in ["добавь задачу", "измени задачу", "приоритет", "пометь задачу", "задач"])
+        return any(k in low for k in [
+            "добавь задачу", "создай задачу", "измени задачу", "обнови задачу", "переименуй задачу",
+            "приоритет", "пометь задачу", "заблок", "заверши задачу", "закрой задачу", "выполни задачу",
+            "задач", "add task", "create task", "update task", "edit task", "prioritize task", "block task",
+            "complete task", "close task",
+        ])
 
     def _handle_task_intent(self, text: str, locale: str) -> Dict[str, Any]:
         low = text.lower()
-        priority = 80 if any(k in low for k in ["высок", "high", "важн"]) else 50
+        priority = self._priority_from_text(low)
         category = "dev_team" if "dev" in low or "код" in low else "general"
         if any(k in low for k in ["добав", "создай", "new"]):
             title = re.sub(r"^(добавь|создай) задачу[:：]?", "", text, flags=re.I).strip() or text
             return self.task_create({"title": title, "category": category, "priority": priority, "assignee": "Dev Team" if category == "dev_team" else "Admin"})
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": "Я могу добавлять, редактировать и приоритезировать задачи. Уточни task_id или сформулируй: 'добавь задачу: ... приоритет высокий'.", "tasks": self.tasks_list()}
+        task_id = self._extract_task_id(text)
+        if not task_id:
+            return {"ok": True, "version": RUNTIME_VERSION, "reply": "Я могу добавлять, редактировать, приоритезировать, блокировать и завершать задачи. Уточни task_id или сформулируй: 'заблокируй задачу task_... причина ...'.", "tasks": self.tasks_list()}
+        if any(k in low for k in ["заблок", "block"]):
+            return self.task_block({"task_id": task_id, "reason": text})
+        if any(k in low for k in ["заверши", "закрой", "выполни", "complete", "close", "done"]):
+            return self.task_complete({"task_id": task_id})
+        if any(k in low for k in ["приоритет", "priorit"]):
+            return self.task_prioritize({"task_id": task_id, "priority": priority})
+        if any(k in low for k in ["измени", "обнови", "переименуй", "edit", "update", "rename"]):
+            title = ""
+            if ":" in text:
+                title = text.split(":", 1)[1].strip()
+            body = {"task_id": task_id}
+            if title:
+                body["title"] = title
+            else:
+                body["notes"] = text
+            return self.task_update(body)
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": "Task command recognized; specify add/edit/prioritize/block/complete plus task_id.", "tasks": self.tasks_list()}
+
+    def _extract_task_id(self, text: str) -> str:
+        match = re.search(r"\btask_[A-Za-z0-9_.:-]+\b", str(text or ""))
+        return match.group(0) if match else ""
+
+    def _priority_from_text(self, low: str) -> int:
+        match = re.search(r"(?:priority|приоритет)\D{0,12}([0-9]{1,3})", low)
+        if match:
+            return max(1, min(100, int(match.group(1))))
+        numbers = re.findall(r"\b([0-9]{1,3})\b", low)
+        if numbers:
+            return max(1, min(100, int(numbers[-1])))
+        if any(k in low for k in ["высок", "важн"]) or re.search(r"\b(high|urgent)\b", low):
+            return 80
+        if "низк" in low or re.search(r"\blow\b", low):
+            return 20
+        if "средн" in low or re.search(r"\bmedium\b", low):
+            return 50
+        return 50
 
     def _conversational(self, low: str) -> bool:
-        control = ["оптимиз", "эволюц", "dev team", "доработ", "pipeline", "пайп", "модель", "подбор", "vault", "инвентар", "switch", "epoch", "задач"]
-        if any(k in low for k in control):
+        """Return True for ordinary chat; explicit NoemaForge actions must route elsewhere."""
+        if self._explicit_control_request(low):
             return False
+        if not low:
+            return False
+        # Short casual messages and ordinary questions are chat. Unknown long text is
+        # treated as chat too, but commands are excluded above.
         return True
+
+    def conversational_admin_reply(self, text: str, locale: str) -> Dict[str, str]:
+        """Return an LLM-backed smalltalk reply when available, otherwise deterministic fallback."""
+        llm_reply = self.try_llm_admin_reply(text, locale)
+        if llm_reply:
+            return {"reply": llm_reply, "backend": "llm_chat"}
+        return {"reply": self.fallback_conversation_reply(text, locale), "backend": "deterministic_fallback"}
 
     def try_llm_admin_reply(self, text: str, locale: str) -> str:
         if os.environ.get("NOEMAFORGE_GUI_DISABLE_LLM_CHAT") == "1":
@@ -939,11 +1546,23 @@ class AdminGuiServer(ThreadingHTTPServer):
         return ""
 
     def fallback_conversation_reply(self, text: str, locale: str) -> str:
+        """Deterministic conversational fallback used when the local LLM chat path is unavailable."""
         runtime = self.runtime_status()
         model = (runtime.get("main_manifest") or {}).get("model_id") or (runtime.get("main_manifest") or {}).get("name") or "main"
+        low = str(text or "").lower().strip()
         if locale == "ru":
-            return f"Я здесь. Сейчас работаю как локальный Admin NoemaForge в режиме GUI/control-plane. Текущая main-модель: {model}. Я могу вести чат, показывать метрики, управлять задачами, запускать пайплайны, готовить подбор моделей, Dev Team и эволюцию — без скрытого применения изменений."
-        return f"I am here. I am running as the local NoemaForge Admin GUI/control-plane. Current main model: {model}. I can chat, show metrics, manage tasks, route pipelines, prepare model selection, Dev Team work and evolution without hidden apply steps."
+            if any(x in low for x in ["привет", "здрав", "hello", "hi"]):
+                return f"Привет. Я локальный Admin NoemaForge. Сейчас работаю в безопасном GUI/control-plane режиме; текущая main-модель: {model}."
+            if any(x in low for x in ["познаком", "рад", "приятно"]):
+                return "Взаимно. Я буду вести историю этого диалога, помогать с пайплайнами, задачами, метриками, Dev Team, подбором моделей и эволюцией — без скрытого применения изменений."
+            if any(x in low for x in ["как", "жив", "оно", "дела"]):
+                return f"Работаю штатно в локальном режиме. Могу отвечать в чате, но если LLM-gateway не активен, часть ответов будет deterministic fallback. Текущая main-модель: {model}."
+            if len(low) <= 8 and not re.search(r"[а-яa-z0-9]", low):
+                return "Я не понял сообщение. Сформулируй задачу словами или выбери пайплайн внизу."
+            return "Принял. Это похоже на обычное сообщение, а не команду NoemaForge. Могу продолжить диалог или выполнить явную команду: запусти pipeline, оптимизируй модель, открой Dev Team, проведи эволюцию."
+        if any(x in low for x in ["hello", "hi"]):
+            return f"Hello. I am the local NoemaForge Admin. I am running in safe GUI/control-plane mode; current main model: {model}."
+        return f"I am here. This looks like a conversational message rather than a NoemaForge command. Current main model: {model}."
 
     def explain_usecase(self, text: str, locale: str) -> str:
         low = text.lower()
@@ -958,11 +1577,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return "Это справка по usecase NoemaForge. Спроси, например: 'что значит оптимизируй модель для dev team', 'что значит эволюция модели', 'что значит 10 шагов улучшения'."
 
     def pipeline_run(self, pipeline: str, request: str, *, allow_degraded: bool) -> Dict[str, Any]:
-        cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "run", pipeline, "--request", request]
+        trace_id = production_ai_contracts.new_trace_id("pipeline")
+        cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "run", pipeline, "--request", request, "--trace-id", trace_id]
         if allow_degraded:
             cmd.append("--allow-degraded")
-        result = run_json(cmd, env=self.env(), timeout=180)
-        self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result)
+        env = self.env()
+        env["NOEMAFORGE_TRACE_ID"] = trace_id
+        result = run_json(cmd, env=env, timeout=180)
+        result["trace_id"] = trace_id
+        self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result, trace_id=trace_id)
         return result
 
     def pipeline_action(self, action: str, run_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -989,10 +1612,53 @@ class AdminGuiServer(ThreadingHTTPServer):
     def vault_reinventory(self) -> Dict[str, Any]:
         progress = self.model_selection_progress()
         command = "sudo noemaforge inventory scan && sudo noemaforge datasets scan && sudo noemaforge tournament eligibility"
-        job = self.create_job("vault_reinventory", status="needs_privilege", progress=progress, command=command, idempotency_key="vault-reinventory")
-        reply = "Vault re-inventory requires privileged execution. I created a job/plan with the exact command; run it in terminal or through an approved root job-runner."
-        self.save_message("system", reply, persona="Vault", intent="vault_reinventory", raw=job)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "job": job, "suggested_command": command}
+        privileged_steps = [
+            "sudo noemaforge inventory scan",
+            "sudo noemaforge datasets scan",
+            "sudo noemaforge tournament eligibility",
+        ]
+        fallback_artifact = {
+            "type": "privileged_fallback_command",
+            "status": "operator_action_required",
+            "label": "Vault re-inventory fallback command",
+            "command": command,
+            "execution_policy": "operator_terminal_or_approved_root_job_runner",
+        }
+        job = self.create_job("vault_reinventory", status="needs_privilege", progress=progress, command=command, artifacts=[fallback_artifact], idempotency_key="vault-reinventory")
+        out = self.data_root / "vault" / "vault-reinventory-request.json"
+        job["privileged_steps"] = privileged_steps
+        job = enrich_privileged_job(job, job_file=out)
+        job = self._persist_job(job)
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "created_at": now_iso(),
+            "progress": progress,
+            "job": job,
+            "suggested_command": command,
+            "fallback_command": command,
+            "privileged_runner_command": job.get("privileged_runner_command"),
+            "privileged_runner_policy": "polkit_approval_required",
+            "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION,
+            "execution_policy": "gui_plan_only_operator_terminal_or_approved_root_job_runner",
+        }
+        self._write_json(out, doc)
+        reply = "Vault re-inventory requires privileged execution. I created a job/plan with the exact fallback command; run it in terminal or through an approved root job-runner."
+        self.save_message("system", reply, persona="Vault", intent="vault_reinventory", artifacts=job.get("artifacts", []), raw=doc)
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "reply": reply,
+            "job": job,
+            "suggested_command": command,
+            "fallback_command": command,
+            "privileged_runner_command": job.get("privileged_runner_command"),
+            "privileged_runner_policy": "polkit_approval_required",
+            "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION,
+            "artifacts": job.get("artifacts", []),
+            "privilege_required": True,
+            "execution_policy": "gui_plan_only_operator_terminal_or_approved_root_job_runner",
+        }
 
     def model_evolution(self, request: str, *, target_role: str, apply: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "model_evolution_runtime.py"), "--root", str(self.root), "--state", str(self.evolution_state), "--pipeline-state", str(self.state), "run", "--request", request, "--target-role", target_role, "--json"]
@@ -1023,6 +1689,10 @@ class AdminGuiServer(ThreadingHTTPServer):
             {"id": "smarthome_local", "title": "Умный дом локально", "summary": "Local-first управление розетками, выключателями, пылесосами, камерами и сенсорами: value your privacy, без скрытой отправки наружу.", "example": "что значит умный дом локально"},
         ]
         return {"ok": True, "version": RUNTIME_VERSION, "usecases": cases}
+
+    def public_showcase_scenario(self) -> Dict[str, Any]:
+        conv = self._conversation()
+        return build_public_showcase_scenario(str(conv.get("locale") or ""))
 
     def locales(self) -> Dict[str, Any]:
         base = self.root / "configs" / "locales"
@@ -1101,3 +1771,5 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

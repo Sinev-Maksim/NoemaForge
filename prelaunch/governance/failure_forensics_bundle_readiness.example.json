@@ -1,0 +1,28 @@
+{
+  "apiVersion": "noemaforge.failure-forensics-bundle-readiness/v1",
+  "kind": "FailureForensicsBundleReadinessExampleSet",
+  "scenarios": [
+    {
+      "id": "patched10-failure-forensics-bundle-evidence-readiness",
+      "trace_id": "trace:patched10:failure-forensics-bundle",
+      "blocked_completion": true,
+      "expected_check_ids": [
+        "failure-trigger-baseline",
+        "forensics-command-capture",
+        "bundle-integrity",
+        "redaction-inspection",
+        "runtime-log-coverage",
+        "inspection-followup"
+      ],
+      "expected_outputs": [
+        "failure_forensics_summary",
+        "blocked_completion_notice",
+        "target_forensics_command_manifest",
+        "evidence_requirements",
+        "inspection_followup_manifest",
+        "registry_attachment",
+        "docs_changelog_trace"
+      ]
+    }
+  ]
+}

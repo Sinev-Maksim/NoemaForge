@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-consistency-audit.sh
 # Zone: release/package
-# Version: 0.31.13.alpha
+# Version: 0.32.1
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -37,7 +37,7 @@ root=Path(sys.argv[1]); fmt=sys.argv[2]
 try:
     release_version=(root/'VERSION').read_text().strip()
 except Exception:
-    release_version='0.31.13.alpha'
+    release_version='0.32.1'
 checks=[]
 def run(id, desc, cmd):
     try:

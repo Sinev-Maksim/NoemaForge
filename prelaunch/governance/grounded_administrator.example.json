@@ -1,0 +1,69 @@
+{
+  "apiVersion": "noemaforge.grounded-administrator/v1",
+  "kind": "GroundedAdministratorExampleSet",
+  "id": "grounded-administrator-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "admin-hypergraph-first-answer",
+      "trace_id": "trace:grounded-administrator:example:001",
+      "query_surface": "operator.admin/administrator",
+      "query": "What does the knowledge hypergraph provide for grounded answers?",
+      "retrieval_order": [
+        "hypergraph_claims",
+        "graph_neighbors",
+        "docs_rag_citations",
+        "knowledge_gap_notice"
+      ],
+      "supported_answer": {
+        "mode": "grounded_answer",
+        "grounded": true,
+        "answer": "The hypergraph provides provenance-preserving claims and graph-backed citations for Administrator answers.",
+        "citations": [
+          {
+            "claim_id": "claim:knowledge-hypergraph-grounding",
+            "human_address": "knowledge.hypergraph.yaml#success_signals[1]",
+            "score": 1.0
+          }
+        ],
+        "graph_provenance": [
+          "knowledge.hypergraph",
+          "claim:knowledge-hypergraph-grounding"
+        ]
+      },
+      "gap_answer": {
+        "mode": "knowledge_gap_notice",
+        "grounded": false,
+        "answer": "Local grounded knowledge does not currently contain a supported answer for this question.",
+        "citations": [],
+        "followup": [
+          "ingest_relevant_source",
+          "ask_narrower_scope",
+          "propose_research"
+        ]
+      },
+      "rejected_answers": [
+        {
+          "claim": "answer without citations",
+          "reason": "Grounded answers must include graph-backed citation fields."
+        },
+        {
+          "claim": "improvise when graph has no answer",
+          "reason": "A graph miss must return a knowledge_gap_notice and follow-up work."
+        },
+        {
+          "claim": "skip hypergraph retrieval",
+          "reason": "Administrator uses the hypergraph as the first default knowledge surface."
+        }
+      ],
+      "expected_outputs": [
+        "grounded_answer",
+        "knowledge_gap_notice",
+        "citations",
+        "followup",
+        "retrieved_refs",
+        "graph_provenance"
+      ]
+    }
+  ]
+}

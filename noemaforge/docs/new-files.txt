@@ -272,7 +272,7 @@ docs/developer/DEVELOPER_NOTES.md
 docs/history/CHANGELOG.md
 docs/history/noemaforge_0.24.1_checked_seed.json
 docs/i18n/LOCALIZED_GUIDES.md
-docs/install_noemaforge_0.31.13.alpha_mvp.sh
+docs/install_noemaforge_0.32.1_mvp.sh
 docs/installed-files.txt
 docs/new-files.txt
 docs/noemaforge-firstboot-shortlist.example.txt
@@ -290,7 +290,7 @@ docs/quality/VERIFICATION_AND_AUDIT.md
 docs/reference/KNOWLEDGE_BASE.md
 docs/release.json
 docs/setup.sh
-docs/uninstall_noemaforge_0.31.13.alpha_mvp.sh
+docs/uninstall_noemaforge_0.32.1_mvp.sh
 docs/wiki/WIKI.md
 lib/noemaforge-common.sh
 manifest.yaml

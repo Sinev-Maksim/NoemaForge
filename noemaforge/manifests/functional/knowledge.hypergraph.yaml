@@ -22,6 +22,24 @@ compiled_artifacts:
 - claims
 - evidence
 - concept links
+core_relations:
+- passage_cites_source
+- claim_extracted_from_passage
+- claim_supported_by_evidence
+- claim_about_concept
+- conflict_between_claims
+- concept_defined_by_passage
+- trail_step_references_object
+- lineage_derives_from
+publication_gates:
+- passage
+- claim
+- conflict
+- concept
+publication_decisions:
+- auto_publish
+- review
+- quarantine
 workflows:
   ingest:
   - enqueue source
@@ -37,6 +55,7 @@ workflows:
 boundaries:
 - Prep metadata is separate from ontology.
 - Claims without provenance are not publishable.
+- Knowledge core relations boundary: Canonical knowledge relations are frozen as typed links among Source, Passage, Claim, Entity, Concept, Conflict, Trail, TaskContext, Decision and Artifact; publication gates for Passage, Claim, Conflict and Concept must emit auto_publish, review or quarantine decisions before retrieval can treat objects as published.
 success_signals:
 - every claim has machine-resolvable address
 - grounded answers cite graph-backed provenance

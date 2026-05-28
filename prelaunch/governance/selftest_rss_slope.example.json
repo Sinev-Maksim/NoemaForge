@@ -1,0 +1,30 @@
+{
+  "apiVersion": "noemaforge.selftest-rss-slope/v1",
+  "kind": "SelfTestRssSlopeExampleSet",
+  "id": "selftest-rss-slope-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "offline-repeat-rss-slope-finding",
+      "trace_id": "trace:selftest:rss-slope:offline-repeat",
+      "expected_analyzed_cases": 2,
+      "expected_findings": 1,
+      "expected_failures": 1,
+      "expected_outputs": ["selftest-rss-slope.json"],
+      "report": {
+        "apiVersion": "noemaforge/v1",
+        "kind": "SelfTestReport",
+        "version": "0.32.1",
+        "run_id": "rss_slope_example",
+        "suite": "stress",
+        "started_at": "2026-05-20T03:11:00Z",
+        "finished_at": "2026-05-20T03:11:12Z",
+        "summary": {"ok": true, "case_count": 2, "passed": 2, "failed": 0, "duration_total_sec": 2.0, "duration_max_sec": 1.1, "max_rss_kib": 18000, "disk_write_bytes_total": 64, "ecc_delta_total": 0},
+        "results": [
+          {"case_id": "stable_case", "module": "synthetic", "tier": "stress", "status": "pass", "metrics": {"duration_sec": 0.5, "max_rss_kib": 8100}, "repeats": {"count": 4, "max_rss_kib_sequence": [8000, 8050, 8075, 8100], "memory_leak_suspect": false}},
+          {"case_id": "leaky_case", "module": "synthetic", "tier": "stress", "status": "pass", "metrics": {"duration_sec": 0.6, "max_rss_kib": 18000}, "repeats": {"count": 4, "max_rss_kib_sequence": [10000, 12500, 15100, 18000], "memory_leak_suspect": true}}
+        ]
+      }
+    }
+  ]
+}

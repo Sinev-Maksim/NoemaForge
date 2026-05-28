@@ -1,0 +1,130 @@
+{
+  "apiVersion": "noemaforge.memory-budgeted-retrieval/v1",
+  "kind": "MemoryBudgetedRetrievalPolicy",
+  "id": "memory-budgeted-retrieval-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "graceful_memory_budget_degradation",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_dependency": true,
+    "boundary_phrase": "Memory-budgeted retrieval degrades gracefully: when a chunk chain exceeds active budget, NoemaForge selects highest-coherence subchunks first and adds adjacent support neighbors only if budget remains.",
+    "topic_adjacent_policy_ref": "configs/topic-adjacent-retrieval-policy.json",
+    "prep_pipeline_ref": "src/knowledge/prep_pipeline.py",
+    "prep_store_ref": "src/knowledge/prep_store.py",
+    "architecture_ref": "docs/architecture/ARCHITECTURE.md",
+    "required_algorithms": [
+      "active_memory_budget_check",
+      "highest_coherence_subchunk_selection",
+      "adjacent_support_neighbors_after_subchunks",
+      "budget_remaining_gate",
+      "split_lineage_preservation",
+      "partial_context_notice"
+    ],
+    "degradation_order": [
+      "detect_chain_over_budget",
+      "select_highest_coherence_subchunks",
+      "add_adjacent_support_neighbors_if_budget_remains",
+      "emit_partial_context_notice_when_support_is_truncated"
+    ],
+    "required_lineage_fields": [
+      "chunk_id",
+      "chunk_parent_id",
+      "chunk_split_reason",
+      "leaf_sequence_no",
+      "coherence_score",
+      "estimated_tokens"
+    ],
+    "required_static_tokens": {
+      "src/knowledge/prep_pipeline.py": [
+        "split_reason",
+        "single_sentence_over_budget",
+        "over_budget_recursive",
+        "chunk_quality_metrics",
+        "budget_ratio",
+        "leaf_sequence_no"
+      ],
+      "src/knowledge/prep_store.py": [
+        "add_split_node",
+        "list_leaf_nodes",
+        "parent_split_node_id",
+        "split_reason",
+        "leaf_sequence_no",
+        "is_leaf"
+      ],
+      "docs/architecture/ARCHITECTURE.md": [
+        "best-matching coherent chunk or subchunk",
+        "adjacent support chunks only if budget remains",
+        "knowledge is partial under current context budget"
+      ]
+    },
+    "controls": {
+      "over_budget_chain_detected": true,
+      "subchunks_sorted_by_coherence": true,
+      "support_neighbors_budget_gated": true,
+      "lineage_required_for_subchunks": true,
+      "partial_context_notice_required": true,
+      "no_support_before_subchunks": true,
+      "no_live_host_required": true
+    },
+    "required_outputs": [
+      "degradation_mode",
+      "selected_subchunks",
+      "selected_support_neighbors",
+      "budget_remaining",
+      "partial_context_notice",
+      "rejected_neighbors",
+      "retrieval_trace"
+    ],
+    "blocked_retrieval_claims": [
+      "add support neighbors before coherent subchunks",
+      "ignore active memory budget",
+      "drop split lineage",
+      "hide partial context truncation"
+    ],
+    "required_boundary_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ],
+    "scan_refs": [
+      "README.md",
+      "docs/README.md",
+      "noemaforge/docs/README.md",
+      "TODO.md",
+      "noemaforge/TODO.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+    ],
+    "required_example_sets": [
+      "prelaunch/governance/memory_budgeted_retrieval.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/memory-budgeted-retrieval-policy.json",
+    "noemaforge/contracts/memory_budgeted_retrieval.schema.json",
+    "noemaforge/configs/topic-adjacent-retrieval-policy.json",
+    "noemaforge/src/memory_budgeted_retrieval_runtime.py",
+    "noemaforge/src/knowledge/prep_pipeline.py",
+    "noemaforge/src/knowledge/prep_store.py",
+    "noemaforge/tests/test_memory_budgeted_retrieval_runtime.py",
+    "noemaforge/tests/test_memory_budgeted_retrieval_qa.py",
+    "noemaforge/tests/test_memory_budgeted_retrieval_performance.py",
+    "prelaunch/governance/memory_budgeted_retrieval.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

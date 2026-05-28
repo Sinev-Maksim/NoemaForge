@@ -1,0 +1,17 @@
+apiVersion: noemaforge.sense-layer-edge/v1
+kind: SenseLayerEdgeInputContract
+required_fields:
+  - metric_id
+  - source_id
+  - source_trust
+  - timestamp
+  - value
+  - unit
+trust_levels:
+  - trusted
+  - simulated
+  - unverified
+protocols:
+  - mqtt
+  - serial
+  - system_metrics

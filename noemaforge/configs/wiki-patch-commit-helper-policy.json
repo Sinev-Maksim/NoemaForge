@@ -1,0 +1,50 @@
+{
+  "apiVersion": "noemaforge.wiki-patch-commit-helper/v1",
+  "kind": "WikiPatchCommitHelperPolicy",
+  "id": "wiki-patch-commit-helper-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "reviewed_wiki_patch_commit_plan",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_wiki_patch_commands": ["commit-plan"],
+    "required_outputs": ["reviewed_commit_plan.json", "commit_helper.sh", "commit_message.txt"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "runtime": "src/selftest_runtime.py",
+      "contract_runtime": "src/wiki_patch_commit_helper_runtime.py"
+    },
+    "controls": {
+      "operator_review_required": true,
+      "local_branch_only": true,
+      "no_auto_push": true,
+      "generated_commit_script": true,
+      "commit_message_artifact": true,
+      "patch_manifest_linked": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/wiki_patch_commit_helper.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/wiki-patch-commit-helper-policy.json",
+    "noemaforge/contracts/wiki_patch_commit_helper.schema.json",
+    "noemaforge/src/selftest_runtime.py",
+    "noemaforge/src/wiki_patch_commit_helper_runtime.py",
+    "noemaforge/tests/test_wiki_patch_commit_helper_runtime.py",
+    "noemaforge/tests/test_wiki_patch_commit_helper_qa.py",
+    "noemaforge/tests/test_wiki_patch_commit_helper_performance.py",
+    "prelaunch/governance/wiki_patch_commit_helper.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

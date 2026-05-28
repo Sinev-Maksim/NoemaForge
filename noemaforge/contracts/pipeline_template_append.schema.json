@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/schemas/pipeline_template_append.schema.json",
+  "title": "NoemaForge PipelineTemplateAppendResult",
+  "type": "object",
+  "required": ["ok"],
+  "properties": {
+    "ok": {"type": "boolean"},
+    "ready_to_append": {"type": "boolean"},
+    "requires": {"type": "string"},
+    "pipelines": {"type": "array", "items": {"type": "string"}},
+    "out": {"type": "string", "minLength": 1},
+    "added": {"type": "array", "items": {"type": "string"}},
+    "count": {"type": "integer", "minimum": 0},
+    "problems": {"type": "array", "items": {"type": "string"}}
+  },
+  "anyOf": [
+    {
+      "required": ["ok", "ready_to_append", "requires", "pipelines"],
+      "properties": {
+        "ok": {"const": false},
+        "ready_to_append": {"const": true},
+        "requires": {"const": "--approve"}
+      }
+    },
+    {
+      "required": ["ok", "out", "added", "count"],
+      "properties": {
+        "ok": {"const": true},
+        "out": {"type": "string", "minLength": 1},
+        "added": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "count": {"type": "integer", "minimum": 1}
+      }
+    }
+  ],
+  "additionalProperties": true
+}

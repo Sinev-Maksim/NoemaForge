@@ -1,13 +1,21 @@
 {
   "apiVersion": "noemaforge.runtime/v1",
   "kind": "RuntimeDevicePolicy",
-  "version": "0.31.13.alpha",
-  "default": "auto",
+  "version": "0.32.1",
+  "decision": "cpu_safe_always_on_with_gpu_on_demand",
+  "default": "cpu",
   "allowed": [
     "auto",
     "cpu",
     "gpu"
   ],
-  "applies_on": "next_persona_or_model_switch",
-  "readme_warning": "Changing CPU/GPU policy does not migrate an active model."
+  "always_on_policy": "cpu_safe",
+  "gpu_policy": "explicit_on_demand",
+  "gpu_autostart_enabled": false,
+  "heavy_gpu_autostart": false,
+  "max_active_heavy_workers": 1,
+  "applies_on": "next_persona_or_model_switch_or_backend_restart",
+  "gpu_applies_on": "next_persona_or_model_switch_or_backend_restart",
+  "readme_warning": "Default runtime stays CPU-safe; GPU mode is an explicit on-demand staged request and does not migrate an active model."
 }
+

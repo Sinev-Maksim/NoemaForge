@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: noemaforge/src/admin_runtime.py
 Zone: release/package
-Version: 0.31.13.alpha
+Version: 0.32.2
 Created: 2026-05-14
-Modified: 2026-05-14
+Modified: 2026-05-25
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -17,7 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Existing module notes:
 NoemaForge Admin control-plane runtime.
 
-0.31.13.alpha release-candidate scope:
+0.32.2 release-candidate scope:
 - route natural-language operator requests to concrete NoemaForge pipelines;
 - optionally create/launch the selected pipeline run;
 - bridge Admin GUI actions to dev-team, multimodal planning and model-evolution runtimes;
@@ -43,7 +43,8 @@ except Exception:  # pragma: no cover
         try: return (default or key).format(**kwargs)
         except Exception: return default or key
 
-RUNTIME_VERSION = "0.31.13.alpha"
+import production_ai_contracts
+from noemaforge_version import RUNTIME_VERSION
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
 DEFAULT_EVOLUTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))
@@ -169,7 +170,7 @@ ROUTES: List[Dict[str, Any]] = [
         "pipeline_id": "model_evolution",
         "team_id": "model_evolution_team",
         "intent": "model_selection",
-        "keywords": ["оптимизац", "используемой модели", "выбор модели", "отбор модели", "смена эпох", "epoch", "first-start", "first start", "fast", "normal", "full_composite", "full", "model selection", "optimize model"],
+        "keywords": ["оптимизац", "оптимизируй модель", "оптимизир", "используемой модели", "выбор модели", "отбор модели", "смена эпох", "epoch", "first-start", "first start", "fast", "normal", "full_composite", "full", "model selection", "optimize model"],
         "reply": "Выбери режим отбора модели: fast, normal, full или full_composite N; выбери область; затем я покажу кандидатов перед сменой эпохи.",
         "reply_key": "admin.reply.route.model_selection",
         "execute_mode": "model_selection_plan",
@@ -244,7 +245,7 @@ def route_request(text: str) -> Dict[str, Any]:
     lower = txt.lower()
     scored = [(score_route(txt, route), route) for route in ROUTES]
     boosted = []
-    strong_domain_hit = bool(re.search(r"(музык|трек|песня|song|music|код|dev team|доработ|исправ|эволюц|оптимизац|выбор модели|отбор модели|full_composite|first-start|маск|камера|video|видео|фото|изображ)", lower))
+    strong_domain_hit = bool(re.search(r"(музык|трек|песня|song|music|код|dev team|доработ|исправ|эволюц|оптимизац|оптимизир|выбор модели|отбор модели|full_composite|first-start|маск|камера|video|видео|фото|изображ)", lower))
     greeting_exact = bool(re.match(r"^\s*(првиет|привет|здравствуй|hello|hi|hey)([!?.\s,]|$)", lower))
     for score, route in scored:
         rid = str(route.get("id") or "")
@@ -255,9 +256,9 @@ def route_request(text: str) -> Dict[str, Any]:
             # code route steal explicit evolution intent.
             if not re.search(r"(эволюц|model evolution|evolve model|adapter|lora|улучши модель)", lower):
                 score = max(score, 13)
-        if rid == "model_selection" and re.search(r"(оптимизац|используемой модели|выбор модели|отбор модели|смена эпох|first-start|first start|full_composite|model selection|optimize model)", lower):
+        if rid == "model_selection" and re.search(r"(оптимизац|оптимизир|используемой модели|выбор модели|отбор модели|смена эпох|first-start|first start|full_composite|model selection|optimize model)", lower):
             score = max(score, 16)
-        if rid == "model_evolution" and re.search(r"(эволюц|model evolution|evolve model|adapter|lora|улучши модель|модель)", lower) and not re.search(r"(оптимизац|выбор модели|отбор модели|first-start|full_composite)", lower):
+        if rid == "model_evolution" and re.search(r"(эволюц|model evolution|evolve model|adapter|lora|улучши модель|модель)", lower) and not re.search(r"(оптимизац|оптимизир|выбор модели|отбор модели|first-start|full_composite)", lower):
             score = max(score, 17)
         if rid == "mask" and re.search(r"(маск|mask|matting|segmentation|virtual camera|v4l2|obs)", lower):
             score = max(score, 12)
@@ -279,6 +280,13 @@ def route_request(text: str) -> Dict[str, Any]:
     doc["task_type"] = doc.get("intent") or doc.get("id")
     doc.setdefault("suggested_commands", [])
     doc.setdefault("prepare", None)
+    missing_context: List[str] = []
+    if str(doc.get("id") or "") == "code" and not request_has_project_context(txt):
+        missing_context.extend(["project path", "change request"])
+    if missing_context:
+        doc["missing_context"] = missing_context
+    non_mutating_policy = {"auto_route_min_confidence": 0.5} if str(doc.get("id") or "") == "greeting" else {}
+    doc["abstention"] = production_ai_contracts.decide_abstention(doc, non_mutating_policy)
     return doc
 
 
@@ -299,7 +307,7 @@ def _run_json(cmd: Sequence[str], *, env: Optional[Dict[str, str]] = None, cwd: 
     }
 
 
-def create_pipeline_run(root: Path, state: Path, pipeline_id: str, request: str, *, allow_degraded: bool = False, dry_run: bool = False) -> Dict[str, Any]:
+def create_pipeline_run(root: Path, state: Path, pipeline_id: str, request: str, *, allow_degraded: bool = False, dry_run: bool = False, trace_id: str = "") -> Dict[str, Any]:
     task_id = safe_id(f"admin_{pipeline_id}_{request[:48]}")
     cmd = [
         sys.executable,
@@ -315,6 +323,8 @@ def create_pipeline_run(root: Path, state: Path, pipeline_id: str, request: str,
         "--request",
         request,
     ]
+    if trace_id:
+        cmd.extend(["--trace-id", trace_id])
     if allow_degraded:
         cmd.append("--allow-degraded")
     if dry_run:
@@ -431,6 +441,22 @@ def is_smalltalk(text: str) -> bool:
     lower = str(text or "").lower().strip()
     return bool(re.search(r"^(супер|спасибо|как ты|ты там|ты жив|рад|hello|hi|thanks|thank you|ок|ok)[!?.\sа-яa-z0-9,-]*$", lower))
 
+
+def has_explicit_control_request(text: str) -> bool:
+    lower = str(text or "").lower().strip()
+    return bool(re.search(
+        r"(запусти|запуск|запустить|открой|покажи|проведи|создай|доработай|"
+        r"оптимизируй|переключи|продолжи|инвентар|run|start|open|execute|"
+        r"launch|continue|inventory|pipeline|пайп|public_mwp|evolution|"
+        r"model evolution|model-selection|model selection|dev team|vault|epoch|"
+        r"media|mask|video|book|gui)",
+        lower,
+    ))
+
+
+def is_conversational_smalltalk(text: str) -> bool:
+    return is_smalltalk(text) and not has_explicit_control_request(text)
+
 def extract_selection_mode(text: str) -> tuple[str, int]:
     lower = str(text or "").lower()
     m = re.search(r"full[_ -]?composite\s*(\d+)?", lower)
@@ -525,7 +551,7 @@ def collect_artifacts(obj: Any) -> List[Dict[str, Any]]:
     return dedup
 
 
-def run_model_selection(root: Path, state: Path, request: str, *, mode: str, composite_top_n: int, scope: str, apply: bool) -> Dict[str, Any]:
+def run_model_selection(root: Path, state: Path, request: str, *, mode: str, composite_top_n: int, scope: str, apply: bool, trace_id: str = "") -> Dict[str, Any]:
     cmd = [
         sys.executable,
         str(root / "src" / "model_selection_runtime.py"),
@@ -538,6 +564,8 @@ def run_model_selection(root: Path, state: Path, request: str, *, mode: str, com
         "--composite-top-n", str(composite_top_n),
         "--json",
     ]
+    if trace_id:
+        cmd.extend(["--trace-id", trace_id])
     if apply:
         cmd.append("--apply")
     return _run_json(cmd)
@@ -654,6 +682,7 @@ def cmd_message(args: argparse.Namespace) -> int:
     evo_state = Path(args.evolution_state).resolve() if args.evolution_state else DEFAULT_EVOLUTION_STATE
     selection_state = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", str(DEFAULT_MODEL_SELECTION_STATE))).resolve()
     message = args.message or " ".join(args.text or [])
+    trace_id = os.environ.get("NOEMAFORGE_TRACE_ID") or production_ai_contracts.new_trace_id("admin")
     locale = detect_locale(message, getattr(args, "locale", ""))
     route = route_request(message)
     rid = str(route.get("id") or "")
@@ -666,6 +695,7 @@ def cmd_message(args: argparse.Namespace) -> int:
     result: Dict[str, Any] = {
         "ok": True,
         "version": RUNTIME_VERSION,
+        "trace_id": trace_id,
         "locale": locale,
         "created_at": nowz(),
         "mode": "admin_message",
@@ -691,11 +721,16 @@ def cmd_message(args: argparse.Namespace) -> int:
         result["usecase_help"] = help_doc
         print(json_dumps(result) if args.json else result["reply"])
         return 0
-    if rid == "general" and is_smalltalk(message):
+    if rid in {"general", "greeting"} and is_conversational_smalltalk(message):
         if locale.startswith("ru"):
             result["reply"] = "Я на месте. NoemaForge работает локально: могу вести обычный диалог, открыть Dev Team, подготовить эволюцию модели или показать статус эпохи."
         else:
             result["reply"] = "I am here. NoemaForge is running locally: I can chat, open Dev Team, prepare model evolution, or show epoch status."
+        result["mode"] = "conversation"
+        result["route"] = {"id": "conversation", "intent": "conversation", "label": "Admin conversation", "operator_request": message, "pipeline_id": "", "execute_mode": "conversation"}
+        result["persona_switch"] = None
+        result["executed"] = False
+        result["actions"] = []
         print(json_dumps(result) if args.json else result["reply"])
         return 0
 
@@ -726,7 +761,7 @@ def cmd_message(args: argparse.Namespace) -> int:
         if args.execute:
             result["executed"] = True
             scope = "dev team" if re.search(r"dev|разработ|код", message.lower()) else "active runtime"
-            msel = run_model_selection(root, selection_state, message, mode=mode, composite_top_n=n if n >= 0 else 0, scope=scope, apply=args.apply)
+            msel = run_model_selection(root, selection_state, message, mode=mode, composite_top_n=n if n >= 0 else 0, scope=scope, apply=args.apply, trace_id=trace_id)
             result["actions"].append({"type": "model_selection_plan", "result": msel})
             result["internal_events"].append("Admin routed optimization request to Optimizer")
             result["artifacts"] = collect_artifacts(result)
@@ -741,7 +776,7 @@ def cmd_message(args: argparse.Namespace) -> int:
     if args.execute:
         result["executed"] = True
         pipeline_id = str(route.get("pipeline_id") or "public_mwp")
-        pipeline = create_pipeline_run(root, state, pipeline_id, message, allow_degraded=args.allow_degraded, dry_run=args.dry_run)
+        pipeline = create_pipeline_run(root, state, pipeline_id, message, allow_degraded=args.allow_degraded, dry_run=args.dry_run, trace_id=trace_id)
         result["actions"].append({"type": "pipeline_run", "pipeline_id": pipeline_id, "result": pipeline})
         result["internal_events"].append(f"Admin routed request to pipeline {pipeline_id}")
         run_id = ""
@@ -856,3 +891,5 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
+

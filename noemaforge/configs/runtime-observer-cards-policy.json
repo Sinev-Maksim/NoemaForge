@@ -1,0 +1,77 @@
+{
+  "apiVersion": "noemaforge.runtime-observer-cards/v1",
+  "kind": "RuntimeObserverCardsPolicy",
+  "id": "runtime-observer-cards-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "gateway_backend_smoke_observer_cards",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_host_dependency": true,
+    "endpoint": "/api/runtime/observer-cards",
+    "required_card_ids": [
+      "gateway-service",
+      "gateway-socket",
+      "main-backend-service",
+      "main-backend-socket",
+      "main-model-manifest",
+      "device-policy"
+    ],
+    "required_server_tokens": [
+      "/api/runtime/observer-cards",
+      "runtime_observer_cards",
+      "observer_cards",
+      "build_runtime_observer_cards",
+      "smoke_affirmation",
+      "gateway-service",
+      "main-backend-service"
+    ],
+    "required_frontend_tokens": [
+      "runtime-observer-cards",
+      "renderRuntimeObserverCards",
+      "observer_cards",
+      "observer-card"
+    ],
+    "required_style_tokens": [
+      ".observer-cards",
+      ".observer-card.ok",
+      ".observer-card.warn"
+    ],
+    "required_runtime_scripts": [
+      "noemaforge/src/runtime_observer_cards_runtime.py"
+    ],
+    "required_runtime_tokens": [
+      "validate_runtime_observer_cards_policy",
+      "gateway_backend_smoke_observer_cards",
+      "runtime-observer-cards-core"
+    ],
+    "required_docs": [
+      "docs/README.md",
+      "docs/TODO.md",
+      "docs/reference/PROJECT_CONTEXT.md",
+      "docs/backlog/ROADMAP_AND_TODO.md",
+      "docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/runtime-observer-cards-policy.json",
+    "noemaforge/contracts/runtime_observer_cards.schema.json",
+    "noemaforge/src/runtime_observer_cards_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/templates/pipeline-dashboard/app.js",
+    "noemaforge/templates/pipeline-dashboard/index.html",
+    "noemaforge/templates/pipeline-dashboard/observer-cards.css",
+    "noemaforge/tests/test_runtime_observer_cards_runtime.py",
+    "noemaforge/tests/test_runtime_observer_cards_qa.py",
+    "noemaforge/tests/test_runtime_observer_cards_performance.py",
+    "prelaunch/governance/runtime_observer_cards.example.json",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

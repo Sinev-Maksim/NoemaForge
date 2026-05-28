@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/yaml_inventory_readability.schema.json",
+  "title": "NoemaForge YAML Inventory Readability Policy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.yaml-inventory-readability/v1" },
+    "kind": { "const": "YamlInventoryReadabilityPolicy" },
+    "id": { "const": "yaml-inventory-readability-core" },
+    "version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["draft", "shadow", "stable", "retired"] },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "parse_scope",
+        "scan_extensions",
+        "scan_root_refs",
+        "excluded_dir_names",
+        "required_runtime_scripts",
+        "required_runtime_tokens",
+        "required_docs"
+      ],
+      "properties": {
+        "mode": { "const": "offline_contract" },
+        "activation_state": { "const": "yaml_inventory_readability_gate" },
+        "parse_scope": { "const": "readability_and_yaml_lite_syntax_only" },
+        "require_registry_attachment": { "const": true },
+        "require_docs_and_changelog_refs": { "const": true },
+        "require_no_external_yaml_dependency": { "const": true },
+        "require_nonempty_yaml": { "type": "boolean" },
+        "max_file_bytes": { "type": "integer", "minimum": 1 },
+        "scan_extensions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "enum": [".yaml", ".yml"] },
+          "uniqueItems": true
+        },
+        "scan_root_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "excluded_dir_names": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_scripts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_runtime_tokens": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        },
+        "required_docs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": true
+}

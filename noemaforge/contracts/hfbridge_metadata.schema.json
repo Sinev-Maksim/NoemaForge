@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/hfbridge_metadata.schema.json",
+  "title": "HFBridgeMetadataPolicy",
+  "type": "object",
+  "required": ["apiVersion", "kind", "id", "version", "status", "policy", "refs"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.hfbridge/v1"},
+    "kind": {"const": "HFBridgeMetadataPolicy"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "status": {"enum": ["draft", "shadow", "stable", "retired"]},
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "require_trace_id",
+        "require_registry_attachment",
+        "require_policy_schema_runtime_tests",
+        "require_docs_and_changelog_refs",
+        "required_pipeline_ref",
+        "git_exchange_policy_ref",
+        "peft_lora_policy_ref",
+        "allowed_operations",
+        "blocked_operations",
+        "read_policy",
+        "promotion_requirements",
+        "required_example_sets"
+      ],
+      "properties": {
+        "mode": {"const": "offline_contract"},
+        "activation_state": {"const": "metadata_first_read_mostly"},
+        "require_trace_id": {"const": true},
+        "require_registry_attachment": {"const": true},
+        "require_policy_schema_runtime_tests": {"const": true},
+        "require_docs_and_changelog_refs": {"const": true},
+        "required_pipeline_ref": {"type": "string"},
+        "git_exchange_policy_ref": {"type": "string"},
+        "peft_lora_policy_ref": {"type": "string"},
+        "allowed_operations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 5,
+          "uniqueItems": true
+        },
+        "blocked_operations": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 6,
+          "uniqueItems": true
+        },
+        "read_policy": {
+          "type": "object",
+          "required": [
+            "metadata_only",
+            "read_mostly",
+            "network_optional",
+            "offline_cache_allowed",
+            "runtime_write_allowed",
+            "external_artifact_import_allowed"
+          ],
+          "properties": {
+            "metadata_only": {"const": true},
+            "read_mostly": {"const": true},
+            "network_optional": {"const": true},
+            "offline_cache_allowed": {"const": true},
+            "runtime_write_allowed": {"const": false},
+            "external_artifact_import_allowed": {"const": false}
+          },
+          "additionalProperties": false
+        },
+        "promotion_requirements": {
+          "type": "object",
+          "required": [
+            "quarantine_first",
+            "signed_manifest_required",
+            "evaluation_gate_required",
+            "admin_approval_required",
+            "model_delta_lab_only"
+          ],
+          "properties": {
+            "quarantine_first": {"const": true},
+            "signed_manifest_required": {"const": true},
+            "evaluation_gate_required": {"const": true},
+            "admin_approval_required": {"const": true},
+            "model_delta_lab_only": {"const": true}
+          },
+          "additionalProperties": false
+        },
+        "required_example_sets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "items": {"type": "string"},
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

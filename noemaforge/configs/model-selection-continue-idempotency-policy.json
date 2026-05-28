@@ -1,0 +1,51 @@
+{
+  "apiVersion": "noemaforge.model-selection-continue-idempotency/v1",
+  "kind": "ModelSelectionContinueIdempotencyPolicy",
+  "id": "model-selection-continue-idempotency-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "gui_continue_model_selection_refresh_safe_idempotency",
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_model_dependency": true,
+    "required_runtime_scripts": [
+      "noemaforge/src/admin_gui_server.py"
+    ],
+    "required_gui_tokens": [
+      "def model_selection_continue",
+      "idkey = f\"model-selection-continue:{mode}:{n}\"",
+      "status=\"needs_privilege\"",
+      "idempotency_key=idkey",
+      "safe_command",
+      "real_command_requires_operator_terminal",
+      "display_policy",
+      "preserve_display_manager",
+      "_persist_job(active)",
+      "continue-selection-plan.json"
+    ],
+    "required_command_parts": [
+      "--dry-run",
+      "--retry-failed-models",
+      "--keep-display",
+      "--show-candidates"
+    ],
+    "forbidden_runtime_tokens": [
+      "pipeline_run(",
+      "subprocess.run(safe_command",
+      "shell=True"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/model-selection-continue-idempotency-policy.json",
+    "noemaforge/src/model_selection_continue_idempotency_runtime.py",
+    "noemaforge/src/admin_gui_server.py",
+    "noemaforge/tests/test_model_selection_continue_idempotency_runtime.py",
+    "noemaforge/tests/test_model_selection_continue_idempotency_qa.py",
+    "noemaforge/tests/test_model_selection_continue_idempotency_performance.py",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

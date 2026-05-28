@@ -1,0 +1,46 @@
+{
+  "apiVersion": "noemaforge.graph-projection-views/v1",
+  "kind": "GraphProjectionViewsExampleSet",
+  "id": "graph-projection-views-examples",
+  "version": "0.32.1",
+  "scenarios": [
+    {
+      "id": "knowledge-space-projection-pack",
+      "trace_id": "trace:graph-projection:knowledge-space",
+      "source_graph": {
+        "graph_ref": "hypergraph:knowledge-space:demo",
+        "claims": [
+          {
+            "id": "claim:grounded-admin",
+            "title": "Grounded Administrator",
+            "summary": "Administrator answers query graph-backed claims before fallback.",
+            "status": "supported",
+            "citations": ["claim-origin:grounded-admin:001"],
+            "task_context": ["review graph-backed answer path"]
+          },
+          {
+            "id": "claim:unknown-gap",
+            "title": "Unknown graph gap",
+            "summary": "A graph miss must produce a knowledge-gap notice with ingest or research next steps.",
+            "status": "uncertain",
+            "citations": [],
+            "task_context": ["schedule ingest for missing source"]
+          }
+        ],
+        "tasks": [
+          {"id": "task:ingest-gap", "title": "Ingest missing graph source", "status": "pending"}
+        ],
+        "conflicts": [
+          {"id": "conflict:projection-source", "summary": "Human markdown must not become canonical graph state.", "status": "open"}
+        ]
+      },
+      "expected_projection_types": ["wiki_markdown", "operator_summary", "task_context", "conflict_review"],
+      "blocked_views": [
+        {
+          "id": "manual-wiki-claim",
+          "reason": "A wiki page without source_graph_digest can drift away from the graph and must not be treated as canonical."
+        }
+      ]
+    }
+  ]
+}

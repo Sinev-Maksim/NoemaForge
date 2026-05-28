@@ -355,7 +355,7 @@ def apply_plan(plan_path: str = DEFAULT_PLAN, yes: bool = False) -> Dict[str, An
             skipped.append({**action, "status": "missing_src"})
             continue
         final_dst = dst
-        # Backward compatibility: if an old 0.28.5 plan is applied with this
+        # Backward compatibility: if an old 0.32.2 plan is applied with this
         # hotfix and dst already exists, do NOT create foo.dup2 next to canonical.
         # Quarantine incoming instead.
         if kind in {"move", "copy"} and exists(dst):

@@ -1,0 +1,249 @@
+{
+  "apiVersion": "noemaforge.pipeline-rfc/v1",
+  "kind": "PipelineRFCSet",
+  "id": "pipeline-rfc-examples",
+  "version": "0.32.1",
+  "rfcs": [
+    {
+      "apiVersion": "noemaforge.pipeline-rfc/v1",
+      "kind": "PipelineRFC",
+      "id": "pipeline-rfc-safe-routing-change",
+      "trace_id": "trace:pipeline-rfc:safe-routing-change",
+      "status": "ready_to_apply",
+      "mutation_type": "pipeline_config",
+      "title": "Add a reviewed routing eval-pack reference",
+      "summary": "Attach a shadow eval pack to firstboot-model-selection after dry-run, eval and rollback evidence.",
+      "stage_order": [
+        "rfc",
+        "dry_run",
+        "eval",
+        "rollback",
+        "approval",
+        "apply"
+      ],
+      "proposed_diff": {
+        "files": [
+          "noemaforge/configs/unified-registry.json"
+        ],
+        "risk_level": "medium",
+        "dangerous_action": false,
+        "mutation_summary": "Add a stable eval_pack_ref without changing runtime code."
+      },
+      "dry_run": {
+        "performed": true,
+        "side_effects": false,
+        "artifact_ref": "prelaunch/governance/research_packet.example.json",
+        "commands": [
+          "python -m unittest noemaforge.tests.test_unified_registry_runtime"
+        ]
+      },
+      "eval_evidence": [
+        {
+          "id": "pipeline_eval",
+          "status": "passed",
+          "artifact_ref": "prelaunch/governance/research_packet.example.json"
+        },
+        {
+          "id": "safety_eval",
+          "status": "passed",
+          "artifact_ref": "prelaunch/governance/provenance_watermark.example.json"
+        },
+        {
+          "id": "rollback_plan",
+          "status": "passed",
+          "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md"
+        }
+      ],
+      "rollback_plan": {
+        "present": true,
+        "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md",
+        "steps": [
+          "Restore previous registry refs.",
+          "Rerun unified registry validation.",
+          "Reopen the RFC if the gate fails."
+        ]
+      },
+      "approval": {
+        "state": "approved",
+        "explicit": true,
+        "approver_role": "Admin",
+        "approved_at": "2026-05-20T00:00:00Z"
+      },
+      "finalization": {
+        "apply_requested": true,
+        "apply_allowed": true,
+        "applied": false
+      },
+      "refs": [
+        "docs/backlog/ROADMAP_AND_TODO.md",
+        "prelaunch/governance/research_packet.example.json",
+        "prelaunch/governance/provenance_watermark.example.json"
+      ]
+    },
+    {
+      "apiVersion": "noemaforge.pipeline-rfc/v1",
+      "kind": "PipelineRFC",
+      "id": "pipeline-rfc-unapproved-code-patch",
+      "trace_id": "trace:pipeline-rfc:unapproved-code-patch",
+      "status": "blocked",
+      "mutation_type": "code_patch",
+      "title": "Unapproved code patch must remain blocked",
+      "summary": "A mutation that requests apply without explicit approval is not allowed.",
+      "stage_order": [
+        "rfc",
+        "dry_run",
+        "eval",
+        "rollback",
+        "approval",
+        "apply"
+      ],
+      "proposed_diff": {
+        "files": [
+          "noemaforge/src/model_selection_runtime.py"
+        ],
+        "risk_level": "high",
+        "dangerous_action": true,
+        "mutation_summary": "Change model-selection behavior."
+      },
+      "dry_run": {
+        "performed": true,
+        "side_effects": false,
+        "artifact_ref": "prelaunch/governance/research_packet.example.json",
+        "commands": [
+          "python -m unittest noemaforge.tests.test_trace_coverage_runtime"
+        ]
+      },
+      "eval_evidence": [
+        {
+          "id": "pipeline_eval",
+          "status": "passed",
+          "artifact_ref": "prelaunch/governance/research_packet.example.json"
+        },
+        {
+          "id": "safety_eval",
+          "status": "passed",
+          "artifact_ref": "prelaunch/governance/provenance_watermark.example.json"
+        },
+        {
+          "id": "rollback_plan",
+          "status": "passed",
+          "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md"
+        }
+      ],
+      "rollback_plan": {
+        "present": true,
+        "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md",
+        "steps": [
+          "Keep the candidate patch unapplied.",
+          "Restore the previous source tree.",
+          "Ask Admin for explicit approval before retry."
+        ]
+      },
+      "approval": {
+        "state": "not_requested",
+        "explicit": false,
+        "approver_role": "",
+        "approved_at": ""
+      },
+      "finalization": {
+        "apply_requested": true,
+        "apply_allowed": false,
+        "applied": false
+      },
+      "refs": [
+        "docs/backlog/ROADMAP_AND_TODO.md",
+        "prelaunch/governance/research_packet.example.json",
+        "prelaunch/governance/provenance_watermark.example.json"
+      ]
+    }
+  ],
+  "scoring_cases": [
+    {
+      "id": "approved-rfc-allows-apply",
+      "rfc": {
+        "mutation_type": "pipeline_config",
+        "proposed_diff": {
+          "files": [
+            "noemaforge/configs/unified-registry.json"
+          ],
+          "risk_level": "medium",
+          "dangerous_action": false
+        },
+        "dry_run": {
+          "performed": true,
+          "side_effects": false,
+          "artifact_ref": "prelaunch/governance/research_packet.example.json"
+        },
+        "eval_evidence": [
+          {
+            "id": "pipeline_eval",
+            "status": "passed",
+            "artifact_ref": "prelaunch/governance/research_packet.example.json"
+          },
+          {
+            "id": "safety_eval",
+            "status": "passed",
+            "artifact_ref": "prelaunch/governance/provenance_watermark.example.json"
+          },
+          {
+            "id": "rollback_plan",
+            "status": "passed",
+            "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md"
+          }
+        ],
+        "rollback_plan": {
+          "present": true,
+          "artifact_ref": "docs/backlog/ROADMAP_AND_TODO.md",
+          "steps": [
+            "Restore previous config.",
+            "Rerun tests."
+          ]
+        },
+        "approval": {
+          "state": "approved",
+          "explicit": true,
+          "approver_role": "Admin",
+          "approved_at": "2026-05-20T00:00:00Z"
+        },
+        "finalization": {
+          "apply_requested": true
+        }
+      },
+      "expected_status": "ready_to_apply",
+      "expected_apply_allowed": true
+    },
+    {
+      "id": "missing-dry-run-blocks",
+      "rfc": {
+        "mutation_type": "pipeline_config",
+        "proposed_diff": {
+          "files": [
+            "noemaforge/configs/unified-registry.json"
+          ],
+          "risk_level": "medium",
+          "dangerous_action": false
+        },
+        "dry_run": {
+          "performed": false,
+          "side_effects": false,
+          "artifact_ref": ""
+        },
+        "eval_evidence": [],
+        "rollback_plan": {
+          "present": false,
+          "artifact_ref": "",
+          "steps": []
+        },
+        "approval": {
+          "state": "not_requested",
+          "explicit": false
+        },
+        "finalization": {
+          "apply_requested": true
+        }
+      },
+      "expected_status": "blocked",
+      "expected_apply_allowed": false
+    }
+  ]
+}

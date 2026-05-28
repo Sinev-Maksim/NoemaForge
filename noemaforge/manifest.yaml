@@ -1,5 +1,5 @@
 seed_format: 1
-noemaforge_version: 0.29.11
+noemaforge_version: 0.32.1
 codename: 'Public MWP Full: single-active runtime + recovery UX + model advisor'
 arch:
 - amd64

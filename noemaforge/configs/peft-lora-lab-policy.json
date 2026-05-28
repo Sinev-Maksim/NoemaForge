@@ -1,0 +1,110 @@
+{
+  "apiVersion": "noemaforge.peft-lora-lab/v1",
+  "kind": "PEFTLoRALabPolicy",
+  "id": "peft-lora-lab-readiness",
+  "version": "0.32.1",
+  "status": "disabled",
+  "policy": {
+    "mode": "readiness_only",
+    "default_state": "disabled",
+    "network": "deny",
+    "training_enabled": false,
+    "weight_mutation_enabled": false,
+    "require_evaluation_gate": true,
+    "require_release_evidence_before_training": true,
+    "require_rollback_manifest": true,
+    "require_dataset_manifest": true,
+    "require_operator_review": true,
+    "require_trace_id": true,
+    "require_resource_guard": true,
+    "allowed_artifact_formats": ["json", "safetensors"],
+    "allowed_adapter_methods": ["lora", "qlora"],
+    "max_adapter_rank": 16,
+    "baseline_eval_pack_refs": [
+      "eval-pack:production-ai-gate-smoke:0.32.1",
+      "eval-pack:agent-loop-core:0.32.1"
+    ]
+  },
+  "labs": [
+    {
+      "id": "dev-code-lora-dry-run",
+      "version": "0.32.1",
+      "state": "disabled",
+      "target_model_ref": "model:model-registry-local:0.32.1",
+      "adapter_method": "lora",
+      "adapter_rank": 8,
+      "network": "deny",
+      "training_plan": {
+        "enabled": false,
+        "mode": "dry_run",
+        "writes_production_weights": false,
+        "writes_adapter_artifact": false,
+        "output_format": "safetensors"
+      },
+      "dataset_manifest": {
+        "required": true,
+        "dataset_ref": "datasets/role_eval_cases/dev_work_selection_full.jsonl",
+        "classification": "eval_only",
+        "approved_for_training": false
+      },
+      "evaluation_gate": {
+        "required": true,
+        "domain": "model",
+        "eval_pack_refs": [
+          "eval-pack:production-ai-gate-smoke:0.32.1",
+          "eval-pack:agent-loop-core:0.32.1"
+        ]
+      },
+      "resource_guard": {
+        "required": true,
+        "single_active_llm": true,
+        "gpu_policy": "explicit_only",
+        "max_training_minutes": 0
+      },
+      "rollback_manifest": {
+        "required": true,
+        "restore_target": "model:model-registry-local:0.32.1",
+        "steps": [
+          "Keep production model registry unchanged.",
+          "Discard dry-run adapter plan artifacts if any gate fails.",
+          "Rerun model, trajectory and production AI gate eval packs before reconsidering training."
+        ]
+      },
+      "review": {
+        "required": true,
+        "route": "Admin/SR/SSR",
+        "reviewers": ["Admin", "SR", "SSR"]
+      },
+      "release_evidence": {
+        "required_before_training": true,
+        "evidence_ref": ""
+      },
+      "refs": [
+        "configs/peft-lora-lab-policy.json",
+        "contracts/peft_lora_lab_policy.schema.json",
+        "src/peft_lora_lab_runtime.py",
+        "src/model_evolution_runtime.py",
+        "src/production_ai_contracts.py",
+        "configs/model-eval-suite.yaml",
+        "configs/team-eval-policy.yaml",
+        "datasets/role_eval_cases/dev_work_selection_full.jsonl",
+        "docs/wiki/evolve/evolve-lab-roadmap.md",
+        "docs/wiki/evolution/model-evolution-control-plane-0.32.1.md"
+      ]
+    }
+  ],
+  "refs": [
+    "configs/peft-lora-lab-policy.json",
+    "contracts/peft_lora_lab_policy.schema.json",
+    "src/peft_lora_lab_runtime.py",
+    "src/model_evolution_runtime.py",
+    "src/production_ai_contracts.py",
+    "configs/model-eval-suite.yaml",
+    "configs/team-eval-policy.yaml",
+    "datasets/role_eval_cases/dev_work_selection_full.jsonl",
+    "docs/wiki/evolve/evolve-lab-roadmap.md",
+    "docs/wiki/evolution/model-evolution-control-plane-0.32.1.md"
+  ]
+}
+
+

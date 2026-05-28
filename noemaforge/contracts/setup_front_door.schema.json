@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.local/contracts/setup_front_door.schema.json",
+  "title": "Setup Front Door Validation Report",
+  "type": "object",
+  "required": ["apiVersion", "kind", "ok", "id", "version", "metrics", "failures"],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.setup-front-door/v1"},
+    "kind": {"const": "SetupFrontDoorValidationReport"},
+    "ok": {"type": "boolean"},
+    "id": {"type": "string"},
+    "version": {"type": "string"},
+    "validated_at": {"type": "string"},
+    "metrics": {
+      "type": "object",
+      "required": ["required_modes", "required_flags", "phase_markers", "resolved_refs"],
+      "properties": {
+        "required_modes": {"type": "integer", "minimum": 3},
+        "required_flags": {"type": "integer", "minimum": 6},
+        "phase_markers": {"type": "integer", "minimum": 8},
+        "wrapper_markers": {"type": "integer", "minimum": 3},
+        "resolved_refs": {"type": "integer", "minimum": 0}
+      },
+      "additionalProperties": true
+    },
+    "failures": {"type": "array", "items": {"type": "string"}}
+  },
+  "additionalProperties": true
+}

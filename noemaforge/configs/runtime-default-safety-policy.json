@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.runtime-default-safety/v1",
+  "kind": "RuntimeDefaultSafetyPolicy",
+  "id": "runtime-default-safety-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "runtime_default_single_llm_and_manual_heavy_boot",
+    "require_trace_id": true,
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_outputs": ["single_active_llm_default", "heavy_llm_manual_only", "gui_runtime_only_default", "wogui_cpu_bootstrap_only", "sequential_team_member_default"],
+    "required_refs": {
+      "cli": "bin/noemaforge",
+      "pipeline_runtime": "src/pipeline_runtime.py",
+      "team_member_runtime": "src/team_member_runtime.py",
+      "autostart_policy": "configs/autostart-llm-policy.json",
+      "autostart_safe_script": "tools/prep/noemaforge-autostart-safe.sh",
+      "boot_mode_script": "tools/prep/noemaforge-boot-mode.sh",
+      "contract_runtime": "src/runtime_default_safety_runtime.py"
+    },
+    "controls": {
+      "max_active_llms_one": true,
+      "switchable_runtime_default": true,
+      "gui_default_runtime_only": true,
+      "runtime_only_starts_no_llm": true,
+      "wogui_default_cpu_bootstrap_only": true,
+      "bootstrap_cpu_blocks_heavy": true,
+      "heavy_autostart_rejected": true,
+      "team_member_default_sequential": true,
+      "no_live_host_required": true,
+      "no_llm_autostart": true
+    },
+    "required_example_sets": [
+      "prelaunch/governance/runtime_default_safety.example.json"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/runtime-default-safety-policy.json",
+    "noemaforge/contracts/runtime_default_safety.schema.json",
+    "noemaforge/configs/autostart-llm-policy.json",
+    "noemaforge/src/pipeline_runtime.py",
+    "noemaforge/src/team_member_runtime.py",
+    "noemaforge/src/runtime_default_safety_runtime.py",
+    "noemaforge/tools/prep/noemaforge-autostart-safe.sh",
+    "noemaforge/tools/prep/noemaforge-boot-mode.sh",
+    "noemaforge/tests/test_runtime_default_safety_runtime.py",
+    "noemaforge/tests/test_runtime_default_safety_qa.py",
+    "noemaforge/tests/test_runtime_default_safety_performance.py",
+    "prelaunch/governance/runtime_default_safety.example.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/history/CHANGELOG.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+

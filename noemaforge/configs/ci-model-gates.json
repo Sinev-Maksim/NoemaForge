@@ -1,0 +1,125 @@
+{
+  "apiVersion": "noemaforge.ci-model-gates/v1",
+  "kind": "CIModelGatesPolicy",
+  "id": "ci-model-gates-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_validation",
+    "require_release_evidence": true,
+    "require_accuracy_regression": true,
+    "require_latency_budget": true,
+    "require_memory_budget": true,
+    "require_schema_compatibility": true,
+    "require_signature": true,
+    "require_golden_replay_for_edge": true,
+    "evidence_filename": "release_evidence.json",
+    "allowed_runtimes": [
+      "onnx",
+      "tflm",
+      "llama.cpp",
+      "python",
+      "mock"
+    ],
+    "allowed_signature_schemes": [
+      "sha256-selftest",
+      "cosign",
+      "minisign",
+      "pgp"
+    ],
+    "required_checks": [
+      "accuracy_regression",
+      "latency",
+      "memory",
+      "schema_compatibility",
+      "signature"
+    ],
+    "edge_required_checks": [
+      "golden_replay"
+    ]
+  },
+  "gates": [
+    {
+      "id": "edge-model-ci-gate",
+      "version": "0.32.1",
+      "state": "shadow",
+      "target_type": "edge",
+      "model_ref": "model:model-registry-local:0.32.1",
+      "runtime": "onnx",
+      "budgets": {
+        "max_p95_latency_ms": 50.0,
+        "max_peak_memory_mb": 128.0,
+        "max_artifact_bytes": 52428800,
+        "max_accuracy_regression": 0.0
+      },
+      "manifest": {
+        "artifact_uri": "models/example_edge_model.onnx",
+        "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "signature": "sha256-selftest:0123456789abcdef",
+        "signature_scheme": "sha256-selftest",
+        "input_contract": "sensor.window.v1",
+        "output_contract": "classification.v1"
+      },
+      "release_evidence_ref": "prelaunch/evidence/ci-model-gates/release_evidence.json",
+      "release_evidence": {
+        "kind": "ReleaseEvidence",
+        "checks": [
+          {
+            "id": "accuracy_regression",
+            "status": "passed",
+            "baseline_accuracy": 0.91,
+            "candidate_accuracy": 0.91,
+            "max_regression": 0.0
+          },
+          {
+            "id": "latency",
+            "status": "passed",
+            "p95_latency_ms": 36.5,
+            "threshold_ms": 50.0
+          },
+          {
+            "id": "memory",
+            "status": "passed",
+            "peak_memory_mb": 96.0,
+            "threshold_mb": 128.0
+          },
+          {
+            "id": "schema_compatibility",
+            "status": "passed",
+            "compatible": true
+          },
+          {
+            "id": "signature",
+            "status": "passed",
+            "scheme": "sha256-selftest",
+            "verified": true
+          },
+          {
+            "id": "golden_replay",
+            "status": "passed",
+            "cases_total": 3,
+            "cases_passed": 3
+          }
+        ]
+      },
+      "refs": [
+        "configs/model-eval-suite.yaml",
+        "docs/backlog/ROADMAP_AND_TODO.md",
+        "prelaunch/evidence/ci-model-gates/release_evidence.json"
+      ]
+    }
+  ],
+  "refs": [
+    "noemaforge/configs/ci-model-gates.json",
+    "noemaforge/contracts/ci_model_gates.schema.json",
+    "noemaforge/src/ci_model_gates_runtime.py",
+    "noemaforge/tests/test_ci_model_gates_runtime.py",
+    "noemaforge/tests/test_ci_model_gates_qa.py",
+    "noemaforge/tests/test_ci_model_gates_performance.py",
+    "prelaunch/manifests/models/example_edge_model.manifest.json",
+    "prelaunch/evidence/ci-model-gates/release_evidence.json",
+    "docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
+  ]
+}
+

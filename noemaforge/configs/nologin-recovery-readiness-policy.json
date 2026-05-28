@@ -1,0 +1,136 @@
+{
+  "apiVersion": "noemaforge.nologin-recovery-readiness/v1",
+  "kind": "NologinRecoveryReadinessPolicy",
+  "id": "nologin-recovery-readiness-core",
+  "version": "0.32.1",
+  "status": "shadow",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "patched10_nologin_recovery_readiness",
+    "completion_state": "blocked_until_target_nologin_recovery_evidence",
+    "require_registry_attachment": true,
+    "require_docs_and_changelog_refs": true,
+    "require_no_live_execution": true,
+    "blocked_todo_refs": [
+      "Confirm `/run/nologin` is cleared after recovery on NoemaForge."
+    ],
+    "required_safety_controls": {
+      "no_auto_live_execution": true,
+      "target_machine_required": true,
+      "operator_approval_required": true,
+      "nologin_absence_required": true,
+      "display_recovery_required": true,
+      "abort_cleanup_evidence_required": true,
+      "forensics_archive_required": true,
+      "local_validator_has_no_subprocess": true
+    },
+    "required_checks": [
+      {
+        "id": "pre-recovery-baseline",
+        "title": "Pre-recovery target baseline",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "test ! -e /run/nologin; echo nologin_absent=$?",
+          "systemctl get-default",
+          "systemctl is-active display-manager.service || systemctl is-active gdm.service || true"
+        ],
+        "evidence": ["pre_recovery_nologin_state", "default_target_state", "display_manager_state"],
+        "completion_gates": ["pre_state_recorded", "default_target_recorded", "display_state_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "abort-cleanup-plan",
+        "title": "Abort and cleanup recovery plan",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo noemaforge first-start abort 2>/dev/null || true",
+          "sudo pkill -TERM -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' || true",
+          "sudo systemctl set-default graphical.target"
+        ],
+        "evidence": ["operator_approval_record", "abort_result", "cleanup_process_result", "graphical_target_state"],
+        "completion_gates": ["operator_approval_recorded", "abort_result_recorded", "cleanup_result_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "nologin-cleared-after-recovery",
+        "title": "Nologin cleared after recovery",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "test ! -e /run/nologin",
+          "stat /run/nologin 2>/dev/null || true"
+        ],
+        "evidence": ["post_recovery_nologin_absent", "post_recovery_nologin_stat"],
+        "completion_gates": ["nologin_absent_after_recovery", "nologin_stat_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "display-recovery-confirmation",
+        "title": "Display recovery confirmation",
+        "target_evidence_required": true,
+        "requires_operator_approval": true,
+        "commands": [
+          "sudo systemctl start --no-block display-manager.service 2>/dev/null || true",
+          "sudo systemctl start --no-block gdm.service 2>/dev/null || true",
+          "systemctl is-active display-manager.service || systemctl is-active gdm.service"
+        ],
+        "evidence": ["display_manager_start_result", "display_manager_active_state", "graphical_target_state_after_recovery"],
+        "completion_gates": ["operator_approval_recorded", "display_manager_active_after_recovery", "graphical_target_recorded", "evidence_file_archived"]
+      },
+      {
+        "id": "nologin-recovery-archive",
+        "title": "Nologin recovery evidence archive",
+        "target_evidence_required": true,
+        "requires_operator_approval": false,
+        "commands": [
+          "sudo noemaforge forensics --include-first-start --include-install-validation"
+        ],
+        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
+        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+      }
+    ],
+    "required_outputs": [
+      "nologin_recovery_summary",
+      "blocked_completion_notice",
+      "target_recovery_command_manifest",
+      "evidence_requirements",
+      "registry_attachment",
+      "docs_changelog_trace"
+    ],
+    "required_refs": [
+      "noemaforge/configs/nologin-recovery-readiness-policy.json",
+      "noemaforge/contracts/nologin_recovery_readiness.schema.json",
+      "noemaforge/src/nologin_recovery_readiness_runtime.py",
+      "prelaunch/governance/nologin_recovery_readiness.example.json",
+      "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+      "noemaforge/configs/full-composite-ssh-readiness-policy.json",
+      "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+      "noemaforge/src/full_composite_ssh_readiness_runtime.py",
+      "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+      "noemaforge/docs/README.md",
+      "noemaforge/docs/TODO.md",
+      "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+      "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+      "noemaforge/docs/history/CHANGELOG.md"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/nologin-recovery-readiness-policy.json",
+    "noemaforge/contracts/nologin_recovery_readiness.schema.json",
+    "noemaforge/src/nologin_recovery_readiness_runtime.py",
+    "noemaforge/tests/test_nologin_recovery_readiness_runtime.py",
+    "noemaforge/tests/test_nologin_recovery_readiness_qa.py",
+    "noemaforge/tests/test_nologin_recovery_readiness_performance.py",
+    "prelaunch/governance/nologin_recovery_readiness.example.json",
+    "noemaforge/configs/full-composite-target-run-readiness-policy.json",
+    "noemaforge/configs/full-composite-ssh-readiness-policy.json",
+    "noemaforge/src/full_composite_target_run_readiness_runtime.py",
+    "noemaforge/src/full_composite_ssh_readiness_runtime.py",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+    "noemaforge/docs/README.md",
+    "noemaforge/docs/TODO.md",
+    "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/history/CHANGELOG.md"
+  ]
+}
+
