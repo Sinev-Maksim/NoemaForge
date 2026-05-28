@@ -9,10 +9,11 @@ on:
 jobs:
   # ─── Stage 1: lint + compile on Claude push ───────────────────────────────
   validate-claude-push:
-    if: startsWith(github.ref, 'refs/heads/claude/')
+    if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.info.outputs.branch }}
+      changed_count: ${{ steps.info.outputs.changed_count }}
     steps:
       - uses: actions/checkout@v4
 
@@ -23,73 +24,156 @@ jobs:
       - name: Install deps
         run: pip install pyyaml --quiet
 
+      - name: Get branch info and changed files
+        id: info
+        run: |
+          set -euo pipefail
+          base_branch="release/0.32.2-hardening"
+          changed_file_list="$RUNNER_TEMP/changed_files.txt"
+
+          git fetch --no-tags --depth=1 origin "$base_branch"
+          git diff --name-only --diff-filter=ACMR "origin/$base_branch" HEAD > "$changed_file_list"
+
+          echo "branch=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
+          echo "changed_count=$(wc -l < "$changed_file_list" | tr -d ' ')" >> "$GITHUB_OUTPUT"
+
+          echo "Changed files against $base_branch:"
+          if [ -s "$changed_file_list" ]; then
+            sed 's/^/- /' "$changed_file_list"
+          else
+            echo "- none"
+          fi
+
       - name: Python compile check
         run: |
-          find noemaforge/src -name "*.py" | xargs python -m py_compile
-          echo "PASS: python compile"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import py_compile
+          import sys
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p.suffix == '.py' and p.exists()]
+          errors = []
+          for path in files:
+              try:
+                  py_compile.compile(str(path), doraise=True)
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: python compile ({len(files)} changed files)")
+          EOF
 
       - name: JSON parse check
         run: |
-          find . -name "*.json" \
-            ! -path './.git/*' \
-            ! -path './noemaforge/src/__pycache__/*' \
-            | while read f; do
-              python -m json.tool "$f" > /dev/null || exit 1
-            done
-          echo "PASS: json parse"
+          python - <<'EOF'
+          from pathlib import Path
+          import json
+          import os
+          import sys
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          files = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in files if p.suffix == '.json' and p.exists()]
+          errors = []
+          for path in files:
+              try:
+                  json.loads(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: json parse ({len(files)} changed files)")
+          EOF
 
       - name: YAML parse check
         run: |
           python - <<'EOF'
-          import yaml, pathlib, sys
-          files = list(pathlib.Path('.').rglob('*.yaml')) + list(pathlib.Path('.').rglob('*.yml'))
+          from pathlib import Path
+          import os
+          import sys
+          import yaml
+
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p.suffix in {'.yaml', '.yml'} and p.exists()]
           errors = []
-          for f in files:
-              if '.git' in str(f): continue
-              try: yaml.safe_load(f.read_text())
-              except Exception as e: errors.append(f"{f}: {e}")
+          for path in files:
+              try:
+                  yaml.safe_load(path.read_text(encoding='utf-8'))
+              except Exception as exc:
+                  errors.append(f"{path}: {exc}")
           if errors:
-              print('\n'.join(errors)); sys.exit(1)
-          print(f"PASS: yaml parse ({len(files)} files)")
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: yaml parse ({len(files)} changed files)")
           EOF
 
       - name: Version check — no forbidden RUNTIME_VERSION assignment
         run: |
-          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" . \
-            | grep -v "noemaforge/src/noemaforge_version.py" \
-            | grep -v ".git" || true)
-          if [ -n "$hits" ]; then
-            echo "FAIL: forbidden RUNTIME_VERSION assignment:"; echo "$hits"; exit 1
-          fi
-          echo "PASS: no forbidden RUNTIME_VERSION assignment"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import re
+          import sys
+
+          allowed = Path('noemaforge/src/noemaforge_version.py')
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          files = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in files if p.suffix == '.py' and p.exists() and p != allowed]
+          pattern = re.compile(r'(?m)^[ \t]*RUNTIME_VERSION[ \t]*=')
+          hits = []
+          for path in files:
+              for line_no, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
+                  if pattern.match(line):
+                      hits.append(f"{path}:{line_no}:{line}")
+          if hits:
+              print("FAIL: forbidden RUNTIME_VERSION assignment:")
+              print('\n'.join(hits))
+              sys.exit(1)
+          print("PASS: no forbidden RUNTIME_VERSION assignment in changed files")
+          EOF
 
       - name: VERSION files = 0.32.2
         run: |
-          for f in VERSION noemaforge/VERSION docs/VERSION; do
-            if [ -f "$f" ]; then
-              v=$(cat "$f" | tr -d '[:space:]')
-              if [ "$v" != "0.32.2" ]; then
-                echo "FAIL: $f contains '$v', expected 0.32.2"; exit 1
-              fi
-            fi
-          done
-          echo "PASS: VERSION files"
+          python - <<'EOF'
+          from pathlib import Path
+          import os
+          import sys
+
+          expected = '0.32.2'
+          version_files = {Path('VERSION'), Path('noemaforge/VERSION'), Path('docs/VERSION')}
+          changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
+          changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
+          files = [p for p in changed if p in version_files and p.exists()]
+          errors = []
+          for path in files:
+              value = path.read_text(encoding='utf-8').strip()
+              if value != expected:
+                  errors.append(f"{path} contains {value!r}, expected {expected!r}")
+          if errors:
+              print('\n'.join(errors))
+              sys.exit(1)
+          print(f"PASS: VERSION files ({len(files)} changed files)")
+          EOF
 
       - name: No __pycache__ in git
         run: |
-          tracked=$(git ls-files | grep '__pycache__' || true)
-          if [ -n "$tracked" ]; then
-            echo "FAIL: __pycache__ tracked in git:"; echo "$tracked"; exit 1
+          if grep -q '__pycache__' "$RUNNER_TEMP/changed_files.txt"; then
+            echo "FAIL: __pycache__ present in changed files:"
+            grep '__pycache__' "$RUNNER_TEMP/changed_files.txt"
+            exit 1
           fi
-          echo "PASS: no __pycache__ tracked"
-
-      - name: Get branch info
-        id: info
-        run: echo "branch=${GITHUB_REF#refs/heads/}" >> $GITHUB_OUTPUT
+          echo "PASS: no __pycache__ in changed files"
 
   # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
+    if: github.actor == 'Sinev-Maksim'
     runs-on: [self-hosted, Windows, codex]
     timeout-minutes: 45
     permissions:
@@ -395,7 +479,7 @@ jobs:
   # ─── Stage 3: Batch counter — every 5 Codex pushes → trigger QA bump ─────
   batch-counter:
     needs: codex-review
-    if: startsWith(github.ref, 'refs/heads/codex/')
+    if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
