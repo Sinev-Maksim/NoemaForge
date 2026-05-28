@@ -301,11 +301,11 @@ def _make_handler(ctx: _ServerCtx, assets_dir: str):
             if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
                 return self._json({"error": "bad path"}, code=400)
 
-            if not os.path.isfile(full):
+            if not os.path.isfile(full_real):
                 return self._json({"error": "not found", "path": path}, code=404)
 
             try:
-                return self._bytes(_read_file(full), _guess_type(full))
+                return self._bytes(_read_file(full_real), _guess_type(full_real))
             except Exception as e:
                 return self._json({"error": "read failed", "details": str(e)}, code=500)
 
