@@ -234,6 +234,38 @@ git push origin claude/task-N-slug
 
 \# 4. Via MCP: add label codex-review to PR, comment on issue
 
+Autonomous review TODO for Claude
+
+Keep this block current after each claude/task-* branch is reviewed. Record branch, PR,
+Codex verdict, CodeRabbit status, actionable/blocking comments, fixes and next action.
+If CodeRabbit and Codex overlap on the same nitpick, record it once as carry-forward
+context instead of treating it as a blocker.
+
+- task-1 / PR #3 / claude/task-1-session-current:
+  Codex PASS on 4829f2f; CodeRabbit success; blocking/actionable comments = 0.
+  Only nitpick matched Codex: route tests were brittle source-string checks. Pilot
+  contour works; proceed to the next branch from the start of the task list.
+- task-2 / PR #4 / claude/task-2-events-api:
+  Codex PASS on c28a8e8; CodeRabbit success after fix; blocking/actionable comments = 0.
+  Fixed /api/events after_index validation so non-integer and negative values return
+  JSON 400; route tests now exercise AdminGuiHandler.do_GET behavior instead of
+  source-string checks. Ready for downstream review or merge.
+- task-3 / PR #5 / claude/task-3-session-mode-history:
+  Codex PASS on d80917f; blocking issues = 0. Fixed CodeRabbit findings from
+  38dec23 in d80917f: /api/session/mode now returns JSON 400 for malformed
+  composite_top_n, frontend persists the selected/restored mode instead of a
+  hardcoded full_composite value, the test header no longer hardcodes Version:
+  0.32.2, and the 500-message cap test now exercises 510 messages.
+  Local verification: py_compile admin_gui_server/orchestration_state/session_store,
+  node --check app.js, and 35 unit tests all passed. CodeRabbit status on
+  d80917f is success but "Review skipped" because release/0.32.2-hardening is
+  not the default branch; before closing task-3, trigger @coderabbitai review on
+  PR #5 and record blocking/actionable comments = 0 or add the next fix here.
+- Copilot review note:
+  Automated reviewer requests were attempted through the API but were not visibly
+  attached as requested reviewers. If explicit Copilot review evidence is required,
+  use the PR UI reviewer picker and record the result here.
+
 Do NOT do
 
 

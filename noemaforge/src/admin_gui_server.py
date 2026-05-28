@@ -477,6 +477,17 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     until_stop=bool(body.get("until_stop", False)),
                 ))
                 return
+            if path == "/api/session/mode":
+                try:
+                    composite_top_n = int(body.get("composite_top_n") or 0)
+                except (TypeError, ValueError):
+                    self._send_json({"ok": False, "error": "composite_top_n must be an integer"}, status=400)
+                    return
+                self._send_json(self.server.session_mode(
+                    str(body.get("mode") or "normal"),
+                    composite_top_n=composite_top_n,
+                ))
+                return
             if path == "/api/conversation/reset":
                 self._send_json(self.server.conversation_reset())
                 return
@@ -722,7 +733,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             "state": str(self.state),
             "api": [
                 "/api/admin/message", "/api/events", "/api/conversation/current", "/api/conversation/history",
-                "/api/admin/message", "/api/session/current", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/session/mode", "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
@@ -737,11 +748,23 @@ class AdminGuiServer(ThreadingHTTPServer):
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
         """Return append-only event log entries for GUI polling."""
+
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
             return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
+
+    # --- session state ----------------------------------------------------------------
+    def session_current(self) -> Dict[str, Any]:
+        """Return the current GUI session record (default session)."""
+        session = self.session_store.load("default")
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+
+    def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
+        """Persist the selected model-selection mode across browser refreshes."""
+        session = self.session_store.set_mode("default", mode, composite_top_n)
+        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
     def conversation_file(self) -> Path:
@@ -785,6 +808,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         if persona:
             conv["active_persona"] = persona
         self._save_conversation(conv)
+        # Sync message into session store so browser refresh can restore history.
+        self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
