@@ -359,8 +359,13 @@ def _redact_sensitive(value: Any) -> Any:
         return redacted
     if isinstance(value, list):
         return [_redact_sensitive(item) for item in value]
-    if isinstance(value, str) and value.startswith("source_token_missing:"):
-        return "source_token_missing:***REDACTED***"
+    if isinstance(value, str):
+        if value.startswith("source_token_missing:"):
+            return "source_token_missing:***REDACTED***"
+        if ":" in value:
+            prefix, _, suffix = value.partition(":")
+            if prefix.endswith("_token_missing") and suffix:
+                return f"{prefix}:***REDACTED***"
     return value
 
 
