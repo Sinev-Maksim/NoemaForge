@@ -82,6 +82,9 @@ modified_file_groups:
     - noemaforge/tools/prep/noemaforge-version-audit.sh
     - noemaforge/tools/prep/apply-runtime-version-centralization.py
     - noemaforge/tools/prep/noemaforge-premerge-check.ps1
+  ci_and_quality:
+    - .github/workflows/premerge-quality.yml
+    - noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md
   canonical_metadata:
     - VERSION
     - noemaforge/VERSION
@@ -112,6 +115,8 @@ completed_items:
   - "286/286 Python source files pass py_compile."
   - "docs/release.json: release, package, release_name, channel, status, summary, version_audit, timestamps updated to 0.32.2 — done in claude/task-15-frontend-event-polling."
   - "Windows premerge audit script created: noemaforge/tools/prep/noemaforge-premerge-check.ps1 — 13/13 checks PASS (VERSION files, docs/release.json, RUNTIME_VERSION centralization, py_compile 286, JSON parse 169, YAML parse 70, no tracked __pycache__)."
+  - "CI premerge quality workflow created: .github/workflows/premerge-quality.yml — 8 gates on PRs to release/0.32.2-hardening and main; permissions: contents: read; no auto-commits."
+  - "Autonomous workflow safety review completed: noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md — CRITICAL: autonomous-pipeline-v2.yml uses --approval-mode auto-edit (operator action required before enabling); HIGH: qa-version-bump.yml direct-pushes to release branch; all three workflows currently untracked."
 
 known_open_items_before_final_merge:
   - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."

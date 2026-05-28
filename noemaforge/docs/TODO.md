@@ -54,11 +54,11 @@
 
 ### P0-G — CI workflow (not yet created)
 
-- [ ] Create `.github/workflows/premerge-quality.yml`: CI workflow that runs on PRs targeting `release/0.32.2-hardening` and `main`. Steps: `python -m py_compile noemaforge/src/*.py`, JSON parse `noemaforge/configs/*.json`, YAML parse `noemaforge/configs/*.yaml`, no hardcoded RUNTIME_VERSION outside version module, no tracked `__pycache__` or `*.pyc`, `docs/release.json` version check. Optional: `bash -n` syntax check on .sh files (Linux only). Exit non-zero on failure.
+- [x] Create `.github/workflows/premerge-quality.yml`: CI workflow on PRs to `release/0.32.2-hardening` and `main`. 8 steps: py_compile, no RUNTIME_VERSION= leak, VERSION files, docs/release.json fields, JSON parse, YAML parse, no tracked __pycache__, bash -n. `permissions: contents: read`. No auto-commits (2026-05-28).
 
 ### P1 — safety review of autonomous workflow files (audit only)
 
-- [ ] Review `.github/workflows/autonomous-pipeline.yml`, `.github/workflows/qa-version-bump.yml`, `.codex/instructions.md`, `CLAUDE.md` for: dangerous auto-push/merge without operator approval, unauthorized network/secrets exfiltration, overly broad `permissions:` grants, any auto-job that can modify `main` without PR review. Record findings in `noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md`.
+- [x] Safety review of autonomous workflow files — created `noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md` (2026-05-28). Findings: `autonomous-pipeline-v2.yml` has CRITICAL `--approval-mode auto-edit` risk; `qa-version-bump.yml` pushes directly to release branch (HIGH); batch-counter auto-triggers version bump without human approval (HIGH). All three untracked workflows need fixes before enabling. See review doc for required operator actions.
 
 ### P1 — PR #2 reviewability (manual action)
 
