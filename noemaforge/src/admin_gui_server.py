@@ -371,9 +371,16 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if after < 0:
                 self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
                 return
-            self._send_json(self.server.events_api(after_index=after))
+            try:
+                limit = int((query.get("limit") or ["200"])[0])
+            except (TypeError, ValueError):
+                limit = 200
+            self._send_json(self.server.events_api(after_index=after, limit=limit))
+            return
         if path == "/api/session/current":
-            self._send_json(self.server.session_current())
+            query = parse_qs(urlparse(self.path).query)
+            session_id = str((query.get("session_id") or ["default"])[0])
+            self._send_json(self.server.session_current(session_id))
             return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
@@ -445,17 +452,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         if path.startswith("/api/jobs/"):
             job_id = unquote(path.rsplit("/", 1)[-1])
             self._send_json(self.server.job_get(job_id))
-            return
-        if path == "/api/session/current":
-            query = parse_qs(urlparse(self.path).query)
-            session_id = str((query.get("session_id") or ["default"])[0])
-            self._send_json(self.server.session_current(session_id))
-            return
-        if path == "/api/events":
-            query = parse_qs(urlparse(self.path).query)
-            after = int((query.get("after_index") or ["0"])[0])
-            limit = int((query.get("limit") or ["200"])[0])
-            self._send_json(self.server.events_list(after, limit))
             return
         self._serve_static(path)
 
@@ -741,13 +737,11 @@ class AdminGuiServer(ThreadingHTTPServer):
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
         """Return append-only event log entries for GUI polling."""
-        events = self.event_log.read(after_index=after_index, limit=limit)
-        return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
-    # --- session state ----------------------------------------------------------------
-    def session_current(self) -> Dict[str, Any]:
-        """Return the current GUI session record (default session)."""
-        session = self.session_store.load("default")
-        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        try:
+            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
+            return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
 
     # --- conversation/review state -------------------------------------------------
     def conversation_file(self) -> Path:
@@ -1052,14 +1046,6 @@ class AdminGuiServer(ThreadingHTTPServer):
             return {"ok": True, "version": RUNTIME_VERSION, "session": session}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
-
-    def events_list(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
-        """Return event log entries from EventLog."""
-        try:
-            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
-            return {"ok": True, "version": RUNTIME_VERSION, "events": events}
-        except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "error": str(exc)}
 
     def session_set_mode(self, session_id: str, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist selected model-selection mode in session."""
