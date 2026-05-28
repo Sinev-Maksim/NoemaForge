@@ -2191,6 +2191,6 @@
   "notes": [
     "0.32.1 repaired release package: installable layout, active version naming, executable bits, root README/context, wiki/i18n artifacts and release checksums."
   ],
-  "package_name": "noemaforge_0.32.1_prelaunch",
-  "runtime_base_version": "0.32.1"
+  "package_name": "noemaforge_0.32.2_prelaunch",
+  "runtime_base_version": "0.32.2"
 }

@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: templates/pipeline-dashboard/index.html
 Zone: gui/shell
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-10
-Modified: 2026-05-14
+Modified: 2026-05-28
 Purpose: Stateful Admin GUI shell: persona portrait, chat, epoch panel, telemetry,
   task queue, pipeline dock, artifacts, SR/SSR-ready conversation history.
 Inputs: JSON APIs served by src/admin_gui_server.py.
@@ -28,7 +28,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
       <div class="title-block">
-        <p class="eyebrow" id="version-line">NoemaForge / 0.32.1</p>
+        <p class="eyebrow" id="version-line">NoemaForge / 0.32.2</p>
         <h1 id="app-title">NoemaForge Admin Chat</h1>
         <p class="muted" id="persona-line"><span id="persona-active-label">Активная персона</span>: <strong id="active-persona">Admin</strong></p>
       </div>

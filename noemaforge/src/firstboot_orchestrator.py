@@ -34,6 +34,7 @@ import role_tournament
 import runtime_safety
 import model_inventory_normalize
 import model_profiles
+from noemaforge_version import RUNTIME_VERSION
 
 NOEMAFORGE_ROOT = "/opt/noemaforge"
 DEFAULT_POLICY = "/opt/noemaforge/configs/firstboot-policy.yaml"
@@ -104,7 +105,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "CandidateSelectionPlan",
         "created_at": _nowz(),
-        "version": "0.32.1",
+        "version": RUNTIME_VERSION,
         "selection": _selection_mode_contract(mode, composite_top_n),
         "dry_run": bool(dry_run),
         "artifacts": {
@@ -123,7 +124,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionDecision",
         "created_at": _nowz(),
-        "version": "0.32.1",
+        "version": RUNTIME_VERSION,
         "mode": mode,
         "dry_run": bool(dry_run),
         "staffing_state": staffing_summary.get("staffing_state"),
@@ -138,7 +139,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionRollbackPlan",
         "created_at": _nowz(),
-        "version": "0.32.1",
+        "version": RUNTIME_VERSION,
         "mode": mode,
         "steps": [
             "Do not delete previous epoch contracts.",

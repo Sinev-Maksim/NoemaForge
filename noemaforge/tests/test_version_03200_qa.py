@@ -3,10 +3,10 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_version_03200_qa.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
-Modified: 2026-05-21
-Purpose: Validate the 0.32.1 minor version bump across active release surfaces.
+Modified: 2026-05-28
+Purpose: Validate the 0.32.2 minor version bump across active release surfaces.
 Inputs: Workspace version files, active runtime constants, setup front door and package metadata.
 Outputs: unittest assertions only.
 Side effects: None.
@@ -24,10 +24,9 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
-EXPECTED_VERSION = "0.32.1"
-EXPECTED_VERSION = "0.32.1"
-EXPECTED_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
-EXPECTED_UNINSTALLER = "uninstall_noemaforge_0.32.1_mvp.sh"
+EXPECTED_VERSION = "0.32.2"
+EXPECTED_INSTALLER = "install_noemaforge_0.32.2_mvp.sh"
+EXPECTED_UNINSTALLER = "uninstall_noemaforge_0.32.2_mvp.sh"
 OLD_ACTIVE_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
 
 
@@ -90,17 +89,19 @@ class Version03200QATests(unittest.TestCase):
         manifest = json.loads((PROJECT_ROOT / "MANIFEST.json").read_text(encoding="utf-8"))
 
         self.assertEqual(EXPECTED_VERSION, release["version"])
-        self.assertEqual("noemaforge_0.32.1_prelaunch", release["package"])
+        self.assertEqual(f"noemaforge_{EXPECTED_VERSION}_prelaunch", release["package"])
         self.assertTrue(release["summary"].startswith(f"NoemaForge {EXPECTED_VERSION}:"))
         self.assertEqual(EXPECTED_VERSION, manifest["runtime_base_version"])
-        self.assertEqual("noemaforge_0.32.1_docs-integrated_prelaunch", manifest["package_name"])
+        self.assertEqual(f"noemaforge_{EXPECTED_VERSION}_prelaunch", manifest["package_name"])
 
     def test_runtime_constants_and_cli_fallback_are_promoted(self) -> None:
+        # 0.32.2: runtime files use centralised import, not hardcoded RUNTIME_VERSION.
         for rel in RUNTIME_CONSTANT_FILES:
             path = PACKAGE_ROOT / "src" / rel
             with self.subTest(path=path):
                 text = path.read_text(encoding="utf-8")
-                self.assertIn(f'RUNTIME_VERSION = "{EXPECTED_VERSION}"', text)
+                self.assertIn("from noemaforge_version import RUNTIME_VERSION", text)
+                self.assertNotIn(f'RUNTIME_VERSION = "0.32.1"', text)
 
         cli = (PACKAGE_ROOT / "bin" / "noemaforge").read_text(encoding="utf-8")
         first_run_audit = (PACKAGE_ROOT / "tools" / "prep" / "noemaforge-first-run-audit.sh").read_text(encoding="utf-8")

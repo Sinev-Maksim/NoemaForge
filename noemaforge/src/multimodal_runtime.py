@@ -32,7 +32,10 @@ try:
 except Exception:  # pragma: no cover - installed path fallback
     model_inventory_normalize = None  # type: ignore[assignment]
 
-VERSION = "0.32.1"
+try:
+    from noemaforge_version import RUNTIME_VERSION as VERSION
+except Exception:
+    VERSION = "0.32.2"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MULTIMODAL_STATE", "/var/lib/noemaforge/multimodal"))
 DEFAULT_VAULT = Path(os.environ.get("NOEMAFORGE_VAULT", "/mnt/noemaforge-share/noemaforge-lab/data/Vault"))

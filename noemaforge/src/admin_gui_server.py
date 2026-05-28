@@ -55,6 +55,7 @@ from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
+from orchestration_state import is_active_job
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -370,10 +371,16 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if after < 0:
                 self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
                 return
-            self._send_json(self.server.events_api(after_index=after))
+            try:
+                limit = int((query.get("limit") or ["200"])[0])
+            except (TypeError, ValueError):
+                limit = 200
+            self._send_json(self.server.events_api(after_index=after, limit=limit))
             return
         if path == "/api/session/current":
-            self._send_json(self.server.session_current())
+            query = parse_qs(urlparse(self.path).query)
+            session_id = str((query.get("session_id") or ["default"])[0])
+            self._send_json(self.server.session_current(session_id))
             return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
@@ -541,6 +548,12 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/vault/reinventory":
                 self._send_json(self.server.vault_reinventory())
                 return
+            if path == "/api/session/mode":
+                session_id = str(body.get("session_id") or "default")
+                mode = str(body.get("mode") or "normal")
+                composite_top_n = int(body.get("composite_top_n") or 0)
+                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
+                return
             if path == "/api/workflow/stop":
                 self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
                 return
@@ -615,6 +628,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self.session_store = SessionStore(self.data_root / "sessions")
+        self.event_log = EventLog(self.data_root / "events")
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -721,19 +736,24 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/admin/message", "/api/session/current", "/api/session/mode", "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
-                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/stream", "/api/pipelines/catalog",
+                "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
-                "/api/vault/reinventory", "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
+                "/api/vault/reinventory", "/api/session/current", "/api/session/mode", "/api/events",
+                "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
         """Return append-only event log entries for GUI polling."""
-        events = self.event_log.read(after_index=after_index, limit=limit)
-        return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+
+        try:
+            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
+            return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
 
     # --- session state ----------------------------------------------------------------
     def session_current(self) -> Dict[str, Any]:
@@ -802,6 +822,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.review_dir / "sr" / "inbox" / f"{msg['message_id']}.json", review)
         if review["ssr_review"]["required"]:
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
+        # Also persist in session_store for browser-refresh restore.
+        try:
+            self.session_store.append_message("default", msg)
+        except Exception:
+            pass
         return msg
 
     def record_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
@@ -1031,7 +1056,29 @@ class AdminGuiServer(ThreadingHTTPServer):
                 item = dict(job)
                 item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
                 jobs.append(item)
+        # Sync active jobs into session store for browser-refresh restore.
+        try:
+            active = [j for j in jobs if is_active_job(j)]
+            self.session_store.attach_active_jobs("default", active)
+        except Exception:
+            pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
+
+    def session_current(self, session_id: str = "default") -> Dict[str, Any]:
+        """Return the current session record from SessionStore."""
+        try:
+            session = self.session_store.load(session_id)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
+
+    def session_set_mode(self, session_id: str, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
+        """Persist selected model-selection mode in session."""
+        try:
+            session = self.session_store.set_mode(session_id, mode, composite_top_n)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": str(exc)}
 
     def job_stream_events(self) -> List[Dict[str, Any]]:
         jobs = self.jobs_list().get("jobs", [])
@@ -1076,13 +1123,23 @@ class AdminGuiServer(ThreadingHTTPServer):
         target = None
         for j in data.get("jobs", []):
             if j.get("job_id") == job_id:
-                j["status"] = "cancelled"
+                # Use cancel_requested so running subprocesses can detect the
+                # request before the orchestrator confirms the final cancelled state.
+                j["status"] = "cancel_requested"
                 j["updated_at"] = now_iso()
                 target = j
         self._write_json(self.jobs_file(), data)
         if target:
-            self._write_json(self.jobs_dir / f"{target['job_id']}.json", target)
-        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Job cancelled" if target else "Job not found"}
+            jid = target["job_id"]
+            self._write_json(self.jobs_dir / f"{safe_id(jid)}.json", target)
+            # Write a sentinel file that long-running subprocesses can poll
+            # without parsing JSON (lightweight cancel-marker check).
+            marker = self.jobs_dir / f"{safe_id(jid)}.cancel"
+            try:
+                marker.write_text(now_iso() + "\n", encoding="utf-8")
+            except OSError:
+                pass
+        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Cancel requested" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:

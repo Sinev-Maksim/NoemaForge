@@ -2111,7 +2111,7 @@ def _run_role_compute(project_id: str, role_id: str, baton: Dict[str, Any], rost
 
     if not ok:
         _write_event("S2", "ROLE_RUN_FAILED", {"project_id": project_id, "role": role_id}, "failed", trace_id=trace_id, extra={"run_id": run_id})
-        # Keep workdir for forensics on failure.
+        # keep workdir for forensics on failure; return without cleanup
         return None, runner_out
 
     try:
