@@ -414,10 +414,11 @@ def _profile_recommendations(profile: str, signals: List[str]) -> List[str]:
 def _strip_html(text: str) -> str:
     t = text or ""
     # Remove script/style blocks.
-    # End-tag pattern uses \s* to match optional whitespace before '>',
-    # e.g. </script > or </style\t>, which naive </script> would miss (CWE-185).
-    t = re.sub(r"<script[\s\S]*?</script\s*>", " ", t, flags=re.IGNORECASE)
-    t = re.sub(r"<style[\s\S]*?</style\s*>", " ", t, flags=re.IGNORECASE)
+    # End-tag uses [^>]* to match any characters (whitespace, attributes) before
+    # the final '>': handles </script >, </script\t\n bar>, etc. (CWE-185).
+    # \s*> would miss tags with embedded text/attributes before the closing bracket.
+    t = re.sub(r"<script[\s\S]*?</script[^>]*>", " ", t, flags=re.IGNORECASE)
+    t = re.sub(r"<style[\s\S]*?</style[^>]*>", " ", t, flags=re.IGNORECASE)
     # Turn common block separators into newlines before stripping tags.
     t = re.sub(r"<\s*br\s*/?\s*>", "\n", t, flags=re.IGNORECASE)
     t = re.sub(r"</\s*(p|div|li|ul|ol|h\d|section|article|header|footer)\s*>", "\n", t, flags=re.IGNORECASE)
