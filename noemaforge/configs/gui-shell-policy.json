@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.gui/v1",
   "kind": "GuiShellPolicy",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "stateful": true,
   "conversation_store": "/var/lib/noemaforge/gui/conversation-current.json",
   "sr_ssr_review_inbox": {

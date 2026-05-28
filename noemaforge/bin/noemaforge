@@ -1116,7 +1116,7 @@ cmd_version() {
   elif [[ -f "$ROOT/../VERSION" ]]; then
     cat "$ROOT/../VERSION"
   else
-    echo "0.32.1"
+    echo "0.32.2"
   fi
 }
 
