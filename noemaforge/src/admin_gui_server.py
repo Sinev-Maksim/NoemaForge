@@ -359,7 +359,14 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/events":
             query = parse_qs(urlparse(self.path).query)
-            after = int((query.get("after_index") or ["0"])[0])
+            try:
+                after = int((query.get("after_index") or ["0"])[0])
+            except (TypeError, ValueError):
+                self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
+                return
+            if after < 0:
+                self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
+                return
             self._send_json(self.server.events_api(after_index=after))
             return
         if path == "/api/conversation/current":

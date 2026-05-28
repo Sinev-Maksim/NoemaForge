@@ -118,25 +118,52 @@ class TestEventsApiMethod(unittest.TestCase):
 
 
 class TestEventsApiRoute(unittest.TestCase):
-    """GET /api/events must be registered in AdminGuiHandler.do_GET."""
+    """GET /api/events dispatches through AdminGuiHandler.do_GET."""
 
-    _source: str = ""
+    def _call_route(self, path: str):
+        calls = []
+        responses = []
 
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls._source = (ROOT / "src" / "admin_gui_server.py").read_text(encoding="utf-8")
+        class ServerStub:
+            def events_api(self, after_index: int = 0):
+                calls.append(after_index)
+                return {"ok": True, "version": RUNTIME_VERSION, "events": [], "count": 0}
 
-    def test_route_string_present_in_do_get(self) -> None:
-        self.assertIn('"/api/events"', self._source)
+        handler = object.__new__(admin_gui_server.AdminGuiHandler)
+        handler.path = path
+        handler.server = ServerStub()
+        handler._send_json = lambda obj, status=200: responses.append((status, obj))
 
-    def test_events_api_method_called_in_do_get(self) -> None:
-        self.assertIn("events_api(", self._source)
+        admin_gui_server.AdminGuiHandler.do_GET(handler)
+        self.assertEqual(len(responses), 1)
+        return responses[0], calls
 
-    def test_event_log_imported_or_instantiated(self) -> None:
-        self.assertIn("EventLog", self._source)
+    def test_events_route_defaults_after_index_to_zero(self) -> None:
+        (status, payload), calls = self._call_route("/api/events")
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, [0])
+        self.assertTrue(payload["ok"])
+        self.assertIsInstance(payload["events"], list)
 
-    def test_event_log_in_init(self) -> None:
-        self.assertIn("self.event_log", self._source)
+    def test_events_route_passes_after_index_to_api(self) -> None:
+        (status, payload), calls = self._call_route("/api/events?after_index=3")
+        self.assertEqual(status, 200)
+        self.assertEqual(calls, [3])
+        self.assertEqual(payload["count"], 0)
+
+    def test_events_route_rejects_non_integer_after_index(self) -> None:
+        (status, payload), calls = self._call_route("/api/events?after_index=abc")
+        self.assertEqual(status, 400)
+        self.assertEqual(calls, [])
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "after_index must be an integer")
+
+    def test_events_route_rejects_negative_after_index(self) -> None:
+        (status, payload), calls = self._call_route("/api/events?after_index=-1")
+        self.assertEqual(status, 400)
+        self.assertEqual(calls, [])
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "after_index must be >= 0")
 
 
 if __name__ == "__main__":
