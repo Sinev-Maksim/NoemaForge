@@ -50,6 +50,7 @@ trash/
 # NoemaForge runtime state (never commit live runtime artifacts)
 *.jsonl.lock
 *.pid
+*.cancel
 noemaforge_run_*.log
 
 # Secrets and credentials

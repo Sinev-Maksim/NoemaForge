@@ -69,8 +69,8 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 
 - [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on BigBro-BOS to verify all shell scripts pass syntax check.
 - [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on BigBro-BOS.
-- [ ] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found.
-- [ ] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`.
+- [x] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found. — Both files clean, no stale strings (2026-05-28).
+- [x] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`. — Both clean (2026-05-28).
 - [x] Verify `.gitignore` has `__pycache__/` and `*.pyc` exclusions (and add them if missing). — Created full `.gitignore` (2026-05-28).
 
 ### Day 3 — frontend UX (partial — needs live GUI on BigBro-BOS)
@@ -81,7 +81,7 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 
 ### Day 4 — duplicate-safe jobs (partial — needs BigBro-BOS smoke)
 
-- [ ] Verify cancel marker check: long-running model-selection and vault-reinventory handlers should poll the job cancel marker before each heavy step and exit early if `cancel_requested`. Currently cancel only sets status; no mid-process checkpoint is wired.
+- [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs BigBro-BOS.
 - [ ] Manual smoke (BigBro-BOS): send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
 - [ ] Manual smoke (BigBro-BOS): click Vault re-inventory twice rapidly and confirm one job, not two.
 

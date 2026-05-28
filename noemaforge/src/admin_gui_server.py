@@ -1082,13 +1082,23 @@ class AdminGuiServer(ThreadingHTTPServer):
         target = None
         for j in data.get("jobs", []):
             if j.get("job_id") == job_id:
-                j["status"] = "cancelled"
+                # Use cancel_requested so running subprocesses can detect the
+                # request before the orchestrator confirms the final cancelled state.
+                j["status"] = "cancel_requested"
                 j["updated_at"] = now_iso()
                 target = j
         self._write_json(self.jobs_file(), data)
         if target:
-            self._write_json(self.jobs_dir / f"{target['job_id']}.json", target)
-        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Job cancelled" if target else "Job not found"}
+            jid = target["job_id"]
+            self._write_json(self.jobs_dir / f"{safe_id(jid)}.json", target)
+            # Write a sentinel file that long-running subprocesses can poll
+            # without parsing JSON (lightweight cancel-marker check).
+            marker = self.jobs_dir / f"{safe_id(jid)}.cancel"
+            try:
+                marker.write_text(now_iso() + "\n", encoding="utf-8")
+            except OSError:
+                pass
+        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Cancel requested" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:
