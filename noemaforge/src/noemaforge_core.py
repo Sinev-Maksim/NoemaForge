@@ -2111,11 +2111,8 @@ def _run_role_compute(project_id: str, role_id: str, baton: Dict[str, Any], rost
 
     if not ok:
         _write_event("S2", "ROLE_RUN_FAILED", {"project_id": project_id, "role": role_id}, "failed", trace_id=trace_id, extra={"run_id": run_id})
-        try:
-            # keep workdir for forensics on failure
-            pass
-        finally:
-            return None, runner_out
+        # Keep workdir for forensics on failure.
+        return None, runner_out
 
     try:
         res = _load_json(out_path)
