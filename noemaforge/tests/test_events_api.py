@@ -125,7 +125,7 @@ class TestEventsApiRoute(unittest.TestCase):
         responses = []
 
         class ServerStub:
-            def events_api(self, after_index: int = 0):
+            def events_api(self, after_index: int = 0, limit: int = 200):
                 calls.append(after_index)
                 return {"ok": True, "version": RUNTIME_VERSION, "events": [], "count": 0}
 

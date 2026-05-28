@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -56,6 +57,8 @@ from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
 from orchestration_state import is_active_job
+
+_log = logging.getLogger(__name__)
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -606,8 +609,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.dev_team_state = dev_team_state.resolve()
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
-        self.event_log = EventLog(self.data_root / "events")
-        self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
@@ -721,16 +722,15 @@ class AdminGuiServer(ThreadingHTTPServer):
             "root": str(self.root),
             "state": str(self.state),
             "api": [
-                "/api/admin/message", "/api/events", "/api/conversation/current", "/api/conversation/history",
-                "/api/admin/message", "/api/session/current", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/session/mode", "/api/events",
+                "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
-                "/api/vault/reinventory", "/api/session/current", "/api/session/mode", "/api/events",
-                "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
+                "/api/vault/reinventory", "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
 
@@ -738,7 +738,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
         """Return append-only event log entries for GUI polling."""
         try:
-            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
+            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit) if limit and int(limit) > 0 else 200)
             return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
@@ -800,8 +800,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Also persist in session_store for browser-refresh restore.
         try:
             self.session_store.append_message("default", msg)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning("session_store.append_message failed: %s", _exc)
         return msg
 
     def record_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
@@ -1035,8 +1035,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         try:
             active = [j for j in jobs if is_active_job(j)]
             self.session_store.attach_active_jobs("default", active)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning("session_store.attach_active_jobs failed: %s", _exc)
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
 
     def session_current(self, session_id: str = "default") -> Dict[str, Any]:
@@ -1053,7 +1053,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             session = self.session_store.set_mode(session_id, mode, composite_top_n)
             return {"ok": True, "version": RUNTIME_VERSION, "session": session}
         except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "error": str(exc)}
+            return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
 
     def job_stream_events(self) -> List[Dict[str, Any]]:
         jobs = self.jobs_list().get("jobs", [])

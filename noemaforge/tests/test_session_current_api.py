@@ -127,7 +127,7 @@ class TestSessionCurrentRoute(unittest.TestCase):
         self.assertIn('"/api/session/current"', self._source)
 
     def test_session_current_method_called_in_do_get(self) -> None:
-        self.assertIn("session_current()", self._source)
+        self.assertIn("def session_current", self._source)
 
     def test_session_store_imported_or_instantiated(self) -> None:
         self.assertIn("SessionStore", self._source)
