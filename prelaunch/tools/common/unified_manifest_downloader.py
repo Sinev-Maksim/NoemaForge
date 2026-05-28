@@ -671,9 +671,12 @@ def resolve_web_candidate_method(url: str) -> Tuple[str, Dict[str, Any]]:
             if "gguf" in url.lower():
                 method = "hf_gguf"
             return method, {"repo_type": repo_type, "repo_id": repo_id}
-    if "github.com" in host:
+    # Use exact equality or endswith(".<domain>") so that attacker-controlled
+    # hostnames like "evil.github.com.attacker.com" are not misclassified
+    # (CWE-20 incomplete URL sanitization).
+    if host == "github.com" or host.endswith(".github.com"):
         return "github_repo", {"github_url": url}
-    if "zenodo.org" in host:
+    if host == "zenodo.org" or host.endswith(".zenodo.org"):
         m = re.search(r"/records/(\d+)", url)
         if m:
             return "zenodo_record", {"zenodo_record_id": m.group(1)}

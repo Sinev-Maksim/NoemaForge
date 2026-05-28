@@ -1966,6 +1966,11 @@ def main(argv: list[str]) -> int:
         import invites as _inv
         if args.inv_cmd == "issue":
             tok = _inv.issue_invite(scope=args.scope, ttl_sec=int(args.ttl), issued_by=str(args.issued_by), comment=str(args.comment))
+            # Security: token is printed to stdout (for operator capture/scripting).
+            # A plaintext advisory is written to stderr; the token itself must not
+            # be written to application log files or shared channels (CWE-312).
+            import sys as _sys
+            print("SECURITY: Store this invite token securely — it grants break-glass operator access.", file=_sys.stderr)
             print(tok)
             return 0
         if args.inv_cmd == "activate":
