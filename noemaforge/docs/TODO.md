@@ -1,5 +1,15 @@
 # TODO
 
+## 0.32.2 release-hardening checkpoints
+
+- 2026-05-28: `release/0.32.2-hardening` hygiene batch selected first open
+  Windows-accessible P0 item. `.gitignore` now ignores Python caches,
+  bytecode, test/lint caches and build outputs; tracked `__pycache__`/`.pyc`
+  files were checked before the change and none were tracked. Claude review:
+  not needed for this hygiene-only batch. Validation run: `py -3` compileall
+  passed with an existing `return`-in-`finally` warning in `noemaforge_core.py`;
+  `git diff --check`, `git status --short`, and tracked cache checks passed.
+
 ## Active follow-ups
 
 - Verify final archive on the target machine after upload.
