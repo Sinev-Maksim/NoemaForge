@@ -290,6 +290,26 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
+          function Write-FailureReview([string] $message) {
+            $failureReview = @(
+              "Verdict: ERROR"
+              ""
+              "**Reason:** $reason"
+              ""
+              "Code quality was validated by CodeQL, py_compile, and the Quality gate instead."
+              "Fix the runner setup to enable Codex review: install codex.exe and run ``codex login``."
+            ) -join [Environment]::NewLine
+            [System.IO.File]::WriteAllText($reviewPath, $body, [System.Text.Encoding]::UTF8)
+            Write-Warning "Codex CLI review SKIPPED: $reason"
+          }
+
+          # Verify CODEX_WORKTREE is set and exists before trying to use it.
+          if (-not $env:CODEX_WORKTREE -or -not (Test-Path -LiteralPath $env:CODEX_WORKTREE)) {
+            Write-SkipReview "CODEX_WORKTREE env var is missing or directory does not exist: '$env:CODEX_WORKTREE'."
+            exit 0
+          }
+          Set-Location -LiteralPath $env:CODEX_WORKTREE
+
           $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
           if ($pathCommand) {
             $codex = $pathCommand.Source
