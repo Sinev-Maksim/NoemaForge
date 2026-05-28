@@ -32,10 +32,11 @@ jobs:
             FAILED="$FAILED python-compile"
           fi
 
-          # Forbidden RUNTIME_VERSION
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
-            | grep -v "noemaforge/src/noemaforge_version.py" \
-            | grep -v ".git" || true)
+          # Forbidden RUNTIME_VERSION — anchor to line-start to avoid matching
+          # string literals in test assertIn("RUNTIME_VERSION = ...") calls.
+          hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" \
+            --exclude-dir=.git --exclude-dir=tests --exclude-dir=__pycache__ . \
+            | grep -v "noemaforge/src/noemaforge_version.py" || true)
           if [ -n "$hits" ]; then FAILED="$FAILED runtime-version-leak"; fi
 
           # VERSION files
@@ -134,19 +135,16 @@ jobs:
             const v = '${{ steps.bump.outputs.new_version || '0.32.2.x' }}';
             const sha = context.sha.substring(0, 8);
 
-            const body = `## QA gate failure — ${v} (${sha})
-
-**Failed gates**: \`${failed}\`
-
-**Triggered at**: ${new Date().toISOString()}
-
-### What to do
-
-1. Fix the issues listed above on \`release/0.32.2-hardening\`
-2. Push a fix commit (Claude Code or manually)
-3. The pipeline will re-run automatically
-
-_This issue was created automatically by the QA version bump workflow._`;
+            // Build body via concatenation — template literals with content at
+            // column 0 break YAML block-scalar parsing in this workflow file.
+            const body = '## QA gate failure — ' + v + ' (' + sha + ')\n\n' +
+              '**Failed gates**: `' + failed + '`\n\n' +
+              '**Triggered at**: ' + new Date().toISOString() + '\n\n' +
+              '### What to do\n\n' +
+              '1. Fix the issues listed above on `release/0.32.2-hardening`\n' +
+              '2. Push a fix commit (Claude Code or manually)\n' +
+              '3. The pipeline will re-run automatically\n\n' +
+              '_This issue was created automatically by the QA version bump workflow._';
 
             await github.rest.issues.create({
               owner: context.repo.owner,

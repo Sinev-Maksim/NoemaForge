@@ -55,11 +55,13 @@ jobs:
 
       - name: Version check — no forbidden RUNTIME_VERSION assignment
         run: |
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" . \
-            | grep -v "noemaforge/src/noemaforge_version.py" \
-            | grep -v ".git" || true)
+          # Anchor to line-start so string literals inside assertIn("RUNTIME_VERSION = ...")
+          # in test files are not falsely flagged. --exclude-dir=tests skips test helpers.
+          hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" \
+            --exclude-dir=.git --exclude-dir=tests --exclude-dir=__pycache__ . \
+            | grep -v "noemaforge/src/noemaforge_version.py" || true)
           if [ -n "$hits" ]; then
-            echo "FAIL: forbidden RUNTIME_VERSION assignment:"; echo "$hits"; exit 1
+            echo "FAIL: forbidden RUNTIME_VERSION= assignment (outside noemaforge_version.py):"; echo "$hits"; exit 1
           fi
           echo "PASS: no forbidden RUNTIME_VERSION assignment"
 

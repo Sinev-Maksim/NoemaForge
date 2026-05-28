@@ -52,7 +52,9 @@ jobs:
       # ── 2. No RUNTIME_VERSION= assignment outside noemaforge_version.py ──
       - name: No forbidden RUNTIME_VERSION assignment
         run: |
-          hits=$(grep -rn "RUNTIME_VERSION\s*=" --include="*.py" noemaforge/src/ \
+          # Anchor to line-start: avoids matching string literals in test
+          # assertIn(f'RUNTIME_VERSION = "..."') calls.
+          hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" noemaforge/src/ \
             | grep -v "noemaforge/src/noemaforge_version.py" \
             | grep -v "import RUNTIME_VERSION" || true)
           if [ -n "$hits" ]; then
