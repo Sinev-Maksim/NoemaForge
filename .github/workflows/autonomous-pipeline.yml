@@ -180,6 +180,7 @@ jobs:
             "Commit: $env:GITHUB_SHA"
             ""
             "Read .codex/instructions.md and review the diff strictly against the documented gates."
+            "Inspect the diff with: git diff origin/release/0.32.2-hardening...HEAD"
             "Return a concise GitHub-ready Markdown review."
             "Start with exactly one verdict line:"
             "Verdict: PASS"
@@ -188,10 +189,11 @@ jobs:
             ""
             "Include sections for Summary, Blocking Issues, and Optimizations."
             "Do not modify files or push commits in this workflow run."
+            "Use read-only inspection only."
           ) -join [Environment]::NewLine
 
-          & $codex exec review `
-            --base origin/release/0.32.2-hardening `
+          & $codex exec `
+            -s read-only `
             --output-last-message $reviewPath `
             $prompt 2>&1 | Tee-Object -FilePath $logPath
 
