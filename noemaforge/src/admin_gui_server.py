@@ -381,7 +381,8 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if limit <= 0:
                 self._send_json({"ok": False, "error": "limit must be >= 1"}, status=400)
                 return
-            self._send_json(self.server.events_api(after_index=after, limit=limit))
+            session_id = str((query.get("session_id") or ["default"])[0])
+            self._send_json(self.server.events_api(after_index=after, limit=limit, session_id=session_id))
             return
         if path == "/api/session/current":
             query = parse_qs(urlparse(self.path).query)
@@ -739,16 +740,28 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     # --- event log -----------------------------------------------------------------
-    def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
-        """Return append-only event log entries for GUI polling."""
+    def events_api(self, after_index: int = 0, limit: int = 200, session_id: str = "default") -> Dict[str, Any]:
+        """Return append-only event log entries for GUI polling.
+
+        Args:
+            after_index: Return only events with index >= this value (0 = all).
+            limit: Maximum number of events to return (must be >= 1; callers are
+                   expected to validate before calling, but a non-positive value
+                   is silently clamped to 200 for robustness).
+            session_id: Session whose last_event_index cursor is advanced after
+                        a successful fetch.  Defaults to "default" (single-session
+                        use); callers that support multiple simultaneous sessions
+                        should forward the session_id from the request.
+        """
         try:
-            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit) if limit and int(limit) > 0 else 200)
+            safe_limit = max(1, int(limit)) if limit else 200
+            events = self.event_log.read(after_index=int(after_index or 0), limit=safe_limit)
             # Advance session cursor so page refresh resumes from the last seen index.
             if events:
                 last_idx = events[-1].get("index")
                 if isinstance(last_idx, int):
                     try:
-                        self.session_store.update("default", last_event_index=last_idx + 1)
+                        self.session_store.update(session_id, last_event_index=last_idx + 1)
                     except Exception as _exc:
                         _log.debug("session last_event_index update failed: %s", _exc)
             return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
