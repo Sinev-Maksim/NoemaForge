@@ -75,7 +75,7 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 
 ### Day 3 — frontend UX (partial — needs live GUI on BigBro-BOS)
 
-- [ ] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". Currently mode is persisted silently.
+- [x] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". — Implemented in app.js sendAdmin() (2026-05-28).
 - [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI).
 - [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive.
 

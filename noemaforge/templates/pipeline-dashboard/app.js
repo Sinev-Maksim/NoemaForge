@@ -176,6 +176,11 @@ async function sendAdmin(){
       result.type = 'model_selection';
       // Persist the selected mode to session so it survives page refresh.
       api('/api/session/mode', {mode:modePick.mode, composite_top_n:modePick.composite_top_n}).catch(()=>{});
+      // Explicit confirmation so the user can see which mode was accepted.
+      const _modeLabel = modePick.mode === 'full_composite'
+        ? `full_composite${modePick.composite_top_n > 0 ? ` (top ${modePick.composite_top_n})` : ''}`
+        : modePick.mode;
+      addMessage('Admin', `Mode selected: ${_modeLabel}`);
     }else{
       result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
     }
