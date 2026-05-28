@@ -288,6 +288,43 @@ jobs:
             throw "Codex CLI review returned FAIL."
           }
 
+      - name: Publish Codex CLI log summary
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+
+          $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
+          $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+          $runUrl = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "## Codex CLI review"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Run: $runUrl"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "- Artifact: codex-review-$env:GITHUB_SHA"
+          Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+
+          if (Test-Path -LiteralPath $reviewPath) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Review"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value (Get-Content -LiteralPath $reviewPath -Raw)
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
+          if (Test-Path -LiteralPath $logPath) {
+            $lines = Get-Content -LiteralPath $logPath
+            $tail = $lines | Select-Object -Last 220
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Codex CLI log tail"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Full log is in the uploaded artifact."
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '```text'
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value $tail
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value '```'
+          } else {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Codex CLI log was not created."
+          }
+
       - name: Upload review artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -306,16 +343,38 @@ jobs:
             const fs = require('fs');
             let review = 'Codex CLI did not produce a review artifact.';
             try { review = fs.readFileSync('codex_review.md', 'utf8'); } catch(e) {}
-            if (review.length > 60000) {
-              review = review.slice(0, 60000) + '\n\n_Review truncated to fit GitHub comment limits._';
+            if (review.length > 45000) {
+              review = review.slice(0, 45000) + '\n\n_Review truncated to fit GitHub comment limits._';
             }
 
+            let logTail = 'Codex CLI log was not created.';
+            try {
+              const logPath = `${process.env.RUNNER_TEMP}\\codex_run.log`;
+              const log = fs.readFileSync(logPath, 'utf8');
+              logTail = log.split(/\r?\n/).slice(-180).join('\n');
+              if (logTail.length > 12000) {
+                logTail = logTail.slice(-12000);
+              }
+            } catch(e) {}
+
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
             const body = [
               '### Codex CLI review',
               '',
               `_Branch_: \`${{ github.ref_name }}\` · _Commit_: \`${{ github.sha }}\``,
+              `_Run_: ${runUrl}`,
+              `_Full log artifact_: \`codex-review-${{ github.sha }}\``,
               '',
-              review
+              review,
+              '',
+              '<details>',
+              '<summary>Codex CLI log tail</summary>',
+              '',
+              '```text',
+              logTail,
+              '```',
+              '',
+              '</details>'
             ].join('\n');
 
             const pulls = await github.rest.pulls.list({
