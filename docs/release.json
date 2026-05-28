@@ -14,7 +14,7 @@
     "manual": "no runtime autostart",
     "wogui": "headless runtime with CPU bootstrap LLM allowed; heavy LLM manual only"
   },
-  "channel": "pre-alpha",
+  "channel": "alpha-hardening",
   "consolidated_architecture_backlog": {
     "focus": [
       "protected MVP kernel",
@@ -75,7 +75,7 @@
     "status": "implemented",
     "tracking_id": "NFG-FIX-0.32.1-firststart-watchdog"
   },
-  "generated_at": "2026-05-21T00:00:00Z",
+  "generated_at": "2026-05-28T00:00:00Z",
   "localized_docs_delta": {
     "first_start_dry_run": "direct selection-only path; no systemd rehome, soft-headless, package install, systemd override, service start, smoke or epoch switch",
     "localized_user_information": "docs/i18n/<locale> contains README, HOW2START, RELEASE_NOTES and USER_GUIDE for all supported locales",
@@ -106,7 +106,7 @@
     "tracking_id": "NFG-PROP-0.32.1-multiOS-runtime-pack",
     "wiki": "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
   },
-  "package": "noemaforge_0.32.1_prelaunch",
+  "package": "noemaforge_0.32.2_release",
   "patched10_emergency_recovery": {
     "changes": [
       "first-start abort uses minimal no-block GUI recovery",
@@ -153,8 +153,8 @@
     "setup_selftest": "PASS: ./setup.sh --mode vm --dry-run --selftest",
     "version_audit": "PASS: active metadata/runtime versions aligned to 0.32.1; legacy reference warnings only"
   },
-  "release": "0.32.1",
-  "release_name": "NoemaForge 0.32.1",
+  "release": "0.32.2",
+  "release_name": "NoemaForge 0.32.2",
   "roadmap_inclusions": [
     {
       "id": "NFG-ARCH-0.32.1-typed-governance-sense-critics-rfc",
@@ -198,8 +198,8 @@
     "docs/source_reports/deep-research-report-7-sense-privacy-honesty-critics-rfc.md",
     "docs/source_reports/deep-research-report-8-noemaforge-governance-quality-pack.md"
   ],
-  "status": "pre-alpha",
-  "summary": "NoemaForge 0.32.1: stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
+  "status": "alpha-hardening",
+  "summary": "NoemaForge 0.32.2: orchestration hardening — JobManager, SessionStore, EventLog wired into Admin GUI; duplicate-safe model-selection and vault-reinventory; session restore across refresh; P1 return-in-finally fixed; stale version metadata cleaned.",
   "version": "0.32.2",
   "branch": "release/0.32.2-hardening",
   "title": "NoemaForge 0.32.2 — orchestration hardening and version centralization",

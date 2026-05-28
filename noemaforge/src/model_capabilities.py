@@ -205,7 +205,7 @@ def summarize_model(name: str, path: str, files: Sequence[str] | None = None, co
         "capabilities": caps,
         "runtime_family": runtime,
         "runtime_probe": runtime_probe(runtime),
-        "classification_source": "heuristic:v0.28.5",
+        "classification_source": "heuristic:v0.32.2",
     }
 
 

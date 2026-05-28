@@ -1,6 +1,6 @@
 apiVersion: noemaforge.policy/v1
 kind: QuantizationPolicy
-version: 0.29.06
+version: 0.32.2
 summary: Local GGUF model sizing policy for public MWP desktops.
 runtime:
   runtime_desired_count: 1
