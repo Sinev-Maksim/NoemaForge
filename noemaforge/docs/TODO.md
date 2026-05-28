@@ -42,6 +42,88 @@
 - [x] Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path. Closed by `setup-mode-matrix-core`
 - [x] Onboarding ladder boundary: README.md is the 5-minute overview, docs/QUICKSTART_VM.md is the first-success VM path, docs/SETUP_MODES.md explains host/VM/docker-dev/macOS-dev differences, and docs/PRODUCTION_INSTALL_TRIXIE.md is only entered after quickstart validation; primary docs do not lead with Windows lab workflow. Closed by `onboarding-ladder-core`
 
+## 0.32.2 P0/P1 gaps — identified 2026-05-28
+
+### P0-B — docs/release.json active fields (Windows-doable)
+
+- [x] Fix `docs/release.json`: set `release`, `package`, `release_name`, `channel`, `status`, `summary`, `version_audit`, `generated_at`, `updated_at` to 0.32.2. — Done 2026-05-28 in claude/task-15-frontend-event-polling.
+
+### P0-C — Windows premerge audit script (Windows-doable)
+
+- [x] Create `noemaforge/tools/prep/noemaforge-premerge-check.ps1`: Windows-native premerge audit covering VERSION files, `docs/release.json` active fields, no RUNTIME_VERSION= outside `noemaforge_version.py`, `py_compile` 286 src/*.py, JSON parse 169 configs, YAML parse 70 configs, no tracked `__pycache__`. 13/13 PASS (2026-05-28).
+
+### P0-G — CI workflow (not yet created)
+
+- [x] Create `.github/workflows/premerge-quality.yml`: CI workflow on PRs to `release/0.32.2-hardening` and `main`. 8 steps: py_compile, no RUNTIME_VERSION= leak, VERSION files, docs/release.json fields, JSON parse, YAML parse, no tracked __pycache__, bash -n. `permissions: contents: read`. No auto-commits (2026-05-28).
+
+### P1 — safety review of autonomous workflow files (audit only)
+
+- [x] Safety review of autonomous workflow files — created `noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md` (2026-05-28). Findings: `autonomous-pipeline-v2.yml` has CRITICAL `--approval-mode auto-edit` risk; `qa-version-bump.yml` pushes directly to release branch (HIGH); batch-counter auto-triggers version bump without human approval (HIGH). All three untracked workflows need fixes before enabling. See review doc for required operator actions.
+
+### P1 — PR #2 reviewability (manual action)
+
+- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
+
+## 0.32.2 hardening — completed in release/0.32.2-hardening
+
+- [x] Added file-backed JobManager (noemaforge/src/job_manager.py): queued/running/done/failed/cancel_requested/cancelled states, idempotency keys, durable JSONL job log.
+- [x] Added ProcessGroupRunner (noemaforge/src/process_group_runner.py): subprocess isolation with cancel support.
+- [x] Wired JobManager into AdminGuiServer: `/api/jobs`, `/api/jobs/cancel`, `/api/jobs/stream` SSE.
+- [x] Added direct GUI-action routing in AdminGuiServer: vault-reinventory, model-selection-continue, epoch-apply as plan-only privileged jobs.
+- [x] Added startup preflight module (noemaforge/src/startup_preflight.py).
+- [x] Wired PreflightSuite into AdminGuiServer as a non-fatal gate.
+- [x] Added model-evolution chat routing.
+- [x] Added ConfigValidator JSON/YAML parse gate (noemaforge/src/config_validator.py).
+- [x] Wire SessionStore and EventLog into AdminGuiServer: `session_current()`, `events_list()`, `session_set_mode()` — GET /api/session/current, GET /api/events, POST /api/session/mode.
+- [x] Frontend session restore on page load (startup polls /api/session/current, falls back to dashboard state).
+- [x] Frontend event polling with deduplication by index (`pollEvents()` every 10 s).
+- [x] Frontend mode persistence via POST /api/session/mode after model-selection pick.
+- [x] P1 fix: return-in-finally at noemaforge_core.py:2118 removed (was silently suppressing exceptions).
+- [x] Jobs panel: added Cancel button (✕) for cancellable jobs; `cancelJob()` calls POST /api/jobs/{id}/cancel then refreshes the panel (2026-05-28).
+- [x] Stale version metadata bumped to 0.32.2: release.json, docs/release.json, noemaforge.runtime.yaml, quantization-policy.yaml (3 copies), model_capabilities.py heuristic tag.
+- [x] 244 stale alpha/0.29.x files removed from git tree (moved to trash/).
+- [x] Docs versions bumped: noemaforge/docs/README.md, noemaforge/docs/Manifest.md → 0.32.2.
+
+## 0.32.2 Cursor Brief — remaining open items
+
+Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
+
+### Day 1 — repository hygiene (partial — needs Linux / BigBro-BOS for shell validation)
+
+- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on BigBro-BOS to verify all shell scripts pass syntax check.
+- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on BigBro-BOS.
+- [x] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found. — Both files clean, no stale strings (2026-05-28).
+- [x] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`. — Both clean (2026-05-28).
+- [x] Verify `.gitignore` has `__pycache__/` and `*.pyc` exclusions (and add them if missing). — Created full `.gitignore` (2026-05-28).
+
+### Day 3 — frontend UX (partial — needs live GUI on BigBro-BOS)
+
+- [x] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". — Implemented in app.js sendAdmin() (2026-05-28).
+- [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI).
+- [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive.
+
+### Day 4 — duplicate-safe jobs (partial — needs BigBro-BOS smoke)
+
+- [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs BigBro-BOS.
+- [ ] Manual smoke (BigBro-BOS): send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
+- [ ] Manual smoke (BigBro-BOS): click Vault re-inventory twice rapidly and confirm one job, not two.
+
+### Day 5 — release validation (BigBro-BOS required)
+
+- [ ] Run full test suite on BigBro-BOS: `python -m unittest discover noemaforge/tests/` and record pass/fail counts.
+- [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`.
+- [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`.
+- [ ] Target-machine validation checklist (all on BigBro-BOS):
+  - Admin GUI stays alive during first-start `--dry-run --keep-display`.
+  - Admin chat responds to smalltalk/help without launching a pipeline.
+  - Mode switch persists and is visible after browser refresh.
+  - Continue model selection: two clicks return the same job_id.
+  - Vault re-inventory: two clicks return the same job_id.
+  - Page refresh restores message history and active job state.
+  - Job stop/cancel leaves no stale active jobs.
+  - Gateway, ToolProxy and main llama backend smoke pass or return clear blocked status.
+- [ ] Issue explicit GO/NO-GO merge decision in `noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md` after all above targets pass.
+
 ## Started in this workspace
 
 - [x] Edge/TinyML/OTA pack: MQTT/serial, TinyML validation, gateway inference, rules, manifest signing and OTA rollback. Closed by `edge-tinyml-ota-pack-core`: component contracts are now checked together as an offline aggregate contract across Sense, TinyML, gateway inference, edge rules, OTA rollback and reference targets.

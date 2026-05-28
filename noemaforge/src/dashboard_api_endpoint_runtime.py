@@ -3,9 +3,9 @@
 === NoemaForge File Header ===
 File: noemaforge/src/dashboard_api_endpoint_runtime.py
 Zone: gui/control-plane
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
-Modified: 2026-05-20
+Modified: 2026-05-28
 Purpose: Validate the dedicated installed Admin GUI dashboard backend endpoint contract.
 Inputs: Dashboard API endpoint policy, Admin GUI source, dashboard UI source and Unified Registry.
 Outputs: JSON-compatible DashboardApiEndpointValidationReport artifacts.
@@ -33,6 +33,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 import unified_registry_runtime as urr
+from noemaforge_version import RUNTIME_VERSION
 
 
 API_VERSION = "noemaforge.dashboard-api-endpoint/v1"
@@ -199,8 +200,8 @@ def build_offline_dashboard_server(*, package_root: Path | str) -> Any:
     server = object.__new__(admin_gui_server.AdminGuiServer)
     server.root = root
     server.state = root / "_offline" / "pipeline-state"
-    server.health = lambda: {"ok": True, "version": "0.32.1", "api": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}
-    server.dashboard_state = lambda: {"ok": True, "version": "0.32.1", "source": "offline_dashboard_api_fixture"}
+    server.health = lambda: {"ok": True, "version": RUNTIME_VERSION, "api": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}
+    server.dashboard_state = lambda: {"ok": True, "version": RUNTIME_VERSION, "source": "offline_dashboard_api_fixture"}
     server.conversation_history = lambda: {"conversation_id": "conv_dashboard_api", "messages": [], "artifacts": []}
     server.epoch_status = lambda: {"ok": True, "epoch": "offline"}
     server.telemetry_status = lambda: {"ok": True, "hardware": {}, "runtime": {}, "product": {}}

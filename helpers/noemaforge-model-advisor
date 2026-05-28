@@ -13,9 +13,15 @@
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
 from __future__ import annotations
-import argparse, json, os, re, shutil, subprocess
+import argparse, json, os, re, shutil, subprocess, sys
 from pathlib import Path
-VERSION='0.32.1'
+_SRC = Path(__file__).resolve().parent.parent / "noemaforge" / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+try:
+    from noemaforge_version import RUNTIME_VERSION as VERSION
+except Exception:
+    VERSION = "0.32.2"
 
 def meminfo():
     d={}

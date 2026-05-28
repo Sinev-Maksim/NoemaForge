@@ -1,0 +1,169 @@
+name: Premerge quality gate
+
+# === NoemaForge File Header ===
+# File: .github/workflows/premerge-quality.yml
+# Zone: release/package
+# Version: 0.32.2
+# Created: 2026-05-28
+# Purpose: Read-only premerge quality gate for PRs targeting release/0.32.2-hardening
+#   and main. Fails fast on version violations, compile errors or tracked cache files.
+#   No auto-commits, no auto-push, no auto-tagging.
+# Notes: Code comments are English-only.
+# === End NoemaForge File Header ===
+
+on:
+  pull_request:
+    branches:
+      - release/0.32.2-hardening
+      - main
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  quality-gate:
+    name: Quality gate (py_compile · JSON · YAML · versions · git hygiene)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML
+        run: pip install pyyaml --quiet
+
+      # ── 1. Python compile ────────────────────────────────────────────────
+      - name: py_compile noemaforge/src/*.py
+        run: |
+          count=0; errs=0
+          while IFS= read -r -d '' f; do
+            python -m py_compile "$f" || { echo "FAIL: $f"; errs=$((errs+1)); }
+            count=$((count+1))
+          done < <(find noemaforge/src -name "*.py" -print0)
+          echo "py_compile: $count files, $errs errors"
+          [ "$errs" -eq 0 ] || exit 1
+
+      # ── 2. No RUNTIME_VERSION= assignment outside noemaforge_version.py ──
+      - name: No forbidden RUNTIME_VERSION assignment
+        run: |
+          # Anchor to line-start: avoids matching string literals in test
+          # assertIn(f'RUNTIME_VERSION = "..."') calls.
+          hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" noemaforge/src/ \
+            | grep -v "noemaforge/src/noemaforge_version.py" \
+            | grep -v "import RUNTIME_VERSION" || true)
+          if [ -n "$hits" ]; then
+            echo "FAIL: forbidden RUNTIME_VERSION= assignment found:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "PASS: no forbidden RUNTIME_VERSION assignment"
+
+      # ── 3. VERSION files = 0.32.2 ────────────────────────────────────────
+      - name: VERSION files equal 0.32.2
+        run: |
+          expected="0.32.2"
+          failed=0
+          for f in VERSION noemaforge/VERSION docs/VERSION; do
+            if [ -f "$f" ]; then
+              v=$(tr -d '[:space:]' < "$f")
+              if [ "$v" != "$expected" ]; then
+                echo "FAIL: $f = '$v' (expected $expected)"
+                failed=$((failed+1))
+              else
+                echo "PASS: $f = $v"
+              fi
+            else
+              echo "WARN: $f not found"
+            fi
+          done
+          [ "$failed" -eq 0 ] || exit 1
+
+      # ── 4. docs/release.json active fields ───────────────────────────────
+      - name: docs/release.json version fields = 0.32.2
+        run: |
+          python - <<'PYEOF'
+          import json, sys
+          p = "docs/release.json"
+          try:
+              d = json.loads(open(p, encoding="utf-8").read())
+          except Exception as e:
+              print(f"FAIL: cannot parse {p}: {e}"); sys.exit(1)
+          expected = "0.32.2"
+          failed = []
+          for field in ("version", "release"):
+              if d.get(field) != expected:
+                  failed.append(f"{field}={d.get(field)!r} (expected {expected!r})")
+          if d.get("release_name", "") not in (f"NoemaForge {expected}", f"NoemaForge {expected} — orchestration hardening and version centralization"):
+              if expected not in str(d.get("release_name", "")):
+                  failed.append(f"release_name={d.get('release_name')!r} does not contain {expected!r}")
+          if expected not in str(d.get("package", "")):
+              failed.append(f"package={d.get('package')!r} does not contain {expected!r}")
+          if d.get("status") == "pre-alpha" or d.get("channel") == "pre-alpha":
+              failed.append(f"stale pre-alpha status={d.get('status')!r} channel={d.get('channel')!r}")
+          if failed:
+              print("FAIL docs/release.json:"); print("\n".join(f"  {x}" for x in failed)); sys.exit(1)
+          print(f"PASS: docs/release.json fields OK (version={d['version']} release={d['release']})")
+          PYEOF
+
+      # ── 5. JSON parse — noemaforge/configs/*.json ─────────────────────────
+      - name: JSON parse noemaforge/configs/*.json
+        run: |
+          errs=0; count=0
+          while IFS= read -r -d '' f; do
+            python -m json.tool "$f" > /dev/null 2>&1 || { echo "FAIL: $f"; errs=$((errs+1)); }
+            count=$((count+1))
+          done < <(find noemaforge/configs -name "*.json" -print0 2>/dev/null || true)
+          echo "JSON parse: $count files, $errs errors"
+          [ "$errs" -eq 0 ] || exit 1
+
+      # ── 6. YAML parse — noemaforge/configs/*.yaml ─────────────────────────
+      - name: YAML parse noemaforge/configs/*.yaml
+        run: |
+          python - <<'PYEOF'
+          import yaml, pathlib, sys
+          configs = pathlib.Path("noemaforge/configs")
+          if not configs.exists():
+              print("WARN: noemaforge/configs not found, skipping"); sys.exit(0)
+          files = list(configs.glob("*.yaml")) + list(configs.glob("*.yml"))
+          errs = []
+          for f in files:
+              try:
+                  yaml.safe_load(f.read_text(encoding="utf-8"))
+              except Exception as e:
+                  errs.append(f"{f}: {e}")
+          print(f"YAML parse: {len(files)} files, {len(errs)} errors")
+          if errs:
+              print("\n".join(errs)); sys.exit(1)
+          PYEOF
+
+      # ── 7. No tracked __pycache__ or *.pyc ────────────────────────────────
+      - name: No tracked __pycache__ or *.py[co] in git
+        run: |
+          tracked=$(git ls-files | grep -E '(__pycache__|\.pyc$|\.pyo$)' || true)
+          if [ -n "$tracked" ]; then
+            echo "FAIL: cached bytecode tracked in git:"
+            echo "$tracked"
+            exit 1
+          fi
+          echo "PASS: no tracked __pycache__ or *.py[co]"
+
+      # ── 8. Shell syntax check (bash -n) ───────────────────────────────────
+      - name: Shell syntax check (bash -n) on .sh files
+        run: |
+          errs=0; count=0
+          while IFS= read -r -d '' f; do
+            bash -n "$f" 2>&1 || { echo "FAIL: $f"; errs=$((errs+1)); }
+            count=$((count+1))
+          done < <(find . -name "*.sh" ! -path './.git/*' -print0)
+          echo "bash -n: $count files, $errs syntax errors"
+          [ "$errs" -eq 0 ] || exit 1
+
+      # ── Summary ───────────────────────────────────────────────────────────
+      - name: Summary
+        run: echo "All premerge quality gates passed."

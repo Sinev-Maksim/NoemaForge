@@ -290,10 +290,17 @@ def _make_handler(ctx: _ServerCtx, assets_dir: str):
             if path.startswith("/"):
                 path = path[1:]
             path = os.path.normpath(path).replace("\\", "/")
-            if path.startswith("../") or path.startswith(".."):
-                return self._json({"error": "bad path"}, code=400)
 
             full = os.path.join(assets_dir, path)
+            # Canonical path containment check: resolve symlinks and any
+            # remaining '..' sequences, then verify the result stays inside
+            # assets_dir. Prefix-based startswith("..") alone does not prevent
+            # drive-letter or symlink escapes (CWE-22).
+            assets_real = os.path.realpath(assets_dir)
+            full_real = os.path.realpath(full)
+            if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
+                return self._json({"error": "bad path"}, code=400)
+
             if not os.path.isfile(full):
                 return self._json({"error": "not found", "path": path}, code=404)
 

@@ -20,10 +20,15 @@ import argparse
 import json
 import os
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Sequence
 
+_SRC = Path(__file__).resolve().parent
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+from noemaforge_version import RUNTIME_VERSION
 
 API_VERSION = "noemaforge.job-progress-stream/v1"
 POLICY_KIND = "JobProgressStreamPolicy"
@@ -156,7 +161,7 @@ def _token_report(ref: str, tokens: Sequence[str], *, project_root: Path, packag
     return {"ref": ref, "ok": not failures, "failures": failures, "resolved": resolved}
 
 
-def build_job_stream_events(jobs: Sequence[Dict[str, Any]], *, version: str = "0.32.1") -> List[Dict[str, Any]]:
+def build_job_stream_events(jobs: Sequence[Dict[str, Any]], *, version: str = RUNTIME_VERSION) -> List[Dict[str, Any]]:
     safe_jobs = [dict(job) for job in jobs if isinstance(job, dict)]
     events = [{
         "event": "jobs_snapshot",

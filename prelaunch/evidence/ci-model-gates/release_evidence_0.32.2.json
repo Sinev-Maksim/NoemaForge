@@ -1,0 +1,84 @@
+{
+  "apiVersion": "noemaforge.ci-model-gates/v1",
+  "kind": "ReleaseEvidence",
+  "id": "admin-gui-wiring-release-evidence-0.32.2",
+  "created_at": "2026-05-27T00:00:00Z",
+  "version": "0.32.2",
+  "gate_id": "p0-blocker-admin-gui-wiring",
+  "generated_on": "Windows/Python 3.14 (dev machine); full smoke on BigBro-BOS required",
+  "pull_requests": [
+    {"pr": 3, "branch": "claude/task-1-session-current", "title": "feat(admin-gui): wire GET /api/session/current via session_store [TDD]"},
+    {"pr": 4, "branch": "claude/task-2-events-api",      "title": "feat(admin-gui): wire GET /api/events via event_log [TDD]"},
+    {"pr": 5, "branch": "claude/task-3-session-mode-history", "title": "feat(admin-gui): persist session mode and sync message history [TDD]"},
+    {"pr": 6, "branch": "claude/task-4-p1-finally-audit", "title": "fix(core): remove return inside finally block in _run_role_compute"},
+    {"pr": 7, "branch": "claude/task-5-checksums-evidence", "title": "chore(release): cross-platform checksum script + version fix + evidence"}
+  ],
+  "p0_blockers_status": {
+    "GET /api/session/current":                  {"status": "done", "pr": 3},
+    "GET /api/events":                           {"status": "done", "pr": 4},
+    "GET /api/jobs":                             {"status": "pre-existing, verified"},
+    "POST /api/jobs/{id}/cancel":                {"status": "pre-existing, verified"},
+    "POST /api/model-selection/continue":        {"status": "pre-existing, idempotent via _upsert_job"},
+    "POST /api/vault/reinventory":               {"status": "pre-existing, idempotent via _upsert_job"},
+    "Clear input box after send":                {"status": "pre-existing (input.value='' app.js:167)"},
+    "Persist selected mode across refresh":      {"status": "done", "pr": 5},
+    "Restore message history after refresh":     {"status": "done", "pr": 5}
+  },
+  "p1_blockers_status": {
+    "noemaforge_core.py:return inside finally":  {"status": "done", "pr": 6}
+  },
+  "test_results": [
+    {
+      "branch": "claude/task-1-session-current",
+      "file": "tests/test_session_current_api.py",
+      "tests_run": 10,
+      "passed": 10,
+      "failed": 0,
+      "errors": 0,
+      "duration_s": 0.026
+    },
+    {
+      "branch": "claude/task-2-events-api",
+      "file": "tests/test_events_api.py",
+      "tests_run": 12,
+      "passed": 12,
+      "failed": 0,
+      "errors": 0,
+      "duration_s": 0.038
+    },
+    {
+      "branch": "claude/task-3-session-mode-history",
+      "file": "tests/test_session_mode_history.py",
+      "tests_run": 14,
+      "passed": 14,
+      "failed": 0,
+      "errors": 0,
+      "duration_s": 0.271
+    }
+  ],
+  "py_compile": {
+    "admin_gui_server.py": "OK",
+    "session_store.py": "OK",
+    "event_log.py": "OK",
+    "orchestration_state.py": "OK",
+    "noemaforge_core.py (task-4 branch)": "OK, SyntaxWarning removed",
+    "bootstrap/regenerate-checksums.py": "OK"
+  },
+  "version_audit": {
+    "noemaforge_version.py RUNTIME_VERSION": "0.32.2",
+    "noemaforge/VERSION": "0.32.2",
+    "VERSION (root)": "0.32.2",
+    "noemaforge/docs/VERSION": "0.32.2 (fixed in this PR)"
+  },
+  "pending_on_bigbro_bos": [
+    "pytest full suite (pytest not available on dev Windows machine)",
+    "bash -n on all *.sh files",
+    "noemaforge-version-audit.sh",
+    "smoke test: curl http://127.0.0.1:8765/api/session/current",
+    "smoke test: curl http://127.0.0.1:8765/api/events",
+    "SHA256SUMS regeneration: python3 noemaforge/bootstrap/regenerate-checksums.py noemaforge/",
+    "noemaforge_0.32.2_release.tar.gz build"
+  ],
+  "checksum_script": "noemaforge/bootstrap/regenerate-checksums.py",
+  "checksum_instructions": "After merging all PRs on BigBro-BOS: cd /opt && python3 noemaforge/bootstrap/regenerate-checksums.py noemaforge/ && git add noemaforge/checksums/SHA256SUMS && git commit -m 'chore(release): regenerate SHA256SUMS for 0.32.2'"
+}
