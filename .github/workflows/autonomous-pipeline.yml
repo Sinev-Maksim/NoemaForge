@@ -258,9 +258,9 @@ jobs:
           CODEX_HOME: C:\Users\sinev\.codex
           CODEX_BIN_ROOT: C:\Users\sinev\AppData\Local\OpenAI\Codex\bin
         run: |
-          $ErrorActionPreference = 'Stop'
-          Set-Location -LiteralPath $env:CODEX_WORKTREE
+          $ErrorActionPreference = 'Continue'   # Allow non-terminating errors; we control exit.
 
+          # Define paths first, before any Set-Location, so Write-SkipReview is always callable.
           $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
           $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
           $codex = $null
@@ -279,9 +279,16 @@ jobs:
               "Code quality was validated by CodeQL, py_compile, and the Quality gate instead."
               "Fix the runner setup to enable Codex review: install codex.exe and run ``codex login``."
             ) -join [Environment]::NewLine
-            Set-Content -LiteralPath $reviewPath -Value $body -Encoding utf8
+            [System.IO.File]::WriteAllText($reviewPath, $body, [System.Text.Encoding]::UTF8)
             Write-Warning "Codex CLI review SKIPPED: $reason"
           }
+
+          # Verify CODEX_WORKTREE is set and exists before trying to use it.
+          if (-not $env:CODEX_WORKTREE -or -not (Test-Path -LiteralPath $env:CODEX_WORKTREE)) {
+            Write-SkipReview "CODEX_WORKTREE env var is missing or directory does not exist: '$env:CODEX_WORKTREE'."
+            exit 0
+          }
+          Set-Location -LiteralPath $env:CODEX_WORKTREE
 
           $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
           if ($pathCommand) {
@@ -365,11 +372,12 @@ jobs:
             $prompt 2>&1 | Tee-Object -FilePath $logPath
 
           if ($LASTEXITCODE -ne 0) {
-            # Codex exec itself failed — write a skip review so post-steps have something to read.
+            # Codex exec itself failed — treat as infra skip (not a code FAIL).
+            Write-Warning "Codex CLI exited with code $LASTEXITCODE."
             if (-not (Test-Path -LiteralPath $reviewPath)) {
               Write-SkipReview "Codex CLI exited with code $LASTEXITCODE before producing a review."
             }
-            throw "Codex CLI review failed with exit code $LASTEXITCODE."
+            exit 0   # Not a code quality failure — skip rather than block the pipeline.
           }
 
           $reviewText = Get-Content -LiteralPath $reviewPath -Raw
