@@ -17,9 +17,12 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
+
+_log = logging.getLogger(__name__)
 
 from noemaforge_version import RUNTIME_VERSION
 from orchestration_state import nowz, normalize_session_record
@@ -62,8 +65,8 @@ class SessionStore:
         if path.exists():
             try:
                 return normalize_session_record(json.loads(path.read_text(encoding="utf-8")))
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug("session file corrupted, recreating %s: %s", path, _exc)
         session = normalize_session_record({"session_id": session_id})
         self._write_atomic(path, session)
         self._append_event("session.created", session)

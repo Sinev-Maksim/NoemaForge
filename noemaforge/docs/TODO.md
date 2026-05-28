@@ -42,6 +42,23 @@
 - [x] Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path. Closed by `setup-mode-matrix-core`
 - [x] Onboarding ladder boundary: README.md is the 5-minute overview, docs/QUICKSTART_VM.md is the first-success VM path, docs/SETUP_MODES.md explains host/VM/docker-dev/macOS-dev differences, and docs/PRODUCTION_INSTALL_TRIXIE.md is only entered after quickstart validation; primary docs do not lead with Windows lab workflow. Closed by `onboarding-ladder-core`
 
+## 0.32.2 second-pass hardening — identified 2026-05-28 (loop iteration 2)
+
+### Pre-existing test suite failures (353 failures, 28 errors in discover mode)
+
+Full test suite via `python -m unittest discover noemaforge/tests/` shows 353 failures and 28 errors across 1110 tests. These are pre-existing from the 244-file cleanup and are NOT caused by the current branch changes. Root causes identified:
+
+- **Dead wiki refs in unified-registry.json** (Windows-doable): 19 entries in `noemaforge/configs/unified-registry.json` reference `docs/wiki/**/*-0.32.1.md` files that do not exist (only `0.31.13.alpha-patched1` / `0.31.21.alpha` versions exist). Causes failures in `test_wiki_patch_commit_helper_runtime` and `test_yaml_inventory_readability_qa`. Fix: update each registry ref to point to the last existing version of each wiki file, OR create thin 0.32.1 stubs pointing to their 0.31.x predecessor content. Files needed (19): `docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md`, `docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md` (×8), `docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md` (×2), `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`, `docs/wiki/first-start/full-composite-real-launch-0.32.1.md` (×6).
+- [ ] **Fix dead wiki refs** (Windows-doable): create the 7 missing stub wiki files for `0.32.1` (one per unique path) as minimal Markdown redirects to their predecessor content, OR update the registry entries to the last existing version.
+- [ ] **Audit remaining 334 failures** (Windows-doable): identify root causes of the other failures beyond the 19 dead-ref set. Run `python -m unittest discover noemaforge/tests/ 2>&1 | grep -E "^(FAIL|ERROR)" | sort | uniq -c | sort -rn` on BigBro-BOS or Windows to get a frequency breakdown.
+
+### session_store.py and orchestration_state.py hardening (done 2026-05-28)
+
+- [x] `session_store.py` — `load()` bare `except Exception: pass` on corrupt session file. Added `_log.debug(...)` (2026-05-28).
+- [x] `orchestration_state.py` — `normalize_session_record` dropped `selected_composite_top_n`. Fixed (2026-05-28).
+- [x] `admin_gui_server.py` `events_api` + `app.js` — `session.last_event_index` always stayed 0; events replayed on page refresh. `events_api` now updates session cursor after each poll; `startup()` reads and restores `lastEventIndex` (2026-05-28).
+- [x] `app.js` — mode restore label: `addSystemLine` notification on session restore if saved mode is non-normal (2026-05-28).
+
 ## 0.32.2 P0/P1 gaps — identified 2026-05-28
 
 ### P0-B — docs/release.json active fields (Windows-doable)
