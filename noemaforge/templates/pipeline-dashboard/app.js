@@ -2,12 +2,12 @@
 === NoemaForge File Header ===
 File: templates/pipeline-dashboard/app.js
 Zone: gui/shell
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-10
-Modified: 2026-05-14
+Modified: 2026-05-28
 Purpose: Stateful Admin GUI frontend: backend-owned chat history, persona portraits,
   telemetry, epoch controls, task/job/pipeline dock, right-click pipeline menu and
-  safe plan-first actions.
+  safe plan-first actions. Session restore on load; event polling with dedup.
 Inputs: JSON APIs from src/admin_gui_server.py.
 Outputs: DOM updates only; privileged actions are requested as audited jobs/plans.
 Tests: browser smoke + curl dashboard backend + manual send/refresh/history test.
@@ -24,6 +24,7 @@ let jobStream = null;
 let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
+let lastEventIndex = 0;
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
 
@@ -173,6 +174,8 @@ async function sendAdmin(){
     if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
       result.type = 'model_selection';
+      // Persist the selected mode to session so it survives page refresh.
+      api('/api/session/mode', {mode:modePick.mode, composite_top_n:modePick.composite_top_n}).catch(()=>{});
     }else{
       result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
     }
@@ -244,6 +247,26 @@ function connectJobProgressStream(){
 }
 async function refreshInactivity(){ try{ const st = await api('/api/inactivity/status'); el('inactivity-status').textContent = st.idle_human || '—'; el('inactivity').textContent = `policy=${st.policy?.mode || 'manual'} · next=${st.policy?.next_idle_action || 'none'} · status=${st.status}`; }catch(e){} }
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
+async function pollEvents(){
+  // Poll /api/events with deduplication by index — only fetch rows after lastEventIndex.
+  try{
+    const r = await api(`/api/events?after_index=${lastEventIndex}`);
+    const events = r.events || [];
+    if(!events.length) return;
+    const target = el('internal-chat');
+    for(const ev of events){
+      // Advance cursor so next poll skips already-seen rows.
+      if(typeof ev.index === 'number' && ev.index >= lastEventIndex) lastEventIndex = ev.index + 1;
+      if(!target) continue;
+      const div = document.createElement('div');
+      div.className = 'internal-event';
+      const dataStr = ev.data && Object.keys(ev.data).length ? ' ' + JSON.stringify(ev.data) : '';
+      div.textContent = `[${ev.type}] ${ev.actor || 'system'}${dataStr}`;
+      target.appendChild(div);
+    }
+    if(target) target.scrollTop = target.scrollHeight;
+  }catch(_){}
+}
 async function applyEpoch(){ try{ absorbResult(await api('/api/epoch/apply', {locale: el('locale-select').value})); }catch(e){ addMessage('Admin', `Epoch apply error: ${String(e)}`, 'error'); } }
 async function continueSelection(){ try{ const r = await api('/api/model-selection/continue', {mode:'full_composite', composite_top_n:4}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Continue selection error: ${String(e)}`, 'error'); } }
 async function reinventoryVault(){ try{ const r = await api('/api/vault/reinventory', {}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Vault inventory error: ${String(e)}`, 'error'); } }
@@ -348,11 +371,21 @@ async function loadDashboardBackendState(){
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
-  try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value=”${htmlEscape(x)}”>${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  // Try session-based restore first (persists across page refresh); fall back to dashboard state.
+  let restoredFromSession = false;
+  try{
+    const sess = await api('/api/session/current');
+    const msgs = (sess.session || {}).messages || [];
+    if(msgs.length > 0){ renderConversation(sess.session); restoredFromSession = true; }
+  }catch(_){}
+  if(!restoredFromSession){
+    try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
   connectJobProgressStream();
-  setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); }, 10000);
+  // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
+  setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
 }
 el('admin-send').addEventListener('click', sendAdmin);
 el('admin-message').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendAdmin(); } });

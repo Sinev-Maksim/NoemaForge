@@ -53,6 +53,9 @@ from urllib.parse import parse_qs, quote, unquote, urlparse
 import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
+from session_store import SessionStore
+from event_log import EventLog
+from orchestration_state import is_active_job
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
@@ -427,6 +430,17 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             job_id = unquote(path.rsplit("/", 1)[-1])
             self._send_json(self.server.job_get(job_id))
             return
+        if path == "/api/session/current":
+            query = parse_qs(urlparse(self.path).query)
+            session_id = str((query.get("session_id") or ["default"])[0])
+            self._send_json(self.server.session_current(session_id))
+            return
+        if path == "/api/events":
+            query = parse_qs(urlparse(self.path).query)
+            after = int((query.get("after_index") or ["0"])[0])
+            limit = int((query.get("limit") or ["200"])[0])
+            self._send_json(self.server.events_list(after, limit))
+            return
         self._serve_static(path)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
@@ -511,6 +525,12 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/vault/reinventory":
                 self._send_json(self.server.vault_reinventory())
                 return
+            if path == "/api/session/mode":
+                session_id = str(body.get("session_id") or "default")
+                mode = str(body.get("mode") or "normal")
+                composite_top_n = int(body.get("composite_top_n") or 0)
+                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
+                return
             if path == "/api/workflow/stop":
                 self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
                 return
@@ -583,6 +603,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self.session_store = SessionStore(self.data_root / "sessions")
+        self.event_log = EventLog(self.data_root / "events")
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -692,7 +714,8 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
-                "/api/vault/reinventory", "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
+                "/api/vault/reinventory", "/api/session/current", "/api/session/mode", "/api/events",
+                "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
 
@@ -750,6 +773,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.review_dir / "sr" / "inbox" / f"{msg['message_id']}.json", review)
         if review["ssr_review"]["required"]:
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
+        # Also persist in session_store for browser-refresh restore.
+        try:
+            self.session_store.append_message("default", msg)
+        except Exception:
+            pass
         return msg
 
     def record_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
@@ -979,7 +1007,37 @@ class AdminGuiServer(ThreadingHTTPServer):
                 item = dict(job)
                 item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
                 jobs.append(item)
+        # Sync active jobs into session store for browser-refresh restore.
+        try:
+            active = [j for j in jobs if is_active_job(j)]
+            self.session_store.attach_active_jobs("default", active)
+        except Exception:
+            pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
+
+    def session_current(self, session_id: str = "default") -> Dict[str, Any]:
+        """Return the current session record from SessionStore."""
+        try:
+            session = self.session_store.load(session_id)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
+
+    def events_list(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
+        """Return event log entries from EventLog."""
+        try:
+            events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
+            return {"ok": True, "version": RUNTIME_VERSION, "events": events}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "error": str(exc)}
+
+    def session_set_mode(self, session_id: str, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
+        """Persist selected model-selection mode in session."""
+        try:
+            session = self.session_store.set_mode(session_id, mode, composite_top_n)
+            return {"ok": True, "version": RUNTIME_VERSION, "session": session}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": str(exc)}
 
     def job_stream_events(self) -> List[Dict[str, Any]]:
         jobs = self.jobs_list().get("jobs", [])
