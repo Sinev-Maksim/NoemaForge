@@ -73,8 +73,11 @@ def _hash_text(text: str, *, alg: str = "sha256") -> str:
 
 
 def _stable_id(prefix: str, *parts: Any) -> str:
+    # Use SHA-256 (truncated to 40 hex chars for ID length compatibility).
+    # SHA-1 is no longer considered secure even for non-cryptographic ID
+    # generation because it can expose collision vectors (CWE-328).
     payload = "||".join(str(p) for p in parts)
-    digest = hashlib.sha1(payload.encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()[:40]
     return f"{prefix}:{digest}"
 
 

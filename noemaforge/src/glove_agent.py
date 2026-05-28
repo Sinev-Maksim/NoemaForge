@@ -413,9 +413,11 @@ def _profile_recommendations(profile: str, signals: List[str]) -> List[str]:
 # === End NoemaForge Autodoc Function Header ===
 def _strip_html(text: str) -> str:
     t = text or ""
-    # Remove script/style blocks (roughly)
-    t = re.sub(r"<script[\s\S]*?</script>", " ", t, flags=re.IGNORECASE)
-    t = re.sub(r"<style[\s\S]*?</style>", " ", t, flags=re.IGNORECASE)
+    # Remove script/style blocks.
+    # End-tag pattern uses \s* to match optional whitespace before '>',
+    # e.g. </script > or </style\t>, which naive </script> would miss (CWE-185).
+    t = re.sub(r"<script[\s\S]*?</script\s*>", " ", t, flags=re.IGNORECASE)
+    t = re.sub(r"<style[\s\S]*?</style\s*>", " ", t, flags=re.IGNORECASE)
     # Turn common block separators into newlines before stripping tags.
     t = re.sub(r"<\s*br\s*/?\s*>", "\n", t, flags=re.IGNORECASE)
     t = re.sub(r"</\s*(p|div|li|ul|ol|h\d|section|article|header|footer)\s*>", "\n", t, flags=re.IGNORECASE)
