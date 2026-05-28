@@ -100,12 +100,15 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $branch = $env:GITHUB_REF_NAME
+          $releaseBranch = 'release/0.32.2-hardening'
           git config --global --add safe.directory $env:GITHUB_WORKSPACE
           git init .
+          git remote remove origin 2>$null
           git remote add origin "https://github.com/$env:GITHUB_REPOSITORY.git"
           git fetch --no-tags origin `
-            "+refs/heads/$env:GITHUB_REF_NAME:refs/remotes/origin/$env:GITHUB_REF_NAME" `
-            "+refs/heads/release/0.32.2-hardening:refs/remotes/origin/release/0.32.2-hardening"
+            "+refs/heads/$($branch):refs/remotes/origin/$($branch)" `
+            "+refs/heads/$($releaseBranch):refs/remotes/origin/$($releaseBranch)"
           git checkout --force $env:GITHUB_SHA
 
       - name: Get diff vs release branch
