@@ -85,6 +85,13 @@ modified_file_groups:
   ci_and_quality:
     - .github/workflows/premerge-quality.yml
     - noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md
+  security_hardening:
+    - noemaforge/src/brainui.py
+    - noemaforge/src/brainctl.py
+    - noemaforge/src/glove_agent.py
+    - noemaforge/src/knowledge/extraction_pipeline.py
+    - prelaunch/tools/common/unified_manifest_downloader.py
+    - prelaunch/tools/source/unified_manifest_download_pack_20260408_hotfix3/unified_manifest_downloader.py
   canonical_metadata:
     - VERSION
     - noemaforge/VERSION
@@ -117,6 +124,8 @@ completed_items:
   - "Windows premerge audit script created: noemaforge/tools/prep/noemaforge-premerge-check.ps1 — 13/13 checks PASS (VERSION files, docs/release.json, RUNTIME_VERSION centralization, py_compile 286, JSON parse 169, YAML parse 70, no tracked __pycache__)."
   - "CI premerge quality workflow created: .github/workflows/premerge-quality.yml — 8 gates on PRs to release/0.32.2-hardening and main; permissions: contents: read; no auto-commits."
   - "Autonomous workflow safety review completed: noemaforge/docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md — CRITICAL: autonomous-pipeline-v2.yml uses --approval-mode auto-edit (operator action required before enabling); HIGH: qa-version-bump.yml direct-pushes to release branch; all three workflows currently untracked."
+  - "CodeQL security hardening (cherry-picked onto task-15, 2026-05-28): CWE-22 path traversal fix in brainui.py (realpath containment); CWE-185 HTML-filter regex in glove_agent.py; CWE-328 SHA-1→SHA-256 in extraction_pipeline.py; CWE-20 host equality check in both unified_manifest_downloader.py copies; CWE-312 security advisory on brainctl.py invite token stdout. Addresses 8 confirmed HIGH findings (2 phantom findings documented)."
+  - "admin_gui_server.py conflict resolved in claude/task-15-frontend-event-polling (commit c16ede1): SessionStore+EventLog features from task-2-events-api and release/0.32.2-hardening are combined; job_cancel() uses cancel_requested + .cancel sentinel."
 
 known_open_items_before_final_merge:
   - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
