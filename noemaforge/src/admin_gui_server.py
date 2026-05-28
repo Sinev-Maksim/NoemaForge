@@ -743,6 +743,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         """Return append-only event log entries for GUI polling."""
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit) if limit and int(limit) > 0 else 200)
+            # Advance session cursor so page refresh resumes from the last seen index.
+            if events:
+                last_idx = events[-1].get("index")
+                if isinstance(last_idx, int):
+                    try:
+                        self.session_store.update("default", last_event_index=last_idx + 1)
+                    except Exception as _exc:
+                        _log.debug("session last_event_index update failed: %s", _exc)
             return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}

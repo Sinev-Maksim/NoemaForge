@@ -53,6 +53,7 @@ def normalize_session_record(record: Dict[str, Any]) -> Dict[str, Any]:
         "session_id": str(record.get("session_id") or "default"),
         "active_persona": str(record.get("active_persona") or "operator.admin/administrator"),
         "selected_mode": str(record.get("selected_mode") or "normal"),
+        "selected_composite_top_n": max(0, int(record.get("selected_composite_top_n") or 0)),
         "messages": list(record.get("messages") or []),
         "active_jobs": list(record.get("active_jobs") or []),
         "last_route": record.get("last_route") if isinstance(record.get("last_route"), dict) else {},

@@ -397,8 +397,22 @@ async function startup(){
   let restoredFromSession = false;
   try{
     const sess = await api('/api/session/current');
-    const msgs = (sess.session || {}).messages || [];
-    if(msgs.length > 0){ renderConversation(sess.session); restoredFromSession = true; }
+    const session = sess.session || {};
+    const msgs = session.messages || [];
+    if(msgs.length > 0){ renderConversation(session); restoredFromSession = true; }
+    // Restore event poll cursor so we don't replay already-seen events after refresh.
+    if(typeof session.last_event_index === 'number' && session.last_event_index > 0){
+      lastEventIndex = session.last_event_index;
+    }
+    // Notify the user if a model-selection mode was previously chosen in this session.
+    const savedMode = session.selected_mode;
+    const savedTopN = session.selected_composite_top_n || 0;
+    if(savedMode && savedMode !== 'normal'){
+      const modeLabel = savedMode === 'full_composite' && savedTopN > 0
+        ? `full_composite (top ${savedTopN})`
+        : savedMode;
+      addSystemLine(`Session restored — last selected mode: ${modeLabel}`);
+    }
   }catch(_){}
   if(!restoredFromSession){
     try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }

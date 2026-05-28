@@ -79,6 +79,9 @@ Found after 3-angle code review + verification of admin_gui_server.py, test_sess
 
 ### BigBro-BOS only
 
+- [x] `orchestration_state.py` — `normalize_session_record` dropped `selected_composite_top_n` (set by `set_mode` but not in normalization template). Added to normalize template with `max(0, int(...))` (2026-05-28).
+- [x] `app.js` session restore — `selected_mode` was saved to session but never surfaced on page refresh. Added `addSystemLine` notification on restore if mode != 'normal' (2026-05-28).
+- [x] `app.js` + `admin_gui_server.py` — `last_event_index` in session always stayed at 0 (never updated). Now `events_api` updates `session.last_event_index` after each poll, and `startup()` reads it to advance `lastEventIndex` so events are not replayed on refresh (2026-05-28).
 - [ ] After target-machine merge: run `noemaforge first-run-audit` with `--reboot-ready` and confirm `cancel_requested → cancelled` state transition works for a real long-running subprocess that polls the `.cancel` sentinel file.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
