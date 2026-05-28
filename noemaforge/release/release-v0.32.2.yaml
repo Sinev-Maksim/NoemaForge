@@ -97,7 +97,7 @@ completed_items:
   - "py_compile noemaforge/src/*.py: PASS (2026-05-28, Windows dev machine)."
   - "JSON parse noemaforge/configs/*.json: PASS (2026-05-28)."
   - "YAML parse noemaforge/configs/*.yaml: PASS (2026-05-28)."
-  - "29/29 tests in test_admin_gui_session_event_wiring.py: PASS."
+  - "33/33 tests in test_admin_gui_session_event_wiring.py: PASS (29 session/events + 4 job_cancel marker)."
   - "P1: return-in-finally at noemaforge_core.py:2118 removed — done."
   - "docs/release.json updated from 0.32.1 to 0.32.2."
   - ".gitignore created (was 0 bytes): covers __pycache__, *.pyc, venv, secrets, trash/, runtime state, release tarballs."
@@ -106,6 +106,9 @@ completed_items:
   - "job_cancel() uses cancel_requested status + writes .cancel sentinel file for subprocess polling."
   - "Jobs panel: Cancel button (✕) wired to POST /api/jobs/{id}/cancel; refreshes panel after cancel."
   - "/api/jobs/{job_id}/cancel documented in health endpoint API list."
+  - "RUNTIME_VERSION fixes: 8 src/ files replaced hardcoded '0.32.1' strings with RUNTIME_VERSION import."
+  - "Version centralization tool: changed_count=0 (all sources clean)."
+  - "286/286 Python source files pass py_compile."
 
 known_open_items_before_final_merge:
   - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
