@@ -32,10 +32,11 @@ jobs:
             FAILED="$FAILED python-compile"
           fi
 
-          # Forbidden RUNTIME_VERSION
-          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" . \
-            | grep -v "noemaforge/src/noemaforge_version.py" \
-            | grep -v ".git" || true)
+          # Forbidden RUNTIME_VERSION — anchor to line-start; exclude tests and caches
+          # so assertIn(f'RUNTIME_VERSION = "..."') in test files is not flagged.
+          hits=$(grep -rn "^[[:space:]]*RUNTIME_VERSION[[:space:]]*=" --include="*.py" \
+            --exclude-dir=.git --exclude-dir=tests --exclude-dir=__pycache__ . \
+            | grep -v "noemaforge/src/noemaforge_version.py" || true)
           if [ -n "$hits" ]; then FAILED="$FAILED runtime-version-leak"; fi
 
           # VERSION files
@@ -134,6 +135,8 @@ jobs:
             const v = '${{ steps.bump.outputs.new_version || '0.32.2.x' }}';
             const sha = context.sha.substring(0, 8);
 
+            // Use array.join to avoid multi-line template literals at column 0
+            // which break YAML block-scalar parsing.
             const body = [
               `## QA gate failure — ${v} (${sha})`,
               '',
