@@ -151,6 +151,52 @@ class TestEventsListMethod(unittest.TestCase):
         types = [e["type"] for e in result["events"]]
         self.assertNotIn("a.event", types)
 
+    def test_events_api_updates_session_last_event_index(self) -> None:
+        """events_api() advances session.last_event_index to (last_index + 1)."""
+        self.srv.event_log.append("cursor.event.0")
+        self.srv.event_log.append("cursor.event.1")
+        self.srv.events_api()  # fetch all events (indices 0 and 1)
+        session = self.srv.session_store.load("default")
+        # last_event_index should now be 2 (index 1 was the last event, so next = 2)
+        self.assertEqual(session["last_event_index"], 2)
+
+    def test_events_api_does_not_update_cursor_when_empty(self) -> None:
+        """events_api() with no events does not change session.last_event_index."""
+        self.srv.events_api()  # no events
+        session = self.srv.session_store.load("default")
+        self.assertEqual(session["last_event_index"], 0)
+
+
+# ---------------------------------------------------------------------------
+# session_set_mode — selected_composite_top_n persists through normalization
+# ---------------------------------------------------------------------------
+
+class TestSessionSetModeCompositeTopN(unittest.TestCase):
+    """selected_composite_top_n must survive normalize_session_record round-trip."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.td = Path(self._td.name)
+        self.srv = _make_server(self.td)
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def test_set_mode_persists_composite_top_n(self) -> None:
+        result = self.srv.session_set_mode("default", "full_composite", 5)
+        session = result.get("session", {})
+        self.assertEqual(session.get("selected_composite_top_n"), 5)
+
+    def test_composite_top_n_survives_reload(self) -> None:
+        self.srv.session_set_mode("default", "full_composite", 7)
+        session = self.srv.session_store.load("default")
+        self.assertEqual(session.get("selected_composite_top_n"), 7)
+
+    def test_negative_composite_top_n_clamped_to_zero(self) -> None:
+        result = self.srv.session_set_mode("default", "full_composite", -3)
+        session = result.get("session", {})
+        self.assertGreaterEqual(session.get("selected_composite_top_n", 0), 0)
+
 
 # ---------------------------------------------------------------------------
 # Source wiring checks
