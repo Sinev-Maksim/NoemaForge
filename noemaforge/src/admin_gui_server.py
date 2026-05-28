@@ -713,7 +713,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             "state": str(self.state),
             "api": [
                 "/api/admin/message", "/api/events", "/api/conversation/current", "/api/conversation/history",
-                "/api/admin/message", "/api/session/current", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/session/current", "/api/session/mode", "/api/conversation/current", "/api/conversation/history",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/stream", "/api/pipelines/catalog",

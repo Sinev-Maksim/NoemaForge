@@ -356,8 +356,8 @@ async function loadDashboardBackendState(){
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value=”${htmlEscape(x)}”>${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
-  // Restore session state (selected_mode, message history) from session store.
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  // Restore selected mode from the session store; conversation state is rendered below.
   try{
     const sess = await api('/api/session/current');
     const selected_mode = sess?.session?.selected_mode;
