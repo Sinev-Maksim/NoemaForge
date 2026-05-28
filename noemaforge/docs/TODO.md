@@ -64,6 +64,23 @@
 
 - [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
 
+## 0.32.2 code quality follow-ups — identified 2026-05-28 (post-code-review)
+
+Found after 3-angle code review + verification of admin_gui_server.py, test_session_current_api.py, test_events_api.py. Fixed 8 confirmed bugs (commit 39ba16c). Remaining:
+
+### Windows-doable
+
+- [x] `admin_gui_server.py` — `_read_json` bare `except Exception: return default` silently swallows `JSONDecodeError`, `PermissionError`, `UnicodeDecodeError`. Added `_log.debug("_read_json failed for %s: %s", path, exc)` (2026-05-28).
+- [x] `admin_gui_server.py` — `composite_top_n` in `session_set_mode` POST handler (line ~546) has no range validation. Added `max(0, composite_top_n)` (2026-05-28).
+- [x] `admin_gui_server.py` — `/api/events` GET handler validates `after_index >= 0` but did not validate `limit >= 1`. Added explicit 400 reject for `limit <= 0` (2026-05-28).
+- [x] `test_events_api.py` — No test covered `limit=0` or `limit=-5`. Added `test_events_route_rejects_zero_limit` and `test_events_route_rejects_negative_limit` (2026-05-28).
+- [x] `admin_gui_server.py` — Documented `cancel_requested → cancelled` lifecycle in comment near `job_cancel()` (2026-05-28).
+- [ ] Verify `premerge-quality.yml` CI workflow actually triggers and passes on a test PR (create a dry-run branch with a known-good commit to confirm the 8-step gate runs).
+
+### BigBro-BOS only
+
+- [ ] After target-machine merge: run `noemaforge first-run-audit` with `--reboot-ready` and confirm `cancel_requested → cancelled` state transition works for a real long-running subprocess that polls the `.cancel` sentinel file.
+
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 
 - [x] Added file-backed JobManager (noemaforge/src/job_manager.py): queued/running/done/failed/cancel_requested/cancelled states, idempotency keys, durable JSONL job log.

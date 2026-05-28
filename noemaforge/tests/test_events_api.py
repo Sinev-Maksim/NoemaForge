@@ -165,6 +165,20 @@ class TestEventsApiRoute(unittest.TestCase):
         self.assertFalse(payload["ok"])
         self.assertEqual(payload["error"], "after_index must be >= 0")
 
+    def test_events_route_rejects_zero_limit(self) -> None:
+        (status, payload), calls = self._call_route("/api/events?limit=0")
+        self.assertEqual(status, 400)
+        self.assertEqual(calls, [])
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "limit must be >= 1")
+
+    def test_events_route_rejects_negative_limit(self) -> None:
+        (status, payload), calls = self._call_route("/api/events?limit=-5")
+        self.assertEqual(status, 400)
+        self.assertEqual(calls, [])
+        self.assertFalse(payload["ok"])
+        self.assertEqual(payload["error"], "limit must be >= 1")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -378,6 +378,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 limit = int((query.get("limit") or ["200"])[0])
             except (TypeError, ValueError):
                 limit = 200
+            if limit <= 0:
+                self._send_json({"ok": False, "error": "limit must be >= 1"}, status=400)
+                return
             self._send_json(self.server.events_api(after_index=after, limit=limit))
             return
         if path == "/api/session/current":
@@ -543,7 +546,7 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/session/mode":
                 session_id = str(body.get("session_id") or "default")
                 mode = str(body.get("mode") or "normal")
-                composite_top_n = int(body.get("composite_top_n") or 0)
+                composite_top_n = max(0, int(body.get("composite_top_n") or 0))
                 self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
                 return
             if path == "/api/workflow/stop":
@@ -638,7 +641,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         try:
             if path.exists():
                 return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as _exc:
+            _log.debug("_read_json failed for %s: %s", path, _exc)
             return default
         return default
 
@@ -1109,6 +1113,9 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.jobs_dir / f"{safe_id(jid)}.json", target)
             # Write a sentinel file that long-running subprocesses can poll
             # without parsing JSON (lightweight cancel-marker check).
+            # Lifecycle: cancel_requested (here) → cancelled (set by the
+            # subprocess on BigBro-BOS when it detects the sentinel and
+            # terminates cleanly; no in-process transition exists by design).
             marker = self.jobs_dir / f"{safe_id(jid)}.cancel"
             try:
                 marker.write_text(now_iso() + "\n", encoding="utf-8")
