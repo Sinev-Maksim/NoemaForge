@@ -220,14 +220,33 @@ jobs:
             throw "Codex CLI is not logged in with ChatGPT. Run codex login for CODEX_HOME=$env:CODEX_HOME."
           }
 
+          $instructionsPath = Join-Path $env:CODEX_WORKTREE '.codex\instructions.md'
+          $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
+          if (-not (Test-Path -LiteralPath $instructionsPath)) {
+            Write-FailureReview ".codex/instructions.md was not found in the prepared source archive."
+            throw ".codex/instructions.md was not found in the prepared source archive."
+          }
+          if (-not (Test-Path -LiteralPath $diffPath)) {
+            Write-FailureReview "diff.patch was not found in the prepared source archive."
+            throw "diff.patch was not found in the prepared source archive."
+          }
+
+          $instructions = Get-Content -LiteralPath $instructionsPath -Raw
+          $diffText = Get-Content -LiteralPath $diffPath -Raw
+          $maxDiffChars = 120000
+          if ($diffText.Length -gt $maxDiffChars) {
+            $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
+          }
+
           $prompt = @(
             "You are reviewing a Claude Code branch in NoemaForge."
             "Base branch: origin/release/0.32.2-hardening"
             "Head branch: $env:GITHUB_REF_NAME"
             "Commit: $env:GITHUB_SHA"
             ""
-            "Read .codex/instructions.md and review the diff strictly against the documented gates."
-            "Inspect the branch changes in diff.patch at the repository root."
+            "Review strictly against the gates from .codex/instructions.md included below."
+            "Inspect the branch changes from diff.patch included below."
+            "If local command execution is unavailable, use the inline content below and the GitHub connector as read-only fallback."
             "Return a concise GitHub-ready Markdown review."
             "Start with exactly one verdict line:"
             "Verdict: PASS"
@@ -237,6 +256,16 @@ jobs:
             "Include sections for Summary, Blocking Issues, and Optimizations."
             "Do not modify files or push commits in this workflow run."
             "Use read-only inspection only."
+            ""
+            "Review gates from .codex/instructions.md:"
+            '```markdown'
+            $instructions
+            '```'
+            ""
+            "Branch diff from release/0.32.2-hardening to $env:GITHUB_SHA:"
+            '```diff'
+            $diffText
+            '```'
           ) -join [Environment]::NewLine
 
           & $codex exec `
@@ -267,6 +296,7 @@ jobs:
           path: |
             codex_review.md
             ${{ runner.temp }}\codex_run.log
+            ${{ runner.temp }}\codex-source\diff.patch
 
       - name: Post review as PR comment
         if: always()
