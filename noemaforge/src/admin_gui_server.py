@@ -56,6 +56,8 @@ from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
 from orchestration_state import is_active_job
+from job_manager import JobManager
+from startup_preflight import PreflightSuite
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -371,16 +373,10 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if after < 0:
                 self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
                 return
-            try:
-                limit = int((query.get("limit") or ["200"])[0])
-            except (TypeError, ValueError):
-                limit = 200
-            self._send_json(self.server.events_api(after_index=after, limit=limit))
+            self._send_json(self.server.events_api(after_index=after))
             return
         if path == "/api/session/current":
-            query = parse_qs(urlparse(self.path).query)
-            session_id = str((query.get("session_id") or ["default"])[0])
-            self._send_json(self.server.session_current(session_id))
+            self._send_json(self.server.session_current())
             return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
@@ -630,6 +626,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        self.job_manager = JobManager(self.jobs_dir)
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -756,11 +753,6 @@ class AdminGuiServer(ThreadingHTTPServer):
             return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
 
     # --- session state ----------------------------------------------------------------
-    def session_current(self) -> Dict[str, Any]:
-        """Return the current GUI session record (default session)."""
-        session = self.session_store.load("default")
-        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
-
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
         session = self.session_store.set_mode("default", mode, composite_top_n)
@@ -1017,57 +1009,35 @@ class AdminGuiServer(ThreadingHTTPServer):
         return self.jobs_dir / f"{safe_id(str(job_id))}.cancel"
 
     def jobs_data(self) -> Dict[str, Any]:
-        data = self._read_json(self.jobs_file(), {"jobs": []})
-        if not isinstance(data, dict):
-            data = {"jobs": []}
+        """Compatibility shim — returns index as written by JobManager."""
+        data = self.job_manager._read_index()
         data.setdefault("jobs", [])
         return data
 
-    def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
-        data = self.jobs_data()
-        if idempotency_key:
-            for existing in data.get("jobs", []):
-                if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
-                    return existing
-        data.setdefault("jobs", []).append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
-
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
-        job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
-        job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
-        return self._upsert_job(job, idempotency_key=idempotency_key)
+        job = self.job_manager.create(
+            kind,
+            idempotency_key=idempotency_key,
+            command=command,
+            progress=progress,
+            artifacts=enrich_artifact_cards(artifacts),
+            trace_id=trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"),
+        )
+        if status and status != "queued":
+            # Apply non-default initial status (e.g. needs_privilege) after creation.
+            job = self.job_manager.update_status(job["job_id"], status) or job
+        return job
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = data.setdefault("jobs", [])
-        replaced = False
-        for index, existing in enumerate(jobs):
-            if existing.get("job_id") == job.get("job_id"):
-                jobs[index] = job
-                replaced = True
-                break
-        if not replaced:
-            jobs.append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        """Save a (possibly caller-mutated) job dict back through JobManager."""
+        return self.job_manager._save(job)
 
     def jobs_list(self) -> Dict[str, Any]:
-        data = self.jobs_data()
         jobs = []
-        for job in data.get("jobs", []):
-            if isinstance(job, dict):
-                item = dict(job)
-                item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
-                jobs.append(item)
-        # Sync active jobs into session store for browser-refresh restore.
-        try:
-            active = [j for j in jobs if is_active_job(j)]
-            self.session_store.attach_active_jobs("default", active)
-        except Exception:
-            pass
+        for job in self.job_manager.list_all():
+            item = dict(job)
+            item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+            jobs.append(item)
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
 
     def session_current(self, session_id: str = "default") -> Dict[str, Any]:
@@ -1113,39 +1083,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
-        job = self._read_json(self.job_file(job_id), None)
-        if not job:
-            for j in self.jobs_data().get("jobs", []):
-                if j.get("job_id") == job_id:
-                    job = j
-                    break
+        job = self.job_manager.get(job_id)
         if isinstance(job, dict):
             job = dict(job)
             job["artifacts"] = enrich_artifact_cards(job.get("artifacts") if isinstance(job.get("artifacts"), list) else [])
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
-        data = self.jobs_data()
-        target = None
-        for j in data.get("jobs", []):
-            if j.get("job_id") == job_id:
-                # Use cancel_requested so running subprocesses can detect the
-                # request before the orchestrator confirms the final cancelled state.
-                j["status"] = "cancel_requested"
-                j["updated_at"] = now_iso()
-                target = j
-        self._write_json(self.jobs_file(), data)
-        if target:
-            jid = target["job_id"]
-            self._write_json(self.job_file(str(jid)), target)
-            # Write a sentinel file that long-running subprocesses can poll
-            # without parsing JSON (lightweight cancel-marker check).
-            marker = self.job_cancel_marker_file(str(jid))
-            try:
-                marker.write_text(now_iso() + "\n", encoding="utf-8")
-            except OSError:
-                pass
-        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Cancel requested" if target else "Job not found"}
+        target = self.job_manager.cancel(job_id)
+        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Job cancelled" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:
@@ -1315,6 +1261,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return out
 
     def model_selection_continue(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        preflight = self._run_preflight()
+        if preflight is not None:
+            return {
+                "ok": False,
+                "preflight_failed": True,
+                "version": RUNTIME_VERSION,
+                "preflight": preflight,
+                "reply": "Pre-start safety check failed. Resolve the issues listed in 'preflight' before continuing model selection.",
+            }
         progress = self.model_selection_progress()
         mode = str(body.get("mode") or "full_composite")
         n = int(body.get("composite_top_n") or 4)
@@ -1407,6 +1362,92 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "reply": "New pipeline draft created; it is not active until review/approval.", "draft": draft, "artifacts": [{"type": "pipeline_draft", "status": "created", "label": f"{draft_id}.json", "path": str(out), "open_command": "cat " + str(out)}]}
 
     # --- GUI intent helpers ---------------------------------------------------------
+
+    def _run_preflight(self) -> Optional[Dict[str, Any]]:
+        """Run the standard first-start preflight suite.
+
+        Returns ``None`` when all checks pass (safe to proceed).
+        Returns the preflight report dict when one or more checks fail (caller
+        should return an error response to the GUI without creating a job).
+
+        Exceptions from the preflight suite itself are swallowed and treated as
+        non-fatal so that a broken preflight module never blocks the GUI.
+        """
+        try:
+            report = PreflightSuite.for_first_start().run()
+            if report.get("ok"):
+                return None
+            return report
+        except Exception:
+            # Preflight unavailable — allow the caller to proceed; the issue
+            # will surface through the normal job-level error handling.
+            return None
+
+    # GUI action constants — phrases that map directly to server API methods.
+    _GUI_ACTION_MODEL_SELECTION_CONTINUE = "model_selection_continue"
+    _GUI_ACTION_VAULT_REINVENTORY = "vault_reinventory"
+    _GUI_ACTION_MODEL_EVOLUTION = "model_evolution"
+
+    # Phrase sets that identify each GUI action (checked case-insensitively).
+    _GUI_ACTION_PHRASES: List[Tuple[str, List[str]]] = [
+        ("model_selection_continue", [
+            "continue model selection", "resume model selection",
+            "продолжи выбор модел", "продолжи model selection",
+            "continue selection", "resume selection",
+        ]),
+        ("vault_reinventory", [
+            "reinventory vault", "re-inventory vault", "vault inventory",
+            "vault reinventory", "scan vault", "инвентаризация vault",
+            "inventory vault", "vault scan",
+            "re inventory vault", "inventory the vault", "re inventory the vault",
+        ]),
+        ("model_evolution", [
+            "model evolution", "model-evolution",
+            "run model evolution", "start model evolution",
+            "эволюция модели", "проведи эволюцию",
+            "запусти эволюцию", "model evolution cycle",
+        ]),
+    ]
+
+    def _detect_gui_action(self, low: str) -> Optional[str]:
+        """Return a GUI action key if *low* (already lowercased text) matches a known phrase.
+
+        Returns None when no specific GUI action is detected.  Only exact phrase
+        substrings are matched — partial word matches are intentionally avoided.
+        """
+        if not low:
+            return None
+        # Normalise punctuation/hyphens the same way for comparison.
+        normalised = re.sub(r"[-–—]", " ", low)
+        for action_key, phrases in self._GUI_ACTION_PHRASES:
+            if any(phrase in normalised for phrase in phrases):
+                return action_key
+        return None
+
+    def _route_gui_action(self, action_key: str, text: str, locale: str) -> Optional[Dict[str, Any]]:
+        """Call the appropriate server method for *action_key* and enrich the result.
+
+        Returns None for unknown keys so callers can fall through to other routing.
+        """
+        result: Optional[Dict[str, Any]] = None
+        if action_key == self._GUI_ACTION_MODEL_SELECTION_CONTINUE:
+            # Use default full-composite mode when routing from chat.
+            result = self.model_selection_continue({"mode": "full_composite", "composite_top_n": 4})
+        elif action_key == self._GUI_ACTION_VAULT_REINVENTORY:
+            result = self.vault_reinventory()
+        elif action_key == self._GUI_ACTION_MODEL_EVOLUTION:
+            result = self.model_evolution(
+                text,
+                target_role="dev.work/dev",
+                apply=False,
+            )
+        if result is None:
+            return None
+        result = dict(result)
+        result.setdefault("mode", action_key)
+        result.setdefault("artifacts", [])
+        return result
+
     def _explicit_control_request(self, low: str) -> bool:
         """Return True when the user is asking the GUI to run or open a NoemaForge action."""
         control_verbs = [
@@ -1511,6 +1552,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        # Direct GUI-action routing: model-selection-continue and vault-reinventory are
+        # handled inline by the server without spawning admin_runtime.py.
+        gui_action = self._detect_gui_action(low)
+        if gui_action:
+            routed = self._route_gui_action(gui_action, text, locale)
+            if routed is not None:
+                reply = str(routed.get("reply") or "Action queued.")
+                self.save_message("admin", reply, persona=conv.get("active_persona", "Optimizer"), locale=locale, intent=gui_action)
+                return routed
         if self._explicit_control_request(low):
             pipeline_id = self._detect_pipeline_id(text)
             if pipeline_id:
@@ -1693,6 +1743,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return run_json(cmd, env=self.env(), timeout=120)
 
     def vault_reinventory(self) -> Dict[str, Any]:
+        preflight = self._run_preflight()
+        if preflight is not None:
+            return {
+                "ok": False,
+                "preflight_failed": True,
+                "version": RUNTIME_VERSION,
+                "preflight": preflight,
+                "reply": "Pre-start safety check failed. Resolve the issues listed in 'preflight' before running vault re-inventory.",
+            }
         progress = self.model_selection_progress()
         command = "sudo noemaforge inventory scan && sudo noemaforge datasets scan && sudo noemaforge tournament eligibility"
         privileged_steps = [
