@@ -178,11 +178,12 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   unbounded growth of the job index. Blocked until task-11
   (`claude/task-11-wire-preflight`) merges to release.
 
-- [ ] **Add idempotency integration test for `/api/model-selection/continue`**
-  (Windows-doable via unit test stub). Create a test that calls
-  `model_selection_continue({"mode": "full_composite", "composite_top_n": 4})`
-  twice on the same server instance and asserts both calls return the same
-  `job_id` when an active job already exists.
+- [x] **Add idempotency integration test for `/api/model-selection/continue`**
+  Done in `claude/task-15-idempotency-test` (13 tests pass). Covers:
+  model_selection_continue repeated calls return same job_id, vault_reinventory
+  idempotency, needs_privilege status, polkit policy, --keep-display in command.
+  Note: job_id uses second-precision timestamps so sub-second uniqueness is
+  tracked separately in task-16.
 
 - [ ] **Add `_run_preflight()` exception reporting mode** — currently any
   exception in PreflightSuite is silently swallowed and returns None.
