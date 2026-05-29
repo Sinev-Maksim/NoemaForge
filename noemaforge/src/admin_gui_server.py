@@ -761,7 +761,9 @@ class AdminGuiServer(ThreadingHTTPServer):
                 last_idx = events[-1].get("index")
                 if isinstance(last_idx, int):
                     try:
-                        self.session_store.update(session_id, last_event_index=last_idx + 1)
+                        _ss = getattr(self, "session_store", None)
+                        if _ss is not None:
+                            _ss.update(session_id, last_event_index=last_idx + 1)
                     except Exception as _exc:
                         _log.debug("session last_event_index update failed: %s", _exc)
             return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
@@ -824,7 +826,9 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
         # Also persist in session_store for browser-refresh restore.
         try:
-            self.session_store.append_message("default", msg)
+            _ss = getattr(self, "session_store", None)
+            if _ss is not None:
+                _ss.append_message("default", msg)
         except Exception as _exc:
             _log.warning("session_store.append_message failed: %s", _exc)
         return msg
@@ -1059,7 +1063,9 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Sync active jobs into session store for browser-refresh restore.
         try:
             active = [j for j in jobs if is_active_job(j)]
-            self.session_store.attach_active_jobs("default", active)
+            _ss = getattr(self, "session_store", None)
+            if _ss is not None:
+                _ss.attach_active_jobs("default", active)
         except Exception as _exc:
             _log.warning("session_store.attach_active_jobs failed: %s", _exc)
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
