@@ -41,10 +41,17 @@ import unittest
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
-import discord_bridge
-import toolproxy
+_IMPORT_ERROR: "str | None" = None
+try:
+    import discord_bridge
+    import toolproxy
+except ImportError as _e:
+    _IMPORT_ERROR = str(_e)
+    discord_bridge = None  # type: ignore[assignment]
+    toolproxy = None  # type: ignore[assignment]
 
 
+@unittest.skipIf(_IMPORT_ERROR is not None, f"requires Linux modules: {_IMPORT_ERROR}")
 class DiscordBridgeTests(unittest.TestCase):
     def _policy(self, td: str) -> dict:
         worker = os.path.join(td, 'bridge_worker.py')

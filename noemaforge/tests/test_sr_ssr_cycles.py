@@ -43,10 +43,17 @@ from unittest import mock
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
-import sr_cycle
-import ssr_cycle
+_IMPORT_ERROR: "str | None" = None
+try:
+    import sr_cycle
+    import ssr_cycle
+except ImportError as _e:
+    _IMPORT_ERROR = str(_e)
+    sr_cycle = None  # type: ignore[assignment]
+    ssr_cycle = None  # type: ignore[assignment]
 
 
+@unittest.skipIf(_IMPORT_ERROR is not None, f"requires Linux modules: {_IMPORT_ERROR}")
 class SRCycleTests(unittest.TestCase):
     def test_sr_report_contains_epoch_immutability(self) -> None:
         with tempfile.TemporaryDirectory(prefix='noemaforge-sr-') as td:
@@ -58,6 +65,7 @@ class SRCycleTests(unittest.TestCase):
             self.assertIn('reflection_quality', obj)
 
 
+@unittest.skipIf(_IMPORT_ERROR is not None, f"requires Linux modules: {_IMPORT_ERROR}")
 class SSRCycleTests(unittest.TestCase):
     def test_ssr_report_contains_epoch_immutability(self) -> None:
         with tempfile.TemporaryDirectory(prefix='noemaforge-ssr-') as td:

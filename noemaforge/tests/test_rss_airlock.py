@@ -28,8 +28,16 @@ import os, sys, tempfile, unittest
 from unittest import mock
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(ROOT, 'src'))
-import rss_airlock
 
+_IMPORT_ERROR: "str | None" = None
+try:
+    import rss_airlock
+except ImportError as _e:
+    _IMPORT_ERROR = str(_e)
+    rss_airlock = None  # type: ignore[assignment]
+
+
+@unittest.skipIf(_IMPORT_ERROR is not None, f"requires Linux modules: {_IMPORT_ERROR}")
 class RSSAirlockTests(unittest.TestCase):
     def test_ingest_feed_runs_webgw_and_glove(self) -> None:
         with tempfile.TemporaryDirectory(prefix='noemaforge-rss-') as td:

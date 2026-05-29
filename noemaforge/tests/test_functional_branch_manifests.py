@@ -30,15 +30,24 @@ from __future__ import annotations
 
 import json
 import os
+import unittest
 from pathlib import Path
 
-import jsonschema
+_HAS_JSONSCHEMA = False
+try:
+    import jsonschema
+    _HAS_JSONSCHEMA = True
+except ImportError:
+    pass
+
 import yaml
 
 ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), '..')))
 
 
 def test_branch_registry_and_manifests_validate() -> None:
+    if not _HAS_JSONSCHEMA:
+        raise unittest.SkipTest("jsonschema not installed")
     reg = yaml.safe_load((ROOT / 'configs' / 'functional-branches.yaml').read_text(encoding='utf-8')) or {}
     reg_schema = json.loads((ROOT / 'contracts' / 'functional_branches.schema.json').read_text(encoding='utf-8'))
     man_schema = json.loads((ROOT / 'contracts' / 'functional_branch_manifest.schema.json').read_text(encoding='utf-8'))

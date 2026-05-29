@@ -28,8 +28,16 @@ import os, sqlite3, sys, tempfile, unittest
 from unittest import mock
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(ROOT, 'src'))
-import toolproxy
 
+_IMPORT_ERROR: "str | None" = None
+try:
+    import toolproxy
+except ImportError as _e:
+    _IMPORT_ERROR = str(_e)
+    toolproxy = None  # type: ignore[assignment]
+
+
+@unittest.skipIf(_IMPORT_ERROR is not None, f"requires Linux modules: {_IMPORT_ERROR}")
 class ToolProxyRoundtripTests(unittest.TestCase):
     def test_voice_chat_roundtrip_merges_tts_result(self) -> None:
         cfg = {'tts_backends_policy_path': '/tmp/tts.yaml', 'epoch': {'enabled': False}}
