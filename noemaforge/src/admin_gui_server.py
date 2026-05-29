@@ -634,8 +634,9 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
-        # ConfigValidator scans the repo root for broken JSON/YAML files.
-        self._config_validate_root = self.root.parent if self.root.parent.exists() else self.root
+        # ConfigValidator scans the installation root (e.g. /opt/noemaforge).
+        # Do NOT use self.root.parent (/opt/) — that would scan the entire parent.
+        self._config_validate_root = self.root
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
