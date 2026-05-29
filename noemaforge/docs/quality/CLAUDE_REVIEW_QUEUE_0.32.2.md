@@ -1,5 +1,58 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: PR #11 Job heartbeat and ProcessGroupRunner mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #11
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/job_manager.py
+- noemaforge/src/process_group_runner.py
+- noemaforge/tests/test_job_heartbeat_and_process_runner.py
+
+Intent:
+Add JobManager heartbeat/staleness handling and ProcessGroupRunner support for
+process-group-aware long-running job execution and cancellation foundations.
+
+Risk areas:
+- JobManager/orchestration lifecycle semantics.
+- Process-group creation and cancellation behavior across Windows/Linux target
+  differences.
+- Repeated introduction of `job_manager.py` across task branches.
+- CI workflow changes are present in this orchestration branch and need scope
+  review before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Are the heartbeat/staleness thresholds and ProcessGroupRunner contracts
+   correct for target BigBro-BOS orchestration?
+2. Should CI workflow changes be removed from this branch or split into a
+   dedicated workflow PR?
+3. Should Codex be re-run after branch cleanup because the current Codex FAIL
+   text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #11 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `d2232a6d79eb08e3884781dd15015a1e0d7c10ba`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_job_heartbeat_and_process_runner.py`
+  (24 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews the heartbeat/process-group contract and target OS implications.
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+- Duplicate JobManager changes are reconciled with PR #8/#9 ordering.
+
 ## Claude Review Packet: PR #10 Admin chat routing mixed-scope review
 
 Status: pending-claude-review
