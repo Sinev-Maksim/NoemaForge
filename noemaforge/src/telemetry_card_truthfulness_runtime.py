@@ -29,6 +29,9 @@ from typing import Any, Dict, List, Sequence
 
 
 SRC_DIR = Path(__file__).resolve().parent
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+from noemaforge_version import RUNTIME_VERSION
 API_VERSION = "noemaforge.telemetry-card-truthfulness/v1"
 POLICY_KIND = "TelemetryCardTruthfulnessPolicy"
 REPORT_KIND = "TelemetryCardTruthfulnessValidationReport"
@@ -181,7 +184,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server._write_json = write_json
     server._append_jsonl = append_jsonl
     server._command_output = lambda cmd, timeout=8: {"available": False, "cmd": list(cmd), "stdout": "", "stderr": "offline fixture"}
-    server.runtime_status = lambda: {"ok": True, "version": "0.32.1", "device_policy": {"policy": "auto"}, "sockets": {}, "main_backend": {"stdout": "inactive"}, "main_manifest": {"model_id": "fixture-main"}}
+    server.runtime_status = lambda: {"ok": True, "version": RUNTIME_VERSION, "device_policy": {"policy": "auto"}, "sockets": {}, "main_backend": {"stdout": "inactive"}, "main_manifest": {"model_id": "fixture-main"}}
     return server
 
 

@@ -1,0 +1,152 @@
+# === NoemaForge File Header ===
+# File: .github/workflows/p0-status-ledger.yml
+# Zone: ci/status
+# Version: 0.32.2
+# Created: 2026-05-26
+# Modified: 2026-05-26
+# Purpose: Maintain a single machine-updated P0 status ledger comment on Issue #1 for the 0.32.2 hardening release.
+# Inputs: GitHub issues, pull requests, labels, PR titles/bodies and workflow dispatch events.
+# Outputs: Updated Issue #1 comment containing PR linkage, P0 area status and remaining release blockers.
+# Side effects: Creates or updates one issue comment marked with noemaforge:p0-status-ledger.
+# Tests: GitHub Actions workflow syntax validation; manual workflow_dispatch dry run through Actions UI.
+# Notes: Workflow comments are English-only; user-facing issue content may be bilingual when needed.
+# === End NoemaForge File Header ===
+name: P0 status ledger
+
+on:
+  workflow_dispatch:
+  issues:
+    types: [opened, edited, reopened, closed, labeled, unlabeled, assigned, unassigned]
+  pull_request:
+    types: [opened, edited, synchronize, reopened, closed, ready_for_review, converted_to_draft, labeled, unlabeled]
+  schedule:
+    - cron: "17 7 * * *"
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: p0-status-ledger-issue-1
+  cancel-in-progress: true
+
+jobs:
+  update-ledger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Issue #1 P0 status ledger
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = 1;
+            const marker = '<!-- noemaforge:p0-status-ledger -->';
+            const now = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+
+            const issue = await github.rest.issues.get({ owner, repo, issue_number });
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100,
+              sort: 'updated',
+              direction: 'desc'
+            });
+
+            const related = pulls.filter(pr => {
+              const text = `${pr.title || ''}\n${pr.body || ''}`.toLowerCase();
+              return pr.number === 2 || text.includes('#1') || text.includes('issue #1') || text.includes('p0') || text.includes('0.32.2');
+            });
+
+            function areaFor(pr) {
+              const t = `${pr.title || ''}\n${pr.body || ''}`.toLowerCase();
+              const areas = [];
+              if (/version|runtime_version|release\.json|stale|audit|metadata|cache|gitignore/.test(t)) areas.push('Version / release hygiene');
+              if (/session|message history|mode|refresh|events|eventbus|sse/.test(t)) areas.push('Admin session / events');
+              if (/job|duplicate|heartbeat|processgroup|cancel|watchdog/.test(t)) areas.push('JobManager / process control');
+              if (/router|routing|chat|intent|smalltalk|pipeline/.test(t)) areas.push('Admin routing / chat');
+              if (/preflight|gdm|display|keep-display|startup|journald|smoke/.test(t)) areas.push('Target safety gates');
+              if (/dashboard|frontend|portrait|input|ux/.test(t)) areas.push('Dashboard UX');
+              if (areas.length === 0) areas.push('General / release');
+              return areas;
+            }
+
+            const areaMap = new Map();
+            for (const pr of related) {
+              for (const area of areaFor(pr)) {
+                if (!areaMap.has(area)) areaMap.set(area, []);
+                areaMap.get(area).push(pr);
+              }
+            }
+
+            const requiredAreas = [
+              'Version / release hygiene',
+              'Admin session / events',
+              'JobManager / process control',
+              'Admin routing / chat',
+              'Target safety gates',
+              'Dashboard UX'
+            ];
+
+            const rows = requiredAreas.map(area => {
+              const prs = areaMap.get(area) || [];
+              const prLinks = prs.length
+                ? prs.map(pr => `[#${pr.number}](${pr.html_url}) ${pr.draft ? 'draft' : 'open'}`).join('<br>')
+                : '_no open related PR detected_';
+              const status = prs.length ? '🟡 partial / review needed' : '🔴 open';
+              return `| ${area} | ${status} | ${prLinks} |`;
+            }).join('\n');
+
+            const prRows = related.length
+              ? related.map(pr => `| [#${pr.number}](${pr.html_url}) | ${pr.draft ? 'draft' : 'open'} | ${pr.title.replace(/\|/g, '\\|')} | ${pr.head.ref} |`).join('\n')
+              : '| — | — | No related open PRs detected | — |';
+
+            const mergeReady = 'No';
+            const body = `${marker}
+            ## P0 Status Ledger — NoemaForge 0.32.2
+
+            Last updated: ${now} UTC by GitHub Actions.
+
+            **Issue:** #${issue_number} — ${issue.data.title}  
+            **Release branch:** \`release/0.32.2-hardening\`  
+            **Main release PR:** #2  
+            **Merge-ready:** **${mergeReady}**
+
+            ### P0 area status
+
+            | Area | Status | Evidence |
+            |---|---|---|
+            ${rows}
+
+            ### Related open PRs
+
+            | PR | State | Title | Head branch |
+            |---|---|---|---|
+            ${prRows}
+
+            ### Required before closing Issue #1
+
+            - [ ] Main PR #2 is no longer draft and has explicit validation evidence.
+            - [ ] Version/release metadata is audited as 0.32.2.
+            - [ ] Admin GUI session/events/jobs are wired and smoke-tested.
+            - [ ] Duplicate-safe model-selection and Vault re-inventory are demonstrated.
+            - [ ] BigBro-BOS target validation passes with keep-display behavior.
+            - [ ] Checksums and release archive are regenerated after final file freeze.
+
+            _This comment is intentionally machine-updated. Manual notes should be added as separate comments._
+            `.replace(/^ {12}/gm, '').trim() + '\n';
+
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner,
+              repo,
+              issue_number,
+              per_page: 100
+            });
+            const existing = comments.find(c => (c.body || '').includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

@@ -344,6 +344,32 @@ def benchmark_task_workflow(*, package_root: Path | str, iterations: int = 80) -
     }
 
 
+def _redact_sensitive(value: Any) -> Any:
+    if isinstance(value, dict):
+        redacted: Dict[str, Any] = {}
+        for key, item in value.items():
+            if key in {"required_api_tokens", "required_chat_tokens"}:
+                if isinstance(item, list):
+                    redacted[key] = ["***REDACTED***" for _ in item]
+                elif item:
+                    redacted[key] = "***REDACTED***"
+                else:
+                    redacted[key] = item
+                continue
+            redacted[key] = _redact_sensitive(item)
+        return redacted
+    if isinstance(value, list):
+        return [_redact_sensitive(item) for item in value]
+    if isinstance(value, str):
+        if value.startswith("source_token_missing:"):
+            return "source_token_missing:***REDACTED***"
+        if ":" in value:
+            prefix, _, suffix = value.partition(":")
+            if prefix.endswith("_token_missing") and suffix:
+                return f"{prefix}:***REDACTED***"
+    return value
+
+
 def build_summary(report: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "apiVersion": API_VERSION,
@@ -371,7 +397,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         policy_path=Path(args.policy),
         include_docs=not args.skip_docs,
     )
-    print(json.dumps(build_summary(report) if args.summary else report, ensure_ascii=False, indent=2))
+    output = build_summary(report) if args.summary else report
+    print(json.dumps(_redact_sensitive(output), ensure_ascii=False, indent=2))
     return 0 if report.get("ok") else 1
 
 

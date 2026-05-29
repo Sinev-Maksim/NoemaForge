@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "kind": "AlphaFeatureCoverage",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "generated_at_utc": "2026-05-14T15:20:00Z",
   "features": {
     "stateful_admin_gui": "active",
@@ -29,7 +29,7 @@
     "production_gui_installer": "shadow_dry_run_gui_installer_readiness_contract"
   },
   "p0_display_safety": {
-    "version": "0.32.1",
+    "version": "0.32.2",
     "status": "implemented",
     "rules": [
       "display-manager preserved by default during first-start/model-selection",

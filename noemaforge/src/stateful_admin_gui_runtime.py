@@ -29,6 +29,9 @@ from typing import Any, Dict, List, Sequence
 
 
 SRC_DIR = Path(__file__).resolve().parent
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+from noemaforge_version import RUNTIME_VERSION
 API_VERSION = "noemaforge.stateful-admin-gui/v1"
 POLICY_KIND = "StatefulAdminGuiPolicy"
 REPORT_KIND = "StatefulAdminGuiValidationReport"
@@ -196,7 +199,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server._command_output = lambda cmd, timeout=8: {"available": False, "cmd": list(cmd), "stdout": "", "stderr": "offline fixture"}
     server.runtime_status = lambda: {
         "ok": True,
-        "version": "0.32.1",
+        "version": RUNTIME_VERSION,
         "device_policy": {"policy": "auto", "pending_apply": False},
         "sockets": {},
         "gateway": {"ok": False, "stdout": "offline fixture"},
@@ -205,8 +208,8 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     }
     server.dashboard_state = lambda: {
         "ok": True,
-        "version": "0.32.1",
-        "admin_gui": {"ok": True, "version": "0.32.1"},
+        "version": RUNTIME_VERSION,
+        "admin_gui": {"ok": True, "version": RUNTIME_VERSION},
         "source": "offline_stateful_gui_fixture",
     }
     return server
@@ -231,7 +234,7 @@ def build_stateful_gui_fixture(*, package_root: Path | str) -> Dict[str, Any]:
     gui_state = server.gui_state()
     return {
         "ok": True,
-        "version": "0.32.1",
+        "version": RUNTIME_VERSION,
         "conversation_current": server.conversation_current(),
         "conversation_history": server.conversation_history(),
         "persona": server.persona_current(),

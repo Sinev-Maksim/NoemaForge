@@ -301,7 +301,7 @@ def _make_handler(ctx: _ServerCtx, assets_dir: str):
             if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
                 return self._json({"error": "bad path"}, code=400)
 
-            if not os.path.isfile(full_real):
+            if not os.path.isfile(full):
                 return self._json({"error": "not found", "path": path}, code=404)
 
             try:
