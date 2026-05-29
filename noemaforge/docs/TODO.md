@@ -162,6 +162,39 @@
 
 - [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
 
+## 0.32.2 hardening — new proposals (2026-05-30)
+
+Windows-doable items derived from deep analysis of task-11/12/13/14 work:
+
+- [x] Wire ConfigValidator into AdminGuiServer as `/api/config/validate` endpoint.
+  Done in `claude/task-13-config-validate-api` (17 tests pass).
+
+- [x] Fix duplicate `session_store.append_message()` call in `save_message()`.
+  Done in `claude/task-14-fix-double-append` (13 tests pass). Root cause:
+  `save_message()` called `append_message` twice, doubling session message
+  count and halving the effective 500-message window.
+
+- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent
+  unbounded growth of the job index. Blocked until task-11
+  (`claude/task-11-wire-preflight`) merges to release.
+
+- [ ] **Add idempotency integration test for `/api/model-selection/continue`**
+  (Windows-doable via unit test stub). Create a test that calls
+  `model_selection_continue({"mode": "full_composite", "composite_top_n": 4})`
+  twice on the same server instance and asserts both calls return the same
+  `job_id` when an active job already exists.
+
+- [ ] **Add `_run_preflight()` exception reporting mode** — currently any
+  exception in PreflightSuite is silently swallowed and returns None.
+  Add a `_preflight_warning` field to `/api/health` output when preflight
+  raises. Blocked until task-10/11 merge.
+
+BigBro-BOS required items:
+
+- [ ] **SHA256SUMS regeneration** after all PR branches merge.
+- [ ] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
+  add step that checks every `noemaforge/src/*.py` appears in SHA256SUMS.
+
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 
 - [x] Added file-backed JobManager (noemaforge/src/job_manager.py): queued/running/done/failed/cancel_requested/cancelled states, idempotency keys, durable JSONL job log.
