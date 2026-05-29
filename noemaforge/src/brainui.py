@@ -305,7 +305,7 @@ def _make_handler(ctx: _ServerCtx, assets_dir: str):
                 return self._json({"error": "not found", "path": path}, code=404)
 
             try:
-                return self._bytes(_read_file(full), _guess_type(full))
+                return self._bytes(_read_file(full_real), _guess_type(full_real))
             except Exception as e:
                 return self._json({"error": "read failed", "details": str(e)}, code=500)
 
