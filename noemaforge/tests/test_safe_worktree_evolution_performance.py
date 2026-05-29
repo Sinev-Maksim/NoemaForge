@@ -31,6 +31,7 @@ import pipeline_runtime as pr
 import safe_worktree_evolution_runtime as swe
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class SafeWorktreeEvolutionPerformanceTests(unittest.TestCase):
     def test_plan_builder_stays_bounded(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

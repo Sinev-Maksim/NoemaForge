@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import role_corpus_binding_runtime as rcb
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class RoleCorpusBindingPerformanceTests(unittest.TestCase):
     def test_repeated_role_corpus_binding_validation_stays_lightweight(self) -> None:
         policy = rcb.load_policy(ROOT / "configs" / "role-corpus-binding-policy.json")

@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import topic_adjacent_retrieval_runtime as tar
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class TopicAdjacentRetrievalPerformanceTests(unittest.TestCase):
     def test_repeated_topic_adjacent_retrieval_validation_stays_lightweight(self) -> None:
         policy = tar.load_policy(ROOT / "configs" / "topic-adjacent-retrieval-policy.json")

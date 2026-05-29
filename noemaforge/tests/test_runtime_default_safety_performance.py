@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import runtime_default_safety_runtime as rdsr
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class RuntimeDefaultSafetyPerformanceTests(unittest.TestCase):
     def test_repeated_runtime_default_safety_validation_stays_lightweight(self) -> None:
         policy = rdsr.load_policy(ROOT / "configs" / "runtime-default-safety-policy.json")

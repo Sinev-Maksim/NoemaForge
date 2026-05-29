@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import systemd_happy_path_runtime as shpr
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class SystemdHappyPathPerformanceTests(unittest.TestCase):
     def test_repeated_systemd_happy_path_validation_stays_lightweight(self) -> None:
         policy = shpr.load_policy(ROOT / "configs" / "systemd-happy-path-policy.json")

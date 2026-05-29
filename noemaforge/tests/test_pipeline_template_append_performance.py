@@ -43,6 +43,7 @@ def call_pipeline(argv: list[str]) -> tuple[int, dict]:
     return code, json.loads(stdout.getvalue())
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class PipelineTemplateAppendPerformanceTests(unittest.TestCase):
     def test_synthetic_template_append_batch_stays_lightweight(self) -> None:
         with tempfile.TemporaryDirectory() as raw:

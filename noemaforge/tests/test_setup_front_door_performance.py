@@ -30,6 +30,7 @@ import setup_front_door_runtime as sfd
 
 
 class SetupFrontDoorPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_validation_stays_lightweight(self) -> None:
         policy = sfd.load_policy(ROOT / "configs" / "setup-front-door-policy.json")
         start = time.perf_counter()

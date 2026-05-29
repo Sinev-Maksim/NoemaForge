@@ -27,6 +27,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import stateful_admin_gui_runtime as sagr
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class StatefulAdminGuiPerformanceTests(unittest.TestCase):
     def test_offline_stateful_admin_gui_validator_is_fast_enough_for_install_gate(self) -> None:
         result = sagr.benchmark_stateful_admin_gui(package_root=ROOT, iterations=60)

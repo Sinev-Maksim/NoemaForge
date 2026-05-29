@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import role_review_state_machine_runtime as rrsm
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class RoleReviewStateMachinePerformanceTests(unittest.TestCase):
     def test_repeated_role_review_state_machine_validation_stays_lightweight(self) -> None:
         policy = rrsm.load_policy(ROOT / "configs" / "role-review-state-machine-policy.json")

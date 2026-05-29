@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT / "src"))
 import public_autonomy_boundary_runtime as pabr
 
 
+@unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
 class PublicAutonomyBoundaryPerformanceTests(unittest.TestCase):
     def test_repeated_public_autonomy_boundary_validation_stays_lightweight(self) -> None:
         policy = pabr.load_policy(ROOT / "configs" / "public-autonomy-boundary-policy.json")

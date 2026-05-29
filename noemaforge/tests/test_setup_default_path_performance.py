@@ -30,6 +30,7 @@ import setup_default_path_runtime as sdp
 
 
 class SetupDefaultPathPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_validation_stays_lightweight(self) -> None:
         policy = sdp.load_policy(ROOT / "configs" / "setup-default-path-policy.json")
         start = time.perf_counter()
