@@ -42,6 +42,22 @@
 - [x] Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path. Closed by `setup-mode-matrix-core`
 - [x] Onboarding ladder boundary: README.md is the 5-minute overview, docs/QUICKSTART_VM.md is the first-success VM path, docs/SETUP_MODES.md explains host/VM/docker-dev/macOS-dev differences, and docs/PRODUCTION_INSTALL_TRIXIE.md is only entered after quickstart validation; primary docs do not lead with Windows lab workflow. Closed by `onboarding-ladder-core`
 
+## 0.32.2 sixth-pass hardening — identified 2026-05-29 (loop iteration 6, deep analysis)
+
+### Observability, correctness and test coverage improvements
+
+- [x] **event_log.py: log debug on malformed JSONL lines** (Windows-doable): Added `_log = logging.getLogger(__name__)` and changed `except Exception: continue` to `except Exception as _exc: _log.debug("malformed event log line %d: %s", idx, _exc)`. Test: `test_malformed_line_emits_debug_log` added to `test_events_api.py` (2026-05-29).
+- [x] **session_store.py: log debug on malformed session event lines** (Windows-doable): Same fix to `sessions.events()` method's silent except handler (2026-05-29).
+- [x] **admin_gui_server.py: clamp composite_top_n to [0,1000]** (Windows-doable): Three HTTP endpoints (`/api/model-selection/plan`, `/api/model-selection/continue`, `/api/epoch/apply`) accepted unbounded `composite_top_n` integers that could cause resource exhaustion. Added `max(0, min(1000, int(...)))` bounds check to all three. Test: `test_negative_composite_top_n_is_clamped_to_zero` in `test_session_current_api.py` (2026-05-29).
+- [x] **admin_gui_server.py: fix job ID collision within same second** (Windows-doable): `create_job()` generated `job_id` from `now_iso()` (second-level precision) + `safe_id(kind)`. Two calls in the same second with the same kind produced identical IDs. Added `secrets.token_hex(4)` suffix. Tests: `test_different_idempotency_keys_create_separate_jobs` and `test_no_idempotency_key_always_creates_new_job` in `test_session_current_api.py` (2026-05-29).
+- [x] **Test: idempotency key deduplication** (Windows-doable): Added `TestJobManagerIdempotency` class with 3 tests verifying `_upsert_job()` returns the existing active job when the same `idempotency_key` is submitted again, and creates new jobs for distinct keys or no key (2026-05-29).
+- [x] **Test: session message truncation** (Windows-doable): Added `TestSessionStoreMessageTruncation` with 2 tests verifying `append_message()` keeps only the most recent `max_messages` entries and preserves the newest message (2026-05-29).
+- [x] **Test: composite_top_n clamp** (Windows-doable): Added `TestCompositeTopNClamp` with 3 tests verifying `normalize_session_record()` clamps negative values to 0 while preserving non-negative values (2026-05-29).
+- [ ] **admin_gui_server.py: add bounds check for task priority** (Windows-doable): `/api/tasks/create` POST accepts `priority` without range validation (typical range 1–100). Add `max(1, min(100, int(body.get("priority") or 50)))`.
+- [ ] **admin_gui_server.py: add bounds check for max_messages** (Windows-doable): `session_store.append_message()` accepts any `max_messages` value from callers — protect with `max(10, min(5000, int(max_messages)))` at the call site or in the method.
+- [ ] **Type annotations: add `-> None` to `__init__` methods** (Windows-doable): `event_log.EventLog.__init__` and `session_store.SessionStore.__init__` are missing `-> None` return type annotations per PEP 484. Low risk, cosmetic — can batch with next type-annotation sweep.
+- [ ] **Test: `_read_json` silent failure logging** (Windows-doable): The `_read_json()` method in `admin_gui_server.py` logs debug on JSON parse failure, but no test exercises the path. Add `test_read_json_logs_on_parse_error()` that injects a corrupt JSON file and verifies graceful fallback.
+
 ## 0.32.2 fifth-pass hardening — identified 2026-05-29 (loop iteration 5, deep analysis)
 
 ### Registry cascade cleanup and non-QA test fixes
