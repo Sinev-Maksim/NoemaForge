@@ -133,5 +133,87 @@ class TestSessionCurrentRoute(unittest.TestCase):
         self.assertIn("SessionStore", self._source)
 
 
+class TestSessionStoreMessageTruncation(unittest.TestCase):
+    """SessionStore.append_message() enforces max_messages bound."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="nf_session_trunc_")
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_append_message_truncates_old_messages(self) -> None:
+        store = SessionStore(self.tmp_path / "sessions")
+        max_msg = 10
+        for i in range(15):
+            store.append_message("default", {"role": "user", "content": f"msg {i}"}, max_messages=max_msg)
+        session = store.load("default")
+        self.assertLessEqual(len(session["messages"]), max_msg)
+
+    def test_append_message_keeps_most_recent(self) -> None:
+        store = SessionStore(self.tmp_path / "sessions")
+        for i in range(12):
+            store.append_message("default", {"role": "user", "content": f"msg {i}"}, max_messages=5)
+        session = store.load("default")
+        contents = [m["content"] for m in session["messages"]]
+        # The last message should be the most recently appended
+        self.assertEqual(contents[-1], "msg 11")
+
+
+class TestCompositeTopNClamp(unittest.TestCase):
+    """normalize_session_record() clamps selected_composite_top_n to >= 0."""
+
+    def test_negative_composite_top_n_is_clamped_to_zero(self) -> None:
+        record = normalize_session_record({"session_id": "s1", "selected_composite_top_n": -5})
+        self.assertGreaterEqual(record["selected_composite_top_n"], 0)
+
+    def test_zero_composite_top_n_stays_zero(self) -> None:
+        record = normalize_session_record({"session_id": "s1", "selected_composite_top_n": 0})
+        self.assertEqual(record["selected_composite_top_n"], 0)
+
+    def test_positive_composite_top_n_is_preserved(self) -> None:
+        record = normalize_session_record({"session_id": "s1", "selected_composite_top_n": 4})
+        self.assertEqual(record["selected_composite_top_n"], 4)
+
+
+class TestJobManagerIdempotency(unittest.TestCase):
+    """AdminGuiServer._upsert_job() deduplicates by idempotency_key."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="nf_idem_")
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _make_job_stub(self) -> AdminGuiServer:
+        obj = object.__new__(AdminGuiServer)
+        obj.model_selection_state = self.tmp_path / "ms"
+        obj.model_selection_state.mkdir(parents=True, exist_ok=True)
+        obj.jobs_dir = self.tmp_path / "jobs"
+        obj.jobs_dir.mkdir(parents=True, exist_ok=True)
+        return obj
+
+    def test_duplicate_idempotency_key_returns_existing_active_job(self) -> None:
+        srv = self._make_job_stub()
+        job1 = srv.create_job("test_kind", status="needs_privilege", idempotency_key="idem-key-1")
+        job2 = srv.create_job("test_kind", status="needs_privilege", idempotency_key="idem-key-1")
+        # Both should return the same job_id
+        self.assertEqual(job1["job_id"], job2["job_id"])
+
+    def test_different_idempotency_keys_create_separate_jobs(self) -> None:
+        srv = self._make_job_stub()
+        job1 = srv.create_job("test_kind", status="needs_privilege", idempotency_key="idem-a")
+        job2 = srv.create_job("test_kind", status="needs_privilege", idempotency_key="idem-b")
+        self.assertNotEqual(job1["job_id"], job2["job_id"])
+
+    def test_no_idempotency_key_always_creates_new_job(self) -> None:
+        srv = self._make_job_stub()
+        job1 = srv.create_job("test_kind", status="needs_privilege")
+        job2 = srv.create_job("test_kind", status="needs_privilege")
+        self.assertNotEqual(job1["job_id"], job2["job_id"])
+
+
 if __name__ == "__main__":
     unittest.main()

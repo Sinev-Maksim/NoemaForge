@@ -180,5 +180,39 @@ class TestEventsApiRoute(unittest.TestCase):
         self.assertEqual(payload["error"], "limit must be >= 1")
 
 
+class TestEventLogMalformedLine(unittest.TestCase):
+    """EventLog.read() skips malformed JSONL lines and logs debug message."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="nf_events_malformed_")
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def test_malformed_jsonl_line_is_skipped(self) -> None:
+        log = EventLog(self.tmp_path / "events")
+        log.append("good.event", {"ok": True})
+        # Inject a corrupt line directly into the JSONL file
+        with log.path.open("a", encoding="utf-8") as fh:
+            fh.write("NOT_VALID_JSON\n")
+        log.append("good.event2", {"ok": True})
+        rows = log.read()
+        # Should return 2 good rows, silently skipping the corrupt one
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["type"], "good.event")
+        self.assertEqual(rows[1]["type"], "good.event2")
+
+    def test_malformed_line_emits_debug_log(self) -> None:
+        import logging
+        log = EventLog(self.tmp_path / "events_debug")
+        with log.path.open("a", encoding="utf-8") as fh:
+            fh.write("{broken json\n")
+        with self.assertLogs("event_log", level="DEBUG") as cm:
+            log.read()
+        # At least one debug message should mention the malformed line
+        self.assertTrue(any("malformed event log line" in msg for msg in cm.output))
+
+
 if __name__ == "__main__":
     unittest.main()

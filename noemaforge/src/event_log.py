@@ -17,9 +17,12 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 from __future__ import annotations
 
 import json
+import logging
 import os
 from pathlib import Path
 from typing import Any, Dict
+
+_log = logging.getLogger(__name__)
 
 from noemaforge_version import RUNTIME_VERSION
 from orchestration_state import nowz
@@ -59,7 +62,8 @@ class EventLog:
                 row = json.loads(line)
                 row["index"] = idx
                 rows.append(row)
-            except Exception:
+            except Exception as _exc:
+                _log.debug("malformed event log line %d: %s", idx, _exc)
                 continue
             if len(rows) >= limit:
                 break

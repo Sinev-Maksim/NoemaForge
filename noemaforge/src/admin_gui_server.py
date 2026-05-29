@@ -40,6 +40,7 @@ import logging
 import mimetypes
 import os
 import re
+import secrets
 import shutil
 import subprocess
 import sys
@@ -531,7 +532,7 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     str(body.get("request") or body.get("message") or "GUI model selection"),
                     mode=str(body.get("mode") or "normal"),
                     scope=str(body.get("scope") or "active runtime"),
-                    composite_top_n=int(body.get("composite_top_n") or body.get("n") or 0),
+                    composite_top_n=max(0, min(1000, int(body.get("composite_top_n") or body.get("n") or 0))),
                     apply=bool(body.get("apply", False)) or path.endswith("/apply"),
                 ))
                 return
@@ -1033,7 +1034,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
-        job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
+        job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind) + "_" + secrets.token_hex(4)
         job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
         return self._upsert_job(job, idempotency_key=idempotency_key)
 
@@ -1320,7 +1321,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     def model_selection_continue(self, body: Dict[str, Any]) -> Dict[str, Any]:
         progress = self.model_selection_progress()
         mode = str(body.get("mode") or "full_composite")
-        n = int(body.get("composite_top_n") or 4)
+        n = max(1, min(1000, int(body.get("composite_top_n") or 4)))
         idkey = f"model-selection-continue:{mode}:{n}"
         safe_command = (f"sudo noemaforge first-start --full_composite {n} --dry-run --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display" if mode == "full_composite" else f"sudo noemaforge first-start --{mode} --dry-run --show-candidates --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display")
         real_command = (f"sudo noemaforge first-start --full_composite {n} --show-candidates --show-compositions --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display" if mode == "full_composite" else f"sudo noemaforge first-start --{mode} --show-candidates --retry-failed-models --per-model-timeout 240 --total-timeout 7200 --keep-display")
@@ -1346,7 +1347,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         plan = status.get("latest_model_selection", {}).get("plan") or status.get("firstboot", {}).get("candidate_plan") or {}
         mode = str(body.get("mode") or plan.get("mode") or "normal")
         scope = str(body.get("scope") or plan.get("scope") or "active runtime")
-        composite_top_n = int(body.get("composite_top_n") or plan.get("composite_top_n") or 0)
+        composite_top_n = max(0, min(1000, int(body.get("composite_top_n") or plan.get("composite_top_n") or 0)))
         command = f"sudo noemaforge first-start --{mode} --keep-display" if mode != "full_composite" else f"sudo noemaforge first-start --full_composite {composite_top_n} --keep-display"
         job = self.create_job("epoch_apply", status="needs_privilege", progress=status.get("progress", {}), command=command, idempotency_key=f"epoch-apply:{mode}:{composite_top_n}:{scope}")
         out = self.model_selection_state / "epoch-apply-request.json"

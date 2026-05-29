@@ -123,7 +123,8 @@ class SessionStore:
                 row = json.loads(line)
                 row["index"] = idx
                 rows.append(row)
-            except Exception:
+            except Exception as _exc:
+                _log.debug("malformed session event line %d: %s", idx, _exc)
                 continue
             if len(rows) >= limit:
                 break
