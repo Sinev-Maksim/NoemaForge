@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/emergency_gui_recovery_readiness_runtime.py

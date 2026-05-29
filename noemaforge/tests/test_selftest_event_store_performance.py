@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_selftest_event_store_performance.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test self-test event storage on synthetic reports.

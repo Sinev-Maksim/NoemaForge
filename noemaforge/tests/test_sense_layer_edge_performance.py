@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_sense_layer_edge_performance.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Performance-test Sense Layer Edge validation on a synthetic adapter catalog.

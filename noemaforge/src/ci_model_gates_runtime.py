@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/ci_model_gates_runtime.py

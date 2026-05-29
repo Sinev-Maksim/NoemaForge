@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_model_health_candidate_filter_qa.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test failed-model candidate filter discoverability through registry and docs.

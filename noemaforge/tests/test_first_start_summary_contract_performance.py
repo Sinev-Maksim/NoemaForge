@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_first_start_summary_contract_performance.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test first-start summary validation on synthetic run catalogs.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_locale_main_chat_surface_qa.py
 Zone: gui/i18n
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA coverage for localized main chat docs, registry and frontend wiring.

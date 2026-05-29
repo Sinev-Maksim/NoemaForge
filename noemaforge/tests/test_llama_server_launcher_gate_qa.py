@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_llama_server_launcher_gate_qa.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test llama-server launcher gate discoverability in docs and release notes.

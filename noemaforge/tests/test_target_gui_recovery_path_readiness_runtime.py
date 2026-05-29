@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_target_gui_recovery_path_readiness_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Runtime-test the target GUI recovery path readiness contract.

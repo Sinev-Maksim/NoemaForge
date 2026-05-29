@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_onboarding_ladder_qa.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test onboarding ladder discoverability through registry, docs and TODO.

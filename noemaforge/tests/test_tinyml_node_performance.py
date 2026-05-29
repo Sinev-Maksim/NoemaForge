@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_tinyml_node_performance.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Performance-test TinyML Node validation on a synthetic MCU node catalog.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_public_showcase_guided_scenario_runtime.py
 Zone: gui/control-plane
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Runtime-test the Admin GUI public showcase guided scenario contract.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_honesty_protocol_performance.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Performance-test Honesty Protocol validation on synthetic cases.

@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_sense_layer_edge_qa.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: QA-test Sense Layer Edge discoverability through registry and canonical docs.

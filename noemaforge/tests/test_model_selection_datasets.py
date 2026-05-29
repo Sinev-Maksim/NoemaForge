@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_model_selection_datasets.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Create and manage model-selection plans and epoch candidate artifacts.

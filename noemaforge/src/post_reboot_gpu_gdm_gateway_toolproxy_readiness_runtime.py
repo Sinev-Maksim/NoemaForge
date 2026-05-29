@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/post_reboot_gpu_gdm_gateway_toolproxy_readiness_runtime.py

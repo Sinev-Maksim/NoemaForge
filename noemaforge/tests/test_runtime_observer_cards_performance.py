@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_runtime_observer_cards_performance.py
 Zone: gui/control-plane
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Performance-test bounded Runtime observer card construction.

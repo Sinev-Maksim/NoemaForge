@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_pipeline_dragdrop_editor_qa.py
 Zone: gui/control-plane
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: QA-test pipeline drag/drop editor registry and documentation coverage.

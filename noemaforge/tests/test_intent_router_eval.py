@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_intent_router_eval.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-18
 Modified: 2026-05-18
 Purpose: Validate Admin intent-router eval pack execution and per-route metrics.

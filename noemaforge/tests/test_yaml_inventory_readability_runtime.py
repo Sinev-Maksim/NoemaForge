@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_yaml_inventory_readability_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate YAML inventory readability policy and scanner behavior.
