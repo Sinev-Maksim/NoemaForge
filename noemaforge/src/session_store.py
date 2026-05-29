@@ -33,7 +33,7 @@ DEFAULT_SESSION_STATE = Path(os.environ.get("NOEMAFORGE_SESSION_STATE", "/var/li
 class SessionStore:
     """Small file-backed session store for the local Admin GUI."""
 
-    def __init__(self, root: Path | str = DEFAULT_SESSION_STATE):
+    def __init__(self, root: Path | str = DEFAULT_SESSION_STATE) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.events_path = self.root / "session-events.jsonl"
@@ -88,7 +88,8 @@ class SessionStore:
         return saved
 
     def append_message(self, session_id: str, message: Dict[str, Any], max_messages: int = 500) -> Dict[str, Any]:
-        """Append a GUI message while keeping bounded history."""
+        """Append a GUI message while keeping bounded history (max_messages clamped to [10, 5000])."""
+        max_messages = max(10, min(5000, int(max_messages or 500)))
         session = self.load(session_id)
         messages = list(session.get("messages") or [])
         row = dict(message)

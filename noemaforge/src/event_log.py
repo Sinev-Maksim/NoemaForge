@@ -33,7 +33,7 @@ DEFAULT_EVENT_STATE = Path(os.environ.get("NOEMAFORGE_EVENT_STATE", "/var/lib/no
 class EventLog:
     """Append-only JSONL event log with bounded readback."""
 
-    def __init__(self, root: Path | str = DEFAULT_EVENT_STATE):
+    def __init__(self, root: Path | str = DEFAULT_EVENT_STATE) -> None:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "events.jsonl"

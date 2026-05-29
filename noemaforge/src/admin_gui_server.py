@@ -953,7 +953,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             "task_id": "task_" + safe_id(str(int(time.time())) + "_" + title, "task"),
             "title": title,
             "category": str(body.get("category") or "general"),
-            "priority": int(body.get("priority") or 50),
+            "priority": max(1, min(100, int(body.get("priority") or 50))),
             "status": str(body.get("status") or "pending"),
             "assignee": str(body.get("assignee") or "Admin"),
             "created_by": str(body.get("created_by") or "Admin"),

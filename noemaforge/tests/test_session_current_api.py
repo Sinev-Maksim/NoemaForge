@@ -215,5 +215,48 @@ class TestJobManagerIdempotency(unittest.TestCase):
         self.assertNotEqual(job1["job_id"], job2["job_id"])
 
 
+class TestReadJsonLogging(unittest.TestCase):
+    """AdminGuiServer._read_json() returns default and emits debug log on corrupt file."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="nf_readjson_")
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _make_server_stub(self) -> AdminGuiServer:
+        obj = object.__new__(AdminGuiServer)
+        return obj
+
+    def test_read_json_returns_default_for_corrupt_file(self) -> None:
+        bad_file = self.tmp_path / "corrupt.json"
+        bad_file.write_text("{not valid json", encoding="utf-8")
+        srv = self._make_server_stub()
+        result = srv._read_json(bad_file, default={"fallback": True})
+        self.assertEqual(result, {"fallback": True})
+
+    def test_read_json_returns_default_for_missing_file(self) -> None:
+        missing = self.tmp_path / "nonexistent.json"
+        srv = self._make_server_stub()
+        result = srv._read_json(missing, default=42)
+        self.assertEqual(result, 42)
+
+    def test_read_json_emits_debug_log_on_parse_error(self) -> None:
+        bad_file = self.tmp_path / "bad.json"
+        bad_file.write_text("{broken", encoding="utf-8")
+        srv = self._make_server_stub()
+        with self.assertLogs("admin_gui_server", level="DEBUG") as cm:
+            srv._read_json(bad_file, default=None)
+        self.assertTrue(any("_read_json failed" in msg for msg in cm.output))
+
+    def test_read_json_returns_valid_json(self) -> None:
+        good_file = self.tmp_path / "good.json"
+        good_file.write_text('{"key": "value"}', encoding="utf-8")
+        srv = self._make_server_stub()
+        result = srv._read_json(good_file, default={})
+        self.assertEqual(result, {"key": "value"})
+
+
 if __name__ == "__main__":
     unittest.main()
