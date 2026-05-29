@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/public_showcase_guided_scenario_runtime.py
 Zone: gui/control-plane
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the local-first Admin GUI public showcase guided scenario.

@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/edge_reference_targets_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Validate edge reference targets remain optional post-MVP integrations, not runtime requirements.

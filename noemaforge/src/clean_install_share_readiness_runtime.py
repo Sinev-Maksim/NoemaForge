@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/clean_install_share_readiness_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-21
 Modified: 2026-05-21
 Purpose: Validate the offline readiness contract for clean install evidence with /mnt/noemaforge-share.

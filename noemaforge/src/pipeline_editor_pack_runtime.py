@@ -1,9 +1,9 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 === NoemaForge File Header ===
 File: noemaforge/src/pipeline_editor_pack_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-20
 Modified: 2026-05-20
 Purpose: Validate the offline Pipeline Editor pack contract for draft edit/clone/review flows.
