@@ -1,5 +1,53 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: PR #12 Startup preflight mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #12
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/startup_preflight.py
+- noemaforge/tests/test_startup_preflight.py
+
+Intent:
+Add startup preflight checks for storage, display, and journald gates before
+unsafe first-start or target-machine actions.
+
+Risk areas:
+- First-start and target-machine safety gating.
+- Storage/display/journald probe semantics on BigBro-BOS.
+- CI workflow changes are present in this safety branch and need scope review
+  before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Are the startup preflight gates sufficient and conservative enough for
+   target BigBro-BOS safety?
+2. Should CI workflow changes be removed from this branch or split into a
+   dedicated workflow PR?
+3. Should Codex be re-run after branch cleanup because the current Codex FAIL
+   text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #12 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `fa2b15be68a2bd5a0b64ddabd89f257a100be845`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_startup_preflight.py` (30 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews the startup preflight safety contract.
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+
 ## Claude Review Packet: PR #11 Job heartbeat and ProcessGroupRunner mixed-scope review
 
 Status: pending-claude-review
