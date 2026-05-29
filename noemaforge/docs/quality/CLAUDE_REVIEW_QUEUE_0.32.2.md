@@ -1,5 +1,47 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: Admin GUI job path-safety refactor
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #2
+Changed files:
+- noemaforge/src/admin_gui_server.py
+- noemaforge/tests/test_admin_gui_session_event_wiring.py
+- noemaforge/docs/TODO.md
+- noemaforge/docs/quality/CLAUDE_REVIEW_QUEUE_0.32.2.md
+
+Intent:
+Centralize Admin GUI per-job file and cancel-marker path construction so
+create, persist, get and cancel paths all preserve the existing `safe_id()`
+path-safety contract.
+
+Risk areas:
+- Admin GUI `/api/jobs` and cancel behavior.
+- Path-safety semantics for user-controlled or externally supplied `job_id`
+  values.
+- Compatibility with existing job JSON filenames and cancel marker polling.
+
+Questions for Claude:
+1. Is centralizing per-job JSON and `.cancel` paths in `AdminGuiServer`
+   sufficient for the current release, or should a dedicated JobManager layer
+   own this contract after PR #8/#9 are reconciled?
+2. Should cancel marker polling treat sanitized job IDs as the only supported
+   filesystem representation?
+3. Are there any target BigBro-BOS compatibility concerns with this helper-only
+   refactor?
+
+Validation already run:
+- `py -3 -m unittest noemaforge/tests/test_admin_gui_session_event_wiring.py`
+  (34 tests)
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `git diff --check`
+
+Do not merge before:
+- Claude reviews the Admin GUI job path-safety contract.
+- The change is considered alongside the pending PR #8/#9 JobManager ordering.
+
 ## Claude Review Packet: PR #12 Startup preflight mixed-scope review
 
 Status: pending-claude-review

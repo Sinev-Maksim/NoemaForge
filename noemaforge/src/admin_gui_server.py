@@ -1010,6 +1010,12 @@ class AdminGuiServer(ThreadingHTTPServer):
     def jobs_file(self) -> Path:
         return self.jobs_dir / "jobs.json"
 
+    def job_file(self, job_id: str) -> Path:
+        return self.jobs_dir / f"{safe_id(str(job_id))}.json"
+
+    def job_cancel_marker_file(self, job_id: str) -> Path:
+        return self.jobs_dir / f"{safe_id(str(job_id))}.cancel"
+
     def jobs_data(self) -> Dict[str, Any]:
         data = self._read_json(self.jobs_file(), {"jobs": []})
         if not isinstance(data, dict):
@@ -1025,7 +1031,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                     return existing
         data.setdefault("jobs", []).append(job)
         self._write_json(self.jobs_file(), data)
-        self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
+        self._write_json(self.job_file(str(job["job_id"])), job)
         return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
@@ -1045,7 +1051,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         if not replaced:
             jobs.append(job)
         self._write_json(self.jobs_file(), data)
-        self._write_json(self.jobs_dir / f"{job['job_id']}.json", job)
+        self._write_json(self.job_file(str(job["job_id"])), job)
         return job
 
     def jobs_list(self) -> Dict[str, Any]:
@@ -1107,7 +1113,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
-        job = self._read_json(self.jobs_dir / f"{safe_id(job_id)}.json", None)
+        job = self._read_json(self.job_file(job_id), None)
         if not job:
             for j in self.jobs_data().get("jobs", []):
                 if j.get("job_id") == job_id:
@@ -1131,10 +1137,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.jobs_file(), data)
         if target:
             jid = target["job_id"]
-            self._write_json(self.jobs_dir / f"{safe_id(jid)}.json", target)
+            self._write_json(self.job_file(str(jid)), target)
             # Write a sentinel file that long-running subprocesses can poll
             # without parsing JSON (lightweight cancel-marker check).
-            marker = self.jobs_dir / f"{safe_id(jid)}.cancel"
+            marker = self.job_cancel_marker_file(str(jid))
             try:
                 marker.write_text(now_iso() + "\n", encoding="utf-8")
             except OSError:
