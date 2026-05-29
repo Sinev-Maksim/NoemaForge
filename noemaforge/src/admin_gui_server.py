@@ -56,6 +56,7 @@ from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
 from orchestration_state import is_active_job
+from config_validator import ConfigValidator
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -382,6 +383,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             session_id = str((query.get("session_id") or ["default"])[0])
             self._send_json(self.server.session_current(session_id))
             return
+        if path == "/api/config/validate":
+            self._send_json(self.server.config_validate_api())
+            return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
             return
@@ -630,6 +634,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        # ConfigValidator scans the repo root for broken JSON/YAML files.
+        self._config_validate_root = self.root.parent if self.root.parent.exists() else self.root
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -741,9 +747,22 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
                 "/api/vault/reinventory", "/api/session/current", "/api/session/mode", "/api/events",
+                "/api/config/validate",
                 "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
+
+    # --- config validation ---------------------------------------------------------
+    def config_validate_api(self) -> Dict[str, Any]:
+        """Scan the repo for broken JSON/YAML files and return a structured report."""
+        try:
+            report = ConfigValidator(self._config_validate_root).scan().to_dict()
+            return {"ok": report.get("ok", True), "version": RUNTIME_VERSION, "report": report}
+        except Exception as exc:
+            return {"ok": False, "version": RUNTIME_VERSION, "report": {
+                "ok": False, "files_checked": 0, "json_checked": 0, "yaml_checked": 0,
+                "errors": [], "version": RUNTIME_VERSION,
+            }, "error": str(exc)}
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
