@@ -2,6 +2,18 @@
 
 ## 0.32.2 release-hardening checkpoints
 
+- 2026-05-30: Three new task branches pushed, all with clean single-concern
+  three-dot diffs against `release/0.32.2-hardening`:
+  - `claude/task-13-config-validate-api` (3 files): adds ConfigValidator +
+    `/api/config/validate` endpoint to AdminGuiServer. 17 tests pass.
+  - `claude/task-14-fix-double-append` (1 file): fixes duplicate
+    `session_store.append_message()` call in `save_message()`. The duplicate
+    write caused `test_session_mode_history.py` to report 2× messages per
+    save call and a 250-message bound instead of 500. 13 tests pass.
+  - `claude/task-11-wire-preflight` and `claude/task-12-json-yaml-validator`
+    force-pushed from clean branches (fix/task-11-clean and fix/task-12-clean)
+    to eliminate CI workflow noise in three-dot diffs. 210 + 31 tests pass.
+
 - 2026-05-29: Admin GUI job path-safety refactor completed on
   `release/0.32.2-hardening`. `AdminGuiServer` now uses centralized
   `job_file()` and `job_cancel_marker_file()` helpers for per-job JSON and
