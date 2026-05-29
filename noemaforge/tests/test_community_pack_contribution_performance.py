@@ -30,6 +30,7 @@ import community_pack_contribution_runtime as cpcr
 
 
 class CommunityPackContributionPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_community_pack_contribution_validation_stays_lightweight(self) -> None:
         policy = cpcr.load_policy(ROOT / "configs" / "community-pack-contribution-policy.json")
         start = time.perf_counter()

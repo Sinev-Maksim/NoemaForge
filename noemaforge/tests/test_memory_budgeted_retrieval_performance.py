@@ -30,6 +30,7 @@ import memory_budgeted_retrieval_runtime as mbr
 
 
 class MemoryBudgetedRetrievalPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_memory_budgeted_retrieval_validation_stays_lightweight(self) -> None:
         policy = mbr.load_policy(ROOT / "configs" / "memory-budgeted-retrieval-policy.json")
         start = time.perf_counter()

@@ -30,6 +30,7 @@ import knowledge_purpose_runtime as kpr
 
 
 class KnowledgePurposePerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_knowledge_purpose_validation_stays_lightweight(self) -> None:
         policy = kpr.load_policy(ROOT / "configs" / "knowledge-purpose-policy.json")
         start = time.perf_counter()

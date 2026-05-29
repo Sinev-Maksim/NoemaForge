@@ -37,6 +37,7 @@ class DocsHygienePerformanceTests(unittest.TestCase):
         if TMP_ROOT.exists():
             shutil.rmtree(TMP_ROOT)
 
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_synthetic_markdown_tree_validates_under_budget(self) -> None:
         source_policy = dhr.load_policy(ROOT / "configs" / "docs-hygiene-policy.json")
         payload = copy.deepcopy(source_policy)

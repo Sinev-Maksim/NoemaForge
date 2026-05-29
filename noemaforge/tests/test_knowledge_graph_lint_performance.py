@@ -30,6 +30,7 @@ import knowledge_graph_lint_runtime as kgl
 
 
 class KnowledgeGraphLintPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_knowledge_graph_lint_validation_stays_lightweight(self) -> None:
         policy = kgl.load_policy(ROOT / "configs" / "knowledge-graph-lint-policy.json")
         start = time.perf_counter()

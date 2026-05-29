@@ -30,6 +30,7 @@ import hypergraph_first_administrator_runtime as hfa
 
 
 class HypergraphFirstAdministratorPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_hypergraph_first_administrator_validation_stays_lightweight(self) -> None:
         policy = hfa.load_policy(ROOT / "configs" / "hypergraph-first-administrator-policy.json")
         start = time.perf_counter()

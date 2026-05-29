@@ -30,6 +30,7 @@ import graph_gap_notice_runtime as ggn
 
 
 class GraphGapNoticePerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_graph_gap_notice_validation_stays_lightweight(self) -> None:
         policy = ggn.load_policy(ROOT / "configs" / "graph-gap-notice-policy.json")
         start = time.perf_counter()

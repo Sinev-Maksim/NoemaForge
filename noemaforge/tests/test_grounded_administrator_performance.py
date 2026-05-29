@@ -30,6 +30,7 @@ import grounded_administrator_runtime as gar
 
 
 class GroundedAdministratorPerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_grounded_administrator_validation_stays_lightweight(self) -> None:
         policy = gar.load_policy(ROOT / "configs" / "grounded-administrator-policy.json")
         start = time.perf_counter()

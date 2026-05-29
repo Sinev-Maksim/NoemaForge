@@ -47,6 +47,7 @@ class GraphProjectionViewsPerformanceTests(unittest.TestCase):
         self.assertTrue(bounded)
         self.assertLess(elapsed, 0.5)
 
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_repeated_graph_projection_views_validation_stays_lightweight(self) -> None:
         policy = gpv.load_policy(ROOT / "configs" / "graph-projection-views-policy.json")
         start = time.perf_counter()

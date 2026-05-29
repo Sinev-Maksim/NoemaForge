@@ -47,6 +47,7 @@ def call_pipeline(argv: list[str]) -> tuple[int, dict]:
 
 
 class PipelineStageValidatorSmokePerformanceTests(unittest.TestCase):
+    @unittest.skipIf(sys.platform == "win32", "wall-time threshold tuned for Linux/BigBro-BOS")
     def test_stage_validation_stays_bounded_for_small_ci_fixture(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)
