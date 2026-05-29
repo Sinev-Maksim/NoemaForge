@@ -1,5 +1,54 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: PR #10 Admin chat routing mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #10
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/admin_gui_server.py
+- noemaforge/src/job_manager.py
+- noemaforge/tests/test_admin_chat_routing.py
+
+Intent:
+Route direct Admin GUI chat actions into model-selection and Vault
+re-inventory job creation, with focused tests around Admin chat routing.
+
+Risk areas:
+- Admin GUI behavior and job creation semantics.
+- Repeated introduction of `job_manager.py` across task branches.
+- CI workflow changes are present in a chat-routing branch and need scope
+  review before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Should the CI workflow changes be removed from this chat-routing PR or split
+   into a dedicated workflow PR?
+2. Is the current chat-routing behavior sufficient once the workflow scope is
+   cleaned up?
+3. Should Codex be re-run after the branch is rebased/scope-cleaned, because the
+   current Codex FAIL text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #10 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `b0a8cb389184284c21cc799a465328eeadd1f3fc`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_admin_chat_routing.py` (26 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+- Any duplicated JobManager introduction is reconciled with PR #8/#9 ordering.
+
 ## Claude Review Packet: PR #9 Admin GUI JobManager wiring return
 
 Status: pending-claude-fix
