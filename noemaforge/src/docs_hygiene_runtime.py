@@ -41,18 +41,27 @@ REPORT_KIND = "DocsHygieneReport"
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 TODO_CHECK_RE_TEMPLATE = r"^\s*-\s*\[[xX]\]\s+{label}\s*$"
 SKIPPED_DIR_NAMES = {
+    ".claude",
+    ".codex",
+    ".cursor",
     ".git",
+    ".github",
     ".hg",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",
     ".tox",
     ".venv",
+    ".vscode",
     "__pycache__",
     "build",
     "dist",
     "node_modules",
+    "pytest",
+    "PyYAML",
+    "pyyaml",
     "trash",
+    "venv",
 }
 
 

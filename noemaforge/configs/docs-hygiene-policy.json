@@ -8,20 +8,38 @@
     "approved_markdown_prefixes": [
       "noemaforge/docs/",
       "helpers/",
-      "prelaunch/"
+      "prelaunch/",
+      "docs/",
+      "ota/"
     ],
-    "allowed_root_markdown": [],
+    "allowed_root_markdown": [
+      "CHANGELOG.md",
+      "CLAUDE.md",
+      "README.md",
+      "RELEASE_NOTES.md",
+      "TODO.md",
+      "context.md"
+    ],
     "allowed_docs_root_markdown": [
       "noemaforge/docs/README.md",
       "noemaforge/docs/Manifest.md",
       "noemaforge/docs/TODO.md"
     ],
-    "allowed_package_root_markdown": [],
-    "legacy_root_markdown_patterns": [],
+    "allowed_package_root_markdown": [
+      "noemaforge/TODO.md"
+    ],
+    "legacy_root_markdown_patterns": [
+      "CHANGELOG.md",
+      "RELEASE_NOTES.md"
+    ],
     "canonical_changelog_refs": [
       "noemaforge/docs/history/CHANGELOG.md"
     ],
-    "allowed_parallel_changelog_prefixes": [],
+    "allowed_parallel_changelog_prefixes": [
+      "docs/history/",
+      "docs/i18n/",
+      "noemaforge/docs/i18n/"
+    ],
     "forbidden_markdown_prefixes": [
       "noemaforge/docs/source_reports/",
       "noemaforge/docs/research_sources/",

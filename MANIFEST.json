@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.1",
-  "file_count": 3172,
+  "file_count": 3174,
   "files": [
     ".coderabbit.yaml",
     ".cursorignore",
@@ -1367,6 +1367,7 @@
     "noemaforge/docs/wiki/architecture/memory-vector-architecture.md",
     "noemaforge/docs/wiki/architecture/product-kernel-and-shell.md",
     "noemaforge/docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.31.21.alpha.md",
+    "noemaforge/docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md",
     "noemaforge/docs/wiki/architecture/self-improvement-test-telemetry-loop.md",
     "noemaforge/docs/wiki/architecture/self-improvement-test-telemetry.md",
     "noemaforge/docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
@@ -1470,6 +1471,7 @@
     "noemaforge/docs/wiki/smarthome/local-first-smart-home-control-0.31.13.alpha.md",
     "noemaforge/docs/wiki/smarthome/local-first-smart-home-control-0.32.1.md",
     "noemaforge/docs/wiki/strict-markdown-placement-0.31.21.alpha.md",
+    "noemaforge/docs/wiki/strict-markdown-placement-0.32.1.md",
     "noemaforge/docs/wiki/tasks/inactivity-and-task-governance-0.31.13.alpha-patched1.md",
     "noemaforge/docs/wiki/tasks/inactivity-and-task-governance-0.31.13.alpha.md",
     "noemaforge/docs/wiki/tasks/inactivity-and-task-governance-0.32.1.md",
