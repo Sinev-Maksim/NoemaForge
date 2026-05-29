@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.gateway-inference-service/v1",
   "kind": "GatewayInferenceServicePolicy",
   "id": "gateway-inference-service-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -32,7 +32,7 @@
   "services": [
     {
       "id": "gateway-floor-inference-shadow",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "shadow",
       "containerized": true,
       "image": "noemaforge/gateway-inference-service:0.32.1-alpha",

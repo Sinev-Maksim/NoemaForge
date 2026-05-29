@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.first-start-summary/v1",
   "kind": "FirstStartSummaryPolicy",
   "id": "first-start-summary-output-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

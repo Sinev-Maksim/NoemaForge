@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline.stage-transition/v1",
   "kind": "PipelineStageTransitionPolicy",
   "id": "pipeline-stage-transition-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

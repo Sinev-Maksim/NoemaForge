@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.runtime-default-safety/v1",
   "kind": "RuntimeDefaultSafetyPolicy",
   "id": "runtime-default-safety-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

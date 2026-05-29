@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.premerge-release-guard/v1",
   "kind": "PremergeReleaseGuardPolicy",
   "id": "premerge-release-guard-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "release_guard": {
     "require_baseline_report": true,

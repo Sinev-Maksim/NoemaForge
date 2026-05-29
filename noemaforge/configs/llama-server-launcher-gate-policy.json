@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.llama-server-launcher-gate/v1",
   "kind": "LlamaServerLauncherGatePolicy",
   "id": "llama-server-launcher-gate-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

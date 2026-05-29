@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.mcp-adapter-registry/v1",
   "kind": "MCPAdapterRegistry",
   "id": "zero-trust-mcp-adapters",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "policy": {
     "default_state": "disabled",
     "default_network": "deny",
@@ -17,7 +17,7 @@
   "adapters": [
     {
       "id": "docs.search",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",
@@ -53,7 +53,7 @@
     },
     {
       "id": "issue.tracker",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",
@@ -90,7 +90,7 @@
     },
     {
       "id": "docs.rag.local",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "disabled",
       "transport": "stdio",
       "mode": "local",

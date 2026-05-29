@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.systemd-happy-path/v1",
   "kind": "SystemdHappyPathPolicy",
   "id": "systemd-happy-path-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "refs": [
     "configs/systemd-happy-path-policy.json",

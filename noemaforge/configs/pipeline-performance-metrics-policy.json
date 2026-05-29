@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-performance-metrics/v1",
   "kind": "PipelinePerformanceMetricsPolicy",
   "id": "pipeline-performance-metrics-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

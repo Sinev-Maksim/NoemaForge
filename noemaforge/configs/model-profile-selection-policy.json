@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-profile-selection/v1",
   "kind": "ModelProfileSelectionPolicy",
   "id": "model-profile-selection-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

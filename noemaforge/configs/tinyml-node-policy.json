@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.tinyml-node/v1",
   "kind": "TinyMLNodePolicy",
   "id": "tinyml-node-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_validation",
@@ -27,7 +27,7 @@
   "nodes": [
     {
       "id": "example-mcu-floor-controller",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "shadow",
       "target_mcu": "generic-cortex-m",
       "runtime": "tflm",

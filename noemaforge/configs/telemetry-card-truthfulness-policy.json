@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.telemetry-card-truthfulness/v1",
   "kind": "TelemetryCardTruthfulnessPolicy",
   "id": "telemetry-card-truthfulness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

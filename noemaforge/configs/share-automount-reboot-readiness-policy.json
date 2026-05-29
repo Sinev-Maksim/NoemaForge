@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.share-automount-reboot-readiness/v1",
   "kind": "ShareAutomountRebootReadinessPolicy",
   "id": "share-automount-reboot-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

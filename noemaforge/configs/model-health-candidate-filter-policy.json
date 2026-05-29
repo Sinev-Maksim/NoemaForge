@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-health-candidate-filter/v1",
   "kind": "ModelHealthCandidateFilterPolicy",
   "id": "model-health-candidate-filter-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

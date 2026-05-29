@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.role-kernel/v1",
   "kind": "RoleKernelPolicy",
   "id": "role-kernel-active-nn-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.full-composite-ssh-readiness/v1",
   "kind": "FullCompositeSshReadinessPolicy",
   "id": "full-composite-ssh-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

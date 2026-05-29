@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-tinyml-ota-pack/v1",
   "kind": "EdgeTinyMLOTAPackPolicy",
   "id": "edge-tinyml-ota-pack-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "summary": "Edge/TinyML/OTA pack aggregates MQTT/serial Sense ingestion, TinyML validation, gateway inference, edge rules, signed manifests and OTA rollback into one offline release contract.",
   "policy": {

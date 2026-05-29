@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.wiki-patch-commit-helper/v1",
   "kind": "WikiPatchCommitHelperPolicy",
   "id": "wiki-patch-commit-helper-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

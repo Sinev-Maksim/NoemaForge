@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.smarthome/v1",
   "kind": "SmartHomeLocalControlPolicy",
   "id": "smarthome-local-control-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "principle": "Value your privacy: local-first telemetry and device control through the NoemaForge home server.",
   "policy": {

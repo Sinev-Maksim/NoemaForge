@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.sense-layer-edge/v1",
   "kind": "SenseLayerEdgePolicy",
   "id": "sense-layer-edge-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -34,7 +34,7 @@
   "adapters": [
     {
       "id": "mqtt-floor-sensors",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "shadow",
       "protocol": "mqtt",
       "source_id": "floor-sensor-bus",
@@ -53,7 +53,7 @@
     },
     {
       "id": "serial-floor-controller",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "shadow",
       "protocol": "serial",
       "source_id": "floor-controller-loopback",
@@ -72,7 +72,7 @@
     },
     {
       "id": "system-metrics-snapshot",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "state": "shadow",
       "protocol": "system_metrics",
       "source_id": "gateway-system-metrics",

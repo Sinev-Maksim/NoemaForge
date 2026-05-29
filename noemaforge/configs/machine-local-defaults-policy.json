@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.machine-local-defaults/v1",
   "kind": "MachineLocalDefaultsPolicy",
   "id": "machine-local-defaults-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

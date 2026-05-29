@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.public-showcase-guided-scenario/v1",
   "kind": "PublicShowcaseGuidedScenarioPolicy",
   "id": "public-showcase-guided-scenario-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "refs": [
     "configs/public-showcase-guided-scenario-policy.json",

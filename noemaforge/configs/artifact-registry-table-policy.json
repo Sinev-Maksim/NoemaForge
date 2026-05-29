@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.artifact-registry-table/v1",
   "kind": "ArtifactRegistryTablePolicy",
   "id": "artifact-registry-table-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

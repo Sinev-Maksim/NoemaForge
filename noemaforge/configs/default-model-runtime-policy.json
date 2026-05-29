@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.default-model-runtime-policy/v1",
   "kind": "DefaultModelRuntimePolicy",
   "id": "default-model-runtime-policy-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "decision": "cpu_safe_always_on_with_gpu_on_demand",
   "policy": {

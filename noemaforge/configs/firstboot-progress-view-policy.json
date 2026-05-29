@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.firstboot-progress-view/v1",
   "kind": "FirstbootProgressViewPolicy",
   "id": "firstboot-progress-view-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

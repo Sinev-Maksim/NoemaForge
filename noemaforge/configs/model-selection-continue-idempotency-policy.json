@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.model-selection-continue-idempotency/v1",
   "kind": "ModelSelectionContinueIdempotencyPolicy",
   "id": "model-selection-continue-idempotency-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

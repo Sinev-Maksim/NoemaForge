@@ -89,7 +89,7 @@ from epoch import current_epoch_id
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -166,13 +166,13 @@ def issue_token(
     token_id = str(uuid.uuid4())
     secret = base64.urlsafe_b64encode(secrets.token_bytes(24)).decode("ascii").rstrip("=")
 
-    exp = dt.datetime.utcnow() + dt.timedelta(seconds=int(ttl_sec))
+    exp = dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=int(ttl_sec))
     rec = {
         "token_id": token_id,
         "secret_sha256": _sha256_hex(secret),
         "issued_to": issued_to,
         "epoch_id": current_epoch_id(),
-        "expires_at": exp.isoformat() + "Z",
+        "expires_at": exp.isoformat().replace("+00:00", "Z"),
         "caps": caps,
         "trace_id": trace_id or str(uuid.uuid4()),
         "issued_at": _nowz(),
@@ -244,11 +244,14 @@ def verify_token(tokens_dir: str, token: str) -> Tuple[bool, Optional[Dict[str, 
         return False, None, "secret_mismatch"
 
     try:
-        exp = dt.datetime.fromisoformat(str(rec.get("expires_at") or "").replace("Z", ""))
+        exp_str = str(rec.get("expires_at") or "").replace("Z", "+00:00")
+        exp = dt.datetime.fromisoformat(exp_str)
+        if exp.tzinfo is None:
+            exp = exp.replace(tzinfo=dt.timezone.utc)
     except Exception:
         return False, None, "bad_expiry"
 
-    if exp < dt.datetime.utcnow():
+    if exp < dt.datetime.now(dt.timezone.utc):
         return False, None, "expired"
 
     return True, rec, "ok"
@@ -274,7 +277,7 @@ def cleanup_expired(tokens_dir: str, keep_days: int = 7) -> int:
     """Remove expired token files older than keep_days (best-effort)."""
     if not os.path.isdir(tokens_dir):
         return 0
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     cutoff = now - dt.timedelta(days=int(keep_days))
     removed = 0
     for fn in os.listdir(tokens_dir):
@@ -284,7 +287,10 @@ def cleanup_expired(tokens_dir: str, keep_days: int = 7) -> int:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 rec = json.load(f)
-            exp = dt.datetime.fromisoformat(str(rec.get("expires_at") or "").replace("Z", ""))
+            exp_str = str(rec.get("expires_at") or "").replace("Z", "+00:00")
+            exp = dt.datetime.fromisoformat(exp_str)
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=dt.timezone.utc)
             if exp < cutoff:
                 os.remove(path)
                 removed += 1

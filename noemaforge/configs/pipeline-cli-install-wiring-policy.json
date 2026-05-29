@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-cli-install-wiring/v1",
   "kind": "PipelineCliInstallWiringPolicy",
   "id": "pipeline-cli-install-wiring-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
