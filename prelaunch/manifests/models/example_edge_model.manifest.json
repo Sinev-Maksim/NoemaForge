@@ -6,7 +6,7 @@
   "version": "0.32.1",
   "status": "shadow",
   "target_type": "edge",
-  "model_ref": "model:model-registry-local:0.32.1",
+  "model_ref": "model:model-registry-local:0.32.2",
   "runtime": "onnx",
   "artifact_uri": "models/example_edge_model.onnx",
   "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",

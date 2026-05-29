@@ -47,7 +47,7 @@ class FullCompositeTargetRunReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/full-composite-target-run-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/full_composite_target_run_readiness.schema.json", pack["refs"])

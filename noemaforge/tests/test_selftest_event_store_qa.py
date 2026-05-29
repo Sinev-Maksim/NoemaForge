@@ -44,7 +44,7 @@ class SelfTestEventStoreQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:selftest-event-store-core:0.32.1")
+        pack = entries.get("eval-pack:selftest-event-store-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/selftest-event-store-policy.json", pack["refs"])
         self.assertIn("contracts/selftest_event_store.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class SelfTestEventStoreQATests(unittest.TestCase):
         self.assertIn("src/selftest_event_store_runtime.py", pack["refs"])
         self.assertIn("tests/test_selftest_event_store_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:selftest-event-store-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:selftest-event-store-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/selftest-event-store-policy.json", pipeline["refs"])
         self.assertIn("src/selftest_event_store_runtime.py", pipeline["refs"])
 

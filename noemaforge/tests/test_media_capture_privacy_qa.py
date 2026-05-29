@@ -43,14 +43,14 @@ class MediaCapturePrivacyQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:media-capture-privacy-core:0.32.1")
+        pack = entries.get("eval-pack:media-capture-privacy-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/media-capture-privacy-policy.json", pack["refs"])
         self.assertIn("contracts/media_capture_privacy.schema.json", pack["refs"])
         self.assertIn("src/media_capture_privacy_runtime.py", pack["refs"])
         self.assertIn("tests/test_media_capture_privacy_performance.py", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:media-capture-privacy-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:media-capture-privacy-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/media-capture-privacy-policy.json", pipeline["refs"])
 
     def test_docs_and_examples_name_the_privacy_boundary(self) -> None:

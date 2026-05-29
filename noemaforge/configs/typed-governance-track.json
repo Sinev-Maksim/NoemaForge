@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.typed-governance/v1",
   "kind": "TypedGovernanceTrackPolicy",
   "id": "typed-governance-track-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -25,7 +25,7 @@
     "required_contracts": [
       {
         "stage": "concept_frame",
-        "eval_pack_ref": "eval-pack:concept-frame-governance-core:0.32.1",
+        "eval_pack_ref": "eval-pack:concept-frame-governance-core:0.32.2",
         "policy_ref": "configs/concept-frame-policy.json",
         "schema_ref": "contracts/concept_frame.schema.json",
         "runtime_ref": "src/concept_frame_runtime.py",
@@ -37,7 +37,7 @@
       },
       {
         "stage": "sense_state_privacy",
-        "eval_pack_ref": "eval-pack:sense-privacy-governance-core:0.32.1",
+        "eval_pack_ref": "eval-pack:sense-privacy-governance-core:0.32.2",
         "policy_ref": "configs/sense-privacy-policy.json",
         "schema_ref": "contracts/sense_privacy.schema.json",
         "runtime_ref": "src/sense_privacy_runtime.py",
@@ -49,7 +49,7 @@
       },
       {
         "stage": "drive_state",
-        "eval_pack_ref": "eval-pack:drive-state-governance-core:0.32.1",
+        "eval_pack_ref": "eval-pack:drive-state-governance-core:0.32.2",
         "policy_ref": "configs/drive-state-policy.json",
         "schema_ref": "contracts/drive_state.schema.json",
         "runtime_ref": "src/drive_state_runtime.py",
@@ -61,7 +61,7 @@
       },
       {
         "stage": "honesty_protocol",
-        "eval_pack_ref": "eval-pack:honesty-protocol-governance-core:0.32.1",
+        "eval_pack_ref": "eval-pack:honesty-protocol-governance-core:0.32.2",
         "policy_ref": "configs/honesty-protocol-policy.json",
         "schema_ref": "contracts/honesty_protocol.schema.json",
         "runtime_ref": "src/honesty_protocol_runtime.py",
@@ -73,7 +73,7 @@
       },
       {
         "stage": "slop_critic",
-        "eval_pack_ref": "eval-pack:slop-critic-governance-core:0.32.1",
+        "eval_pack_ref": "eval-pack:slop-critic-governance-core:0.32.2",
         "policy_ref": "configs/slop-critic-policy.json",
         "schema_ref": "contracts/slop_critic.schema.json",
         "runtime_ref": "src/slop_critic_runtime.py",
@@ -85,7 +85,7 @@
       },
       {
         "stage": "detection_verdict",
-        "eval_pack_ref": "eval-pack:provenance-watermark-verdict-core:0.32.1",
+        "eval_pack_ref": "eval-pack:provenance-watermark-verdict-core:0.32.2",
         "policy_ref": "configs/provenance-watermark-policy.json",
         "schema_ref": "contracts/provenance_watermark.schema.json",
         "runtime_ref": "src/provenance_watermark_runtime.py",
@@ -97,7 +97,7 @@
       },
       {
         "stage": "research_packet",
-        "eval_pack_ref": "eval-pack:research-packet-scouting-core:0.32.1",
+        "eval_pack_ref": "eval-pack:research-packet-scouting-core:0.32.2",
         "policy_ref": "configs/research-packet-policy.json",
         "schema_ref": "contracts/research_packet.schema.json",
         "runtime_ref": "src/research_packet_runtime.py",
@@ -109,7 +109,7 @@
       },
       {
         "stage": "pipeline_rfc",
-        "eval_pack_ref": "eval-pack:pipeline-rfc-mutation-core:0.32.1",
+        "eval_pack_ref": "eval-pack:pipeline-rfc-mutation-core:0.32.2",
         "policy_ref": "configs/pipeline-rfc-policy.json",
         "schema_ref": "contracts/pipeline_rfc.schema.json",
         "runtime_ref": "src/pipeline_rfc_runtime.py",

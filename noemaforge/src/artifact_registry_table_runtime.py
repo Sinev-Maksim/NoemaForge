@@ -229,7 +229,7 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
         failures.append("policy_mode_not_offline_contract")
     if str(policy.get("activation_state") or "") != "artifact_registry_table_contract":
         failures.append("policy_activation_state_invalid")
-    if str(policy.get("required_pipeline_ref") or "") != "pipeline:firstboot-model-selection:0.32.1":
+    if str(policy.get("required_pipeline_ref") or "") != "pipeline:firstboot-model-selection:0.32.2":
         failures.append("policy_required_pipeline_ref_invalid")
     if PRIMARY_TODO not in _as_string_list(policy.get("closed_todo_refs")):
         failures.append("policy_closed_todo_ref_missing")

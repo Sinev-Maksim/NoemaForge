@@ -47,7 +47,7 @@ class JobProgressStreamQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:job-progress-stream-core:0.32.1")
+        pack = entries.get("eval-pack:job-progress-stream-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/job-progress-stream-policy.json", pack["refs"])
         self.assertIn("contracts/job_progress_stream.schema.json", pack["refs"])

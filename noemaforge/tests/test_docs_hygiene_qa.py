@@ -47,7 +47,7 @@ class DocsHygieneQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:docs-hygiene-prelaunch:0.32.1")
+        pack = entries.get("eval-pack:docs-hygiene-prelaunch:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/docs-hygiene-policy.json", pack["refs"])
         self.assertIn("contracts/docs_hygiene_policy.schema.json", pack["refs"])

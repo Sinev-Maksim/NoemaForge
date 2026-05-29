@@ -47,7 +47,7 @@ class PytestSuitePartitionQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:pytest-suite-partition-core:0.32.1")
+        pack = entries.get("eval-pack:pytest-suite-partition-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/pytest-suite-partition-policy.json", pack["refs"])
         self.assertIn("contracts/pytest_suite_partition.schema.json", pack["refs"])
@@ -57,8 +57,8 @@ class PytestSuitePartitionQATests(unittest.TestCase):
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("docs/backlog/ROADMAP_AND_TODO.md", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:pytest-suite-partition-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:pytest-suite-partition-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/pytest-suite-partition-policy.json", pipeline["refs"])
         self.assertIn("src/pytest_suite_partition_runtime.py", pipeline["refs"])
 

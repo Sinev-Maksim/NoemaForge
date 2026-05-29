@@ -47,7 +47,7 @@ class RuntimeObserverCardsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:runtime-observer-cards-core:0.32.1")
+        pack = entries.get("eval-pack:runtime-observer-cards-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/runtime-observer-cards-policy.json", pack["refs"])
         self.assertIn("src/runtime_observer_cards_runtime.py", pack["refs"])

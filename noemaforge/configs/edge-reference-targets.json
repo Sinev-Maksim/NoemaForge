@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-reference-targets/v1",
   "kind": "EdgeReferenceTargetsPolicy",
   "id": "edge-reference-targets-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -37,7 +37,7 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.1",
+      "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.2",
       "refs": [
         "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
       ]
@@ -50,7 +50,7 @@
       "required_runtime_dependency": false,
       "preferred": true,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.1",
+      "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.2",
       "refs": [
         "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
         "noemaforge/configs/edge-rules-engine-policy.json"
@@ -64,7 +64,7 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.1",
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.2",
       "refs": [
         "ota/mender_module_model_update/README.md",
         "noemaforge/configs/ota-update-layer.json"
@@ -78,7 +78,7 @@
       "required_runtime_dependency": false,
       "preferred": false,
       "network_required": true,
-      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.1",
+      "local_mvp_alternative_ref": "eval-pack:ota-update-layer-core:0.32.2",
       "refs": [
         "ota/rauc_bundle_notes.md",
         "noemaforge/configs/ota-update-layer.json"
@@ -102,5 +102,3 @@
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
   ]
 }
-
-

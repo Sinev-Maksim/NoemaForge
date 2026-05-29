@@ -15,7 +15,7 @@
         "VERSION"
       ],
       "metadata": {
-        "runtime_base": "0.32.1"
+        "runtime_base": "0.32.2"
       }
     },
     {
@@ -539,7 +539,7 @@
           "rag"
         ],
         "mode": "experiment",
-        "baseline_eval_pack_ref": "eval-pack:docs-wiki-rag-core:0.32.1",
+        "baseline_eval_pack_ref": "eval-pack:docs-wiki-rag-core:0.32.2",
         "metrics": [
           "graph_path_coverage",
           "multi_hop_coverage",

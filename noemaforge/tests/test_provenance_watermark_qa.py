@@ -44,14 +44,14 @@ class ProvenanceWatermarkQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:provenance-watermark-verdict-core:0.32.1")
+        pack = entries.get("eval-pack:provenance-watermark-verdict-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/provenance-watermark-policy.json", pack["refs"])
         self.assertIn("src/provenance_watermark_runtime.py", pack["refs"])
         self.assertIn("tests/test_provenance_watermark_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:provenance-watermark-verdict-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:provenance-watermark-verdict-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_provenance_watermark_docs_policy_and_changelog_are_discoverable(self) -> None:
         policy = pwr.load_policy(ROOT / "configs" / "provenance-watermark-policy.json")

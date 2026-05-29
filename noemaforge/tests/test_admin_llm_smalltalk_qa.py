@@ -47,7 +47,7 @@ class AdminLLMSmalltalkQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:admin-llm-smalltalk-core:0.32.1")
+        pack = entries.get("eval-pack:admin-llm-smalltalk-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/admin-llm-smalltalk-policy.json", pack["refs"])
         self.assertIn("contracts/admin_llm_smalltalk.schema.json", pack["refs"])

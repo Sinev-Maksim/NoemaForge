@@ -44,14 +44,14 @@ class TypedGovernanceTrackQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:typed-governance-track-core:0.32.1")
+        pack = entries.get("eval-pack:typed-governance-track-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/typed-governance-track.json", pack["refs"])
         self.assertIn("src/typed_governance_track_runtime.py", pack["refs"])
         self.assertIn("tests/test_typed_governance_track_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:typed-governance-track-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:typed-governance-track-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/typed-governance-track.json", pipeline["refs"])
         self.assertIn("src/typed_governance_track_runtime.py", pipeline["refs"])
 

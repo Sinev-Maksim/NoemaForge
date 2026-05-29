@@ -44,14 +44,14 @@ class EdgeReferenceTargetsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:edge-reference-targets-core:0.32.1")
+        pack = entries.get("eval-pack:edge-reference-targets-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/edge-reference-targets.json", pack["refs"])
         self.assertIn("src/edge_reference_targets_runtime.py", pack["refs"])
         self.assertIn("tests/test_edge_reference_targets_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:edge-reference-targets-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:edge-reference-targets-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_edge_reference_targets_docs_and_policy_are_discoverable(self) -> None:
         policy = ertr.load_policy(ROOT / "configs" / "edge-reference-targets.json")

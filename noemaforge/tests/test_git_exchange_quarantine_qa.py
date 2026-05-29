@@ -44,14 +44,14 @@ class GitExchangeQuarantineQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:git-exchange-quarantine-core:0.32.1")
+        pack = entries.get("eval-pack:git-exchange-quarantine-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/git-exchange-quarantine-policy.json", pack["refs"])
         self.assertIn("src/git_exchange_quarantine_runtime.py", pack["refs"])
         self.assertIn("tests/test_git_exchange_quarantine_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:git-exchange-quarantine-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:git-exchange-quarantine-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/git-exchange-quarantine-policy.json", pipeline["refs"])
         self.assertIn("src/git_exchange_quarantine_runtime.py", pipeline["refs"])
 

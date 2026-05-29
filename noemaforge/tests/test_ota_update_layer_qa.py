@@ -46,15 +46,15 @@ class OTAUpdateLayerQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:ota-update-layer-core:0.32.1")
+        pack = entries.get("eval-pack:ota-update-layer-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/ota-update-layer.json", pack["refs"])
         self.assertIn("src/ota_update_layer_runtime.py", pack["refs"])
         self.assertIn("ota/update_agent.py", pack["refs"])
         self.assertIn("tests/test_ota_update_layer_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:ota-update-layer-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:ota-update-layer-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_ota_update_layer_docs_policy_and_agent_are_discoverable(self) -> None:
         policy = oalr.load_policy(ROOT / "configs" / "ota-update-layer.json")

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.ci-model-gates/v1",
   "kind": "CIModelGatesPolicy",
   "id": "ci-model-gates-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_validation",
@@ -44,7 +44,7 @@
       "version": "0.32.1",
       "state": "shadow",
       "target_type": "edge",
-      "model_ref": "model:model-registry-local:0.32.1",
+      "model_ref": "model:model-registry-local:0.32.2",
       "runtime": "onnx",
       "budgets": {
         "max_p95_latency_ms": 50.0,
@@ -122,4 +122,3 @@
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
   ]
 }
-

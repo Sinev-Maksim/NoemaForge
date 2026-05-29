@@ -46,7 +46,7 @@ class ReleaseArtifactNameGuardQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:release-artifact-name-guard-core:0.32.1")
+        pack = entries.get("eval-pack:release-artifact-name-guard-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/release-artifact-name-guard-policy.json", pack["refs"])
         self.assertIn("contracts/release_artifact_name_guard.schema.json", pack["refs"])

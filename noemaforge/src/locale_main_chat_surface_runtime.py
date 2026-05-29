@@ -197,7 +197,7 @@ def _registry_report(payload: Dict[str, Any], *, project_root: Path, package_roo
     eval_ref = f"eval-pack:{payload.get('id')}:{payload.get('version')}"
     if eval_ref not in entries:
         failures.append(f"registry_eval_pack_missing:{eval_ref}")
-    pipeline_ref = "pipeline:firstboot-model-selection:0.32.1"
+    pipeline_ref = "pipeline:firstboot-model-selection:0.32.2"
     pipeline = raw_entries.get(pipeline_ref) or entries.get(pipeline_ref)
     if not pipeline:
         failures.append(f"registry_pipeline_missing:{pipeline_ref}")

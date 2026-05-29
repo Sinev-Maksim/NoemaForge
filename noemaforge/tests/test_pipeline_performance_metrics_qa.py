@@ -46,14 +46,14 @@ class PipelinePerformanceMetricsQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/pipeline-performance-metrics-policy.json", pack["refs"])
         self.assertIn("contracts/pipeline_performance_metrics.schema.json", pack["refs"])
         self.assertIn("src/pipeline_performance_metrics_runtime.py", pack["refs"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.2")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", pipeline["eval_pack_refs"])
 
     def test_docs_close_metrics_todo_with_contract_refs(self) -> None:
         report = ppm.validate_pipeline_performance_metrics_policy(

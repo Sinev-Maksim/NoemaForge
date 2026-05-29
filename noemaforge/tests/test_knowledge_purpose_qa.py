@@ -46,14 +46,14 @@ class KnowledgePurposeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:knowledge-purpose-artifacts-core:0.32.1")
+        pack = entries.get("eval-pack:knowledge-purpose-artifacts-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/knowledge-purpose-policy.json", pack["refs"])
         self.assertIn("contracts/knowledge_purpose.schema.json", pack["refs"])
         self.assertIn("tests/test_knowledge_purpose_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:knowledge-purpose-artifacts-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:knowledge-purpose-artifacts-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/knowledge-purpose-policy.json", pipeline["refs"])
         self.assertIn("src/knowledge_purpose_runtime.py", pipeline["refs"])
 

@@ -47,15 +47,15 @@ class MediaBackendSelectionReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/media-backend-selection-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/media_backend_selection_readiness.schema.json", pack["refs"])
         self.assertIn("src/media_backend_selection_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.2")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", pipeline["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_live_backend_item(self) -> None:
         report = mbsr.validate_media_backend_selection_readiness_policy(mbsr.load_policy())

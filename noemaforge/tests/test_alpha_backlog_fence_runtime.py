@@ -74,7 +74,7 @@ class AlphaBacklogFenceRuntimeTests(unittest.TestCase):
 
         self.assertFalse(report["ok"])
         self.assertIn(
-            "registry_protected_ref_promoted:eval-pack:typed-governance-track-core:0.32.1:promoted",
+            "registry_protected_ref_promoted:eval-pack:typed-governance-track-core:0.32.2:promoted",
             report["failures"],
         )
 

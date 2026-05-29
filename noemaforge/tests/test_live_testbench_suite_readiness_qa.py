@@ -47,14 +47,14 @@ class LiveTestbenchSuiteReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/live-testbench-suite-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/live_testbench_suite_readiness.schema.json", pack["refs"])
         self.assertIn("src/live_testbench_suite_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        task = entries["task:first-start-model-selection:0.32.1"]
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", task["eval_pack_refs"])
+        task = entries["task:first-start-model-selection:0.32.2"]
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", task["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_target_item(self) -> None:
         report = ltsr.validate_live_testbench_suite_readiness_policy(ltsr.load_policy())

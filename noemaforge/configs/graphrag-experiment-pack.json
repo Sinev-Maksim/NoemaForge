@@ -2,11 +2,11 @@
   "apiVersion": "noemaforge.graphrag-experiment/v1",
   "kind": "GraphRAGExperimentPack",
   "id": "docs-graph-rag-experiment",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "disabled",
   "policy": {
     "mode": "experiment",
-    "baseline_eval_pack_ref": "eval-pack:docs-wiki-rag-core:0.32.1",
+    "baseline_eval_pack_ref": "eval-pack:docs-wiki-rag-core:0.32.2",
     "require_classic_rag_baseline": true,
     "require_evaluation_gate": true,
     "require_trace_id": true,
@@ -14,8 +14,18 @@
     "network": "deny",
     "max_graph_depth": 3,
     "max_expansion_nodes": 8,
-    "allowed_node_types": ["concept", "source", "control"],
-    "allowed_edge_relations": ["describes", "requires", "gates", "cites", "supports"]
+    "allowed_node_types": [
+      "concept",
+      "source",
+      "control"
+    ],
+    "allowed_edge_relations": [
+      "describes",
+      "requires",
+      "gates",
+      "cites",
+      "supports"
+    ]
   },
   "thresholds": {
     "retrieval_hit_rate_min": 1.0,
@@ -32,40 +42,69 @@
         "id": "concept:classic-rag",
         "type": "concept",
         "title": "Classic RAG baseline",
-        "terms": ["classic rag", "retrieval", "citations", "groundedness"]
+        "terms": [
+          "classic rag",
+          "retrieval",
+          "citations",
+          "groundedness"
+        ]
       },
       {
         "id": "concept:graphrag",
         "type": "concept",
         "title": "GraphRAG experiment",
-        "terms": ["graphrag", "multi-hop", "graph", "experiment"]
+        "terms": [
+          "graphrag",
+          "multi-hop",
+          "graph",
+          "experiment"
+        ]
       },
       {
         "id": "control:evaluation-gate",
         "type": "control",
         "title": "EvaluationGate",
-        "terms": ["evaluationgate", "gate", "promotion", "release evidence"]
+        "terms": [
+          "evaluationgate",
+          "gate",
+          "promotion",
+          "release evidence"
+        ]
       },
       {
         "id": "source:production-rag-doc",
         "type": "source",
         "title": "Production RAG grounding and docs index",
         "source_ref": "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
-        "terms": ["classic rag", "graphrag", "evaluationgate", "baseline"]
+        "terms": [
+          "classic rag",
+          "graphrag",
+          "evaluationgate",
+          "baseline"
+        ]
       },
       {
         "id": "source:lifecycle-doc",
         "type": "source",
         "title": "Production AI lifecycle registry trace evaluation",
         "source_ref": "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md",
-        "terms": ["graphrag", "trace", "evaluationgate", "safe rollout"]
+        "terms": [
+          "graphrag",
+          "trace",
+          "evaluationgate",
+          "safe rollout"
+        ]
       },
       {
         "id": "source:patterns-report",
         "type": "source",
         "title": "Production AI patterns integration report",
         "source_ref": "docs/quality/PRODUCTION_AI_PATTERNS_INTEGRATION_0.32.1.md",
-        "terms": ["production rag", "trajectory evaluation", "registry"]
+        "terms": [
+          "production rag",
+          "trajectory evaluation",
+          "registry"
+        ]
       }
     ],
     "edges": [
@@ -105,28 +144,52 @@
     {
       "id": "graphrag_requires_classic_rag_gate",
       "query": "When can GraphRAG experiments be used in NoemaForge?",
-      "seed_node_ids": ["concept:graphrag"],
+      "seed_node_ids": [
+        "concept:graphrag"
+      ],
       "expected_source_refs": [
         "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
         "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"
       ],
-      "expected_answer_terms": ["graphrag", "classic rag", "evaluationgate"],
+      "expected_answer_terms": [
+        "graphrag",
+        "classic rag",
+        "evaluationgate"
+      ],
       "expected_graph_paths": [
-        ["concept:graphrag", "concept:classic-rag", "source:production-rag-doc"],
-        ["concept:graphrag", "control:evaluation-gate", "source:lifecycle-doc"]
+        [
+          "concept:graphrag",
+          "concept:classic-rag",
+          "source:production-rag-doc"
+        ],
+        [
+          "concept:graphrag",
+          "control:evaluation-gate",
+          "source:lifecycle-doc"
+        ]
       ]
     },
     {
       "id": "graphrag_experiment_preserves_rag_baseline",
       "query": "Which baseline must GraphRAG preserve before promotion?",
-      "seed_node_ids": ["concept:classic-rag"],
+      "seed_node_ids": [
+        "concept:classic-rag"
+      ],
       "expected_source_refs": [
         "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
         "docs/quality/PRODUCTION_AI_PATTERNS_INTEGRATION_0.32.1.md"
       ],
-      "expected_answer_terms": ["classic rag", "citations", "groundedness"],
+      "expected_answer_terms": [
+        "classic rag",
+        "citations",
+        "groundedness"
+      ],
       "expected_graph_paths": [
-        ["concept:classic-rag", "source:production-rag-doc", "source:patterns-report"]
+        [
+          "concept:classic-rag",
+          "source:production-rag-doc",
+          "source:patterns-report"
+        ]
       ]
     }
   ],
@@ -142,5 +205,3 @@
     "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"
   ]
 }
-
-

@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1774,
+  "file_count": 1775,
   "files": [
     "B_backlog.yaml",
     "TODO.md",
@@ -1693,6 +1693,7 @@
     "tools/prep/noemaforge-premerge-check.ps1",
     "tools/prep/noemaforge-recursion-audit.sh",
     "tools/prep/noemaforge-trixie-preflight.sh",
+    "tools/prep/noemaforge-update-checksums.ps1",
     "tools/prep/noemaforge-version-audit.sh",
     "tools/prep/noemaforge_prep_core.py",
     "tools/prep/prep_common.py",

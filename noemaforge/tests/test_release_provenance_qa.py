@@ -44,15 +44,15 @@ class ReleaseProvenanceQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:release-provenance-core:0.32.1")
+        pack = entries.get("eval-pack:release-provenance-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/release-provenance-policy.json", pack["refs"])
         self.assertIn("contracts/release_provenance.schema.json", pack["refs"])
         self.assertIn("src/release_provenance_runtime.py", pack["refs"])
         self.assertIn("tests/test_release_provenance_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:release-provenance-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:release-provenance-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/release-provenance-policy.json", pipeline["refs"])
         self.assertIn("src/release_provenance_runtime.py", pipeline["refs"])
 

@@ -44,7 +44,7 @@ class GroundedAdministratorQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:grounded-administrator-core:0.32.1")
+        pack = entries.get("eval-pack:grounded-administrator-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/grounded-administrator-policy.json", pack["refs"])
         self.assertIn("contracts/grounded_administrator.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class GroundedAdministratorQATests(unittest.TestCase):
         self.assertIn("src/knowledge/grounded_administrator.py", pack["refs"])
         self.assertIn("tests/test_grounded_administrator_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:grounded-administrator-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:grounded-administrator-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/grounded-administrator-policy.json", pipeline["refs"])
         self.assertIn("src/grounded_administrator_runtime.py", pipeline["refs"])
 

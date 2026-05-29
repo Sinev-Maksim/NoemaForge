@@ -48,7 +48,7 @@ class PublicShowcaseGuidedScenarioQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:public-showcase-guided-scenario-core:0.32.1")
+        pack = entries.get("eval-pack:public-showcase-guided-scenario-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/public-showcase-guided-scenario-policy.json", pack["refs"])
         self.assertIn("src/public_showcase_guided_scenario_runtime.py", pack["refs"])

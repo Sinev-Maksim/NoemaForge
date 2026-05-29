@@ -188,7 +188,7 @@ def _component_report(policy: Dict[str, Any], *, project_root: Path, package_roo
             payload = module.load_policy(resolved["path"])
             if payload.get("id") != cid:
                 component_failures.append(f"component_id_mismatch:{cid}:{payload.get('id')}")
-            if payload.get("version") != "0.32.1":
+            if payload.get("version") != "0.32.2":
                 component_failures.append(f"component_version_invalid:{cid}:{payload.get('version')}")
             report = validator(payload, project_root=project_root, package_root=package_root, policy_path=resolved["path"])
             if report.get("ok") is not True:
@@ -231,7 +231,7 @@ def _registry_report(policy: Dict[str, Any], *, package_root: Path) -> Dict[str,
         failures.append("unified_registry_missing")
     for component in policy.get("required_components", []):
         cid = str(component.get("id") or "")
-        ref = f"eval-pack:{cid}:0.32.1"
+        ref = f"eval-pack:{cid}:0.32.2"
         if ref not in text:
             failures.append(f"registry_eval_pack_ref_missing:{ref}")
     return {"failures": failures, "path": _display_path(path), "chars": len(text)}

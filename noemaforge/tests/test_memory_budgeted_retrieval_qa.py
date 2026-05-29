@@ -44,7 +44,7 @@ class MemoryBudgetedRetrievalQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:memory-budgeted-retrieval-core:0.32.1")
+        pack = entries.get("eval-pack:memory-budgeted-retrieval-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/memory-budgeted-retrieval-policy.json", pack["refs"])
         self.assertIn("contracts/memory_budgeted_retrieval.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class MemoryBudgetedRetrievalQATests(unittest.TestCase):
         self.assertIn("src/knowledge/prep_store.py", pack["refs"])
         self.assertIn("tests/test_memory_budgeted_retrieval_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:memory-budgeted-retrieval-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:memory-budgeted-retrieval-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/memory-budgeted-retrieval-policy.json", pipeline["refs"])
         self.assertIn("src/memory_budgeted_retrieval_runtime.py", pipeline["refs"])
 

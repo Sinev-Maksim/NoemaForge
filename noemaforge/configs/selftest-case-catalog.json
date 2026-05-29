@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "SelfTestCaseCatalog",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "invariant": {
     "llm_mode": "switchable",
     "max_active_llms": 1,
@@ -3051,4 +3051,3 @@
     }
   ]
 }
-

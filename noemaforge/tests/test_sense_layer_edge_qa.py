@@ -46,15 +46,15 @@ class SenseLayerEdgeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:sense-layer-edge-core:0.32.1")
+        pack = entries.get("eval-pack:sense-layer-edge-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/sense-layer-edge.json", pack["refs"])
         self.assertIn("src/sense_layer_edge_runtime.py", pack["refs"])
         self.assertIn("sense/edge/mqtt_adapter.py", pack["refs"])
         self.assertIn("tests/test_sense_layer_edge_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:sense-layer-edge-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:sense-layer-edge-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_sense_layer_edge_docs_policy_and_schema_are_discoverable(self) -> None:
         policy = sler.load_policy(ROOT / "configs" / "sense-layer-edge.json")

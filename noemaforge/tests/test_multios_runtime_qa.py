@@ -46,14 +46,14 @@ class MultiOSRuntimeQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:multios-runtime-host-core:0.32.1")
+        pack = entries.get("eval-pack:multios-runtime-host-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/noemaforge.runtime.yaml", pack["refs"])
         self.assertIn("runtime/os_probe.py", pack["refs"])
         self.assertIn("tests/test_multios_runtime_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:multios-runtime-host-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:multios-runtime-host-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_multios_runtime_docs_policy_and_changelog_are_discoverable(self) -> None:
         policy = load_runtime_policy(ROOT / "configs" / "noemaforge.runtime.yaml")

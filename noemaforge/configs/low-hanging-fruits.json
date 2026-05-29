@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.ai/v0.30.09",
   "kind": "SmallImprovementPacks",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "collections": [
     {
       "id": "lhf_operator_polish_001",
@@ -285,4 +285,3 @@
   "require_admin_approval": true,
   "self_improvement_loop": "explicit_only"
 }
-

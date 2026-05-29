@@ -44,14 +44,14 @@ class CIModelGatesQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:ci-model-gates-core:0.32.1")
+        pack = entries.get("eval-pack:ci-model-gates-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/ci-model-gates.json", pack["refs"])
         self.assertIn("src/ci_model_gates_runtime.py", pack["refs"])
         self.assertIn("tests/test_ci_model_gates_performance.py", pack["refs"])
 
-        model = entries["model:model-registry-local:0.32.1"]
-        self.assertIn("eval-pack:ci-model-gates-core:0.32.1", model["eval_pack_refs"])
+        model = entries["model:model-registry-local:0.32.2"]
+        self.assertIn("eval-pack:ci-model-gates-core:0.32.2", model["eval_pack_refs"])
 
     def test_ci_model_gates_docs_and_release_evidence_are_discoverable(self) -> None:
         policy = cmgr.load_policy(ROOT / "configs" / "ci-model-gates.json")

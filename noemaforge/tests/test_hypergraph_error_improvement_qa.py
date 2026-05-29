@@ -46,14 +46,14 @@ class HypergraphErrorImprovementQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:hypergraph-error-improvement-core:0.32.1")
+        pack = entries.get("eval-pack:hypergraph-error-improvement-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/hypergraph-error-improvement-policy.json", pack["refs"])
         self.assertIn("sql/error_learning_loop.sqlite.sql", pack["refs"])
         self.assertIn("tests/test_hypergraph_error_improvement_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:hypergraph-error-improvement-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:hypergraph-error-improvement-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/hypergraph-error-improvement-policy.json", pipeline["refs"])
         self.assertIn("src/hypergraph_error_improvement_runtime.py", pipeline["refs"])
 

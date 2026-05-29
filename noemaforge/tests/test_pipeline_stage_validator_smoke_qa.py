@@ -34,14 +34,14 @@ class PipelineStageValidatorSmokeQATests(unittest.TestCase):
     def test_registry_contains_eval_pack_and_pipeline_links(self) -> None:
         registry = json.loads((ROOT / "configs" / "unified-registry.json").read_text(encoding="utf-8"))
         entries = {f"{entry['kind']}:{entry['id']}:{entry['version']}": entry for entry in registry["entries"]}
-        pack_ref = "eval-pack:pipeline-stage-validator-smoke-core:0.32.1"
+        pack_ref = "eval-pack:pipeline-stage-validator-smoke-core:0.32.2"
         self.assertIn(pack_ref, entries)
         pack = entries[pack_ref]
         self.assertIn("configs/pipeline-stage-validator-smoke-policy.json", pack["refs"])
         self.assertIn("contracts/pipeline_stage_validator_smoke.schema.json", pack["refs"])
         self.assertIn("src/pipeline_stage_validator_smoke_runtime.py", pack["refs"])
         self.assertIn("tests/test_pipeline_stage_validator_smoke_performance.py", pack["refs"])
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
         self.assertIn(pack_ref, pipeline["eval_pack_refs"])
         self.assertIn("src/pipeline_stage_validator_smoke_runtime.py", pipeline["refs"])
 

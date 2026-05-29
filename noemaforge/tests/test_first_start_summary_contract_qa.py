@@ -44,15 +44,15 @@ class FirstStartSummaryContractQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:first-start-summary-output-core:0.32.1")
+        pack = entries.get("eval-pack:first-start-summary-output-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/first-start-summary-policy.json", pack["refs"])
         self.assertIn("src/first_start_summary.py", pack["refs"])
         self.assertIn("src/first_start_summary_contract_runtime.py", pack["refs"])
         self.assertIn("tests/test_first_start_summary_contract_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:first-start-summary-output-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:first-start-summary-output-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/first-start-summary-policy.json", pipeline["refs"])
         self.assertIn("src/first_start_summary.py", pipeline["refs"])
 

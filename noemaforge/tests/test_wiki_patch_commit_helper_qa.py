@@ -44,7 +44,7 @@ class WikiPatchCommitHelperQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:wiki-patch-commit-helper-core:0.32.1")
+        pack = entries.get("eval-pack:wiki-patch-commit-helper-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/wiki-patch-commit-helper-policy.json", pack["refs"])
         self.assertIn("contracts/wiki_patch_commit_helper.schema.json", pack["refs"])
@@ -52,8 +52,8 @@ class WikiPatchCommitHelperQATests(unittest.TestCase):
         self.assertIn("src/wiki_patch_commit_helper_runtime.py", pack["refs"])
         self.assertIn("tests/test_wiki_patch_commit_helper_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:wiki-patch-commit-helper-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:wiki-patch-commit-helper-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/wiki-patch-commit-helper-policy.json", pipeline["refs"])
         self.assertIn("src/wiki_patch_commit_helper_runtime.py", pipeline["refs"])
 

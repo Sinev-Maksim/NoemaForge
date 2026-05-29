@@ -46,14 +46,14 @@ class ArtifactRegistryTableQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/artifact-registry-table-policy.json", pack["refs"])
         self.assertIn("contracts/artifact_registry_table.schema.json", pack["refs"])
         self.assertIn("src/artifact_registry_table_runtime.py", pack["refs"])
-        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
+        pipeline = entries.get("pipeline:firstboot-model-selection:0.32.2")
         self.assertIsNotNone(pipeline)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", pipeline["eval_pack_refs"])
 
     def test_docs_close_artifact_registry_todo_with_contract_refs(self) -> None:
         report = art.validate_artifact_registry_table_policy(

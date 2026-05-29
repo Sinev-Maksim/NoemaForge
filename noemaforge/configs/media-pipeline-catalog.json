@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "MediaPipelineCatalog",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "adapter_telemetry_contract": {
     "id": "media-adapter-telemetry-core",
     "live_backend_required": false,
@@ -106,4 +106,3 @@
     }
   ]
 }
-

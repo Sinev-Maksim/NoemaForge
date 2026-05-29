@@ -44,14 +44,14 @@ class AlphaBacklogFenceQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:alpha-backlog-fence-core:0.32.1")
+        pack = entries.get("eval-pack:alpha-backlog-fence-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/alpha-backlog-fence.json", pack["refs"])
         self.assertIn("src/alpha_backlog_fence_runtime.py", pack["refs"])
         self.assertIn("tests/test_alpha_backlog_fence_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:alpha-backlog-fence-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:alpha-backlog-fence-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/alpha-backlog-fence.json", pipeline["refs"])
         self.assertIn("src/alpha_backlog_fence_runtime.py", pipeline["refs"])
 

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.a2a-interop/v1",
   "kind": "A2AInteropRegistry",
   "id": "optional-reviewed-a2a-interoperability",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "policy": {
     "default_state": "disabled",
     "default_direction": "none",
@@ -12,8 +12,16 @@
     "require_registry_entry": true,
     "require_operator_review": true,
     "require_release_evidence_before_enable": true,
-    "allowed_transports": ["offline_manifest", "local_loopback"],
-    "blocked_transports": ["http", "grpc", "websocket", "tcp"],
+    "allowed_transports": [
+      "offline_manifest",
+      "local_loopback"
+    ],
+    "blocked_transports": [
+      "http",
+      "grpc",
+      "websocket",
+      "tcp"
+    ],
     "allowed_payload_classes": [
       "capability_manifest",
       "task_summary",
@@ -25,7 +33,7 @@
   "peers": [
     {
       "id": "admin-review-envelope",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "protocol": "a2a",
       "state": "disabled",
       "transport": "offline_manifest",
@@ -33,9 +41,18 @@
       "network": "deny",
       "risk": "low",
       "autonomy_increase": false,
-      "capability_scopes": ["a2a.review_request.read", "a2a.task_summary.read"],
-      "allowed_payload_classes": ["task_summary", "review_request"],
-      "allowed_actions": ["propose_task", "request_review"],
+      "capability_scopes": [
+        "a2a.review_request.read",
+        "a2a.task_summary.read"
+      ],
+      "allowed_payload_classes": [
+        "task_summary",
+        "review_request"
+      ],
+      "allowed_actions": [
+        "propose_task",
+        "request_review"
+      ],
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
@@ -51,7 +68,10 @@
       "review": {
         "required": true,
         "route": "SR/SSR",
-        "reviewers": ["SR", "SSR"]
+        "reviewers": [
+          "SR",
+          "SSR"
+        ]
       },
       "release_evidence": {
         "required_before_enable": true,
@@ -69,7 +89,7 @@
     },
     {
       "id": "capability-manifest-export",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "protocol": "a2a",
       "state": "disabled",
       "transport": "offline_manifest",
@@ -77,9 +97,18 @@
       "network": "deny",
       "risk": "medium",
       "autonomy_increase": false,
-      "capability_scopes": ["a2a.capability_manifest.write", "a2a.release_evidence.read"],
-      "allowed_payload_classes": ["capability_manifest", "release_evidence"],
-      "allowed_actions": ["export_manifest", "attach_release_evidence"],
+      "capability_scopes": [
+        "a2a.capability_manifest.write",
+        "a2a.release_evidence.read"
+      ],
+      "allowed_payload_classes": [
+        "capability_manifest",
+        "release_evidence"
+      ],
+      "allowed_actions": [
+        "export_manifest",
+        "attach_release_evidence"
+      ],
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
@@ -95,7 +124,10 @@
       "review": {
         "required": true,
         "route": "SR/SSR",
-        "reviewers": ["SR", "SSR"]
+        "reviewers": [
+          "SR",
+          "SSR"
+        ]
       },
       "release_evidence": {
         "required_before_enable": true,
@@ -113,4 +145,3 @@
     }
   ]
 }
-

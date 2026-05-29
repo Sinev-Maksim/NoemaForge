@@ -2,7 +2,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/pipelines/__init__.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Manage NoemaForge pipeline catalog, runs, gates, artifacts and state.

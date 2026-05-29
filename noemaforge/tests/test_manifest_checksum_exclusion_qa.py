@@ -46,7 +46,7 @@ class ManifestChecksumExclusionQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:manifest-checksum-exclusion-core:0.32.1")
+        pack = entries.get("eval-pack:manifest-checksum-exclusion-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/manifest-checksum-exclusion-policy.json", pack["refs"])
         self.assertIn("contracts/manifest_checksum_exclusion.schema.json", pack["refs"])

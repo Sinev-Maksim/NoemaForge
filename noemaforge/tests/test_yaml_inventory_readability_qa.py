@@ -46,7 +46,7 @@ class YamlInventoryReadabilityQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:yaml-inventory-readability-core:0.32.1")
+        pack = entries.get("eval-pack:yaml-inventory-readability-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/yaml-inventory-readability-policy.json", pack["refs"])
         self.assertIn("contracts/yaml_inventory_readability.schema.json", pack["refs"])

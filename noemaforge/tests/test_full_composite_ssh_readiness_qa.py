@@ -47,15 +47,15 @@ class FullCompositeSshReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/full-composite-ssh-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/full_composite_ssh_readiness.schema.json", pack["refs"])
         self.assertIn("src/full_composite_ssh_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        task = entries.get("task:first-start-model-selection:0.32.1")
+        task = entries.get("task:first-start-model-selection:0.32.2")
         self.assertIsNotNone(task)
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", task["eval_pack_refs"])
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", task["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_ssh_target_run(self) -> None:
         report = fcsr.validate_full_composite_ssh_readiness_policy(fcsr.load_policy())

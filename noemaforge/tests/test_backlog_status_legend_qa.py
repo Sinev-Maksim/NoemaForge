@@ -46,7 +46,7 @@ class BacklogStatusLegendQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:backlog-status-legend-core:0.32.1")
+        pack = entries.get("eval-pack:backlog-status-legend-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/backlog-status-legend-policy.json", pack["refs"])
         self.assertIn("contracts/backlog_status_legend.schema.json", pack["refs"])

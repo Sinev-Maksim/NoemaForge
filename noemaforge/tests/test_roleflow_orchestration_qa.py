@@ -44,14 +44,14 @@ class RoleFlowOrchestrationQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:roleflow-orchestration-core:0.32.1")
+        pack = entries.get("eval-pack:roleflow-orchestration-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/roleflow-orchestration-policy.json", pack["refs"])
         self.assertIn("src/roleflow_orchestration_runtime.py", pack["refs"])
         self.assertIn("tests/test_roleflow_orchestration_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:roleflow-orchestration-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:roleflow-orchestration-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/roleflow-orchestration-policy.json", pipeline["refs"])
         self.assertIn("src/roleflow_orchestration_runtime.py", pipeline["refs"])
 

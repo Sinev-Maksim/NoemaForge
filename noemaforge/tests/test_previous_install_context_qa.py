@@ -46,7 +46,7 @@ class PreviousInstallContextQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:previous-install-context-core:0.32.1")
+        pack = entries.get("eval-pack:previous-install-context-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/previous-install-context-policy.json", pack["refs"])
         self.assertIn("contracts/previous_install_context.schema.json", pack["refs"])
@@ -56,8 +56,8 @@ class PreviousInstallContextQATests(unittest.TestCase):
         self.assertIn("docs/TODO.md", pack["refs"])
         self.assertIn("docs/reference/PROJECT_CONTEXT.md", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:previous-install-context-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:previous-install-context-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/previous-install-context-policy.json", pipeline["refs"])
         self.assertIn("src/previous_install_context_runtime.py", pipeline["refs"])
 

@@ -167,13 +167,13 @@ class ProductionAIContractTests(unittest.TestCase):
             {"change_id": "rag-change-1", "domain": "rag", "summary": "Tune retrieval."},
             gate,
             rollout,
-            registry_refs=["retriever:knowledge-keyword-retrieval:0.32.1"],
+            registry_refs=["retriever:knowledge-keyword-retrieval:0.32.2"],
             trace_id="trace-123",
         )
         self.assertEqual("ReleaseEvidence", evidence["kind"])
         self.assertEqual("trace-123", evidence["trace_id"])
         self.assertTrue(evidence["gate"]["ok"])
-        self.assertEqual(["retriever:knowledge-keyword-retrieval:0.32.1"], evidence["registry_refs"])
+        self.assertEqual(["retriever:knowledge-keyword-retrieval:0.32.2"], evidence["registry_refs"])
 
     def test_artifact_cards_cover_model_prompt_pipeline_epoch_and_tool_policy(self) -> None:
         registry = {"entries": []}
@@ -387,7 +387,7 @@ class ProductionAIContractTests(unittest.TestCase):
             {"decision": "pass", "overall_ok": True, "created_at": "2026-05-18T00:00:01Z"},
             build_report_path="prestart_build_report.json",
             scary_report_path="scary_report.json",
-            registry_refs=["epoch:noemaforge-runtime:0.32.1"],
+            registry_refs=["epoch:noemaforge-runtime:0.32.2"],
             trace_id="trace-epoch",
         )
         self.assertEqual("ReleaseEvidence", evidence["kind"])

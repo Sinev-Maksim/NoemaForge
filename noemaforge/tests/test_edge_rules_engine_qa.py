@@ -44,14 +44,14 @@ class EdgeRulesEngineQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:edge-rules-engine-core:0.32.1")
+        pack = entries.get("eval-pack:edge-rules-engine-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/edge-rules-engine-policy.json", pack["refs"])
         self.assertIn("src/edge_rules_engine_runtime.py", pack["refs"])
         self.assertIn("tests/test_edge_rules_engine_performance.py", pack["refs"])
 
-        model = entries["model:model-registry-local:0.32.1"]
-        self.assertIn("eval-pack:edge-rules-engine-core:0.32.1", model["eval_pack_refs"])
+        model = entries["model:model-registry-local:0.32.2"]
+        self.assertIn("eval-pack:edge-rules-engine-core:0.32.2", model["eval_pack_refs"])
 
     def test_edge_rules_engine_docs_and_policy_are_discoverable(self) -> None:
         policy = erer.load_policy(ROOT / "configs" / "edge-rules-engine-policy.json")

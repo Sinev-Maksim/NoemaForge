@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.pipeline-ui/v1",
   "kind": "PipelineUiCatalog",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "left_click": "open/explain/request_inputs/start_or_plan_by_policy",
   "right_click": [
     "open_diagram",
@@ -20,4 +20,3 @@
     ]
   }
 }
-

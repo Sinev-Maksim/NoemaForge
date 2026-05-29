@@ -47,7 +47,7 @@ class TargetLiveValidationReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/target-live-validation-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/target_live_validation_readiness.schema.json", pack["refs"])

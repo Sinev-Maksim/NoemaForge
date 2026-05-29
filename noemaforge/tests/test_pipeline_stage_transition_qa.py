@@ -29,10 +29,10 @@ class PipelineStageTransitionQATests(unittest.TestCase):
 
         registry = json.loads((ROOT / "configs" / "unified-registry.json").read_text(encoding="utf-8"))
         refs = {f"{entry['kind']}:{entry['id']}:{entry['version']}": entry for entry in registry["entries"]}
-        self.assertIn("eval-pack:pipeline-stage-transition-core:0.32.1", refs)
+        self.assertIn("eval-pack:pipeline-stage-transition-core:0.32.2", refs)
         self.assertIn(
-            "eval-pack:pipeline-stage-transition-core:0.32.1",
-            refs["pipeline:firstboot-model-selection:0.32.1"]["eval_pack_refs"],
+            "eval-pack:pipeline-stage-transition-core:0.32.2",
+            refs["pipeline:firstboot-model-selection:0.32.2"]["eval_pack_refs"],
         )
 
     def test_static_runtime_tokens_cover_all_transition_commands(self) -> None:

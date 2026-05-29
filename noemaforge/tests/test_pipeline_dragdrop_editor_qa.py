@@ -47,7 +47,7 @@ class PipelineDragDropEditorQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:pipeline-dragdrop-editor-core:0.32.1")
+        pack = entries.get("eval-pack:pipeline-dragdrop-editor-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/pipeline-dragdrop-editor-policy.json", pack["refs"])
         self.assertIn("src/pipeline_dragdrop_editor_runtime.py", pack["refs"])

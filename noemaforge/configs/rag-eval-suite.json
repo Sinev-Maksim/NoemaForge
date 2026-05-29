@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.rag-eval/v1",
   "kind": "RAGEvalSuite",
   "id": "docs-wiki-rag-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "thresholds": {
     "retrieval_hit_rate_min": 1.0,
     "citation_coverage_min": 1.0,
@@ -38,4 +38,3 @@
     }
   ]
 }
-

@@ -47,14 +47,14 @@ class ToolProxyLiveLlmSmokeReadinessQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.1")
+        pack = entries.get(f"eval-pack:{PACK_ID}:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/toolproxy-live-llm-smoke-readiness-policy.json", pack["refs"])
         self.assertIn("contracts/toolproxy_live_llm_smoke_readiness.schema.json", pack["refs"])
         self.assertIn("src/toolproxy_live_llm_smoke_readiness_runtime.py", pack["refs"])
         self.assertEqual(BLOCKED_STATE, pack["metadata"]["todo_state"])
-        tool_policy = entries["tool-policy:tool-policy-main:0.32.1"]
-        self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", tool_policy["eval_pack_refs"])
+        tool_policy = entries["tool-policy:tool-policy-main:0.32.2"]
+        self.assertIn(f"eval-pack:{PACK_ID}:0.32.2", tool_policy["eval_pack_refs"])
 
     def test_docs_record_blocker_without_closing_target_item(self) -> None:
         report = tlls.validate_toolproxy_live_llm_smoke_readiness_policy(tlls.load_policy())

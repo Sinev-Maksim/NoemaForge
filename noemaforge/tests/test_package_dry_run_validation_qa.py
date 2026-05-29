@@ -44,15 +44,15 @@ class PackageDryRunValidationQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:package-dry-run-validation-core:0.32.1")
+        pack = entries.get("eval-pack:package-dry-run-validation-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/package-dry-run-validation-policy.json", pack["refs"])
         self.assertIn("contracts/package_dry_run_validation.schema.json", pack["refs"])
         self.assertIn("src/package_dry_run_validation_runtime.py", pack["refs"])
         self.assertIn("tests/test_package_dry_run_validation_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:package-dry-run-validation-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:package-dry-run-validation-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/package-dry-run-validation-policy.json", pipeline["refs"])
         self.assertIn("src/package_dry_run_validation_runtime.py", pipeline["refs"])
 

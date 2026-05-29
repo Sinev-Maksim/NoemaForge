@@ -46,14 +46,14 @@ class SetupFrontDoorQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:setup-front-door-core:0.32.1")
+        pack = entries.get("eval-pack:setup-front-door-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/setup-front-door-policy.json", pack["refs"])
         self.assertIn("setup.sh", pack["refs"])
         self.assertIn("tests/test_setup_front_door_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:setup-front-door-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:setup-front-door-core:0.32.2", pipeline["eval_pack_refs"])
         self.assertIn("configs/setup-front-door-policy.json", pipeline["refs"])
         self.assertIn("src/setup_front_door_runtime.py", pipeline["refs"])
 

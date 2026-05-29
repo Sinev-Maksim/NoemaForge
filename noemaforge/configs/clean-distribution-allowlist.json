@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.clean-distribution/v1",
   "kind": "CleanDistributionAllowlistPolicy",
   "id": "clean-distribution-allowlist-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

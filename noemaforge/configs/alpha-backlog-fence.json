@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.alpha-backlog/v1",
   "kind": "AlphaBacklogFencePolicy",
   "id": "alpha-backlog-fence-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -16,7 +16,7 @@
     "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "protected_refs": [
       {
-        "ref": "eval-pack:typed-governance-track-core:0.32.1",
+        "ref": "eval-pack:typed-governance-track-core:0.32.2",
         "allowed_statuses": [
           "draft",
           "shadow"
@@ -28,10 +28,10 @@
       }
     ],
     "required_gate_refs": [
-      "eval-pack:docs-hygiene-prelaunch:0.32.1",
-      "eval-pack:ci-model-gates-core:0.32.1",
-      "eval-pack:signed-model-manifest-core:0.32.1",
-      "eval-pack:typed-governance-track-core:0.32.1"
+      "eval-pack:docs-hygiene-prelaunch:0.32.2",
+      "eval-pack:ci-model-gates-core:0.32.2",
+      "eval-pack:signed-model-manifest-core:0.32.2",
+      "eval-pack:typed-governance-track-core:0.32.2"
     ],
     "required_example_sets": [
       "prelaunch/governance/alpha_backlog_fence.example.json"

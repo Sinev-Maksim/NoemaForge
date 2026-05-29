@@ -44,14 +44,14 @@ class SensePrivacyQATests(unittest.TestCase):
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
             for entry in report["normalized_registry"]["entries"]
         }
-        pack = entries.get("eval-pack:sense-privacy-governance-core:0.32.1")
+        pack = entries.get("eval-pack:sense-privacy-governance-core:0.32.2")
         self.assertIsNotNone(pack)
         self.assertIn("configs/sense-privacy-policy.json", pack["refs"])
         self.assertIn("src/sense_privacy_runtime.py", pack["refs"])
         self.assertIn("tests/test_sense_privacy_performance.py", pack["refs"])
 
-        pipeline = entries["pipeline:firstboot-model-selection:0.32.1"]
-        self.assertIn("eval-pack:sense-privacy-governance-core:0.32.1", pipeline["eval_pack_refs"])
+        pipeline = entries["pipeline:firstboot-model-selection:0.32.2"]
+        self.assertIn("eval-pack:sense-privacy-governance-core:0.32.2", pipeline["eval_pack_refs"])
 
     def test_sense_privacy_docs_policy_and_changelog_are_discoverable(self) -> None:
         policy = spr.load_policy(ROOT / "configs" / "sense-privacy-policy.json")
