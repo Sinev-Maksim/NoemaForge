@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.graph-projection-views/v1",
   "kind": "GraphProjectionViewsPolicy",
   "id": "graph-projection-views-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,11 +11,27 @@
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "source_graph_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
-    "required_projection_types": ["wiki_markdown", "operator_summary", "task_context", "conflict_review"],
-    "required_metadata_fields": ["projection_type", "source_graph_ref", "source_graph_digest", "generated_from_graph", "not_source_of_truth", "generated_at"],
-    "required_notice_tokens": ["projection", "derived from graph", "not source of truth"],
+    "required_projection_types": [
+      "wiki_markdown",
+      "operator_summary",
+      "task_context",
+      "conflict_review"
+    ],
+    "required_metadata_fields": [
+      "projection_type",
+      "source_graph_ref",
+      "source_graph_digest",
+      "generated_from_graph",
+      "not_source_of_truth",
+      "generated_at"
+    ],
+    "required_notice_tokens": [
+      "projection",
+      "derived from graph",
+      "not source of truth"
+    ],
     "controls": {
       "projection_not_source_of_truth": true,
       "source_graph_digest_required": true,
@@ -64,4 +80,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

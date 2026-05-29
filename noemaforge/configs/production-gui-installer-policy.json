@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.production-gui-installer/v1",
   "kind": "ProductionGuiInstallerPolicy",
   "id": "production-gui-installer-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_docs_and_changelog_refs": true,
     "require_registry_attachment": true,
     "require_no_live_host_dependency": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "required_scripts": {
       "setup": "setup.sh",
       "installer": "install_noemaforge_0.32.1_mvp.sh",
@@ -113,4 +113,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

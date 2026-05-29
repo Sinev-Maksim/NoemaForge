@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.media-backend-selection-readiness/v1",
   "kind": "MediaBackendSelectionReadinessPolicy",
   "id": "media-backend-selection-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -30,7 +30,12 @@
       {
         "id": "vlm",
         "title": "Vision-language model adapter",
-        "artifact_classes": ["safetensors", "onnx", "pt", "engine"],
+        "artifact_classes": [
+          "safetensors",
+          "onnx",
+          "pt",
+          "engine"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": false,
@@ -39,7 +44,11 @@
       {
         "id": "stt",
         "title": "Speech-to-text adapter",
-        "artifact_classes": ["safetensors", "onnx", "pt"],
+        "artifact_classes": [
+          "safetensors",
+          "onnx",
+          "pt"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": true,
@@ -48,7 +57,11 @@
       {
         "id": "tts",
         "title": "Text-to-speech adapter",
-        "artifact_classes": ["safetensors", "onnx", "pt"],
+        "artifact_classes": [
+          "safetensors",
+          "onnx",
+          "pt"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": false,
@@ -57,7 +70,12 @@
       {
         "id": "music_generation",
         "title": "Music generation adapter",
-        "artifact_classes": ["safetensors", "ckpt", "onnx", "pt"],
+        "artifact_classes": [
+          "safetensors",
+          "ckpt",
+          "onnx",
+          "pt"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": false,
@@ -66,7 +84,11 @@
       {
         "id": "image_generation",
         "title": "Image generation adapter",
-        "artifact_classes": ["safetensors", "ckpt", "onnx"],
+        "artifact_classes": [
+          "safetensors",
+          "ckpt",
+          "onnx"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": false,
@@ -75,7 +97,12 @@
       {
         "id": "video_generation",
         "title": "Video generation adapter",
-        "artifact_classes": ["safetensors", "ckpt", "onnx", "pt"],
+        "artifact_classes": [
+          "safetensors",
+          "ckpt",
+          "onnx",
+          "pt"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": false,
@@ -84,7 +111,12 @@
       {
         "id": "segmentation_masks",
         "title": "Segmentation and virtual camera mask adapter",
-        "artifact_classes": ["safetensors", "onnx", "pt", "engine"],
+        "artifact_classes": [
+          "safetensors",
+          "onnx",
+          "pt",
+          "engine"
+        ],
         "explicit_selection_required": true,
         "target_smoke_required": true,
         "privacy_gate_required": true,
@@ -97,40 +129,95 @@
         "title": "Explicit backend selection record",
         "target_evidence_required": true,
         "requires_operator_approval": true,
-        "evidence": ["operator_selection_record", "selected_backend_id", "modality", "local_artifact_ref", "license_review_note", "plan_only_fallback"],
-        "completion_gates": ["operator_selection_recorded", "backend_id_recorded", "artifact_ref_recorded", "license_review_recorded", "fallback_recorded"]
+        "evidence": [
+          "operator_selection_record",
+          "selected_backend_id",
+          "modality",
+          "local_artifact_ref",
+          "license_review_note",
+          "plan_only_fallback"
+        ],
+        "completion_gates": [
+          "operator_selection_recorded",
+          "backend_id_recorded",
+          "artifact_ref_recorded",
+          "license_review_recorded",
+          "fallback_recorded"
+        ]
       },
       {
         "id": "adapter-contract-surface",
         "title": "Adapter command and artifact contract",
         "target_evidence_required": true,
         "requires_operator_approval": false,
-        "evidence": ["command_entrypoint", "input_schema", "output_manifest_schema", "error_model", "artifact_manifest"],
-        "completion_gates": ["command_entrypoint_recorded", "schemas_recorded", "artifact_manifest_recorded", "error_model_recorded"]
+        "evidence": [
+          "command_entrypoint",
+          "input_schema",
+          "output_manifest_schema",
+          "error_model",
+          "artifact_manifest"
+        ],
+        "completion_gates": [
+          "command_entrypoint_recorded",
+          "schemas_recorded",
+          "artifact_manifest_recorded",
+          "error_model_recorded"
+        ]
       },
       {
         "id": "privacy-consent-boundary",
         "title": "Privacy and consent boundary",
         "target_evidence_required": true,
         "requires_operator_approval": true,
-        "evidence": ["camera_microphone_default_off", "operator_consent_record", "visible_privacy_state", "no_autostart_record"],
-        "completion_gates": ["capture_default_off", "operator_consent_recorded", "visible_privacy_state_recorded", "no_autostart_recorded"]
+        "evidence": [
+          "camera_microphone_default_off",
+          "operator_consent_record",
+          "visible_privacy_state",
+          "no_autostart_record"
+        ],
+        "completion_gates": [
+          "capture_default_off",
+          "operator_consent_recorded",
+          "visible_privacy_state_recorded",
+          "no_autostart_recorded"
+        ]
       },
       {
         "id": "telemetry-selftest-boundary",
         "title": "Telemetry and selftest boundary",
         "target_evidence_required": true,
         "requires_operator_approval": false,
-        "evidence": ["media_adapter_telemetry_report", "plan_only_selftest_report", "resource_metrics", "artifact_size_record"],
-        "completion_gates": ["telemetry_report_recorded", "selftest_report_recorded", "resource_metrics_recorded", "artifact_size_recorded"]
+        "evidence": [
+          "media_adapter_telemetry_report",
+          "plan_only_selftest_report",
+          "resource_metrics",
+          "artifact_size_record"
+        ],
+        "completion_gates": [
+          "telemetry_report_recorded",
+          "selftest_report_recorded",
+          "resource_metrics_recorded",
+          "artifact_size_recorded"
+        ]
       },
       {
         "id": "target-live-media-smoke",
         "title": "Target live media smoke",
         "target_evidence_required": true,
         "requires_operator_approval": true,
-        "evidence": ["target_smoke_transcript", "generated_artifact_manifest", "artifact_sha256", "operator_review_note"],
-        "completion_gates": ["operator_approval_recorded", "target_smoke_transcript_archived", "artifact_manifest_recorded", "artifact_sha256_recorded", "operator_review_recorded"]
+        "evidence": [
+          "target_smoke_transcript",
+          "generated_artifact_manifest",
+          "artifact_sha256",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "target_smoke_transcript_archived",
+          "artifact_manifest_recorded",
+          "artifact_sha256_recorded",
+          "operator_review_recorded"
+        ]
       }
     ],
     "required_outputs": [
@@ -180,4 +267,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

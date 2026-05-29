@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.clean-install-share-readiness/v1",
   "kind": "CleanInstallShareReadinessPolicy",
   "id": "clean-install-share-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -37,8 +37,16 @@
           "./setup.sh --mode vm --dry-run --selftest",
           "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share --dry-run"
         ],
-        "evidence": ["setup_dry_run_log", "selftest_summary", "installer_version"],
-        "completion_gates": ["dry_run_passed", "selftest_passed", "evidence_file_archived"]
+        "evidence": [
+          "setup_dry_run_log",
+          "selftest_summary",
+          "installer_version"
+        ],
+        "completion_gates": [
+          "dry_run_passed",
+          "selftest_passed",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "host-clean-install",
@@ -48,8 +56,16 @@
         "commands": [
           "sudo ./setup.sh --mode host --model-profile minimal --with-share /mnt/noemaforge-share"
         ],
-        "evidence": ["install_transcript", "root_approval_record", "installed_cli_version"],
-        "completion_gates": ["operator_approval_recorded", "install_exit_zero", "evidence_file_archived"]
+        "evidence": [
+          "install_transcript",
+          "root_approval_record",
+          "installed_cli_version"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "install_exit_zero",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "share-mount-normalization",
@@ -61,8 +77,16 @@
           "grep -E '[[:space:]]/mnt/noemaforge-share[[:space:]]' /etc/fstab || true",
           "systemctl status mnt-noemaforge\\x2dshare.automount --no-pager -l || true"
         ],
-        "evidence": ["findmnt_output", "fstab_share_line", "automount_unit_state"],
-        "completion_gates": ["share_path_is_canonical", "nofail_automount_present", "evidence_file_archived"]
+        "evidence": [
+          "findmnt_output",
+          "fstab_share_line",
+          "automount_unit_state"
+        ],
+        "completion_gates": [
+          "share_path_is_canonical",
+          "nofail_automount_present",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "previous-install-detached",
@@ -73,8 +97,16 @@
           "noemaforge status --json",
           "noemaforge previous-install context --json || true"
         ],
-        "evidence": ["active_root_summary", "previous_install_context", "migration_context"],
-        "completion_gates": ["active_roots_are_current", "backup_context_archive_only", "evidence_file_archived"]
+        "evidence": [
+          "active_root_summary",
+          "previous_install_context",
+          "migration_context"
+        ],
+        "completion_gates": [
+          "active_roots_are_current",
+          "backup_context_archive_only",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "post-install-preflight",
@@ -86,8 +118,16 @@
           "noemaforge help",
           "noemaforge profiles recommend"
         ],
-        "evidence": ["trixie_preflight_json", "cli_help_output", "profile_recommendation"],
-        "completion_gates": ["preflight_json_parse_ok", "cli_available", "evidence_file_archived"]
+        "evidence": [
+          "trixie_preflight_json",
+          "cli_help_output",
+          "profile_recommendation"
+        ],
+        "completion_gates": [
+          "preflight_json_parse_ok",
+          "cli_available",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "emergency-mode-guard",
@@ -99,8 +139,16 @@
           "test ! -e /run/nologin",
           "journalctl -b -p err --no-pager | tail -200"
         ],
-        "evidence": ["system_running_state", "run_nologin_state", "boot_error_excerpt"],
-        "completion_gates": ["no_run_nologin_block", "share_did_not_trigger_emergency_mode", "evidence_file_archived"]
+        "evidence": [
+          "system_running_state",
+          "run_nologin_state",
+          "boot_error_excerpt"
+        ],
+        "completion_gates": [
+          "no_run_nologin_block",
+          "share_did_not_trigger_emergency_mode",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "evidence-archive",
@@ -110,8 +158,16 @@
         "commands": [
           "sudo noemaforge forensics --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -166,4 +222,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

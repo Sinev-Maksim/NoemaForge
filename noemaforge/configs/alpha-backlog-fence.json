@@ -13,12 +13,17 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "promotion_blocked_until": "manual_alpha_gate_stability_review",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "protected_refs": [
       {
         "ref": "eval-pack:typed-governance-track-core:0.32.1",
-        "allowed_statuses": ["draft", "shadow"],
-        "blocked_statuses": ["promoted"],
+        "allowed_statuses": [
+          "draft",
+          "shadow"
+        ],
+        "blocked_statuses": [
+          "promoted"
+        ],
         "reason": "Typed governance remains backlog-only until alpha gates are declared stable by manual release review."
       }
     ],
@@ -46,5 +51,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-
-

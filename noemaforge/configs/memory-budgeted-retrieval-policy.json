@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.memory-budgeted-retrieval/v1",
   "kind": "MemoryBudgetedRetrievalPolicy",
   "id": "memory-budgeted-retrieval-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "graceful_memory_budget_degradation",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
@@ -127,4 +127,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

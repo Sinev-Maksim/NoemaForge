@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.knowledge-core-relations/v1",
   "kind": "KnowledgeCoreRelationsPolicy",
   "id": "knowledge-core-relations-gates-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "canonical_relation_gate_freeze",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
     "knowledge_policy_ref": "configs/knowledge-policy.yaml",
     "gatekeeper_ref": "src/knowledge/gatekeeper.py",
@@ -38,8 +38,17 @@
       "trail_step_references_object",
       "lineage_derives_from"
     ],
-    "publication_gate_object_kinds": ["passage", "claim", "conflict", "concept"],
-    "publication_decisions": ["auto_publish", "review", "quarantine"],
+    "publication_gate_object_kinds": [
+      "passage",
+      "claim",
+      "conflict",
+      "concept"
+    ],
+    "publication_decisions": [
+      "auto_publish",
+      "review",
+      "quarantine"
+    ],
     "required_gate_codes": [
       "passage_missing_source",
       "passage_bad_anchor",
@@ -90,4 +99,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

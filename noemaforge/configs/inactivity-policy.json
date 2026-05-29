@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.inactivity/v1",
   "kind": "InactivityPolicy",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "mode": "manual_only",
   "next_idle_action": "none",
   "allowed_modes": [
@@ -12,4 +12,3 @@
   ],
   "safety": "idle actions are plan-only unless Admin approves"
 }
-

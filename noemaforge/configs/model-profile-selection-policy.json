@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.model-profile-selection/v1",
   "kind": "ModelProfileSelectionPolicy",
   "id": "model-profile-selection-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "profile_driven_model_staging",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "profile_manifest_ref": "configs/model-profiles.json",
     "runtime_ref": "src/model_profiles.py",
     "firstboot_ref": "src/firstboot_orchestrator.py",
@@ -17,8 +17,22 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Model profile boundary: New users choose a minimal/balanced/writer/research/gpu-heavy profile; each profile declares model hints, role staging targets, resource floors and a no-auto-download staging manifest so setup and firstboot avoid manual model-file curation.",
-    "required_profiles": ["minimal", "balanced", "writer", "research", "gpu-heavy"],
-    "required_profile_fields": ["description", "max_active_llms", "default_runtime", "ram_gib_min", "vram_gib_min", "model_hints", "roles"],
+    "required_profiles": [
+      "minimal",
+      "balanced",
+      "writer",
+      "research",
+      "gpu-heavy"
+    ],
+    "required_profile_fields": [
+      "description",
+      "max_active_llms",
+      "default_runtime",
+      "ram_gib_min",
+      "vram_gib_min",
+      "model_hints",
+      "roles"
+    ],
     "required_cli_surfaces": [
       "noemaforge profiles list",
       "noemaforge profiles show",
@@ -78,4 +92,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

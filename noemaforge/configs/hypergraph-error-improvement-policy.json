@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.hypergraph-error-improvement/v1",
   "kind": "HypergraphErrorImprovementPolicy",
   "id": "hypergraph-error-improvement-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "reviewed_hypergraph_errors_feed_training_and_eval",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "sql_schema_ref": "sql/error_learning_loop.sqlite.sql",
     "store_adapter_ref": "src/knowledge/error_learning.py",
     "require_trace_id": true,
@@ -15,8 +15,17 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Hypergraph error improvement boundary: Error learning stores error_events, corrections and regression_cases, separates source defects from labeling/chunking/extraction/linking defects, reuses approved corrections for retraining and evaluation, and records the model, run and profile that produced each error.",
-    "required_stores": ["error_events", "corrections", "regression_cases"],
-    "required_run_fields": ["run_id", "component", "model_id", "profile_id"],
+    "required_stores": [
+      "error_events",
+      "corrections",
+      "regression_cases"
+    ],
+    "required_run_fields": [
+      "run_id",
+      "component",
+      "model_id",
+      "profile_id"
+    ],
     "required_defect_classes": [
       "source_defect",
       "labeling_defect",
@@ -24,7 +33,10 @@
       "extraction_defect",
       "linking_defect"
     ],
-    "approved_reuse_targets": ["retraining", "evaluation"],
+    "approved_reuse_targets": [
+      "retraining",
+      "evaluation"
+    ],
     "controls": {
       "error_events_store_required": true,
       "corrections_store_required": true,
@@ -86,4 +98,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

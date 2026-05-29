@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.knowledge-graph-lint/v1",
   "kind": "KnowledgeGraphLintPolicy",
   "id": "knowledge-graph-lint-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "graph_lint_maintenance_loop",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
     "knowledge_purpose_policy_ref": "configs/knowledge-purpose-policy.json",
     "require_trace_id": true,
@@ -22,8 +22,14 @@
       "unresolved_conflict",
       "weak_realm_bridge"
     ],
-    "required_target_roles": ["Administrator", "Surgeon"],
-    "required_loop_targets": ["prestart", "scheduled_maintenance"],
+    "required_target_roles": [
+      "Administrator",
+      "Surgeon"
+    ],
+    "required_loop_targets": [
+      "prestart",
+      "scheduled_maintenance"
+    ],
     "stale_after_days": 45,
     "weak_bridge_strength_below": 0.5,
     "controls": {
@@ -84,4 +90,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.full-composite-target-run-readiness/v1",
   "kind": "FullCompositeTargetRunReadinessPolicy",
   "id": "full-composite-target-run-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -37,8 +37,17 @@
           "test ! -e /run/nologin",
           "findmnt /mnt/noemaforge-share || true"
         ],
-        "evidence": ["installed_version", "run_nologin_state", "canonical_share_mount"],
-        "completion_gates": ["patched10_or_later_installed", "no_run_nologin_block", "share_mount_evidence_archived", "evidence_file_archived"]
+        "evidence": [
+          "installed_version",
+          "run_nologin_state",
+          "canonical_share_mount"
+        ],
+        "completion_gates": [
+          "patched10_or_later_installed",
+          "no_run_nologin_block",
+          "share_mount_evidence_archived",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "target-preflight",
@@ -50,8 +59,17 @@
           "NOEMAFORGE_PIPELINE_STATE=/var/lib/noemaforge/pipelines noemaforge pipeline validate",
           "systemctl status noemaforge-llm-gateway.service --no-pager -l"
         ],
-        "evidence": ["trixie_preflight_json", "pipeline_validate_output", "gateway_service_state"],
-        "completion_gates": ["preflight_json_parse_ok", "pipeline_validate_ok", "gateway_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "trixie_preflight_json",
+          "pipeline_validate_output",
+          "gateway_service_state"
+        ],
+        "completion_gates": [
+          "preflight_json_parse_ok",
+          "pipeline_validate_ok",
+          "gateway_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "full-composite-command-plan",
@@ -61,8 +79,17 @@
         "commands": [
           "sudo noemaforge first-start --full_composite 0 --show-candidates --show-compositions --clear-model-health --per-model-timeout 240 --total-timeout 7200"
         ],
-        "evidence": ["operator_approval_record", "command_line", "risk_acknowledgement"],
-        "completion_gates": ["operator_approval_recorded", "full_composite_zero_recorded", "timeouts_recorded", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "command_line",
+          "risk_acknowledgement"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "full_composite_zero_recorded",
+          "timeouts_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "full-composite-run-transcript",
@@ -72,8 +99,18 @@
         "commands": [
           "NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL=10 sudo noemaforge first-start --full_composite 0 --show-candidates --show-compositions --clear-model-health --per-model-timeout 240 --total-timeout 7200"
         ],
-        "evidence": ["run_transcript", "tty_status_updates", "model_run_records", "composite_selection_plan"],
-        "completion_gates": ["operator_approval_recorded", "transcript_archived", "summary_artifacts_written", "evidence_file_archived"]
+        "evidence": [
+          "run_transcript",
+          "tty_status_updates",
+          "model_run_records",
+          "composite_selection_plan"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "transcript_archived",
+          "summary_artifacts_written",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "summary-artifacts",
@@ -84,8 +121,20 @@
           "noemaforge first-start summary --latest",
           "ls -l /var/lib/noemaforge/firstboot"
         ],
-        "evidence": ["first_start_summary", "candidate_selection_plan", "role_candidate_map", "model_run_records", "rollback_plan", "composite_selection_plan"],
-        "completion_gates": ["summary_has_pass_warn_fail_markers", "candidate_artifacts_exist", "rollback_plan_exists", "evidence_file_archived"]
+        "evidence": [
+          "first_start_summary",
+          "candidate_selection_plan",
+          "role_candidate_map",
+          "model_run_records",
+          "rollback_plan",
+          "composite_selection_plan"
+        ],
+        "completion_gates": [
+          "summary_has_pass_warn_fail_markers",
+          "candidate_artifacts_exist",
+          "rollback_plan_exists",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "display-and-abort-recovery",
@@ -98,8 +147,18 @@
           "sudo systemctl start --no-block display-manager.service 2>/dev/null || true",
           "systemctl is-active display-manager.service"
         ],
-        "evidence": ["abort_result", "graphical_target_state", "display_manager_state", "run_nologin_state_after_recovery"],
-        "completion_gates": ["operator_approval_recorded", "display_manager_active_after_recovery", "no_run_nologin_block", "evidence_file_archived"]
+        "evidence": [
+          "abort_result",
+          "graphical_target_state",
+          "display_manager_state",
+          "run_nologin_state_after_recovery"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "display_manager_active_after_recovery",
+          "no_run_nologin_block",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "evidence-archive",
@@ -109,8 +168,18 @@
         "commands": [
           "sudo noemaforge forensics --include-first-start --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -169,4 +238,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

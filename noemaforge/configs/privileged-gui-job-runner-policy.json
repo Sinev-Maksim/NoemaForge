@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.privileged-gui-job-runner/v1",
   "kind": "PrivilegedGuiJobRunnerPolicy",
   "id": "privileged-gui-job-runner-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -23,8 +23,14 @@
       {
         "kind": "epoch_apply",
         "allowed_action": "first_start_epoch_apply",
-        "command_prefix": ["sudo", "noemaforge", "first-start"],
-        "required_tokens": ["--keep-display"],
+        "command_prefix": [
+          "sudo",
+          "noemaforge",
+          "first-start"
+        ],
+        "required_tokens": [
+          "--keep-display"
+        ],
         "allowed_flags": [
           "--fast",
           "--normal",
@@ -41,8 +47,16 @@
       {
         "kind": "model_selection_continue",
         "allowed_action": "first_start_model_selection_continue",
-        "command_prefix": ["sudo", "noemaforge", "first-start"],
-        "required_tokens": ["--dry-run", "--keep-display", "--retry-failed-models"],
+        "command_prefix": [
+          "sudo",
+          "noemaforge",
+          "first-start"
+        ],
+        "required_tokens": [
+          "--dry-run",
+          "--keep-display",
+          "--retry-failed-models"
+        ],
         "allowed_flags": [
           "--fast",
           "--normal",
@@ -61,14 +75,42 @@
         "kind": "vault_reinventory",
         "allowed_action": "vault_reinventory_scan",
         "command_steps": [
-          ["sudo", "noemaforge", "inventory", "scan"],
-          ["sudo", "noemaforge", "datasets", "scan"],
-          ["sudo", "noemaforge", "tournament", "eligibility"]
+          [
+            "sudo",
+            "noemaforge",
+            "inventory",
+            "scan"
+          ],
+          [
+            "sudo",
+            "noemaforge",
+            "datasets",
+            "scan"
+          ],
+          [
+            "sudo",
+            "noemaforge",
+            "tournament",
+            "eligibility"
+          ]
         ],
-        "required_tokens": ["inventory", "datasets", "tournament"]
+        "required_tokens": [
+          "inventory",
+          "datasets",
+          "tournament"
+        ]
       }
     ],
-    "forbidden_command_fragments": [";", "&&", "||", "|", "$(", "`", ">", "<"],
+    "forbidden_command_fragments": [
+      ";",
+      "&&",
+      "||",
+      "|",
+      "$(",
+      "`",
+      ">",
+      "<"
+    ],
     "required_admin_tokens": [
       "def epoch_apply",
       "def model_selection_continue",
@@ -111,4 +153,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

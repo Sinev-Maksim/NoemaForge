@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.locale-main-chat-surface/v1",
   "kind": "LocaleMainChatSurfacePolicy",
   "id": "locale-main-chat-surface-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,18 @@
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "api_path": "/api/locales",
-    "required_locales": ["de", "en", "es", "it", "ja", "ko", "pt", "ru", "uk", "zh-CN"],
+    "required_locales": [
+      "de",
+      "en",
+      "es",
+      "it",
+      "ja",
+      "ko",
+      "pt",
+      "ru",
+      "uk",
+      "zh-CN"
+    ],
     "required_message_keys": [
       "section.main_chat",
       "chat.placeholder",
@@ -50,7 +61,16 @@
       "pipeline-search",
       "pipeline-new"
     ],
-    "ru_disallowed_fragments": ["Ready.", "No artifacts yet.", "Open", "Download", "Stop loop", "Pipeline Dock", "Search pipeline", "User"],
+    "ru_disallowed_fragments": [
+      "Ready.",
+      "No artifacts yet.",
+      "Open",
+      "Download",
+      "Stop loop",
+      "Pipeline Dock",
+      "Search pipeline",
+      "User"
+    ],
     "required_docs": [
       "noemaforge/docs/README.md",
       "noemaforge/docs/TODO.md",
@@ -79,4 +99,3 @@
     "docs/history/CHANGELOG.md"
   ]
 }
-

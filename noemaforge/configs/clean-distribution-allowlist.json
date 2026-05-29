@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "core_seed_channel": "public_core_seed",
     "build_policy": {
       "allowlist_only": true,
@@ -60,10 +60,29 @@
       }
     ],
     "excluded_prefixes": {
-      "hf": ["optional/hf/", "vault/hf/", "noemaforge/configs/hfbridge-", "noemaforge/src/hfbridge_"],
-      "community": ["optional/community/", "community/", "noemaforge/configs/git-exchange-", "noemaforge/src/git_exchange_"],
-      "history": ["docs/history/", "noemaforge/docs/history/", "CHANGELOG_"],
-      "quarantine": ["trash/", "quarantine/", "noemaforge/quarantine/", "__pycache__/"]
+      "hf": [
+        "optional/hf/",
+        "vault/hf/",
+        "noemaforge/configs/hfbridge-",
+        "noemaforge/src/hfbridge_"
+      ],
+      "community": [
+        "optional/community/",
+        "community/",
+        "noemaforge/configs/git-exchange-",
+        "noemaforge/src/git_exchange_"
+      ],
+      "history": [
+        "docs/history/",
+        "noemaforge/docs/history/",
+        "CHANGELOG_"
+      ],
+      "quarantine": [
+        "trash/",
+        "quarantine/",
+        "noemaforge/quarantine/",
+        "__pycache__/"
+      ]
     },
     "required_example_sets": [
       "prelaunch/governance/clean_distribution_allowlist.example.json"
@@ -83,4 +102,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.role-corpus-binding/v1",
   "kind": "RoleCorpusBindingPolicy",
   "id": "role-corpus-binding-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "role_eval_requires_corpus_binding",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "role_eval_catalog_ref": "configs/role-eval-datasets.yaml",
     "role_eval_schema_ref": "contracts/role_eval_datasets.schema.json",
     "seed_dataset_root_ref": "datasets/role_eval_cases",
@@ -16,11 +16,24 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Role corpus binding boundary: Role evaluation keeps role-scoped JSONL suites, binds roles to real seed/external corpora when available, and marks missing required corpora as N/A instead of silently faking coverage.",
-    "required_role_fields": ["suite", "dataset_profile"],
-    "required_profile_fields": ["type", "available_when"],
-    "required_binding_statuses": ["available", "N/A"],
+    "required_role_fields": [
+      "suite",
+      "dataset_profile"
+    ],
+    "required_profile_fields": [
+      "type",
+      "available_when"
+    ],
+    "required_binding_statuses": [
+      "available",
+      "N/A"
+    ],
     "required_na_reason": "dataset_missing",
-    "required_corpus_types": ["seed_jsonl", "external_library", "state_kg"],
+    "required_corpus_types": [
+      "seed_jsonl",
+      "external_library",
+      "state_kg"
+    ],
     "controls": {
       "role_scoped_catalog_required": true,
       "jsonl_suite_required_for_seed_profiles": true,
@@ -79,4 +92,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

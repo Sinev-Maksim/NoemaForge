@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.package-dry-run/v1",
   "kind": "PackageDryRunValidationPolicy",
   "id": "package-dry-run-validation-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,14 +10,23 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "required_scripts": {
       "setup": "setup.sh",
       "installer": "install_noemaforge_0.32.2_mvp.sh",
       "uninstall": "uninstall_noemaforge_0.32.2_mvp.sh"
     },
-    "required_setup_flags": ["--dry-run", "--selftest", "--install-root", "--data-root", "--model-profile"],
-    "required_uninstall_flags": ["--dry-run", "--selftest"],
+    "required_setup_flags": [
+      "--dry-run",
+      "--selftest",
+      "--install-root",
+      "--data-root",
+      "--model-profile"
+    ],
+    "required_uninstall_flags": [
+      "--dry-run",
+      "--selftest"
+    ],
     "dry_run_controls": {
       "setup_dry_run_exits_before_installer_exec": true,
       "setup_non_dry_run_requires_root": true,
@@ -51,6 +60,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-
-
-

@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.knowledge-purpose/v1",
   "kind": "KnowledgePurposePolicy",
   "id": "knowledge-purpose-artifacts-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "purpose_scoped_knowledge_growth",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "knowledge_manifest_ref": "manifests/functional/knowledge.hypergraph.yaml",
     "require_trace_id": true,
     "require_registry_attachment": true,
@@ -26,8 +26,16 @@
       "review_cadence",
       "applies_to"
     ],
-    "required_decision_stages": ["ingest", "lint", "review"],
-    "required_decisions": ["accept", "defer", "reject"],
+    "required_decision_stages": [
+      "ingest",
+      "lint",
+      "review"
+    ],
+    "required_decisions": [
+      "accept",
+      "defer",
+      "reject"
+    ],
     "controls": {
       "purpose_ref_required": true,
       "mission_required": true,
@@ -77,4 +85,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

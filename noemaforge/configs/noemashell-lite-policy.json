@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.noemashell/v1",
   "kind": "NoemaShellLitePolicy",
   "id": "noemashell-lite-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -11,7 +11,7 @@
     "require_registry_attachment": true,
     "require_policy_schema_runtime_tests": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "role_kernel_policy_ref": "configs/role-kernel-policy.json",
     "roleflow_policy_ref": "configs/roleflow-orchestration-policy.json",
     "gui_shell_policy_ref": "configs/gui-shell-policy.json",
@@ -83,4 +83,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

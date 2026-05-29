@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.nologin-recovery-readiness/v1",
   "kind": "NologinRecoveryReadinessPolicy",
   "id": "nologin-recovery-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -35,8 +35,17 @@
           "systemctl get-default",
           "systemctl is-active display-manager.service || systemctl is-active gdm.service || true"
         ],
-        "evidence": ["pre_recovery_nologin_state", "default_target_state", "display_manager_state"],
-        "completion_gates": ["pre_state_recorded", "default_target_recorded", "display_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "pre_recovery_nologin_state",
+          "default_target_state",
+          "display_manager_state"
+        ],
+        "completion_gates": [
+          "pre_state_recorded",
+          "default_target_recorded",
+          "display_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "abort-cleanup-plan",
@@ -48,8 +57,18 @@
           "sudo pkill -TERM -f 'firstboot_orchestrator.py|role_tournament.py|noemaforge-first-launch|llama-server|noemaforge-llama-start' || true",
           "sudo systemctl set-default graphical.target"
         ],
-        "evidence": ["operator_approval_record", "abort_result", "cleanup_process_result", "graphical_target_state"],
-        "completion_gates": ["operator_approval_recorded", "abort_result_recorded", "cleanup_result_recorded", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "abort_result",
+          "cleanup_process_result",
+          "graphical_target_state"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "abort_result_recorded",
+          "cleanup_result_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "nologin-cleared-after-recovery",
@@ -60,8 +79,15 @@
           "test ! -e /run/nologin",
           "stat /run/nologin 2>/dev/null || true"
         ],
-        "evidence": ["post_recovery_nologin_absent", "post_recovery_nologin_stat"],
-        "completion_gates": ["nologin_absent_after_recovery", "nologin_stat_recorded", "evidence_file_archived"]
+        "evidence": [
+          "post_recovery_nologin_absent",
+          "post_recovery_nologin_stat"
+        ],
+        "completion_gates": [
+          "nologin_absent_after_recovery",
+          "nologin_stat_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "display-recovery-confirmation",
@@ -73,8 +99,17 @@
           "sudo systemctl start --no-block gdm.service 2>/dev/null || true",
           "systemctl is-active display-manager.service || systemctl is-active gdm.service"
         ],
-        "evidence": ["display_manager_start_result", "display_manager_active_state", "graphical_target_state_after_recovery"],
-        "completion_gates": ["operator_approval_recorded", "display_manager_active_after_recovery", "graphical_target_recorded", "evidence_file_archived"]
+        "evidence": [
+          "display_manager_start_result",
+          "display_manager_active_state",
+          "graphical_target_state_after_recovery"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "display_manager_active_after_recovery",
+          "graphical_target_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "nologin-recovery-archive",
@@ -84,8 +119,18 @@
         "commands": [
           "sudo noemaforge forensics --include-first-start --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -133,4 +178,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

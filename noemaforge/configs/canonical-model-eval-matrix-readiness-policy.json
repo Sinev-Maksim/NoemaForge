@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.canonical-model-eval-matrix-readiness/v1",
   "kind": "CanonicalModelEvalMatrixReadinessPolicy",
   "id": "canonical-model-eval-matrix-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -30,32 +30,55 @@
       {
         "id": "canonical-model-inventory",
         "title": "Canonical model inventory",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/configs/model-profiles.yaml",
           "noemaforge/configs/model-eval-suite.yaml"
         ],
-        "evidence": ["canonical_model_ids", "profile_binding", "eval_suite_binding"],
-        "completion_gates": ["all_canonical_models_enumerated", "model_profile_refs_resolve", "evidence_file_archived"]
+        "evidence": [
+          "canonical_model_ids",
+          "profile_binding",
+          "eval_suite_binding"
+        ],
+        "completion_gates": [
+          "all_canonical_models_enumerated",
+          "model_profile_refs_resolve",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "cpu-scorecard-run",
         "title": "CPU scorecard run",
-        "runtime_devices": ["cpu"],
+        "runtime_devices": [
+          "cpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/src/model_scorecards.py",
           "noemaforge/src/role_tournament.py",
           "noemaforge/configs/cpu-gpu-scorecard-separation-policy.json"
         ],
-        "evidence": ["cpu_scorecard_path", "cpu_runtime_device", "cpu_model_results"],
-        "completion_gates": ["runtime_device_cpu_recorded", "scorecard_under_cpu_namespace", "evidence_file_archived"]
+        "evidence": [
+          "cpu_scorecard_path",
+          "cpu_runtime_device",
+          "cpu_model_results"
+        ],
+        "completion_gates": [
+          "runtime_device_cpu_recorded",
+          "scorecard_under_cpu_namespace",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "gpu-scorecard-run",
         "title": "GPU scorecard run",
-        "runtime_devices": ["gpu"],
+        "runtime_devices": [
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/src/model_scorecards.py",
@@ -63,66 +86,129 @@
           "noemaforge/configs/runtime-device-policy.json",
           "noemaforge/configs/cpu-gpu-scorecard-separation-policy.json"
         ],
-        "evidence": ["gpu_scorecard_path", "gpu_runtime_device", "gpu_model_results"],
-        "completion_gates": ["runtime_device_gpu_recorded", "scorecard_under_gpu_namespace", "evidence_file_archived"]
+        "evidence": [
+          "gpu_scorecard_path",
+          "gpu_runtime_device",
+          "gpu_model_results"
+        ],
+        "completion_gates": [
+          "runtime_device_gpu_recorded",
+          "scorecard_under_gpu_namespace",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "role-coverage",
         "title": "Role coverage",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/src/role_tournament.py",
           "noemaforge/src/firstboot_eval.py"
         ],
-        "evidence": ["role_candidate_map", "role_result_count", "role_selection_decision"],
-        "completion_gates": ["all_required_roles_scored", "role_decision_trace_recorded", "evidence_file_archived"]
+        "evidence": [
+          "role_candidate_map",
+          "role_result_count",
+          "role_selection_decision"
+        ],
+        "completion_gates": [
+          "all_required_roles_scored",
+          "role_decision_trace_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "eval-suite-coverage",
         "title": "Evaluation suite coverage",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/configs/model-eval-suite.yaml",
           "noemaforge/src/firstboot_eval.py"
         ],
-        "evidence": ["suite_task_ids", "suite_result_count", "suite_failure_summary"],
-        "completion_gates": ["all_required_eval_tasks_attempted", "failures_have_blocker_records", "evidence_file_archived"]
+        "evidence": [
+          "suite_task_ids",
+          "suite_result_count",
+          "suite_failure_summary"
+        ],
+        "completion_gates": [
+          "all_required_eval_tasks_attempted",
+          "failures_have_blocker_records",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "health-filter-coverage",
         "title": "Health filter coverage",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/configs/model-health-candidate-filter-policy.json"
         ],
-        "evidence": ["failed_or_excluded_models", "filtered_candidate_map", "selection_exclusion_trace"],
-        "completion_gates": ["failed_models_not_selected", "excluded_models_not_selected", "evidence_file_archived"]
+        "evidence": [
+          "failed_or_excluded_models",
+          "filtered_candidate_map",
+          "selection_exclusion_trace"
+        ],
+        "completion_gates": [
+          "failed_models_not_selected",
+          "excluded_models_not_selected",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "scorecard-separation",
         "title": "CPU and GPU scorecard separation",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/configs/cpu-gpu-scorecard-separation-policy.json",
           "noemaforge/src/cpu_gpu_scorecard_separation_runtime.py"
         ],
-        "evidence": ["cpu_scorecard_root", "gpu_scorecard_root", "runtime_device_field"],
-        "completion_gates": ["cpu_gpu_paths_are_distinct", "runtime_device_field_present", "evidence_file_archived"]
+        "evidence": [
+          "cpu_scorecard_root",
+          "gpu_scorecard_root",
+          "runtime_device_field"
+        ],
+        "completion_gates": [
+          "cpu_gpu_paths_are_distinct",
+          "runtime_device_field_present",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "evidence-archive",
         "title": "Canonical matrix evidence archive",
-        "runtime_devices": ["cpu", "gpu"],
+        "runtime_devices": [
+          "cpu",
+          "gpu"
+        ],
         "target_evidence_required": true,
         "source_refs": [
           "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md"
         ],
-        "evidence": ["matrix_transcript", "scorecard_bundle_sha256", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "matrix_transcript",
+          "scorecard_bundle_sha256",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -179,4 +265,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

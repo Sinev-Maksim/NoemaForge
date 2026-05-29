@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-tinyml-ota-pack/v1",
   "kind": "EdgeTinyMLOTAPackPolicy",
   "id": "edge-tinyml-ota-pack-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "summary": "Edge/TinyML/OTA pack aggregates MQTT/serial Sense ingestion, TinyML validation, gateway inference, edge rules, signed manifests and OTA rollback into one offline release contract.",
   "policy": {
@@ -22,37 +22,67 @@
         "id": "sense-layer-edge-core",
         "config": "noemaforge/configs/sense-layer-edge.json",
         "runtime": "noemaforge/src/sense_layer_edge_runtime.py",
-        "capabilities": ["mqtt", "serial", "source_trust_schema"]
+        "capabilities": [
+          "mqtt",
+          "serial",
+          "source_trust_schema"
+        ]
       },
       {
         "id": "tinyml-node-core",
         "config": "noemaforge/configs/tinyml-node-policy.json",
         "runtime": "noemaforge/src/tinyml_node_runtime.py",
-        "capabilities": ["golden_vectors", "latency_budget", "ram_arena_budget", "model_hash"]
+        "capabilities": [
+          "golden_vectors",
+          "latency_budget",
+          "ram_arena_budget",
+          "model_hash"
+        ]
       },
       {
         "id": "gateway-inference-service-core",
         "config": "noemaforge/configs/gateway-inference-service.json",
         "runtime": "noemaforge/src/gateway_inference_service_runtime.py",
-        "capabilities": ["rest", "mqtt", "health", "ready", "metrics", "manifest_only_model_loading"]
+        "capabilities": [
+          "rest",
+          "mqtt",
+          "health",
+          "ready",
+          "metrics",
+          "manifest_only_model_loading"
+        ]
       },
       {
         "id": "edge-rules-engine-core",
         "config": "noemaforge/configs/edge-rules-engine-policy.json",
         "runtime": "noemaforge/src/edge_rules_engine_runtime.py",
-        "capabilities": ["whitebox_fallback", "rule_guard", "thresholds", "drift_flags"]
+        "capabilities": [
+          "whitebox_fallback",
+          "rule_guard",
+          "thresholds",
+          "drift_flags"
+        ]
       },
       {
         "id": "ota-update-layer-core",
         "config": "noemaforge/configs/ota-update-layer.json",
         "runtime": "noemaforge/src/ota_update_layer_runtime.py",
-        "capabilities": ["staged_rollout", "rollback_bundle", "health_gate", "ci_release_evidence"]
+        "capabilities": [
+          "staged_rollout",
+          "rollback_bundle",
+          "health_gate",
+          "ci_release_evidence"
+        ]
       },
       {
         "id": "edge-reference-targets-core",
         "config": "noemaforge/configs/edge-reference-targets.json",
         "runtime": "noemaforge/src/edge_reference_targets_runtime.py",
-        "capabilities": ["reference_only", "local_mvp_alternative", "no_hard_dependency"]
+        "capabilities": [
+          "reference_only",
+          "local_mvp_alternative",
+          "no_hard_dependency"
+        ]
       }
     ],
     "required_pack_tokens": [
@@ -95,4 +125,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

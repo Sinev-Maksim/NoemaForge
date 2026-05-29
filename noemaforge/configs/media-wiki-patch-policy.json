@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.media-wiki-patch/v1",
   "kind": "MediaWikiPatchPolicy",
   "id": "media-wiki-patch-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -58,4 +58,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

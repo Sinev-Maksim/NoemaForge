@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline.executor-stage-worker/v1",
   "kind": "ExecutorStageWorkerPolicy",
   "id": "executor-stage-worker-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,9 +10,19 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_pipeline_commands": ["run", "artifact add", "executor-step", "event-log"],
-    "required_outputs": ["stage_contract", "contract_artifact_gate", "pipeline_executor_step_event", "pipeline_executor_wait_event"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_pipeline_commands": [
+      "run",
+      "artifact add",
+      "executor-step",
+      "event-log"
+    ],
+    "required_outputs": [
+      "stage_contract",
+      "contract_artifact_gate",
+      "pipeline_executor_step_event",
+      "pipeline_executor_wait_event"
+    ],
     "required_refs": {
       "cli": "bin/noemaforge",
       "runtime": "src/pipeline_runtime.py",
@@ -53,4 +63,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

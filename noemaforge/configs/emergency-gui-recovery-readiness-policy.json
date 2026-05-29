@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.emergency-gui-recovery-readiness/v1",
   "kind": "EmergencyGuiRecoveryReadinessPolicy",
   "id": "emergency-gui-recovery-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -36,8 +36,17 @@
           "systemctl is-active display-manager.service || true",
           "systemctl is-active gdm.service || true"
         ],
-        "evidence": ["default_target_state", "display_manager_state", "gdm_state"],
-        "completion_gates": ["default_target_recorded", "display_manager_state_recorded", "gdm_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "default_target_state",
+          "display_manager_state",
+          "gdm_state"
+        ],
+        "completion_gates": [
+          "default_target_recorded",
+          "display_manager_state_recorded",
+          "gdm_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "pause-runtime-before-recovery",
@@ -47,8 +56,17 @@
         "commands": [
           "sudo noemaforge pause --wait"
         ],
-        "evidence": ["operator_approval_record", "pause_result", "runtime_quiesced_state"],
-        "completion_gates": ["operator_approval_recorded", "pause_result_recorded", "runtime_quiesced_or_blocker_recorded", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "pause_result",
+          "runtime_quiesced_state"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "pause_result_recorded",
+          "runtime_quiesced_or_blocker_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "gui-rescue-wait",
@@ -59,8 +77,17 @@
           "sudo noemaforge gui-rescue --wait",
           "systemctl is-active display-manager.service || systemctl is-active gdm.service"
         ],
-        "evidence": ["operator_approval_record", "gui_rescue_result", "post_rescue_display_manager_state"],
-        "completion_gates": ["operator_approval_recorded", "gui_rescue_result_recorded", "display_manager_active_after_rescue", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "gui_rescue_result",
+          "post_rescue_display_manager_state"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "gui_rescue_result_recorded",
+          "display_manager_active_after_rescue",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "display-manager-gdm-alias",
@@ -72,8 +99,16 @@
           "systemctl status gdm.service --no-pager -l || true",
           "systemctl cat display-manager.service || true"
         ],
-        "evidence": ["display_manager_alias_state", "gdm_service_state", "display_manager_unit_cat"],
-        "completion_gates": ["display_manager_alias_matches_gdm_or_documented", "gdm_service_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "display_manager_alias_state",
+          "gdm_service_state",
+          "display_manager_unit_cat"
+        ],
+        "completion_gates": [
+          "display_manager_alias_matches_gdm_or_documented",
+          "gdm_service_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "nologin-display-guard",
@@ -84,8 +119,15 @@
           "test ! -e /run/nologin",
           "stat /run/nologin 2>/dev/null || true"
         ],
-        "evidence": ["post_rescue_nologin_absent", "post_rescue_nologin_stat"],
-        "completion_gates": ["no_run_nologin_block_after_rescue", "nologin_stat_recorded", "evidence_file_archived"]
+        "evidence": [
+          "post_rescue_nologin_absent",
+          "post_rescue_nologin_stat"
+        ],
+        "completion_gates": [
+          "no_run_nologin_block_after_rescue",
+          "nologin_stat_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "emergency-gui-recovery-archive",
@@ -95,8 +137,18 @@
         "commands": [
           "sudo noemaforge forensics --include-live-validation --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -144,4 +196,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

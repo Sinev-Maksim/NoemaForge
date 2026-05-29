@@ -10,7 +10,7 @@
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "require_policy_schema_runtime_tests": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "required_pipeline_commands": [
       "stage-validate",
       "stage-smoke",
@@ -56,4 +56,3 @@
     ]
   }
 }
-

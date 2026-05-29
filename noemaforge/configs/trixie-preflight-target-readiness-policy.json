@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.trixie-preflight-target-readiness/v1",
   "kind": "TrixiePreflightTargetReadinessPolicy",
   "id": "trixie-preflight-target-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -34,8 +34,17 @@
           "sudo noemaforge trixie-preflight --json",
           "sudo noemaforge trixie-preflight --json --skip-modelstore"
         ],
-        "evidence": ["operator_approval_record", "trixie_preflight_json", "skip_modelstore_preflight_json"],
-        "completion_gates": ["operator_approval_recorded", "read_only_command_confirmed", "preflight_json_archived", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "trixie_preflight_json",
+          "skip_modelstore_preflight_json"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "read_only_command_confirmed",
+          "preflight_json_archived",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "preflight-json-shape",
@@ -45,8 +54,16 @@
         "commands": [
           "python3 -m json.tool noemaforge-trixie-preflight.json >/dev/null"
         ],
-        "evidence": ["trixie_preflight_json", "json_parse_result", "required_json_keys"],
-        "completion_gates": ["preflight_json_parse_ok", "required_keys_recorded", "evidence_file_archived"]
+        "evidence": [
+          "trixie_preflight_json",
+          "json_parse_result",
+          "required_json_keys"
+        ],
+        "completion_gates": [
+          "preflight_json_parse_ok",
+          "required_keys_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "distro-kernel-baseline",
@@ -58,8 +75,17 @@
           "uname -a",
           "mokutil --sb-state || true"
         ],
-        "evidence": ["distro_release", "kernel_release", "secure_boot_state"],
-        "completion_gates": ["distro_recorded", "kernel_recorded", "secure_boot_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "distro_release",
+          "kernel_release",
+          "secure_boot_state"
+        ],
+        "completion_gates": [
+          "distro_recorded",
+          "kernel_recorded",
+          "secure_boot_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "dependency-surface",
@@ -70,8 +96,17 @@
           "command -v llama-server || true",
           "ldd \"$(command -v llama-server)\" || true"
         ],
-        "evidence": ["llama_server_path", "llama_libs_state", "missing_dependencies"],
-        "completion_gates": ["llama_server_path_recorded", "llama_libs_state_recorded", "missing_dependencies_recorded", "evidence_file_archived"]
+        "evidence": [
+          "llama_server_path",
+          "llama_libs_state",
+          "missing_dependencies"
+        ],
+        "completion_gates": [
+          "llama_server_path_recorded",
+          "llama_libs_state_recorded",
+          "missing_dependencies_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "runtime-socket-snapshot",
@@ -83,8 +118,17 @@
           "systemctl is-active noemaforge-llm-gateway.service || true",
           "systemctl is-active noemaforge-toolproxy.service || true"
         ],
-        "evidence": ["status_json", "gateway_socket_state", "toolproxy_socket_state"],
-        "completion_gates": ["status_json_recorded", "gateway_socket_recorded", "toolproxy_socket_recorded", "evidence_file_archived"]
+        "evidence": [
+          "status_json",
+          "gateway_socket_state",
+          "toolproxy_socket_state"
+        ],
+        "completion_gates": [
+          "status_json_recorded",
+          "gateway_socket_recorded",
+          "toolproxy_socket_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "preflight-evidence-archive",
@@ -94,8 +138,18 @@
         "commands": [
           "sudo noemaforge forensics --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -145,4 +199,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

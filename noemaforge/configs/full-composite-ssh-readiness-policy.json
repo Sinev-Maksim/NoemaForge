@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.full-composite-ssh-readiness/v1",
   "kind": "FullCompositeSshReadinessPolicy",
   "id": "full-composite-ssh-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -35,8 +35,17 @@
           "ss -tlnp | grep ':22' || true",
           "sudo noemaforge trixie-preflight --json"
         ],
-        "evidence": ["ssh_service_state", "ssh_listen_socket", "trixie_preflight_json"],
-        "completion_gates": ["ssh_service_state_recorded", "ssh_port_or_socket_recorded", "preflight_json_archived", "evidence_file_archived"]
+        "evidence": [
+          "ssh_service_state",
+          "ssh_listen_socket",
+          "trixie_preflight_json"
+        ],
+        "completion_gates": [
+          "ssh_service_state_recorded",
+          "ssh_port_or_socket_recorded",
+          "preflight_json_archived",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "secure-access-plan",
@@ -46,8 +55,18 @@
         "commands": [
           "ssh -o BatchMode=yes -o StrictHostKeyChecking=yes <operator-approved-target> true"
         ],
-        "evidence": ["operator_approved_ssh_identity", "known_host_fingerprint", "no_plaintext_credentials", "batch_mode_probe_result"],
-        "completion_gates": ["operator_approval_recorded", "known_host_fingerprint_recorded", "no_secret_material_archived", "evidence_file_archived"]
+        "evidence": [
+          "operator_approved_ssh_identity",
+          "known_host_fingerprint",
+          "no_plaintext_credentials",
+          "batch_mode_probe_result"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "known_host_fingerprint_recorded",
+          "no_secret_material_archived",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "full-composite-ssh-watch",
@@ -57,8 +76,18 @@
         "commands": [
           "ssh <operator-approved-target> 'NOEMAFORGE_FIRST_START_TTY_STATUS_INTERVAL=10 sudo noemaforge first-start --full_composite 0 --show-candidates --show-compositions --clear-model-health --per-model-timeout 240 --total-timeout 7200'"
         ],
-        "evidence": ["ssh_session_transcript", "run_transcript", "tty_status_updates", "first_start_exit_status"],
-        "completion_gates": ["operator_approval_recorded", "ssh_session_transcript_archived", "full_composite_zero_recorded", "evidence_file_archived"]
+        "evidence": [
+          "ssh_session_transcript",
+          "run_transcript",
+          "tty_status_updates",
+          "first_start_exit_status"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "ssh_session_transcript_archived",
+          "full_composite_zero_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "ssh-abort-recovery",
@@ -69,8 +98,17 @@
           "ssh <operator-approved-target> 'sudo noemaforge first-start abort 2>/dev/null || true'",
           "ssh <operator-approved-target> 'systemctl is-active display-manager.service || systemctl is-active gdm.service'"
         ],
-        "evidence": ["ssh_abort_result", "display_manager_state_after_abort", "run_nologin_state_after_abort"],
-        "completion_gates": ["operator_approval_recorded", "abort_result_recorded", "display_recovery_recorded", "evidence_file_archived"]
+        "evidence": [
+          "ssh_abort_result",
+          "display_manager_state_after_abort",
+          "run_nologin_state_after_abort"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "abort_result_recorded",
+          "display_recovery_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "ssh-evidence-archive",
@@ -80,8 +118,18 @@
         "commands": [
           "sudo noemaforge forensics --include-first-start --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "ssh_transcript_redaction_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "ssh_transcripts_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "ssh_transcript_redaction_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "ssh_transcripts_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -125,4 +173,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

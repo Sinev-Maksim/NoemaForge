@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.runtime-observer-cards/v1",
   "kind": "RuntimeObserverCardsPolicy",
   "id": "runtime-observer-cards-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -74,4 +74,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

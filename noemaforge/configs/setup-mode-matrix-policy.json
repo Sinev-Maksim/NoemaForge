@@ -2,24 +2,48 @@
   "apiVersion": "noemaforge.setup-modes/v1",
   "kind": "SetupModeMatrixPolicy",
   "id": "setup-mode-matrix-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "explicit_setup_mode_matrix",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "mode_matrix_ref": "configs/setup-modes.json",
     "setup_script_ref": "setup.sh",
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path.",
-    "required_modes": ["vm", "host", "macos-dev", "docker-dev"],
+    "required_modes": [
+      "vm",
+      "host",
+      "macos-dev",
+      "docker-dev"
+    ],
     "mode_requirements": {
-      "host": ["native_services", "local_paths", "requires_root_for_apply", "production_runtime_path"],
-      "macos-dev": ["non_privileged", "dry_run_default", "no_privileged_writes", "light_workflows"],
-      "vm": ["recommended_first_success", "dry_run_default", "ubuntu_debian_vm", "no_risk_onboarding"],
-      "docker-dev": ["development_test_only", "not_production_runtime_path", "dry_run_default"]
+      "host": [
+        "native_services",
+        "local_paths",
+        "requires_root_for_apply",
+        "production_runtime_path"
+      ],
+      "macos-dev": [
+        "non_privileged",
+        "dry_run_default",
+        "no_privileged_writes",
+        "light_workflows"
+      ],
+      "vm": [
+        "recommended_first_success",
+        "dry_run_default",
+        "ubuntu_debian_vm",
+        "no_risk_onboarding"
+      ],
+      "docker-dev": [
+        "development_test_only",
+        "not_production_runtime_path",
+        "dry_run_default"
+      ]
     },
     "required_boundary_refs": [
       "docs/README.md",
@@ -35,7 +59,9 @@
       "docs/reference/PROJECT_CONTEXT.md",
       "noemaforge/docs/reference/PROJECT_CONTEXT.md"
     ],
-    "required_example_sets": ["prelaunch/governance/setup_mode_matrix.example.json"]
+    "required_example_sets": [
+      "prelaunch/governance/setup_mode_matrix.example.json"
+    ]
   },
   "refs": [
     "noemaforge/configs/setup-mode-matrix-policy.json",
@@ -61,4 +87,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

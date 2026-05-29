@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.setup-front-door/v1",
   "kind": "SetupFrontDoorPolicy",
   "id": "setup-front-door-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "root_setup_wraps_bootstrap_firstboot_progress",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "setup_script_ref": "setup.sh",
     "installer_ref": "install_noemaforge_0.32.1_mvp.sh",
     "firstboot_orchestrator_ref": "src/firstboot_orchestrator.py",
@@ -16,9 +16,22 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Setup front door boundary: Root setup.sh is the single setup front door, supports vm/host/docker-dev plus install-root/data-root/model-profile/with-share/offline-after-setup flags, and emits bootstrap/firstboot progress phases so newcomers do not discover helper scripts manually.",
-    "required_modes": ["vm", "host", "docker-dev"],
-    "optional_modes": ["macos-dev"],
-    "required_flags": ["--mode", "--install-root", "--data-root", "--model-profile", "--with-share", "--offline-after-setup"],
+    "required_modes": [
+      "vm",
+      "host",
+      "docker-dev"
+    ],
+    "optional_modes": [
+      "macos-dev"
+    ],
+    "required_flags": [
+      "--mode",
+      "--install-root",
+      "--data-root",
+      "--model-profile",
+      "--with-share",
+      "--offline-after-setup"
+    ],
     "required_phase_markers": [
       "seed_copy",
       "host_preflight",
@@ -29,7 +42,11 @@
       "epoch_apply",
       "reboot_pending"
     ],
-    "required_wrapper_markers": ["bootstrap", "firstboot_orchestrator", "progress_output"],
+    "required_wrapper_markers": [
+      "bootstrap",
+      "firstboot_orchestrator",
+      "progress_output"
+    ],
     "controls": {
       "root_setup_exists": true,
       "required_modes_supported": true,
@@ -88,4 +105,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

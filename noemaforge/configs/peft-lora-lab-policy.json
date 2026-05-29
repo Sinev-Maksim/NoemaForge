@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.peft-lora-lab/v1",
   "kind": "PEFTLoRALabPolicy",
   "id": "peft-lora-lab-readiness",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "disabled",
   "policy": {
     "mode": "readiness_only",
@@ -17,8 +17,14 @@
     "require_operator_review": true,
     "require_trace_id": true,
     "require_resource_guard": true,
-    "allowed_artifact_formats": ["json", "safetensors"],
-    "allowed_adapter_methods": ["lora", "qlora"],
+    "allowed_artifact_formats": [
+      "json",
+      "safetensors"
+    ],
+    "allowed_adapter_methods": [
+      "lora",
+      "qlora"
+    ],
     "max_adapter_rank": 16,
     "baseline_eval_pack_refs": [
       "eval-pack:production-ai-gate-smoke:0.32.1",
@@ -73,7 +79,11 @@
       "review": {
         "required": true,
         "route": "Admin/SR/SSR",
-        "reviewers": ["Admin", "SR", "SSR"]
+        "reviewers": [
+          "Admin",
+          "SR",
+          "SSR"
+        ]
       },
       "release_evidence": {
         "required_before_training": true,
@@ -106,5 +116,3 @@
     "docs/wiki/evolution/model-evolution-control-plane-0.32.1.md"
   ]
 }
-
-

@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.setup-default-path/v1",
   "kind": "SetupDefaultPathPolicy",
   "id": "setup-default-path-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "single_blessed_install_story",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "setup_script_ref": "setup.sh",
     "quickstart_ref": "docs/onboarding/QUICKSTART_VM.md",
     "setup_modes_ref": "docs/onboarding/SETUP_MODES.md",
@@ -16,9 +16,25 @@
     "require_docs_and_changelog_refs": true,
     "require_no_live_dependency": true,
     "boundary_phrase": "Setup default path boundary: The blessed onboarding path is release unpack or git clone, then root ./setup.sh in VM mode first, then host install only by explicit operator choice; Windows helpers are optional side tools and are never required for the canonical path.",
-    "canonical_steps": ["release_unpack_or_git_clone", "root_setup_sh", "vm_mode_first", "explicit_host_install", "reboot_then_use"],
-    "required_modes": ["vm", "host", "docker-dev", "macos-dev"],
-    "forbidden_canonical_dependencies": ["powershell", ".ps1", ".cmd", "windows-only"],
+    "canonical_steps": [
+      "release_unpack_or_git_clone",
+      "root_setup_sh",
+      "vm_mode_first",
+      "explicit_host_install",
+      "reboot_then_use"
+    ],
+    "required_modes": [
+      "vm",
+      "host",
+      "docker-dev",
+      "macos-dev"
+    ],
+    "forbidden_canonical_dependencies": [
+      "powershell",
+      ".ps1",
+      ".cmd",
+      "windows-only"
+    ],
     "controls": {
       "root_setup_front_door_required": true,
       "vm_mode_default_required": true,
@@ -75,4 +91,3 @@
     "noemaforge/docs/reference/PROJECT_CONTEXT.md"
   ]
 }
-

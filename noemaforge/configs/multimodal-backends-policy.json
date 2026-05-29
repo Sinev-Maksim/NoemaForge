@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "MultimodalBackendsPolicy",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "principles": {
     "no_implicit_heavy_model_autostart": true,
     "all_non_text_models_are_manual_or_pipeline_explicit": true,
@@ -258,4 +258,3 @@
     }
   }
 }
-

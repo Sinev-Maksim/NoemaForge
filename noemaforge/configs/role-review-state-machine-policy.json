@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.role-review-state-machine/v1",
   "kind": "RoleReviewStateMachinePolicy",
   "id": "role-review-state-machine-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "explicit_admin_surgeon_scary_state_machine",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
@@ -33,25 +33,99 @@
       "blocked"
     ],
     "states": [
-      {"id": "admin_intake", "kind": "start", "role_key": "operator.admin/administrator"},
-      {"id": "scary_risk_review", "kind": "guard", "role_key": "system.guard/scary"},
-      {"id": "admin_decision", "kind": "approval", "role_key": "operator.admin/administrator"},
-      {"id": "surgeon_repair_plan", "kind": "repair", "role_key": "system.guard/surgeon"},
-      {"id": "scary_repair_review", "kind": "guard", "role_key": "system.guard/scary"},
-      {"id": "admin_apply_approval", "kind": "approval", "role_key": "operator.admin/administrator"},
-      {"id": "applied", "kind": "terminal", "role_key": "operator.admin/administrator"},
-      {"id": "rolled_back", "kind": "terminal", "role_key": "operator.admin/administrator"},
-      {"id": "blocked", "kind": "terminal", "role_key": "system.guard/scary"}
+      {
+        "id": "admin_intake",
+        "kind": "start",
+        "role_key": "operator.admin/administrator"
+      },
+      {
+        "id": "scary_risk_review",
+        "kind": "guard",
+        "role_key": "system.guard/scary"
+      },
+      {
+        "id": "admin_decision",
+        "kind": "approval",
+        "role_key": "operator.admin/administrator"
+      },
+      {
+        "id": "surgeon_repair_plan",
+        "kind": "repair",
+        "role_key": "system.guard/surgeon"
+      },
+      {
+        "id": "scary_repair_review",
+        "kind": "guard",
+        "role_key": "system.guard/scary"
+      },
+      {
+        "id": "admin_apply_approval",
+        "kind": "approval",
+        "role_key": "operator.admin/administrator"
+      },
+      {
+        "id": "applied",
+        "kind": "terminal",
+        "role_key": "operator.admin/administrator"
+      },
+      {
+        "id": "rolled_back",
+        "kind": "terminal",
+        "role_key": "operator.admin/administrator"
+      },
+      {
+        "id": "blocked",
+        "kind": "terminal",
+        "role_key": "system.guard/scary"
+      }
     ],
     "mandatory_transitions": [
-      {"from": "admin_intake", "to": "scary_risk_review", "kind": "next"},
-      {"from": "scary_risk_review", "to": "blocked", "kind": "guard_blocked", "condition_required": true},
-      {"from": "scary_risk_review", "to": "admin_decision", "kind": "guard_pass", "condition_required": true},
-      {"from": "admin_decision", "to": "surgeon_repair_plan", "kind": "approval", "approver_role": "operator.admin/administrator"},
-      {"from": "surgeon_repair_plan", "to": "scary_repair_review", "kind": "repair_review"},
-      {"from": "scary_repair_review", "to": "admin_apply_approval", "kind": "guard_pass", "condition_required": true},
-      {"from": "admin_apply_approval", "to": "applied", "kind": "approval", "approver_role": "operator.admin/administrator"},
-      {"from": "admin_apply_approval", "to": "rolled_back", "kind": "rollback", "rollback_target": "admin_intake"}
+      {
+        "from": "admin_intake",
+        "to": "scary_risk_review",
+        "kind": "next"
+      },
+      {
+        "from": "scary_risk_review",
+        "to": "blocked",
+        "kind": "guard_blocked",
+        "condition_required": true
+      },
+      {
+        "from": "scary_risk_review",
+        "to": "admin_decision",
+        "kind": "guard_pass",
+        "condition_required": true
+      },
+      {
+        "from": "admin_decision",
+        "to": "surgeon_repair_plan",
+        "kind": "approval",
+        "approver_role": "operator.admin/administrator"
+      },
+      {
+        "from": "surgeon_repair_plan",
+        "to": "scary_repair_review",
+        "kind": "repair_review"
+      },
+      {
+        "from": "scary_repair_review",
+        "to": "admin_apply_approval",
+        "kind": "guard_pass",
+        "condition_required": true
+      },
+      {
+        "from": "admin_apply_approval",
+        "to": "applied",
+        "kind": "approval",
+        "approver_role": "operator.admin/administrator"
+      },
+      {
+        "from": "admin_apply_approval",
+        "to": "rolled_back",
+        "kind": "rollback",
+        "rollback_target": "admin_intake"
+      }
     ],
     "baton_requirements": {
       "durable": true,
@@ -131,4 +205,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

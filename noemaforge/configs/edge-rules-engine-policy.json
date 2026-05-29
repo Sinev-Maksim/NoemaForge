@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-rules-engine/v1",
   "kind": "EdgeRulesEnginePolicy",
   "id": "edge-rules-engine-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -98,7 +98,7 @@
         {
           "metric": "ml_score",
           "op": "gte",
-          "value": 0.90,
+          "value": 0.9,
           "action": "allow"
         }
       ],
@@ -137,4 +137,3 @@
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md"
   ]
 }
-

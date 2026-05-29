@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.release-provenance/v1",
   "kind": "ReleaseProvenancePolicy",
   "id": "release-provenance-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,8 +10,10 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_artifact_kinds": ["release_archive"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_artifact_kinds": [
+      "release_archive"
+    ],
     "required_materials": [
       "archive",
       "manifest",
@@ -28,7 +30,11 @@
       "detached_signature_required": true,
       "public_key_fingerprint_required": true,
       "plaintext_private_key_allowed": false,
-      "allowed_signature_schemes": ["ed25519", "minisign", "cosign-keyless"]
+      "allowed_signature_schemes": [
+        "ed25519",
+        "minisign",
+        "cosign-keyless"
+      ]
     },
     "required_example_sets": [
       "prelaunch/governance/release_provenance.example.json"
@@ -49,4 +55,3 @@
     "noemaforge/docs/onboarding/PUBLIC_MVP_CHECKLIST_0.30.0.md"
   ]
 }
-

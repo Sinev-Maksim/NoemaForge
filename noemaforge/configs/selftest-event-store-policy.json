@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.selftest-event-store/v1",
   "kind": "SelfTestEventStorePolicy",
   "id": "selftest-event-store-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,10 +10,18 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_selftest_commands": ["events ingest", "events export"],
-    "required_tables": ["selftest_test_events"],
-    "required_event_types": ["selftest.run.summary", "selftest.case.result"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_selftest_commands": [
+      "events ingest",
+      "events export"
+    ],
+    "required_tables": [
+      "selftest_test_events"
+    ],
+    "required_event_types": [
+      "selftest.run.summary",
+      "selftest.case.result"
+    ],
     "required_refs": {
       "cli": "bin/noemaforge",
       "runtime": "src/selftest_runtime.py",
@@ -48,4 +56,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.post-reboot-validation-archive-readiness/v1",
   "kind": "PostRebootValidationArchiveReadinessPolicy",
   "id": "post-reboot-validation-archive-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -36,8 +36,19 @@
           "hostnamectl",
           "cat /proc/sys/kernel/random/boot_id"
         ],
-        "evidence": ["post_reboot_boot_id", "system_running_state", "failed_units", "host_baseline"],
-        "completion_gates": ["boot_id_recorded", "system_state_recorded", "failed_units_recorded", "host_baseline_recorded", "evidence_file_archived"]
+        "evidence": [
+          "post_reboot_boot_id",
+          "system_running_state",
+          "failed_units",
+          "host_baseline"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "system_state_recorded",
+          "failed_units_recorded",
+          "host_baseline_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "runtime-service-health",
@@ -50,8 +61,18 @@
           "systemctl status display-manager.service --no-pager -l || systemctl status gdm.service --no-pager -l",
           "ss -ltnp | grep -E 'noemaforge|llama|8080|8000' || true"
         ],
-        "evidence": ["gateway_service_state", "main_backend_service_state", "display_manager_state", "socket_state"],
-        "completion_gates": ["service_states_recorded", "display_state_recorded", "socket_state_recorded", "evidence_file_archived"]
+        "evidence": [
+          "gateway_service_state",
+          "main_backend_service_state",
+          "display_manager_state",
+          "socket_state"
+        ],
+        "completion_gates": [
+          "service_states_recorded",
+          "display_state_recorded",
+          "socket_state_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "target-smoke-transcript",
@@ -63,8 +84,18 @@
           "noemaforge toolproxy smoke --live-llm || true",
           "noemaforge selftest run --suite live --include-live"
         ],
-        "evidence": ["trixie_preflight_json", "toolproxy_live_smoke_transcript", "live_selftest_transcript", "operator_approval_record"],
-        "completion_gates": ["operator_approval_recorded", "preflight_json_archived", "smoke_transcripts_archived", "evidence_file_archived"]
+        "evidence": [
+          "trixie_preflight_json",
+          "toolproxy_live_smoke_transcript",
+          "live_selftest_transcript",
+          "operator_approval_record"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "preflight_json_archived",
+          "smoke_transcripts_archived",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "forensics-log-archive",
@@ -75,8 +106,19 @@
           "sudo noemaforge forensics --include-first-start --include-install-validation",
           "journalctl -b --no-pager"
         ],
-        "evidence": ["forensics_bundle_path", "journal_bundle_path", "bundle_sha256", "redaction_manifest"],
-        "completion_gates": ["bundle_exists", "journal_bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "evidence_file_archived"]
+        "evidence": [
+          "forensics_bundle_path",
+          "journal_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "journal_bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "wiki-patch-bundle",
@@ -86,8 +128,18 @@
         "commands": [
           "noemaforge wiki-patch create --from-evidence <target-evidence-bundle>"
         ],
-        "evidence": ["wiki_patch_bundle_path", "wiki_patch_manifest", "target_evidence_refs", "operator_review_note"],
-        "completion_gates": ["wiki_patch_manifest_exists", "target_evidence_refs_recorded", "operator_review_recorded", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "wiki_patch_bundle_path",
+          "wiki_patch_manifest",
+          "target_evidence_refs",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "wiki_patch_manifest_exists",
+          "target_evidence_refs_recorded",
+          "operator_review_recorded",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -138,4 +190,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.stateful-admin-gui/v1",
   "kind": "StatefulAdminGuiPolicy",
   "id": "stateful-admin-gui-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -90,4 +90,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.media-capture-privacy/v1",
   "kind": "MediaCapturePrivacyPolicy",
   "id": "media-capture-privacy-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -49,17 +49,41 @@
       }
     ],
     "required_pipeline_gates": {
-      "voice_generation": ["no_implicit_microphone_capture", "operator_approval_required"],
-      "camera_mask_bridge": ["no_camera_hijack", "no_implicit_capture", "manual_operator_command_required"]
+      "voice_generation": [
+        "no_implicit_microphone_capture",
+        "operator_approval_required"
+      ],
+      "camera_mask_bridge": [
+        "no_camera_hijack",
+        "no_implicit_capture",
+        "manual_operator_command_required"
+      ]
     },
-    "required_catalog_entries": ["video_call.masks_virtual_camera"],
+    "required_catalog_entries": [
+      "video_call.masks_virtual_camera"
+    ],
     "required_static_tokens": {
-      "admin_runtime": ["no camera hijack", "no implicit capture", "explicit-only"],
-      "admin_gui_server": ["No LLM, media backend, camera, microphone"],
-      "voice_ingest": ["voice_microphone_disabled", "voice.capture_live", "voice.transcribe_live"],
-      "toolproxy": ["voice.capture_live", "voice.transcribe_live"]
+      "admin_runtime": [
+        "no camera hijack",
+        "no implicit capture",
+        "explicit-only"
+      ],
+      "admin_gui_server": [
+        "No LLM, media backend, camera, microphone"
+      ],
+      "voice_ingest": [
+        "voice_microphone_disabled",
+        "voice.capture_live",
+        "voice.transcribe_live"
+      ],
+      "toolproxy": [
+        "voice.capture_live",
+        "voice.transcribe_live"
+      ]
     },
-    "required_example_sets": ["prelaunch/governance/media_capture_privacy.example.json"]
+    "required_example_sets": [
+      "prelaunch/governance/media_capture_privacy.example.json"
+    ]
   },
   "refs": [
     "noemaforge/configs/media-capture-privacy-policy.json",
@@ -83,4 +107,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

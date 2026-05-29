@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.dashboard-launcher/v1",
   "kind": "DashboardLauncherPolicy",
   "id": "dashboard-launcher-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,8 +10,18 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_cli_commands": ["path", "state", "serve", "start", "stop", "status", "autostart-enable", "autostart-disable", "autostart-status"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_cli_commands": [
+      "path",
+      "state",
+      "serve",
+      "start",
+      "stop",
+      "status",
+      "autostart-enable",
+      "autostart-disable",
+      "autostart-status"
+    ],
     "required_refs": {
       "cli": "bin/noemaforge",
       "launcher": "tools/prep/noemaforge-dashboard.sh",
@@ -56,4 +66,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.cpu-gpu-scorecard-separation/v1",
   "kind": "CpuGpuScorecardSeparationPolicy",
   "id": "cpu-gpu-scorecard-separation-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,7 +10,10 @@
     "scorecards_root": "/var/lib/noemaforge/model_scorecards",
     "cpu_scorecards_root": "/var/lib/noemaforge/model_scorecards/cpu",
     "gpu_scorecards_root": "/var/lib/noemaforge/model_scorecards/gpu",
-    "allowed_runtime_devices": ["cpu", "gpu"],
+    "allowed_runtime_devices": [
+      "cpu",
+      "gpu"
+    ],
     "aliases": {
       "cuda": "gpu",
       "nvidia": "gpu"
@@ -56,4 +59,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

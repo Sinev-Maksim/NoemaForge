@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.premerge-release-guard/v1",
   "kind": "PremergeReleaseGuardPolicy",
   "id": "premerge-release-guard-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "release_guard": {
     "require_baseline_report": true,
@@ -11,8 +11,13 @@
     "block_failed_cases": true,
     "block_failed_regressions": true,
     "block_warn_regressions_by_default": false,
-    "required_case_ids": ["cli_status_json", "pipeline_validate"],
-    "required_artifacts": ["selftest-report.json"]
+    "required_case_ids": [
+      "cli_status_json",
+      "pipeline_validate"
+    ],
+    "required_artifacts": [
+      "selftest-report.json"
+    ]
   },
   "policy": {
     "mode": "offline_contract",
@@ -20,9 +25,13 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_selftest_commands": ["release-guard"],
-    "required_outputs": ["premerge-release-guard.json"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_selftest_commands": [
+      "release-guard"
+    ],
+    "required_outputs": [
+      "premerge-release-guard.json"
+    ],
     "required_refs": {
       "cli": "bin/noemaforge",
       "runtime": "src/selftest_runtime.py",
@@ -58,4 +67,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

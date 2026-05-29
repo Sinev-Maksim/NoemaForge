@@ -2,12 +2,12 @@
   "apiVersion": "noemaforge.grounded-administrator/v1",
   "kind": "GroundedAdministratorPolicy",
   "id": "grounded-administrator-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "default_hypergraph_knowledge_surface",
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
@@ -110,4 +110,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

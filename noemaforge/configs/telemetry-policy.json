@@ -1,5 +1,5 @@
 {
-  "version": "0.32.1",
+  "version": "0.32.2",
   "apiVersion": "noemaforge/v1",
   "kind": "TelemetryPolicy",
   "source": "selftest-telemetry-policy.json",
@@ -13,4 +13,3 @@
     "ecc_delta_fail": 1
   }
 }
-

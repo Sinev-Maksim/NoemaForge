@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.runtime-default-safety/v1",
   "kind": "RuntimeDefaultSafetyPolicy",
   "id": "runtime-default-safety-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -10,8 +10,14 @@
     "require_trace_id": true,
     "require_registry_attachment": true,
     "require_docs_and_changelog_refs": true,
-    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
-    "required_outputs": ["single_active_llm_default", "heavy_llm_manual_only", "gui_runtime_only_default", "wogui_cpu_bootstrap_only", "sequential_team_member_default"],
+    "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.2",
+    "required_outputs": [
+      "single_active_llm_default",
+      "heavy_llm_manual_only",
+      "gui_runtime_only_default",
+      "wogui_cpu_bootstrap_only",
+      "sequential_team_member_default"
+    ],
     "required_refs": {
       "cli": "bin/noemaforge",
       "pipeline_runtime": "src/pipeline_runtime.py",
@@ -56,4 +62,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

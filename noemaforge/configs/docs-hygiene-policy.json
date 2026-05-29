@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.docs-hygiene/v1",
   "kind": "DocsHygienePolicy",
   "id": "prelaunch-docs-hygiene",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "stable",
   "policy": {
     "approved_markdown_prefixes": [
@@ -28,8 +28,8 @@
       "noemaforge/docs/research/",
       "noemaforge/docs/todo/",
       "noemaforge/docs/patches/",
-      "noemaforge/docs/pub\u006cic/",
-      "noemaforge/docs/wiki/pub\u006cic/"
+      "noemaforge/docs/public/",
+      "noemaforge/docs/wiki/public/"
     ],
     "required_canonical_files": [
       "noemaforge/docs/README.md",
@@ -124,4 +124,3 @@
     "noemaforge/docs/wiki/strict-markdown-placement-0.32.1.md"
   ]
 }
-

@@ -1,12 +1,12 @@
 {
   "apiVersion": "noemaforge.production-ai/v1",
   "kind": "UnifiedRegistry",
-  "updated_at": "2026-05-21T16:08:18Z",
+  "updated_at": "2026-05-29",
   "entries": [
     {
       "kind": "epoch",
       "id": "noemaforge-runtime",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "promoted",
       "channels": [
         "stable"
@@ -21,7 +21,7 @@
     {
       "kind": "eval-pack",
       "id": "production-ai-gate-smoke",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -464,7 +464,7 @@
     {
       "kind": "eval-pack",
       "id": "admin-intent-router-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -491,7 +491,7 @@
     {
       "kind": "eval-pack",
       "id": "docs-wiki-rag-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -519,7 +519,7 @@
     {
       "kind": "eval-pack",
       "id": "docs-graph-rag-experiment",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "draft",
       "channels": [
         "local"
@@ -553,7 +553,7 @@
     {
       "kind": "eval-pack",
       "id": "grounded-administrator-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -596,7 +596,7 @@
     {
       "kind": "eval-pack",
       "id": "hypergraph-first-administrator-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -637,7 +637,7 @@
     {
       "kind": "eval-pack",
       "id": "graph-gap-notice-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -679,7 +679,7 @@
     {
       "kind": "eval-pack",
       "id": "topic-adjacent-retrieval-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -720,7 +720,7 @@
     {
       "kind": "eval-pack",
       "id": "memory-budgeted-retrieval-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -761,7 +761,7 @@
     {
       "kind": "eval-pack",
       "id": "hypergraph-error-improvement-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -815,7 +815,7 @@
     {
       "kind": "eval-pack",
       "id": "knowledge-core-relations-gates-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -865,7 +865,7 @@
     {
       "kind": "eval-pack",
       "id": "role-corpus-binding-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -919,7 +919,7 @@
     {
       "kind": "eval-pack",
       "id": "knowledge-graph-lint-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -972,7 +972,7 @@
     {
       "kind": "eval-pack",
       "id": "knowledge-purpose-artifacts-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1021,7 +1021,7 @@
     {
       "kind": "eval-pack",
       "id": "graph-projection-views-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1066,7 +1066,7 @@
     {
       "kind": "eval-pack",
       "id": "graph-patch-provenance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1122,7 +1122,7 @@
     {
       "kind": "eval-pack",
       "id": "peft-lora-lab-readiness",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "draft",
       "channels": [
         "local"
@@ -1156,7 +1156,7 @@
     {
       "kind": "eval-pack",
       "id": "docs-hygiene-prelaunch",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1194,7 +1194,7 @@
     {
       "kind": "eval-pack",
       "id": "backlog-status-legend-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1230,7 +1230,7 @@
     {
       "kind": "eval-pack",
       "id": "yaml-inventory-readability-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1268,7 +1268,7 @@
     {
       "kind": "eval-pack",
       "id": "manifest-checksum-exclusion-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1306,7 +1306,7 @@
     {
       "kind": "eval-pack",
       "id": "release-artifact-name-guard-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1344,7 +1344,7 @@
     {
       "kind": "eval-pack",
       "id": "job-progress-stream-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1383,7 +1383,7 @@
     {
       "kind": "eval-pack",
       "id": "admin-llm-smalltalk-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1421,7 +1421,7 @@
     {
       "kind": "eval-pack",
       "id": "runtime-observer-cards-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1461,7 +1461,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-dragdrop-editor-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1501,7 +1501,7 @@
     {
       "kind": "eval-pack",
       "id": "public-showcase-guided-scenario-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1541,7 +1541,7 @@
     {
       "kind": "eval-pack",
       "id": "default-model-runtime-policy-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1583,7 +1583,7 @@
     {
       "kind": "eval-pack",
       "id": "cpu-gpu-scorecard-separation-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1621,7 +1621,7 @@
     {
       "kind": "eval-pack",
       "id": "privileged-gui-job-runner-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1664,7 +1664,7 @@
     {
       "kind": "eval-pack",
       "id": "ci-model-gates-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1696,7 +1696,7 @@
     {
       "kind": "eval-pack",
       "id": "signed-model-manifest-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1728,7 +1728,7 @@
     {
       "kind": "eval-pack",
       "id": "edge-rules-engine-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1761,7 +1761,7 @@
     {
       "kind": "eval-pack",
       "id": "sense-layer-edge-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1796,7 +1796,7 @@
     {
       "kind": "eval-pack",
       "id": "tinyml-node-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1832,7 +1832,7 @@
     {
       "kind": "eval-pack",
       "id": "gateway-inference-service-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1871,7 +1871,7 @@
     {
       "kind": "eval-pack",
       "id": "ota-update-layer-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1910,7 +1910,7 @@
     {
       "kind": "eval-pack",
       "id": "edge-reference-targets-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1946,7 +1946,7 @@
     {
       "kind": "eval-pack",
       "id": "multios-runtime-host-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -1992,7 +1992,7 @@
     {
       "kind": "eval-pack",
       "id": "concept-frame-governance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2026,7 +2026,7 @@
     {
       "kind": "eval-pack",
       "id": "sense-privacy-governance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2059,7 +2059,7 @@
     {
       "kind": "eval-pack",
       "id": "drive-state-governance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2093,7 +2093,7 @@
     {
       "kind": "eval-pack",
       "id": "honesty-protocol-governance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2128,7 +2128,7 @@
     {
       "kind": "eval-pack",
       "id": "slop-critic-governance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2163,7 +2163,7 @@
     {
       "kind": "eval-pack",
       "id": "provenance-watermark-verdict-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2198,7 +2198,7 @@
     {
       "kind": "eval-pack",
       "id": "research-packet-scouting-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2233,7 +2233,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-rfc-mutation-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2270,7 +2270,7 @@
     {
       "kind": "eval-pack",
       "id": "typed-governance-track-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2304,7 +2304,7 @@
     {
       "kind": "eval-pack",
       "id": "alpha-backlog-fence-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2338,7 +2338,7 @@
     {
       "kind": "eval-pack",
       "id": "role-kernel-active-nn-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2373,7 +2373,7 @@
     {
       "kind": "eval-pack",
       "id": "roleflow-orchestration-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2410,7 +2410,7 @@
     {
       "kind": "eval-pack",
       "id": "noemashell-lite-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2448,7 +2448,7 @@
     {
       "kind": "eval-pack",
       "id": "git-exchange-quarantine-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2485,7 +2485,7 @@
     {
       "kind": "eval-pack",
       "id": "hfbridge-metadata-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2522,7 +2522,7 @@
     {
       "kind": "eval-pack",
       "id": "clean-distribution-allowlist-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2559,7 +2559,7 @@
     {
       "kind": "eval-pack",
       "id": "smarthome-local-control-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2597,7 +2597,7 @@
     {
       "kind": "eval-pack",
       "id": "first-start-summary-output-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2631,7 +2631,7 @@
     {
       "kind": "eval-pack",
       "id": "firstboot-progress-view-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2676,7 +2676,7 @@
     {
       "kind": "eval-pack",
       "id": "model-profile-selection-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2727,7 +2727,7 @@
     {
       "kind": "eval-pack",
       "id": "model-switch-policy-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2775,7 +2775,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-performance-metrics-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2820,7 +2820,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-cli-install-wiring-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2868,7 +2868,7 @@
     {
       "kind": "eval-pack",
       "id": "safe-worktree-evolution-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -2998,7 +2998,7 @@
     {
       "kind": "eval-pack",
       "id": "cross-platform-prep-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3053,7 +3053,7 @@
     {
       "kind": "eval-pack",
       "id": "setup-mode-matrix-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3093,7 +3093,7 @@
     {
       "kind": "eval-pack",
       "id": "onboarding-ladder-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3136,7 +3136,7 @@
     {
       "kind": "eval-pack",
       "id": "toolproxy-capability-token-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3176,7 +3176,7 @@
     {
       "kind": "eval-pack",
       "id": "toolproxy-capability-live-smoke-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3233,7 +3233,7 @@
     {
       "kind": "eval-pack",
       "id": "toolproxy-live-llm-smoke-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3294,7 +3294,7 @@
     {
       "kind": "eval-pack",
       "id": "release-provenance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3330,7 +3330,7 @@
     {
       "kind": "eval-pack",
       "id": "package-dry-run-validation-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3369,7 +3369,7 @@
     {
       "kind": "eval-pack",
       "id": "production-gui-installer-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3419,7 +3419,7 @@
     {
       "kind": "eval-pack",
       "id": "setup-default-path-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3468,7 +3468,7 @@
     {
       "kind": "eval-pack",
       "id": "setup-front-door-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3517,7 +3517,7 @@
     {
       "kind": "eval-pack",
       "id": "dashboard-launcher-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3558,7 +3558,7 @@
     {
       "kind": "eval-pack",
       "id": "media-capture-privacy-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3603,7 +3603,7 @@
     {
       "kind": "eval-pack",
       "id": "media-adapter-telemetry-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3645,7 +3645,7 @@
     {
       "kind": "eval-pack",
       "id": "media-backend-selection-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3696,7 +3696,7 @@
     {
       "kind": "eval-pack",
       "id": "media-wiki-patch-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3737,7 +3737,7 @@
     {
       "kind": "eval-pack",
       "id": "artifact-card-affordance-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3779,7 +3779,7 @@
     {
       "kind": "eval-pack",
       "id": "artifact-registry-table-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3824,7 +3824,7 @@
     {
       "kind": "eval-pack",
       "id": "dashboard-api-endpoint-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3864,7 +3864,7 @@
     {
       "kind": "eval-pack",
       "id": "locale-main-chat-surface-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3906,7 +3906,7 @@
     {
       "kind": "eval-pack",
       "id": "selftest-trend-dashboard-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3942,7 +3942,7 @@
     {
       "kind": "eval-pack",
       "id": "premerge-release-guard-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -3978,7 +3978,7 @@
     {
       "kind": "eval-pack",
       "id": "selftest-event-store-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4014,7 +4014,7 @@
     {
       "kind": "eval-pack",
       "id": "selftest-rss-slope-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4050,7 +4050,7 @@
     {
       "kind": "eval-pack",
       "id": "wiki-patch-commit-helper-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4086,7 +4086,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-template-append-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4121,7 +4121,7 @@
     {
       "kind": "eval-pack",
       "id": "model-health-candidate-filter-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4157,7 +4157,7 @@
     {
       "kind": "eval-pack",
       "id": "previous-install-context-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4195,7 +4195,7 @@
     {
       "kind": "eval-pack",
       "id": "pytest-suite-partition-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4232,7 +4232,7 @@
     {
       "kind": "eval-pack",
       "id": "executor-stage-worker-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4271,7 +4271,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-stage-transition-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4312,7 +4312,7 @@
     {
       "kind": "eval-pack",
       "id": "target-live-validation-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4351,7 +4351,7 @@
     {
       "kind": "eval-pack",
       "id": "systemd-gdm-nvidia-live-validation-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4412,7 +4412,7 @@
     {
       "kind": "eval-pack",
       "id": "gateway-main-live-smoke-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4470,7 +4470,7 @@
     {
       "kind": "eval-pack",
       "id": "post-reboot-gpu-gdm-gateway-toolproxy-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4535,7 +4535,7 @@
     {
       "kind": "eval-pack",
       "id": "live-testbench-suite-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4594,7 +4594,7 @@
     {
       "kind": "eval-pack",
       "id": "final-gui-scenario-replay-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4659,7 +4659,7 @@
     {
       "kind": "eval-pack",
       "id": "runtime-default-safety-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4699,7 +4699,7 @@
     {
       "kind": "eval-pack",
       "id": "public-autonomy-boundary-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4736,7 +4736,7 @@
     {
       "kind": "eval-pack",
       "id": "systemd-happy-path-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4774,7 +4774,7 @@
     {
       "kind": "eval-pack",
       "id": "community-pack-contribution-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4814,7 +4814,7 @@
     {
       "kind": "eval-pack",
       "id": "role-review-state-machine-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4853,7 +4853,7 @@
     {
       "kind": "eval-pack",
       "id": "agent-loop-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4878,7 +4878,7 @@
     {
       "kind": "eval-pack",
       "id": "mcp-adapter-zero-trust-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4905,7 +4905,7 @@
     {
       "kind": "eval-pack",
       "id": "a2a-interop-review-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4933,7 +4933,7 @@
     {
       "kind": "model",
       "id": "model-registry-local",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4969,19 +4969,19 @@
         "gateway/inference_service/Dockerfile"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:peft-lora-lab-readiness:0.32.1",
-        "eval-pack:ci-model-gates-core:0.32.1",
-        "eval-pack:signed-model-manifest-core:0.32.1",
-        "eval-pack:edge-rules-engine-core:0.32.1",
-        "eval-pack:tinyml-node-core:0.32.1",
-        "eval-pack:gateway-inference-service-core:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:peft-lora-lab-readiness:0.32.2",
+        "eval-pack:ci-model-gates-core:0.32.2",
+        "eval-pack:signed-model-manifest-core:0.32.2",
+        "eval-pack:edge-rules-engine-core:0.32.2",
+        "eval-pack:tinyml-node-core:0.32.2",
+        "eval-pack:gateway-inference-service-core:0.32.2"
       ]
     },
     {
       "kind": "prompt",
       "id": "admin-routing-system",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -4993,8 +4993,8 @@
         "src/abstention_policy_runtime.py"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:admin-intent-router-core:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:admin-intent-router-core:0.32.2"
       ],
       "metadata": {
         "domains": [
@@ -5007,7 +5007,7 @@
     {
       "kind": "retriever",
       "id": "knowledge-keyword-retrieval",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5018,15 +5018,15 @@
         "configs/docs-rag-policy.json"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:docs-wiki-rag-core:0.32.1",
-        "eval-pack:docs-graph-rag-experiment:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:docs-wiki-rag-core:0.32.2",
+        "eval-pack:docs-graph-rag-experiment:0.32.2"
       ]
     },
     {
       "kind": "reranker",
       "id": "lexical-baseline-reranker",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "draft",
       "channels": [
         "local"
@@ -5037,9 +5037,9 @@
         "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:docs-wiki-rag-core:0.32.1",
-        "eval-pack:docs-graph-rag-experiment:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:docs-wiki-rag-core:0.32.2",
+        "eval-pack:docs-graph-rag-experiment:0.32.2"
       ]
     },
     {
@@ -5081,20 +5081,20 @@
         "prelaunch/governance/toolproxy_live_llm_smoke_readiness.example.json"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:mcp-adapter-zero-trust-core:0.32.1",
-        "eval-pack:a2a-interop-review-core:0.32.1",
-        "eval-pack:toolproxy-capability-token-core:0.32.1",
-        "eval-pack:toolproxy-capability-live-smoke-readiness-core:0.32.1",
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:mcp-adapter-zero-trust-core:0.32.2",
+        "eval-pack:a2a-interop-review-core:0.32.2",
+        "eval-pack:toolproxy-capability-token-core:0.32.2",
+        "eval-pack:toolproxy-capability-live-smoke-readiness-core:0.32.2",
         "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.2",
-        "eval-pack:toolproxy-live-llm-smoke-readiness-core:0.32.1",
-        "eval-pack:post-reboot-gpu-gdm-gateway-toolproxy-readiness-core:0.32.1"
+        "eval-pack:toolproxy-live-llm-smoke-readiness-core:0.32.2",
+        "eval-pack:post-reboot-gpu-gdm-gateway-toolproxy-readiness-core:0.32.2"
       ]
     },
     {
       "kind": "pipeline",
       "id": "firstboot-model-selection",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5463,94 +5463,94 @@
         "prelaunch/governance/pipeline_stage_validator_smoke.example.json"
       ],
       "eval_pack_refs": [
-        "eval-pack:a2a-interop-review-core:0.32.1",
-        "eval-pack:agent-loop-core:0.32.1",
-        "eval-pack:alpha-backlog-fence-core:0.32.1",
-        "eval-pack:artifact-card-affordance-core:0.32.1",
-        "eval-pack:artifact-registry-table-core:0.32.1",
-        "eval-pack:canonical-model-eval-matrix-readiness-core:0.32.1",
-        "eval-pack:clean-distribution-allowlist-core:0.32.1",
-        "eval-pack:community-pack-contribution-core:0.32.1",
-        "eval-pack:concept-frame-governance-core:0.32.1",
-        "eval-pack:sense-privacy-governance-core:0.32.1",
-        "eval-pack:cross-platform-prep-core:0.32.1",
-        "eval-pack:dashboard-api-endpoint-core:0.32.1",
-        "eval-pack:dashboard-launcher-core:0.32.1",
-        "eval-pack:drive-state-governance-core:0.32.1",
-        "eval-pack:edge-reference-targets-core:0.32.1",
-        "eval-pack:executor-stage-worker-core:0.32.1",
-        "eval-pack:first-start-summary-output-core:0.32.1",
-        "eval-pack:firstboot-progress-view-core:0.32.1",
-        "eval-pack:git-exchange-quarantine-core:0.32.1",
-        "eval-pack:graph-gap-notice-core:0.32.1",
-        "eval-pack:graph-projection-views-core:0.32.1",
-        "eval-pack:graph-patch-provenance-core:0.32.1",
-        "eval-pack:grounded-administrator-core:0.32.1",
-        "eval-pack:hfbridge-metadata-core:0.32.1",
-        "eval-pack:honesty-protocol-governance-core:0.32.1",
-        "eval-pack:hypergraph-error-improvement-core:0.32.1",
-        "eval-pack:hypergraph-first-administrator-core:0.32.1",
-        "eval-pack:knowledge-core-relations-gates-core:0.32.1",
-        "eval-pack:knowledge-graph-lint-core:0.32.1",
-        "eval-pack:knowledge-purpose-artifacts-core:0.32.1",
-        "eval-pack:locale-main-chat-surface-core:0.32.1",
-        "eval-pack:media-adapter-telemetry-core:0.32.1",
-        "eval-pack:media-capture-privacy-core:0.32.1",
-        "eval-pack:media-wiki-patch-core:0.32.1",
-        "eval-pack:memory-budgeted-retrieval-core:0.32.1",
-        "eval-pack:model-health-candidate-filter-core:0.32.1",
-        "eval-pack:model-profile-selection-core:0.32.1",
-        "eval-pack:model-switch-policy-core:0.32.1",
-        "eval-pack:pipeline-performance-metrics-core:0.32.1",
-        "eval-pack:pipeline-cli-install-wiring-core:0.32.1",
-        "eval-pack:safe-worktree-evolution-core:0.32.1",
-        "eval-pack:multios-runtime-host-core:0.32.1",
-        "eval-pack:noemashell-lite-core:0.32.1",
-        "eval-pack:onboarding-ladder-core:0.32.1",
-        "eval-pack:ota-update-layer-core:0.32.1",
-        "eval-pack:package-dry-run-validation-core:0.32.1",
-        "eval-pack:pipeline-stage-transition-core:0.32.1",
-        "eval-pack:pipeline-template-append-core:0.32.1",
-        "eval-pack:premerge-release-guard-core:0.32.1",
-        "eval-pack:previous-install-context-core:0.32.1",
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:production-gui-installer-core:0.32.1",
-        "eval-pack:slop-critic-governance-core:0.32.1",
-        "eval-pack:provenance-watermark-verdict-core:0.32.1",
-        "eval-pack:public-autonomy-boundary-core:0.32.1",
-        "eval-pack:pytest-suite-partition-core:0.32.1",
-        "eval-pack:release-provenance-core:0.32.1",
-        "eval-pack:research-packet-scouting-core:0.32.1",
-        "eval-pack:pipeline-rfc-mutation-core:0.32.1",
-        "eval-pack:role-corpus-binding-core:0.32.1",
-        "eval-pack:role-kernel-active-nn-core:0.32.1",
-        "eval-pack:role-review-state-machine-core:0.32.1",
-        "eval-pack:roleflow-orchestration-core:0.32.1",
-        "eval-pack:runtime-default-safety-core:0.32.1",
-        "eval-pack:selftest-event-store-core:0.32.1",
-        "eval-pack:selftest-rss-slope-core:0.32.1",
-        "eval-pack:selftest-trend-dashboard-core:0.32.1",
-        "eval-pack:sense-layer-edge-core:0.32.1",
-        "eval-pack:setup-default-path-core:0.32.1",
-        "eval-pack:setup-front-door-core:0.32.1",
-        "eval-pack:setup-mode-matrix-core:0.32.1",
-        "eval-pack:smarthome-local-control-core:0.32.1",
-        "eval-pack:systemd-happy-path-core:0.32.1",
-        "eval-pack:target-live-validation-readiness-core:0.32.1",
-        "eval-pack:topic-adjacent-retrieval-core:0.32.1",
-        "eval-pack:typed-governance-track-core:0.32.1",
-        "eval-pack:wiki-patch-commit-helper-core:0.32.1",
-        "eval-pack:media-backend-selection-readiness-core:0.32.1",
+        "eval-pack:a2a-interop-review-core:0.32.2",
+        "eval-pack:agent-loop-core:0.32.2",
+        "eval-pack:alpha-backlog-fence-core:0.32.2",
+        "eval-pack:artifact-card-affordance-core:0.32.2",
+        "eval-pack:artifact-registry-table-core:0.32.2",
+        "eval-pack:canonical-model-eval-matrix-readiness-core:0.32.2",
+        "eval-pack:clean-distribution-allowlist-core:0.32.2",
+        "eval-pack:community-pack-contribution-core:0.32.2",
+        "eval-pack:concept-frame-governance-core:0.32.2",
+        "eval-pack:sense-privacy-governance-core:0.32.2",
+        "eval-pack:cross-platform-prep-core:0.32.2",
+        "eval-pack:dashboard-api-endpoint-core:0.32.2",
+        "eval-pack:dashboard-launcher-core:0.32.2",
+        "eval-pack:drive-state-governance-core:0.32.2",
+        "eval-pack:edge-reference-targets-core:0.32.2",
+        "eval-pack:executor-stage-worker-core:0.32.2",
+        "eval-pack:first-start-summary-output-core:0.32.2",
+        "eval-pack:firstboot-progress-view-core:0.32.2",
+        "eval-pack:git-exchange-quarantine-core:0.32.2",
+        "eval-pack:graph-gap-notice-core:0.32.2",
+        "eval-pack:graph-projection-views-core:0.32.2",
+        "eval-pack:graph-patch-provenance-core:0.32.2",
+        "eval-pack:grounded-administrator-core:0.32.2",
+        "eval-pack:hfbridge-metadata-core:0.32.2",
+        "eval-pack:honesty-protocol-governance-core:0.32.2",
+        "eval-pack:hypergraph-error-improvement-core:0.32.2",
+        "eval-pack:hypergraph-first-administrator-core:0.32.2",
+        "eval-pack:knowledge-core-relations-gates-core:0.32.2",
+        "eval-pack:knowledge-graph-lint-core:0.32.2",
+        "eval-pack:knowledge-purpose-artifacts-core:0.32.2",
+        "eval-pack:locale-main-chat-surface-core:0.32.2",
+        "eval-pack:media-adapter-telemetry-core:0.32.2",
+        "eval-pack:media-capture-privacy-core:0.32.2",
+        "eval-pack:media-wiki-patch-core:0.32.2",
+        "eval-pack:memory-budgeted-retrieval-core:0.32.2",
+        "eval-pack:model-health-candidate-filter-core:0.32.2",
+        "eval-pack:model-profile-selection-core:0.32.2",
+        "eval-pack:model-switch-policy-core:0.32.2",
+        "eval-pack:pipeline-performance-metrics-core:0.32.2",
+        "eval-pack:pipeline-cli-install-wiring-core:0.32.2",
+        "eval-pack:safe-worktree-evolution-core:0.32.2",
+        "eval-pack:multios-runtime-host-core:0.32.2",
+        "eval-pack:noemashell-lite-core:0.32.2",
+        "eval-pack:onboarding-ladder-core:0.32.2",
+        "eval-pack:ota-update-layer-core:0.32.2",
+        "eval-pack:package-dry-run-validation-core:0.32.2",
+        "eval-pack:pipeline-stage-transition-core:0.32.2",
+        "eval-pack:pipeline-template-append-core:0.32.2",
+        "eval-pack:premerge-release-guard-core:0.32.2",
+        "eval-pack:previous-install-context-core:0.32.2",
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:production-gui-installer-core:0.32.2",
+        "eval-pack:slop-critic-governance-core:0.32.2",
+        "eval-pack:provenance-watermark-verdict-core:0.32.2",
+        "eval-pack:public-autonomy-boundary-core:0.32.2",
+        "eval-pack:pytest-suite-partition-core:0.32.2",
+        "eval-pack:release-provenance-core:0.32.2",
+        "eval-pack:research-packet-scouting-core:0.32.2",
+        "eval-pack:pipeline-rfc-mutation-core:0.32.2",
+        "eval-pack:role-corpus-binding-core:0.32.2",
+        "eval-pack:role-kernel-active-nn-core:0.32.2",
+        "eval-pack:role-review-state-machine-core:0.32.2",
+        "eval-pack:roleflow-orchestration-core:0.32.2",
+        "eval-pack:runtime-default-safety-core:0.32.2",
+        "eval-pack:selftest-event-store-core:0.32.2",
+        "eval-pack:selftest-rss-slope-core:0.32.2",
+        "eval-pack:selftest-trend-dashboard-core:0.32.2",
+        "eval-pack:sense-layer-edge-core:0.32.2",
+        "eval-pack:setup-default-path-core:0.32.2",
+        "eval-pack:setup-front-door-core:0.32.2",
+        "eval-pack:setup-mode-matrix-core:0.32.2",
+        "eval-pack:smarthome-local-control-core:0.32.2",
+        "eval-pack:systemd-happy-path-core:0.32.2",
+        "eval-pack:target-live-validation-readiness-core:0.32.2",
+        "eval-pack:topic-adjacent-retrieval-core:0.32.2",
+        "eval-pack:typed-governance-track-core:0.32.2",
+        "eval-pack:wiki-patch-commit-helper-core:0.32.2",
+        "eval-pack:media-backend-selection-readiness-core:0.32.2",
         "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.2",
         "eval-pack:pipeline-stage-validator-smoke-core:0.32.2",
-        "eval-pack:gateway-main-live-smoke-readiness-core:0.32.1",
-        "eval-pack:systemd-gdm-nvidia-live-validation-readiness-core:0.32.1"
+        "eval-pack:gateway-main-live-smoke-readiness-core:0.32.2",
+        "eval-pack:systemd-gdm-nvidia-live-validation-readiness-core:0.32.2"
       ]
     },
     {
       "kind": "persona",
       "id": "operator-admin-administrator",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5560,13 +5560,13 @@
         "datasets/role_eval_cases/administrator_smoke.jsonl"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2"
       ]
     },
     {
       "kind": "task",
       "id": "first-start-model-selection",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5625,30 +5625,30 @@
         "prelaunch/governance/systemd_gdm_nvidia_live_validation_readiness.example.json"
       ],
       "eval_pack_refs": [
-        "eval-pack:production-ai-gate-smoke:0.32.1",
-        "eval-pack:agent-loop-core:0.32.1",
-        "eval-pack:full-composite-target-run-readiness-core:0.32.1",
-        "eval-pack:full-composite-ssh-readiness-core:0.32.1",
-        "eval-pack:nologin-recovery-readiness-core:0.32.1",
-        "eval-pack:emergency-gui-recovery-readiness-core:0.32.1",
-        "eval-pack:share-automount-reboot-readiness-core:0.32.1",
-        "eval-pack:post-reboot-validation-archive-readiness-core:0.32.1",
-        "eval-pack:post-reboot-service-health-readiness-core:0.32.1",
-        "eval-pack:trixie-preflight-target-readiness-core:0.32.1",
-        "eval-pack:failure-forensics-bundle-readiness-core:0.32.1",
-        "eval-pack:target-gui-recovery-path-readiness-core:0.32.1",
-        "eval-pack:gateway-main-live-smoke-readiness-core:0.32.1",
-        "eval-pack:systemd-gdm-nvidia-live-validation-readiness-core:0.32.1",
-        "eval-pack:toolproxy-live-llm-smoke-readiness-core:0.32.1",
-        "eval-pack:post-reboot-gpu-gdm-gateway-toolproxy-readiness-core:0.32.1",
-        "eval-pack:live-testbench-suite-readiness-core:0.32.1",
-        "eval-pack:final-gui-scenario-replay-readiness-core:0.32.1"
+        "eval-pack:production-ai-gate-smoke:0.32.2",
+        "eval-pack:agent-loop-core:0.32.2",
+        "eval-pack:full-composite-target-run-readiness-core:0.32.2",
+        "eval-pack:full-composite-ssh-readiness-core:0.32.2",
+        "eval-pack:nologin-recovery-readiness-core:0.32.2",
+        "eval-pack:emergency-gui-recovery-readiness-core:0.32.2",
+        "eval-pack:share-automount-reboot-readiness-core:0.32.2",
+        "eval-pack:post-reboot-validation-archive-readiness-core:0.32.2",
+        "eval-pack:post-reboot-service-health-readiness-core:0.32.2",
+        "eval-pack:trixie-preflight-target-readiness-core:0.32.2",
+        "eval-pack:failure-forensics-bundle-readiness-core:0.32.2",
+        "eval-pack:target-gui-recovery-path-readiness-core:0.32.2",
+        "eval-pack:gateway-main-live-smoke-readiness-core:0.32.2",
+        "eval-pack:systemd-gdm-nvidia-live-validation-readiness-core:0.32.2",
+        "eval-pack:toolproxy-live-llm-smoke-readiness-core:0.32.2",
+        "eval-pack:post-reboot-gpu-gdm-gateway-toolproxy-readiness-core:0.32.2",
+        "eval-pack:live-testbench-suite-readiness-core:0.32.2",
+        "eval-pack:final-gui-scenario-replay-readiness-core:0.32.2"
       ]
     },
     {
       "kind": "eval-pack",
       "id": "canonical-model-eval-matrix-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5689,7 +5689,7 @@
     {
       "kind": "eval-pack",
       "id": "clean-install-share-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5735,7 +5735,7 @@
     {
       "kind": "eval-pack",
       "id": "full-composite-target-run-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5784,7 +5784,7 @@
     {
       "kind": "eval-pack",
       "id": "full-composite-ssh-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5826,7 +5826,7 @@
     {
       "kind": "eval-pack",
       "id": "nologin-recovery-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5866,7 +5866,7 @@
     {
       "kind": "eval-pack",
       "id": "emergency-gui-recovery-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5907,7 +5907,7 @@
     {
       "kind": "eval-pack",
       "id": "share-automount-reboot-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5950,7 +5950,7 @@
     {
       "kind": "eval-pack",
       "id": "post-reboot-validation-archive-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5992,7 +5992,7 @@
     {
       "kind": "eval-pack",
       "id": "post-reboot-service-health-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -6034,7 +6034,7 @@
     {
       "kind": "eval-pack",
       "id": "trixie-preflight-target-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -6077,7 +6077,7 @@
     {
       "kind": "eval-pack",
       "id": "failure-forensics-bundle-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -6121,7 +6121,7 @@
     {
       "kind": "eval-pack",
       "id": "target-gui-recovery-path-readiness-core",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
@@ -6164,6 +6164,3 @@
     }
   ]
 }
-
-
-

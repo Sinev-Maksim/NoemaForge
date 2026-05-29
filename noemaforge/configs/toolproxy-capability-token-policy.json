@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.toolproxy-capability/v1",
   "kind": "ToolProxyCapabilityTokenPolicy",
   "id": "toolproxy-capability-token-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -17,7 +17,13 @@
       "src/noemaforge_toolproxy_diag.py",
       "contracts/capability_token.schema.json"
     ],
-    "required_ux_commands": ["issue", "list", "verify", "revoke", "smoke"],
+    "required_ux_commands": [
+      "issue",
+      "list",
+      "verify",
+      "revoke",
+      "smoke"
+    ],
     "token_controls": {
       "short_lived_required": true,
       "max_default_ttl_sec": 600,
@@ -58,4 +64,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

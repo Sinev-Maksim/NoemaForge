@@ -45,7 +45,7 @@ class UnifiedRegistryRuntimeTests(unittest.TestCase):
         self.assertEqual(0, report["metrics"]["missing_eval_pack_refs"])
         self.assertEqual([], report["missing_required_kinds"])
         self.assertGreaterEqual(report["metrics"]["entries"], 10)
-        self.assertIn("eval-pack:production-ai-gate-smoke:0.32.1", report["active_registry_refs"])
+        self.assertIn("eval-pack:production-ai-gate-smoke:0.32.2", report["active_registry_refs"])
 
     def test_registry_validation_blocks_missing_ref_and_eval_pack_ref(self) -> None:
         with tempfile.TemporaryDirectory(prefix="registry-", dir=os.path.dirname(__file__)) as tmp:

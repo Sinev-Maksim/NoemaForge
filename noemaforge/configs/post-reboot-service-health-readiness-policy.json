@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.post-reboot-service-health-readiness/v1",
   "kind": "PostRebootServiceHealthReadinessPolicy",
   "id": "post-reboot-service-health-readiness-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
@@ -37,8 +37,17 @@
           "systemctl is-system-running || true",
           "systemctl --failed --no-pager || true"
         ],
-        "evidence": ["boot_id", "system_running_state", "failed_units"],
-        "completion_gates": ["boot_id_recorded", "system_state_recorded", "failed_units_recorded", "evidence_file_archived"]
+        "evidence": [
+          "boot_id",
+          "system_running_state",
+          "failed_units"
+        ],
+        "completion_gates": [
+          "boot_id_recorded",
+          "system_state_recorded",
+          "failed_units_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "gateway-service-health",
@@ -49,8 +58,15 @@
           "systemctl is-active noemaforge-llm-gateway.service || true",
           "systemctl status noemaforge-llm-gateway.service --no-pager -l || true"
         ],
-        "evidence": ["gateway_service_state", "gateway_status_excerpt"],
-        "completion_gates": ["service_state_recorded", "gateway_status_recorded", "evidence_file_archived"]
+        "evidence": [
+          "gateway_service_state",
+          "gateway_status_excerpt"
+        ],
+        "completion_gates": [
+          "service_state_recorded",
+          "gateway_status_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "main-backend-service-health",
@@ -63,8 +79,19 @@
           "systemctl status noemaforge-llama@main.service --no-pager -l || true",
           "sudo systemctl stop noemaforge-llama@main.service"
         ],
-        "evidence": ["operator_approval_record", "main_backend_service_state", "main_backend_status_excerpt", "main_backend_stop_result"],
-        "completion_gates": ["manual_start_approval_recorded", "service_state_recorded", "main_backend_status_recorded", "manual_stop_recorded", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "main_backend_service_state",
+          "main_backend_status_excerpt",
+          "main_backend_stop_result"
+        ],
+        "completion_gates": [
+          "manual_start_approval_recorded",
+          "service_state_recorded",
+          "main_backend_status_recorded",
+          "manual_stop_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "toolproxy-service-health",
@@ -75,8 +102,15 @@
           "systemctl is-active noemaforge-toolproxy.service || true",
           "systemctl status noemaforge-toolproxy.service --no-pager -l || true"
         ],
-        "evidence": ["toolproxy_service_state", "toolproxy_status_excerpt"],
-        "completion_gates": ["service_state_recorded", "toolproxy_status_recorded", "evidence_file_archived"]
+        "evidence": [
+          "toolproxy_service_state",
+          "toolproxy_status_excerpt"
+        ],
+        "completion_gates": [
+          "service_state_recorded",
+          "toolproxy_status_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "socket-api-smoke",
@@ -88,8 +122,19 @@
           "noemaforge gateway health --json || true",
           "noemaforge toolproxy status --json || true"
         ],
-        "evidence": ["operator_approval_record", "socket_state", "gateway_health_json", "toolproxy_status_json"],
-        "completion_gates": ["operator_approval_recorded", "socket_state_recorded", "gateway_health_recorded", "toolproxy_status_recorded", "evidence_file_archived"]
+        "evidence": [
+          "operator_approval_record",
+          "socket_state",
+          "gateway_health_json",
+          "toolproxy_status_json"
+        ],
+        "completion_gates": [
+          "operator_approval_recorded",
+          "socket_state_recorded",
+          "gateway_health_recorded",
+          "toolproxy_status_recorded",
+          "evidence_file_archived"
+        ]
       },
       {
         "id": "service-health-archive",
@@ -99,8 +144,18 @@
         "commands": [
           "sudo noemaforge forensics --include-live-validation --include-install-validation"
         ],
-        "evidence": ["forensics_bundle_path", "bundle_sha256", "redaction_manifest", "operator_review_note"],
-        "completion_gates": ["bundle_exists", "bundle_sha256_recorded", "secrets_redacted", "canonical_docs_updated_after_review"]
+        "evidence": [
+          "forensics_bundle_path",
+          "bundle_sha256",
+          "redaction_manifest",
+          "operator_review_note"
+        ],
+        "completion_gates": [
+          "bundle_exists",
+          "bundle_sha256_recorded",
+          "secrets_redacted",
+          "canonical_docs_updated_after_review"
+        ]
       }
     ],
     "required_outputs": [
@@ -148,4 +203,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

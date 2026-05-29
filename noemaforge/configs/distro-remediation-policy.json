@@ -2,14 +2,19 @@
   "apiVersion": "noemaforge.distro-remediation/v1",
   "kind": "DistroRemediationPolicy",
   "id": "distro-remediation-core",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
     "activation_state": "distro_detection_missing_dependency_remediation",
     "require_docs_and_changelog_refs": true,
     "require_no_live_host_dependency": true,
-    "supported_families": ["debian", "fedora", "arch", "suse"],
+    "supported_families": [
+      "debian",
+      "fedora",
+      "arch",
+      "suse"
+    ],
     "package_managers": {
       "debian": "apt-get",
       "fedora": "dnf",
@@ -54,10 +59,59 @@
       "noemaforge/bin/noemaforge"
     ],
     "required_packages": {
-      "debian": ["jq", "curl", "git", "rsync", "python3", "python3-yaml", "bubblewrap", "ffmpeg", "v4l-utils", "golang-go", "cmake", "ntfs-3g"],
-      "fedora": ["jq", "curl", "git", "rsync", "python3-pyyaml", "bubblewrap", "ffmpeg", "v4l-utils", "golang", "cmake", "ntfs-3g"],
-      "arch": ["jq", "curl", "git", "rsync", "python-yaml", "bubblewrap", "ffmpeg", "v4l-utils", "go", "cmake", "ntfs-3g"],
-      "suse": ["jq", "curl", "git", "rsync", "python3-PyYAML", "bubblewrap", "ffmpeg", "v4l-utils", "go", "cmake", "ntfs-3g"]
+      "debian": [
+        "jq",
+        "curl",
+        "git",
+        "rsync",
+        "python3",
+        "python3-yaml",
+        "bubblewrap",
+        "ffmpeg",
+        "v4l-utils",
+        "golang-go",
+        "cmake",
+        "ntfs-3g"
+      ],
+      "fedora": [
+        "jq",
+        "curl",
+        "git",
+        "rsync",
+        "python3-pyyaml",
+        "bubblewrap",
+        "ffmpeg",
+        "v4l-utils",
+        "golang",
+        "cmake",
+        "ntfs-3g"
+      ],
+      "arch": [
+        "jq",
+        "curl",
+        "git",
+        "rsync",
+        "python-yaml",
+        "bubblewrap",
+        "ffmpeg",
+        "v4l-utils",
+        "go",
+        "cmake",
+        "ntfs-3g"
+      ],
+      "suse": [
+        "jq",
+        "curl",
+        "git",
+        "rsync",
+        "python3-PyYAML",
+        "bubblewrap",
+        "ffmpeg",
+        "v4l-utils",
+        "go",
+        "cmake",
+        "ntfs-3g"
+      ]
     }
   },
   "refs": [
@@ -79,4 +133,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-
