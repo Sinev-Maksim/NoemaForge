@@ -1,5 +1,55 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: PR #9 Admin GUI JobManager wiring return
+
+Status: pending-claude-fix
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #9
+Changed files:
+- noemaforge/src/admin_gui_server.py
+- noemaforge/src/job_manager.py
+- noemaforge/src/orchestration_state.py
+- noemaforge/tests/test_admin_gui_job_manager_wiring.py
+
+Intent:
+Wire JobManager into AdminGuiServer job methods so Admin GUI job listing,
+lookup, creation, persistence, and cancellation use the file-backed job
+registry introduced by the previous task.
+
+Risk areas:
+- Admin GUI `/api/jobs` behavior and runtime job visibility.
+- JobManager integration with legacy job JSON shape and privileged job fields.
+- Cancellation behavior and dead legacy code left after early returns.
+- Path safety around raw `job_id` lookups through `JobManager.get()`.
+
+Questions for Claude:
+1. Fix `AdminGuiServer.jobs_list()` so it no longer references removed `data`
+   and all focused tests pass.
+2. Decide whether the dead legacy block after `job_cancel()`'s new return should
+   be removed in this branch.
+3. Decide whether `JobManager.get()` must sanitize `job_id` internally to retain
+   the previous `safe_id(job_id)` path-safety contract for all callers.
+
+Validation already run:
+- Public GitHub API inspection of PR #9 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `Quality gate` and `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `970b5267deea27240e37b735e2fa5a9c8cb51f54`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_admin_gui_job_manager_wiring.py`
+  reproduced the blocker: 27 tests run, 5 errors, all in `jobs_list()` with
+  `NameError: data is not defined`.
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- The `jobs_list()` blocker is fixed and the focused unittest passes.
+- Codex review is re-run on the fixed branch.
+- Claude explicitly resolves the cancellation dead-code and path-safety
+  questions above.
+
 ## Claude Review Packet: PR #8 JobManager file-backed registry
 
 Status: pending-claude-review
