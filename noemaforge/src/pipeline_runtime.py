@@ -69,7 +69,7 @@ PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}
 EVOLUTION_WORKTREE_BRANCH_PREFIX = "noemaforge/evolution/"
 WORKTREE_REF_RE = re.compile(r"^[A-Za-z0-9._/@+-]{1,180}$")
-TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.32.1"
+TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.32.2"
 TOOLPROXY_CAPABILITY_SCHEMA_REF = "contracts/capability_token.schema.json"
 TOOLPROXY_BASE_ACTIONS = [
     "llm.chat",

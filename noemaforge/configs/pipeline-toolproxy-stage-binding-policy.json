@@ -6,7 +6,7 @@
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",
-    "required_tool_policy_ref": "tool-policy:tool-policy-main:0.32.1",
+    "required_tool_policy_ref": "tool-policy:tool-policy-main:0.32.2",
     "capability_schema_ref": "contracts/capability_token.schema.json",
     "require_capability_token": true,
     "require_stage_scope": true,

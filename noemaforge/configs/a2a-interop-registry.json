@@ -39,7 +39,7 @@
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
-      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
+      "registry_ref": "tool-policy:tool-policy-main:0.32.2",
       "audit_logging": true,
       "human_review_required": true,
       "sandbox": {
@@ -83,7 +83,7 @@
       "trace_required": true,
       "capability_token_required": true,
       "registry_entry_required": true,
-      "registry_ref": "tool-policy:tool-policy-main:0.32.1",
+      "registry_ref": "tool-policy:tool-policy-main:0.32.2",
       "audit_logging": true,
       "human_review_required": true,
       "sandbox": {

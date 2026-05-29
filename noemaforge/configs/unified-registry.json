@@ -5045,7 +5045,7 @@
     {
       "kind": "tool-policy",
       "id": "tool-policy-main",
-      "version": "0.32.1",
+      "version": "0.32.2",
       "status": "shadow",
       "channels": [
         "stable"
