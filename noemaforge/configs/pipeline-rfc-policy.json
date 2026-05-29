@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.pipeline-rfc/v1",
   "kind": "PipelineRFCPolicy",
   "id": "pipeline-rfc-mutation-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.intent-router-eval/v1",
   "kind": "IntentRouterEvalPack",
   "id": "admin-intent-router-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "thresholds": {
     "overall_pass_rate_min": 1.0,
     "per_route_pass_rate_min": 1.0

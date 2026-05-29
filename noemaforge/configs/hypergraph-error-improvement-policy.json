@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.hypergraph-error-improvement/v1",
   "kind": "HypergraphErrorImprovementPolicy",
   "id": "hypergraph-error-improvement-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

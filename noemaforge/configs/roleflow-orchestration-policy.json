@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.roleflow/v1",
   "kind": "RoleFlowPolicy",
   "id": "roleflow-orchestration-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

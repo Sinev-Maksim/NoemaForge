@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.git-exchange/v1",
   "kind": "GitExchangePolicy",
   "id": "git-exchange-quarantine-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

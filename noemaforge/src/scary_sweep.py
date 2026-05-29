@@ -126,7 +126,7 @@ DEFAULT_STAGING_DIR = os.path.join(BASE, ".sys", "fixture_autogen", "staging")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -144,7 +144,7 @@ def _nowz() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _today() -> str:
-    return dt.datetime.utcnow().strftime("%Y-%m-%d")
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -162,7 +162,7 @@ def _today() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _ts_id() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.package-dry-run/v1",
   "kind": "PackageDryRunValidationPolicy",
   "id": "package-dry-run-validation-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

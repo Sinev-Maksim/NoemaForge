@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.setup-modes/v1",
   "kind": "SetupModeMatrixPolicy",
   "id": "setup-mode-matrix-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

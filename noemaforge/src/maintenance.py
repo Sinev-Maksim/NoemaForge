@@ -151,7 +151,7 @@ def _save_text(path: str, text: str) -> None:
 # === End NoemaForge Autodoc Function Header ===
 def _write_autocycle_summary(*, reason: str, details: Dict[str, Any], st: Dict[str, Any]) -> Dict[str, str]:
     """Write a human-readable + machine-readable summary when AUTO_CYCLE ends."""
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     safe_reason = (reason or "unknown").replace("/", "_").replace(" ", "_")
     out_dir = os.path.join(ROUTINES_DIR, "maintenance", "auto_cycle")
     os.makedirs(out_dir, exist_ok=True)
@@ -283,7 +283,7 @@ def _save_state(st: Dict[str, Any]) -> None:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -484,7 +484,7 @@ def is_busy() -> Tuple[bool, List[str]]:
     if _locks_present():
         reasons.append("locks")
 
-    now = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)
+    now = dt.datetime.now(dt.timezone.utc)
     for pid in _list_projects():
         if _has_pending_wakes(pid):
             reasons.append(f"wakeq:{pid}")
@@ -571,7 +571,7 @@ def _seconds_since(ts_z: Optional[str]) -> Optional[float]:
         return None
     try:
         t = dt.datetime.fromisoformat(ts_z.replace("Z", "+00:00"))
-        now = dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc)
+        now = dt.datetime.now(dt.timezone.utc)
         return (now - t).total_seconds()
     except Exception:
         return None
@@ -749,7 +749,7 @@ def _enqueue_roadmap_since_cursor(
     if not since:
         # First-run safety: don't replay entire history.
         # We only ingest the last 24h worth of signals.
-        since = (dt.datetime.utcnow() - dt.timedelta(days=1)).isoformat() + "Z"
+        since = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat().replace("+00:00", "Z")
 
     rep = roadmap.list_signals_since(since_ts=since, limit=int(limit or 1000))
     sigs = rep.get("signals") or []

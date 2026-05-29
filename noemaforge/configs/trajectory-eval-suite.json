@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.trajectory-eval/v1",
   "kind": "TrajectoryEvalSuite",
   "id": "agent-loop-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "thresholds": {
     "step_success_rate_min": 1.0,
     "artifact_coverage_min": 1.0,

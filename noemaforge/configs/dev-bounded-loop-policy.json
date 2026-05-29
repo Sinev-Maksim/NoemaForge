@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.dev-bounded-loop/v1",
   "kind": "DevBoundedLoopPolicy",
   "id": "dev-bounded-loop-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "summary": "Bounded Dev Team improvement loops must be multi-step, checkpointed, stoppable and never auto-applied.",
   "policy": {

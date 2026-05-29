@@ -245,7 +245,7 @@ PRIO_INDEX = {p: i for i, p in enumerate(PRIORITY_ORDER)}
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1162,7 +1162,7 @@ def acquire_semaphore(project_id: str, role_id: str, lease_sec: int = 600) -> bo
     except Exception:
         state = {"active": None, "lease_until": None}
 
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.timezone.utc)
     lease_until = None
     if state.get("lease_until"):
         try:
@@ -1174,7 +1174,7 @@ def acquire_semaphore(project_id: str, role_id: str, lease_sec: int = 600) -> bo
         return False
 
     state["active"] = {"role_id": role_id, "run_id": str(uuid.uuid4()), "ts": _nowz()}
-    state["lease_until"] = (now + dt.timedelta(seconds=lease_sec)).isoformat() + "Z"
+    state["lease_until"] = (now + dt.timedelta(seconds=lease_sec)).isoformat().replace("+00:00", "Z")
 
     tmp = sf + ".tmp"
     _save_json(tmp, state)
@@ -1256,7 +1256,7 @@ def handoff_baton(
     stream_id: str = "",
     notes: str = "",
 ) -> str:
-    baton_id = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ") + f"_{from_role}_to_{to_role}"
+    baton_id = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + f"_{from_role}_to_{to_role}"
     os.makedirs(batons_dir(project_id), exist_ok=True)
     baton_path = os.path.join(batons_dir(project_id), baton_id + ".json")
     baton = {

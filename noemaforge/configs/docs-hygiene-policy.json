@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.docs-hygiene/v1",
   "kind": "DocsHygienePolicy",
   "id": "prelaunch-docs-hygiene",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "stable",
   "policy": {
     "approved_markdown_prefixes": [

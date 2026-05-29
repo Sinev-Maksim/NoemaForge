@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.cross-platform-prep/v1",
   "kind": "CrossPlatformPrepCorePolicy",
   "id": "cross-platform-prep-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

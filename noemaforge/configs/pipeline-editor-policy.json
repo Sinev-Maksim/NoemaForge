@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.pipeline-editor/v1",
   "kind": "PipelineEditorPolicy",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "drag_drop_status": "todo_architecture_reserved",
   "mutation_mode": "draft_only",
   "activation_gates": [

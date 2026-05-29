@@ -94,7 +94,7 @@ DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/observability-policy.yaml"
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -311,7 +311,7 @@ def _rotate_if_needed(path: str, pol: Dict[str, Any]) -> None:
     max_bytes = int(max_mb * 1024 * 1024)
     try:
         if os.path.exists(path) and os.path.getsize(path) > max_bytes:
-            ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+            ts = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
             new = f"{path}.{ts}.rot"
             os.replace(path, new)
     except Exception:

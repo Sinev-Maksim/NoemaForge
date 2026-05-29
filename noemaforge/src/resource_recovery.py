@@ -81,7 +81,7 @@ BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
 # Returns / emits: float
 # === End NoemaForge Autodoc Function Header ===
 def _now() -> float:
-    return dt.datetime.utcnow().timestamp()
+    return dt.datetime.now(dt.timezone.utc).timestamp()
 
 
 # === NoemaForge Autodoc Function Header ===

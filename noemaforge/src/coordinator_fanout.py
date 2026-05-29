@@ -67,7 +67,7 @@ OUTBOX = "/var/lib/noemaforge/outbox/coordinator"
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -83,7 +83,7 @@ def _nowz() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _slug() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
 
 
 # === NoemaForge Autodoc Function Header ===

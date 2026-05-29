@@ -1,5 +1,5 @@
 {
-  "version": "0.32.2",
+  "version": "0.32.1",
   "apiVersion": "noemaforge/v1",
   "kind": "TestMatrix",
   "module_matrix": "module-test-matrix.json",

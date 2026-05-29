@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.ci-model-gates/v1",
   "kind": "CIModelGatesPolicy",
   "id": "ci-model-gates-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_validation",
@@ -41,7 +41,7 @@
   "gates": [
     {
       "id": "edge-model-ci-gate",
-      "version": "0.32.2",
+      "version": "0.32.1",
       "state": "shadow",
       "target_type": "edge",
       "model_ref": "model:model-registry-local:0.32.1",

@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.memory-budgeted-retrieval/v1",
   "kind": "MemoryBudgetedRetrievalPolicy",
   "id": "memory-budgeted-retrieval-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

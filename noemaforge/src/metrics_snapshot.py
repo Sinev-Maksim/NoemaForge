@@ -79,7 +79,7 @@ from incident_metrics import incident_snapshot
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===

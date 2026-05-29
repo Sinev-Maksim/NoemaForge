@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.role-corpus-binding/v1",
   "kind": "RoleCorpusBindingPolicy",
   "id": "role-corpus-binding-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

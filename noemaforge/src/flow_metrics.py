@@ -74,7 +74,7 @@ except Exception:  # pragma: no cover
 # Returns / emits: dt.datetime
 # === End NoemaForge Autodoc Function Header ===
 def _now() -> dt.datetime:
-    return dt.datetime.utcnow()
+    return dt.datetime.now(dt.timezone.utc)
 
 
 # === NoemaForge Autodoc Function Header ===

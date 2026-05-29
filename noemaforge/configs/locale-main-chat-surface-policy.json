@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.locale-main-chat-surface/v1",
   "kind": "LocaleMainChatSurfacePolicy",
   "id": "locale-main-chat-surface-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

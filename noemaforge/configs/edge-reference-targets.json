@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.edge-reference-targets/v1",
   "kind": "EdgeReferenceTargetsPolicy",
   "id": "edge-reference-targets-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

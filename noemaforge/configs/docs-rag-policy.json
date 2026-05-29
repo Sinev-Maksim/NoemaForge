@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.docs-rag/v1",
   "kind": "DocsRAGPolicy",
   "id": "docs-wiki-context",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "index_version": "docs-rag-v1",
   "include_globs": [
     "docs/wiki/**/*.md",

@@ -53,6 +53,16 @@
 - [x] **Source file version headers bulk bump** (Windows-doable, cosmetic): Batch-updated all 251 `noemaforge/src/*.py` and 464 `noemaforge/tests/*.py` file headers from `Version: 0.32.1` → `Version: 0.32.2`, BOM-less UTF-8 output verified. SHA256SUMS chain regenerated (715 entries updated). py_compile sample verified clean (2026-05-29).
 - [ ] **noemaforge-stop: document `_COMMON` missing path** (BigBro-BOS): `helpers/noemaforge-stop` silently skips cgroup drain when `lib/noemaforge-common.sh` is not found (logs `[INFO] cgroup drain skipped: ... not found`). This is safe but the operator won't know cgroup drain was skipped. Add a `[WARN]` escalation if any LLAMA_UNITS were active at the time of the skip.
 
+## 0.32.2 fourth-pass hardening — identified 2026-05-29 (loop iteration 4, deep analysis)
+
+### Deep code review findings
+
+- [x] **caps.py — datetime.utcnow() deprecation** (Windows-doable): Replaced all 4 `datetime.utcnow()` calls in `caps.py` with timezone-aware `datetime.now(dt.timezone.utc)`. Fixed serialization (`exp.isoformat()` now emits `+00:00` so `.replace("+00:00","Z")` used), and parsing (`Z`→`+00:00` before `fromisoformat`, tz fallback added). All 4 capability token tests pass with `-W error::DeprecationWarning` (2026-05-29).
+- [x] **Policy config files version bump** (Windows-doable): Bulk-bumped `"version": "0.32.1"` → `"0.32.2"` in all 134 individual `noemaforge/configs/*.json` policy files (not `unified-registry.json` — bumping entries there would break `eval_pack_refs` lookups since `registry_key = f"{kind}:{id}:{version}"`). SHA256SUMS chain regenerated (135 entries updated) (2026-05-29).
+- [ ] **unified-registry.json entry versions** (Windows-doable, careful): All ~150 eval-pack and other entries in `unified-registry.json` still carry `"version": "0.32.1"`. Cannot bulk-replace — must update `eval_pack_refs` cross-references atomically. Approach: (1) identify all current eval_pack_refs (format `eval-pack:{id}:0.32.1`) in the registry, (2) bump each referenced entry's version to 0.32.2 AND update the cross-reference string in the same edit. Run `test_unified_registry_runtime` after each batch. Estimated: 80+ registry entries with cascades.
+- [ ] **noemaforge-update-checksums.ps1 — fix BOM behavior for SHA256SUMS writes** (Windows-doable): The script currently uses `[System.Text.Encoding]::UTF8` (with BOM on .NET Framework, without on .NET 6+) when updating SHA256SUMS text files. Since we confirmed .NET 6+ (PowerShell 7) returns BOM-less, this is safe today — but should be made explicit: replace with `New-Object System.Text.UTF8Encoding($false)` to guarantee BOM-less output on all .NET versions.
+- [ ] **Check for other deprecated datetime.utcnow() calls in codebase** (Windows-doable): `caps.py` fixed, but other src files may also use `datetime.utcnow()`. Scan all `noemaforge/src/*.py` for `utcnow()` and fix any remaining occurrences.
+
 ## 0.32.2 second-pass hardening — identified 2026-05-28 (loop iteration 2)
 
 ### Pre-existing test suite failures (353 failures, 28 errors in discover mode)

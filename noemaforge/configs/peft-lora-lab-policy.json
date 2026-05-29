@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.peft-lora-lab/v1",
   "kind": "PEFTLoRALabPolicy",
   "id": "peft-lora-lab-readiness",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "disabled",
   "policy": {
     "mode": "readiness_only",
@@ -28,7 +28,7 @@
   "labs": [
     {
       "id": "dev-code-lora-dry-run",
-      "version": "0.32.2",
+      "version": "0.32.1",
       "state": "disabled",
       "target_model_ref": "model:model-registry-local:0.32.1",
       "adapter_method": "lora",

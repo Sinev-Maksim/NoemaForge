@@ -120,7 +120,7 @@ _INBOX_CACHE: Dict[str, Any] = {"ts": 0.0, "state_root": "", "data": None}
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===

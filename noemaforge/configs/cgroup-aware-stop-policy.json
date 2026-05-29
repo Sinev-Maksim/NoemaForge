@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.cgroup-aware-stop/v1",
   "kind": "CgroupAwareStopPolicy",
   "id": "cgroup-aware-stop-core",
-  "version": "0.32.2",
+  "version": "0.32.1",
   "status": "shadow",
   "policy": {
     "mode": "offline_contract",

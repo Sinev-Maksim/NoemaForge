@@ -169,7 +169,7 @@ EPOCH_FILES = [
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1216,7 +1216,7 @@ def _notify(role_id: str, payload: Dict[str, Any], notifications_dir: str = DEFA
     Consumers may tail/poll these directories.
     """
     role_id = (role_id or "unknown").strip() or "unknown"
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     nid = f"{ts}-{uuid.uuid4().hex[:10]}"
     out_dir = os.path.join(notifications_dir, role_id)
     os.makedirs(out_dir, exist_ok=True)
