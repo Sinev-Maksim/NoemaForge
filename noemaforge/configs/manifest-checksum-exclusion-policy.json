@@ -26,13 +26,18 @@
     ],
     "package_checksum_ref": "checksums/SHA256SUMS",
     "excluded_dir_names": [
+      ".claude",
+      ".codex",
+      ".cursor",
       ".git",
+      ".github",
       ".hg",
       ".mypy_cache",
       ".pytest_cache",
       ".ruff_cache",
       ".tox",
       ".venv",
+      ".vscode",
       "__pycache__",
       "build",
       "dist",
@@ -41,7 +46,11 @@
     ],
     "project_checksum_self_exclusions": [
       "SHA256SUMS",
-      "SHA256SUMS_0.32.1"
+      "SHA256SUMS.sha256",
+      "SHA256SUMS_0.32.1",
+      ".coderabbit.yaml",
+      ".cursorignore",
+      ".gitignore"
     ],
     "package_checksum_self_exclusions": [
       "checksums/SHA256SUMS"

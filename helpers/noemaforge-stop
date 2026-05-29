@@ -105,6 +105,29 @@ else
   echo 'no noemaforge-llama@*.service units found'
 fi
 
+printf '\n=== drain NoemaForge systemd cgroups ===\n'
+# cgroup.procs paths are located via systemctl ControlGroup property.
+# noemaforge_print_unit_cgroups and noemaforge_drain_unit_cgroups are provided by
+# lib/noemaforge-common.sh and perform cgroup-aware TERM/KILL before pkill.
+_COMMON="$(dirname "$(dirname "${BASH_SOURCE[0]}")")/lib/noemaforge-common.sh"
+if [[ "$DRY_RUN" == "1" ]]; then
+  printf '[dry-run] noemaforge_print_unit_cgroups %s\n' "${CORE_UNITS[*]}"
+  printf '[dry-run] noemaforge_drain_unit_cgroups TERM %s\n' "${CORE_UNITS[*]}"
+  printf '[dry-run] sleep 3\n'
+  printf '[dry-run] noemaforge_drain_unit_cgroups KILL %s\n' "${CORE_UNITS[*]}"
+elif [[ -r "$_COMMON" ]]; then
+  # shellcheck source=/dev/null
+  . "$_COMMON"
+  _all_units=("${CORE_UNITS[@]}")
+  [[ ${#LLAMA_UNITS[@]} -gt 0 ]] && _all_units+=("${LLAMA_UNITS[@]}")
+  noemaforge_print_unit_cgroups "${_all_units[@]}" 2>/dev/null || true
+  noemaforge_drain_unit_cgroups TERM "${_all_units[@]}" 2>/dev/null || true
+  sleep 3
+  noemaforge_drain_unit_cgroups KILL "${_all_units[@]}" 2>/dev/null || true
+else
+  printf '[noemaforge-stop][INFO] cgroup drain skipped: %s not found\n' "$_COMMON"
+fi
+
 printf '\n=== stop NoemaForge-owned llama-server processes ===\n'
 if [[ "$DRY_RUN" == "1" ]]; then
   printf '[dry-run] pkill -u %s -TERM/-KILL [l]lama-server\n' "$NOEMAFORGE_USER"

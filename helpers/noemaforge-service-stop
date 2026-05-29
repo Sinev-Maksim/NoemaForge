@@ -13,5 +13,13 @@
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
 set -euo pipefail
+# Cgroup-aware stop delegation:
+# This wrapper delegates to noemaforge-stop which implements the full stop sequence:
+#   1. systemctl stop units
+#   2. === drain NoemaForge systemd cgroups ===
+#      noemaforge_print_unit_cgroups, noemaforge_drain_unit_cgroups TERM,
+#      noemaforge_drain_unit_cgroups KILL, cgroup.procs drain via ControlGroup.
+#   3. pkill -u noemaforge llama-server processes
+# See helpers/noemaforge-stop and lib/noemaforge-common.sh for implementation.
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 exec "$HERE/noemaforge-stop" "$@"

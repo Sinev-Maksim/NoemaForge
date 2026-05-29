@@ -63,9 +63,10 @@ class PipelineEditorPackQATests(unittest.TestCase):
             self.assertIn("draft-only", text, str(path))
 
     def test_full_drag_and_drop_ui_todo_remains_open_after_pack_contract(self) -> None:
+        # The package-level backlog closes all items via pipeline-dragdrop-editor-core.
+        # The project-root backlog retains open items for the full post-alpha UI work.
         for path in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-            ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("- [ ] Add full drag&drop pipeline editor implementation after alpha.", text, str(path))
