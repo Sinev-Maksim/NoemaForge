@@ -67,6 +67,7 @@ DEFAULT_DEV_TEAM_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/
 DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaforge"))
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
+MAX_CONVERSATION_MESSAGES = 1000  # oldest messages trimmed when exceeded
 
 
 def now_iso() -> str:
@@ -779,6 +780,10 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     def _save_conversation(self, conv: Dict[str, Any]) -> None:
         conv["updated_at"] = now_iso()
+        # Keep only the most-recent MAX_CONVERSATION_MESSAGES messages to bound file size.
+        msgs = conv.get("messages")
+        if isinstance(msgs, list) and len(msgs) > MAX_CONVERSATION_MESSAGES:
+            conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]
         self._write_json(self.conversation_file(), conv)
 
     def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
