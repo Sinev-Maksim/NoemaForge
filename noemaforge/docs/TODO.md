@@ -399,6 +399,38 @@ Four findings — 4 new Windows-doable tasks (37–40) proposed below.
   removed dead unreachable duplicate block; switched to `session_set_mode` interface;
   10 tests pass (b3922d2).
 
+## 0.32.2 hardening — fifth deep analysis cycle (2026-05-30)
+
+High-effort three-angle review of tasks 37–40 (append-lock, copy-truncate rotation,
+glob narrowing, session_id falsy fix). Three confirmed/plausible findings.
+
+- [ ] **task-41 (HIGH): Fix `_maybe_rotate()` archive overwrite**
+  Both task-37 (`path.replace(archive)`) and task-38 (`archive.write_bytes(content)`)
+  unconditionally overwrite `events.jsonl.1` on every rotation. A second rotation
+  (e.g. at append #100 after the log re-grows) destroys the archive from the first
+  rotation, permanently losing the oldest audit history. Fix: shift the existing
+  archive before writing the new one (e.g. rotate `.1` → `.2` → `.3` up to a
+  configurable depth), or use a timestamped archive name to avoid overwrites.
+
+- [ ] **task-42 (MEDIUM): Remove duplicate SessionStore init in AdminGuiServer.__init__**
+  `__init__` assigns `self.session_store` twice: first to
+  `SessionStore(self.gui_state_dir / "sessions")` and then unconditionally to
+  `SessionStore(self.data_root / "sessions")`. The first instance is created (and
+  the directory is mkdir'd) but immediately discarded. The effective session root
+  is `data_root/sessions`, but the ghost assignment wastes resources, confuses
+  readers, and could silently redirect session files when the paths diverge.
+  Fix: remove the first (discarded) assignment; keep only the correct one.
+
+- [ ] **task-43 (LOW): Document `_cleanup_stale_tmp_files()` coverage gap until task-23 merges**
+  `_cleanup_stale_tmp_files()` (task-39) scans `gui_state_dir`, `jobs_dir`, and
+  `data_root/sessions` for `*.{digits}.tmp` orphans. On the release base (before
+  task-23 `claude/task-23-atomic-write-json` merges), `_write_json()` uses
+  `path.write_text()` directly and never creates `.tmp` files — so the gui and
+  jobs scans are vacuous. The sessions scan IS meaningful because task-34's
+  `_write_atomic()` in `SessionStore` already creates thread-unique `.tmp` files.
+  Fix: add a code comment that the gui/jobs scans become active after task-23
+  merges, to prevent future confusion about why no files are found in those dirs.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
