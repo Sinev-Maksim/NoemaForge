@@ -25,6 +25,7 @@ let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
 let lastEventIndex = 0;
+let lastRotationCount = 0; // tracks EventLog rotation_count to detect file truncation
 let restoredSelectionMode = {mode:'full_composite', composite_top_n:4};
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
@@ -280,8 +281,17 @@ async function refreshInactivity(){ try{ const st = await api('/api/inactivity/s
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
 async function pollEvents(){
   // Poll /api/events with deduplication by index — only fetch rows after lastEventIndex.
+  // rotation_count in the response allows detecting when the server rotated (truncated)
+  // the live event log. On rotation we reset lastEventIndex to 0 so we don't miss
+  // events that were written after the truncation.
   try{
     const r = await api(`/api/events?after_index=${lastEventIndex}`);
+    // Detect log rotation: server increments rotation_count each time it truncates
+    // events.jsonl to 0. Reset our cursor so we read from the beginning of the new file.
+    if(typeof r.rotation_count === 'number' && r.rotation_count !== lastRotationCount){
+      lastEventIndex = 0;
+      lastRotationCount = r.rotation_count;
+    }
     const events = r.events || [];
     if(!events.length) return;
     const target = el('internal-chat');

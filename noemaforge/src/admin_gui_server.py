@@ -747,13 +747,34 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
-        """Return append-only event log entries for GUI polling."""
+        """Return append-only event log entries for GUI polling.
 
+        The response includes rotation_count from EventLog.status() so that
+        browser pollers (pollEvents() in app.js) can detect when the live file
+        was truncated and must reset their lastEventIndex to 0.  Without this
+        field a rotation causes the poller to silently miss all new events until
+        the log re-grows past the saved index.
+        """
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
-            return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+            # Include rotation_count so callers can detect log rotation and reset
+            # their after_index cursor (see EventLog.status() docstring).
+            rotation_count = 0
+            if hasattr(self.event_log, "status"):
+                try:
+                    rotation_count = int(self.event_log.status().get("rotation_count", 0))
+                except Exception:
+                    pass
+            return {
+                "ok": True,
+                "version": RUNTIME_VERSION,
+                "events": events,
+                "count": len(events),
+                "rotation_count": rotation_count,
+            }
         except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
+            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0,
+                    "rotation_count": 0, "error": str(exc)}
 
     # --- session state ----------------------------------------------------------------
     def session_current(self) -> Dict[str, Any]:
