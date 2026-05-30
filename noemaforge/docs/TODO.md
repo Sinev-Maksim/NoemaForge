@@ -162,6 +162,57 @@
 
 - [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
 
+## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
+
+Eight new proposals from cross-cutting analysis of completed tasks 13–19.
+All are Windows-doable.
+
+- [ ] **task-20 (HIGH): Add threading.Lock on shared file read-modify-write in
+  AdminGuiServer** — `ThreadingHTTPServer` spawns one thread per request;
+  `_write_json`, `_append_jsonl`, `jobs_data()`/`_upsert_job`, `tasks_data()`,
+  `_conversation()`/`_save_conversation` all do read-modify-write on shared JSON
+  files without any lock. Concurrent browser tabs or simultaneous API calls can
+  produce torn writes. Fix: one `threading.Lock` instance on `AdminGuiServer`
+  held around each shared-file read-modify-write.
+
+- [ ] **task-21 (HIGH): Cap `conversation-current.json` to MAX_CONVERSATION_MESSAGES**
+  — `save_message()` appends to `conv["messages"]` with no upper bound (unlike
+  `session_store` which has a 500-message cap). Long-running sessions produce
+  multi-MB files that are fully re-read and re-written on every request.
+  Fix: add `MAX_CONVERSATION_MESSAGES = 1000` slice in `_save_conversation()`.
+
+- [ ] **task-22 (HIGH): Confirm/re-fix save_message() double append_message call**
+  — Audit the task-14 fix is correctly applied (the double-write bug sends two
+  calls to `session_store.append_message()` per `save_message()`, doubling the
+  message count and halving the 500-message window). Verify tests pass on
+  `release/0.32.2-hardening` after task-14 merges.
+
+- [ ] **task-23 (MEDIUM): Add `_write_json` atomic tmp-rename pattern**
+  — `_write_json` calls `path.write_text()` directly; a crash or concurrent
+  read during the write will observe a truncated/partial JSON file. Fix: adopt
+  the same tmp-then-rename approach already used by `SessionStore._write_atomic()`.
+
+- [ ] **task-24 (MEDIUM): Clamp `/api/events` limit parameter to prevent DoS**
+  — `?limit=1000000` causes `EventLog.read()` to build a million-entry list in
+  memory before responding. Fix: `limit = min(max(1, limit), 1000)` in
+  `do_GET` before calling `events_api()`.
+
+- [ ] **task-25 (MEDIUM): Add EventLog rotation/size cap**
+  — `EventLog.append()` opens the JSONL file in `"a"` mode indefinitely; after
+  weeks of uptime the file can be tens of thousands of lines loaded entirely into
+  memory per request. Fix: add a rotation threshold (10 000 lines or 10 MB).
+
+- [ ] **task-26 (MEDIUM): Cap `session_id` query param length to prevent proliferation**
+  — `GET /api/session/current?session_id=<10k-chars>` creates a new session file
+  for any novel sanitized id, enabling unbounded session-file growth. Fix: clamp
+  to 128 characters in `do_GET` and return 400 for all-non-alphanumeric values.
+
+- [ ] **task-27 (MEDIUM): Surface `noemaforge_core.py` exception in role output load**
+  — Around line 2118, a `return None` in a finally-equivalent path silently
+  swallows any exception from `_load_json(out_path)`. Callers receive
+  `(None, runner_out)` with no indication of why output parsing failed.
+  Fix: log the exception or add it to the return tuple as a structured field.
+
 ## 0.32.2 hardening — deep code-review cycle (2026-05-30)
 
 High-effort three-angle code review on `claude/task-13-config-validate-api`
