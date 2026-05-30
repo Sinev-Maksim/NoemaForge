@@ -343,12 +343,9 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-31-cleanup-tmp-files` — `_cleanup_stale_tmp_files()` added; scans
   gui_state_dir/jobs_dir/sessions with `glob("**/*.tmp")`; 13 tests pass (20062af).
 
-- [ ] **task-32 (MEDIUM): Stream EventLog.read() instead of loading entire file into RAM**
-  — `EventLog.read()` calls `self.path.read_text().splitlines()` unconditionally,
-  loading up to 10 MB into RAM on every `/api/events` poll regardless of the `limit`
-  parameter. Fix: iterate the file line-by-line (`path.open()` with iteration) and
-  stop after collecting `after_index + limit` rows, so only the needed slice is
-  ever allocated.
+- [x] **task-32 (MEDIUM): Stream EventLog.read() instead of loading entire file into RAM**
+  DONE: `claude/task-32-stream-eventlog-read` — `path.open()` iteration with early
+  `break`; OSError guard added; 14 tests pass (6a1d859).
 
 - [ ] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
   — `conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]` replaces the list in the
