@@ -68,6 +68,20 @@ DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaf
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
+# Pattern for stale write-atomic tmp files left by a crashed process.
+#
+# SessionStore._write_atomic() (pre-task-34) creates:
+#   {session_id}.json.tmp            (e.g. default.json.tmp)
+#
+# After task-34 (thread-unique naming) merges, it creates:
+#   {session_id}.json.{thread_id}.tmp  (e.g. default.json.140234567890.tmp)
+#
+# Using r"\.json(\.\d+)?\.tmp$" matches BOTH conventions while remaining
+# specific enough to avoid matching unrelated .tmp files (e.g. upload.tmp).
+# An earlier narrow pattern r"\.\d+\.tmp$" was incorrect: it required digits
+# between the last two dots, which the pre-task-34 format does not have.
+_STALE_TMP_RE = re.compile(r"\.json(\.\d+)?\.tmp$")
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -617,8 +631,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.dev_team_state = dev_team_state.resolve()
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
-        self.event_log = EventLog(self.data_root / "events")
-        self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
@@ -628,9 +640,42 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        # Single definitive initialization (earlier double-init removed in task-42/44).
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        self._cleanup_stale_tmp_files()
         super().__init__(address, AdminGuiHandler)
+
+    def _cleanup_stale_tmp_files(self) -> None:
+        """Remove orphaned write-atomic .tmp files left by a previously crashed process.
+
+        Only files whose names match ``_STALE_TMP_RE`` are removed:
+        ``r"\\.json(\\.\\d+)?\\.tmp$"`` — this covers:
+
+        * ``{name}.json.tmp``          — pre-task-34 ``SessionStore._write_atomic()``
+        * ``{name}.json.{tid}.tmp``    — post-task-34 thread-unique naming
+
+        The session scan (``data_root/sessions``) is active now.
+        The gui and jobs scans become active after task-23
+        (``claude/task-23-atomic-write-json``) upgrades ``_write_json()`` to the
+        atomic tmp-rename pattern.  Until then those glob calls harmlessly match
+        nothing in those directories.
+        """
+        scan_dirs = [
+            self.gui_state_dir,
+            self.jobs_dir,
+            self.data_root / "sessions",
+        ]
+        for scan_dir in scan_dirs:
+            if not scan_dir.exists():
+                continue
+            for tmp_path in scan_dir.glob("**/*.tmp"):
+                if not _STALE_TMP_RE.search(tmp_path.name):
+                    continue
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def env(self, locale: str = "") -> Dict[str, str]:
         env = os.environ.copy()
