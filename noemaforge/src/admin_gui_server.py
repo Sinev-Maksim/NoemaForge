@@ -630,6 +630,11 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        # Serialise all read-modify-write cycles on shared JSON files
+        # (conversation-current.json, jobs.json, tasks.json).
+        # ThreadingHTTPServer spawns one thread per request; without this lock
+        # concurrent requests can overwrite each other's writes.
+        self._state_lock = threading.Lock()
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -782,32 +787,35 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.conversation_file(), conv)
 
     def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
-        conv = self._conversation()
-        idx = len(conv.get("messages", [])) + 1
         raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
         tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
         affordance_artifacts = enrich_artifact_cards(artifacts)
-        msg = {
-            "message_id": f"msg_{int(time.time())}_{idx}",
-            "trace_id": tid,
-            "conversation_id": conv["conversation_id"],
-            "ts": now_iso(),
-            "role": role,
-            "persona": persona,
-            "locale": locale or conv.get("locale", "ru"),
-            "intent": intent,
-            "text": text,
-            "artifacts": affordance_artifacts,
-            "system_event": bool(system_event),
-        }
-        conv.setdefault("messages", []).append(msg)
-        if affordance_artifacts:
-            conv.setdefault("artifacts", []).extend(affordance_artifacts)
-        if locale:
-            conv["locale"] = locale
-        if persona:
-            conv["active_persona"] = persona
-        self._save_conversation(conv)
+        # Hold _state_lock across the full conversation read-modify-write cycle so
+        # concurrent threads do not overwrite each other's appended messages.
+        with self._state_lock:
+            conv = self._conversation()
+            idx = len(conv.get("messages", [])) + 1
+            msg = {
+                "message_id": f"msg_{int(time.time())}_{idx}",
+                "trace_id": tid,
+                "conversation_id": conv["conversation_id"],
+                "ts": now_iso(),
+                "role": role,
+                "persona": persona,
+                "locale": locale or conv.get("locale", "ru"),
+                "intent": intent,
+                "text": text,
+                "artifacts": affordance_artifacts,
+                "system_event": bool(system_event),
+            }
+            conv.setdefault("messages", []).append(msg)
+            if affordance_artifacts:
+                conv.setdefault("artifacts", []).extend(affordance_artifacts)
+            if locale:
+                conv["locale"] = locale
+            if persona:
+                conv["active_persona"] = persona
+            self._save_conversation(conv)
         # Sync message into session store so browser refresh can restore history.
         self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
@@ -1024,15 +1032,19 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
-        data = self.jobs_data()
-        if idempotency_key:
-            for existing in data.get("jobs", []):
-                if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
-                    return existing
-        data.setdefault("jobs", []).append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        # _state_lock serialises the read-check-append-write cycle so concurrent
+        # requests with the same idempotency_key both receive the same job record
+        # and concurrent different-key requests don't overwrite each other.
+        with self._state_lock:
+            data = self.jobs_data()
+            if idempotency_key:
+                for existing in data.get("jobs", []):
+                    if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
+                        return existing
+            data.setdefault("jobs", []).append(job)
+            self._write_json(self.jobs_file(), data)
+            self._write_json(self.job_file(str(job["job_id"])), job)
+            return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
@@ -1040,19 +1052,20 @@ class AdminGuiServer(ThreadingHTTPServer):
         return self._upsert_job(job, idempotency_key=idempotency_key)
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = data.setdefault("jobs", [])
-        replaced = False
-        for index, existing in enumerate(jobs):
-            if existing.get("job_id") == job.get("job_id"):
-                jobs[index] = job
-                replaced = True
-                break
-        if not replaced:
-            jobs.append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        with self._state_lock:
+            data = self.jobs_data()
+            jobs = data.setdefault("jobs", [])
+            replaced = False
+            for index, existing in enumerate(jobs):
+                if existing.get("job_id") == job.get("job_id"):
+                    jobs[index] = job
+                    replaced = True
+                    break
+            if not replaced:
+                jobs.append(job)
+            self._write_json(self.jobs_file(), data)
+            self._write_json(self.job_file(str(job["job_id"])), job)
+            return job
 
     def jobs_list(self) -> Dict[str, Any]:
         data = self.jobs_data()
@@ -1125,16 +1138,17 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
-        data = self.jobs_data()
-        target = None
-        for j in data.get("jobs", []):
-            if j.get("job_id") == job_id:
-                # Use cancel_requested so running subprocesses can detect the
-                # request before the orchestrator confirms the final cancelled state.
-                j["status"] = "cancel_requested"
-                j["updated_at"] = now_iso()
-                target = j
-        self._write_json(self.jobs_file(), data)
+        with self._state_lock:
+            data = self.jobs_data()
+            target = None
+            for j in data.get("jobs", []):
+                if j.get("job_id") == job_id:
+                    # Use cancel_requested so running subprocesses can detect the
+                    # request before the orchestrator confirms the final cancelled state.
+                    j["status"] = "cancel_requested"
+                    j["updated_at"] = now_iso()
+                    target = j
+            self._write_json(self.jobs_file(), data)
         if target:
             jid = target["job_id"]
             self._write_json(self.job_file(str(jid)), target)
