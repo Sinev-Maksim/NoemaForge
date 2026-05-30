@@ -347,12 +347,9 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-32-stream-eventlog-read` — `path.open()` iteration with early
   `break`; OSError guard added; 14 tests pass (6a1d859).
 
-- [ ] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
-  — `conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]` replaces the list in the
-  same dict passed in by the caller, which could corrupt a cached reference in a
-  future refactor. Fix: replace the list without mutating the caller's dict by
-  assigning a copy: `conv = dict(conv); conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]`
-  before the `_write_json()` call.
+- [x] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
+  DONE: `claude/task-33-conv-no-mutation` — `conv = dict(conv)` shallow copy before
+  stamping updated_at; 5 tests pass (628a3da).
 
 - [x] **task-34 (HIGH): Add threading.Lock to SessionStore to prevent message-loss race**
   — `SessionStore.append_message()` does `load()` then `save()` with no lock:

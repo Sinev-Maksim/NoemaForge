@@ -375,6 +375,11 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 limit = int((query.get("limit") or ["200"])[0])
             except (TypeError, ValueError):
                 limit = 200
+            # Clamp limit to [1, 1000] to prevent DoS from huge allocations.
+            # max(1, limit) also handles negative values (e.g. ?limit=-5000 parses
+            # successfully as int(-5000) and skips the except branch above, so the
+            # clamp is the only guard against negative inputs reaching EventLog.read()).
+            limit = min(max(1, limit), 1000)
             self._send_json(self.server.events_api(after_index=after, limit=limit))
             return
         if path == "/api/session/current":

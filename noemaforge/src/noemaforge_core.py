@@ -2117,6 +2117,22 @@ def _run_role_compute(project_id: str, role_id: str, baton: Dict[str, Any], rost
     try:
         res = _load_json(out_path)
     except Exception as e:
+        # Log the parse failure as a structured event so callers can distinguish
+        # a missing/malformed result file from a genuine None return.
+        try:
+            _write_event(
+                "S2",
+                "ROLE_OUTPUT_PARSE_FAILED",
+                {"project_id": project_id, "role": role_id},
+                "parse_failed",
+                trace_id=trace_id,
+                extra={"run_id": run_id, "out_path": out_path, "error": str(e)},
+            )
+        except Exception:
+            # Guard against secondary failure (disk full, locked log) so that
+            # res = None is always reached and the caller is not surprised by an
+            # unexpected OSError from what is supposed to be an error-handling path.
+            pass
         res = None
 
     # Cleanup workdir (ephemeral by default)
