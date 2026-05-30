@@ -463,14 +463,13 @@ rotation_count/status). Three confirmed findings.
   to `events_api()` return dict; add `let lastRotationCount = 0` tracking in app.js
   `pollEvents()` and reset `lastEventIndex = 0` when `rotation_count` changes.
 
-- [ ] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
-  The comment in `status()` says "to ensure consistency between the two counters"
-  but `current_size_bytes` is captured OUTSIDE `self._lock` while only
-  `_rotation_count` is captured inside. A caller can receive `rotation_count=1`
-  (post-rotation) alongside `current_size_bytes=10485760` (pre-rotation). Fix:
-  update the comment to state the lock only protects `_rotation_count`; update the
-  docstring to explicitly note `current_size_bytes` is a best-effort sample and may
-  not be consistent with `rotation_count` in a single call.
+- [x] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
+  DONE: `claude/task-48-status-comment` — removed the old "consistency between
+  the two counters" claim; updated `status()` docstring to explicitly document
+  that `current_size_bytes` is sampled outside `self._lock` (for performance),
+  is NOT guaranteed to be consistent with `rotation_count` in the same call, and
+  that `rotation_count` resets on each process restart; added inline comment
+  explaining the intentional lock boundary; 10 tests pass (7154b45).
 
 - [ ] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
   `_maybe_rotate()` uses `except OSError: pass`. A `KeyboardInterrupt` or
