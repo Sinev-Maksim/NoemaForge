@@ -266,5 +266,35 @@ class TestConfigValidateRouteDispatch(unittest.TestCase):
         self.assertEqual(len(calls), 0)
 
 
+# ---------------------------------------------------------------------------
+# Frontend: app.js config-validate UI
+# ---------------------------------------------------------------------------
+
+class TestAppJsConfigValidate(unittest.TestCase):
+    """Frontend app.js must poll /api/config/validate and surface yaml_skipped."""
+
+    _appjs: str = ""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls._appjs = (ROOT / "templates" / "pipeline-dashboard" / "app.js").read_text(encoding="utf-8")
+
+    def test_app_js_calls_config_validate_api(self) -> None:
+        self.assertIn("/api/config/validate", self._appjs)
+
+    def test_app_js_has_refresh_config_validate_function(self) -> None:
+        self.assertIn("refreshConfigValidate", self._appjs)
+
+    def test_app_js_checks_yaml_skipped(self) -> None:
+        self.assertIn("yaml_skipped", self._appjs)
+
+    def test_app_js_shows_yaml_skipped_warning(self) -> None:
+        self.assertIn("yaml skipped", self._appjs)
+
+    def test_app_js_refresh_called_on_startup(self) -> None:
+        # refreshConfigValidate must appear in the startup Promise.allSettled call.
+        self.assertIn("refreshConfigValidate()", self._appjs)
+
+
 if __name__ == "__main__":
     unittest.main()

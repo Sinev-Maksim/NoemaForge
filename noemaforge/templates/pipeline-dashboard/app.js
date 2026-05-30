@@ -278,6 +278,36 @@ function connectJobProgressStream(){
 }
 async function refreshInactivity(){ try{ const st = await api('/api/inactivity/status'); el('inactivity-status').textContent = st.idle_human || '—'; el('inactivity').textContent = `policy=${st.policy?.mode || 'manual'} · next=${st.policy?.next_idle_action || 'none'} · status=${st.status}`; }catch(e){} }
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
+async function refreshConfigValidate(){
+  // Polls /api/config/validate (result cached server-side for 60 s).
+  // Surfaces yaml_skipped=true as a distinct warning so operators know
+  // YAML files were not actually validated (PyYAML missing on the host).
+  try{
+    const r = await api('/api/config/validate');
+    const rpt = r.report || {};
+    const pill = el('config-validate-status');
+    const detail = el('config-validate-detail');
+    const errCount = (rpt.errors || []).length;
+    if(!r.ok && errCount > 0){
+      pill.textContent = `✗ ${errCount} error${errCount!==1?'s':''}`;
+      pill.className = 'pill pill-error';
+      const firstFew = (rpt.errors||[]).slice(0,3).map(e=>`${e.path}: ${e.error}`).join('\n');
+      detail.textContent = firstFew + (errCount > 3 ? `\n…and ${errCount-3} more` : '');
+    } else if(!r.ok){
+      pill.textContent = '✗ failed';
+      pill.className = 'pill pill-error';
+      detail.textContent = r.error || 'Scan failed.';
+    } else if(rpt.yaml_skipped){
+      pill.textContent = '⚠ yaml skipped';
+      pill.className = 'pill pill-warn';
+      detail.textContent = `YAML validation skipped — PyYAML not installed on host.\nJSON: ${rpt.json_checked||0} ok · YAML: ${rpt.yaml_checked||0} unchecked`;
+    } else {
+      pill.textContent = `✓ ok (${rpt.files_checked||0} files)`;
+      pill.className = 'pill pill-ok';
+      detail.textContent = `JSON: ${rpt.json_checked||0} · YAML: ${rpt.yaml_checked||0}`;
+    }
+  }catch(e){ /* endpoint may not be available on older server versions */ }
+}
 async function pollEvents(){
   // Poll /api/events with deduplication by index — only fetch rows after lastEventIndex.
   try{
@@ -432,10 +462,13 @@ async function startup(){
     }
   }catch(_){}
   try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
-  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
+  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines(), refreshConfigValidate()]);
   connectJobProgressStream();
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
+  // Config validation is polled every 5 minutes (server caches result for 60 s, so no
+  // point polling more frequently than the cache TTL).
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
+  setInterval(()=>{ refreshConfigValidate(); }, 300000);
 }
 el('admin-send').addEventListener('click', sendAdmin);
 el('admin-message').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendAdmin(); } });
