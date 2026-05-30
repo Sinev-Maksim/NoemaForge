@@ -379,8 +379,15 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/session/current":
             query = parse_qs(urlparse(self.path).query)
-            session_id = str((query.get("session_id") or ["default"])[0])
-            self._send_json(self.server.session_current(session_id))
+            raw_sid = str((query.get("session_id") or ["default"])[0])
+            # Clamp to 128 characters to prevent unbounded session-file proliferation.
+            raw_sid = raw_sid[:128]
+            # Reject IDs with no alphanumeric characters (e.g. "....///") to prevent
+            # creation of sessions under degenerate names.
+            if not re.search(r"[A-Za-z0-9]", raw_sid):
+                self._send_json({"ok": False, "error": "session_id must contain at least one alphanumeric character"}, status=400)
+                return
+            self._send_json(self.server.session_current(raw_sid))
             return
         if path == "/api/conversation/current":
             self._send_json(self.server.conversation_current())
