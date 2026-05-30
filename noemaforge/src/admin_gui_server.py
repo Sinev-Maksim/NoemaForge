@@ -630,7 +630,27 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        self._cleanup_stale_tmp_files()
         super().__init__(address, AdminGuiHandler)
+
+    def _cleanup_stale_tmp_files(self) -> None:
+        """Remove orphaned thread-unique *.tmp files left by a previous SIGKILL.
+
+        ``_write_json()`` and ``SessionStore._write_atomic()`` write to a
+        thread-unique ``{name}.{tid}.tmp`` file then rename it atomically.
+        A process killed between write and rename leaves permanent tmp files.
+        On startup all such files are stale (their writer thread no longer
+        exists) and can be safely deleted.
+        """
+        scan_dirs = [self.gui_state_dir, self.jobs_dir, self.data_root / "sessions"]
+        for scan_dir in scan_dirs:
+            if not scan_dir.exists():
+                continue
+            for tmp_path in scan_dir.glob("**/*.tmp"):
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def env(self, locale: str = "") -> Dict[str, str]:
         env = os.environ.copy()
