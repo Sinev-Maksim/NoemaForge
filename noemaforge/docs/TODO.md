@@ -327,14 +327,9 @@ Third-cycle deep review of tasks 21–27 (conversation cap, double-append, atomi
 events-limit clamp, EventLog rotation, session_id cap, noemaforge_core exception surface).
 Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
 
-- [ ] **task-28 (HIGH): Fix EventLog `_maybe_rotate()` TOCTOU race and per-append full-file read**
-  — After the 1 MB fast path, every `append()` call reads the entire file into RAM to
-  count lines, even when the file won't rotate yet. Two concurrent threads can both
-  see size > threshold, both read the file, and both call `self.path.replace(archive)`
-  — the second rename silently drops the archive written by the first.
-  Fix: add `threading.Lock` to `EventLog`, hold it inside `_maybe_rotate()` for the
-  stat+read+rename sequence; also add a counter so line-count read happens at most
-  every N appends (not every single append past threshold).
+- [x] **task-28 (HIGH): Fix EventLog `_maybe_rotate()` TOCTOU race and per-append full-file read**
+  DONE: `claude/task-28-eventlog-lock` — `threading.Lock` + double-checked re-stat inside
+  lock + `_append_count % _ROTATION_CHECK_INTERVAL` throttle; 21 tests pass (fcba7a0).
 
 - [ ] **task-29 (HIGH): Validate `session_id` in POST `/api/session/mode` body**
   — `do_POST` branch for `/api/session/mode` reads `session_id = str(body.get('session_id') or 'default')`
