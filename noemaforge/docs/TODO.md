@@ -331,11 +331,9 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-28-eventlog-lock` — `threading.Lock` + double-checked re-stat inside
   lock + `_append_count % _ROTATION_CHECK_INTERVAL` throttle; 21 tests pass (fcba7a0).
 
-- [ ] **task-29 (HIGH): Validate `session_id` in POST `/api/session/mode` body**
-  — `do_POST` branch for `/api/session/mode` reads `session_id = str(body.get('session_id') or 'default')`
-  with no length limit and no character filter. The GET `/api/session/current` path
-  was fixed in task-26 (128-char clamp, alphanumeric guard) but the POST path is still
-  unguarded. Fix: apply the same clamp and alphanumeric check in the POST handler.
+- [x] **task-29 (HIGH): Validate `session_id` in POST `/api/session/mode` body**
+  DONE: `claude/task-29-mode-session-id-validation` — [:128] clamp + alphanumeric guard
+  in do_POST; removed dead duplicate block; 16 tests pass (38f78f3).
 
 - [ ] **task-30 (MEDIUM): Log session_store failures instead of silent pass in save_message()**
   — `save_message()` wraps `session_store.append_message("default", msg)` in a bare
