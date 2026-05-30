@@ -193,10 +193,11 @@ All are Windows-doable.
   the same tmp-then-rename approach already used by `SessionStore._write_atomic()`.
   DONE: `claude/task-23-atomic-write-json` — thread-unique tmp names, 12 tests passing (6e94a1e).
 
-- [ ] **task-24 (MEDIUM): Clamp `/api/events` limit parameter to prevent DoS**
+- [x] **task-24 (MEDIUM): Clamp `/api/events` limit parameter to prevent DoS**
   — `?limit=1000000` causes `EventLog.read()` to build a million-entry list in
   memory before responding. Fix: `limit = min(max(1, limit), 1000)` in
   `do_GET` before calling `events_api()`.
+  DONE: `claude/task-24-clamp-events-limit` — clamp + stub fix + 8 new clamp tests, 20 total (ca5b0a4).
 
 - [ ] **task-25 (MEDIUM): Add EventLog rotation/size cap**
   — `EventLog.append()` opens the JSONL file in `"a"` mode indefinitely; after
