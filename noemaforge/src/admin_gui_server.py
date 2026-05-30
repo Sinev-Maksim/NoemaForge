@@ -654,7 +654,14 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     def _write_json(self, path: Path, obj: Any) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json_dumps(obj), encoding="utf-8")
+        # Write atomically via a sibling .tmp file then rename so concurrent readers
+        # never observe a partial/truncated JSON file.  Use a thread-unique name to
+        # avoid collisions between concurrent requests (ThreadingHTTPServer gives
+        # each request its own thread).  Path.replace() is atomic on Linux (rename
+        # syscall); on Windows it uses MoveFileEx — best-effort for same-volume renames.
+        tmp = path.parent / f"{path.name}.{threading.get_ident()}.tmp"
+        tmp.write_text(json_dumps(obj), encoding="utf-8")
+        tmp.replace(path)
 
     def _append_jsonl(self, path: Path, obj: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
