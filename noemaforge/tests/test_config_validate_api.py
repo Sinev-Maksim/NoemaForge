@@ -47,8 +47,14 @@ class TestConfigValidateApiMethod(unittest.TestCase):
 
     def _make_server_stub(self, scan_root: Path | None = None) -> AdminGuiServer:
         """Instantiate AdminGuiServer without socket binding."""
+        import threading
         obj = object.__new__(AdminGuiServer)
         obj._config_validate_root = scan_root or self.tmp_path
+        # Wire TTL-cache state that __init__ would normally set.
+        obj._config_validate_cache = {}
+        obj._config_validate_cache_ts = 0.0
+        obj._config_validate_lock = threading.Lock()
+        obj._config_validate_ttl = 60.0
         return obj
 
     def test_returns_ok_flag(self) -> None:
@@ -142,6 +148,56 @@ class TestConfigValidateApiMethod(unittest.TestCase):
         result = srv.config_validate_api()
         self.assertFalse(result["ok"])
         self.assertEqual(len(result["report"]["errors"]), 1)
+
+
+# ---------------------------------------------------------------------------
+# Unit: TTL cache in config_validate_api()
+# ---------------------------------------------------------------------------
+
+class TestConfigValidateApiCache(unittest.TestCase):
+    """config_validate_api() caches the scan result for _config_validate_ttl s."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="nf_cvapi_cache_")
+        self.tmp_path = Path(self._tmp.name)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
+
+    def _make_server_stub(self) -> AdminGuiServer:
+        import threading
+        obj = object.__new__(AdminGuiServer)
+        obj._config_validate_root = self.tmp_path
+        obj._config_validate_cache = {}
+        obj._config_validate_cache_ts = 0.0
+        obj._config_validate_lock = threading.Lock()
+        obj._config_validate_ttl = 60.0
+        return obj
+
+    def test_second_call_returns_cached_object(self) -> None:
+        """Two back-to-back calls must return the identical cached dict."""
+        srv = self._make_server_stub()
+        r1 = srv.config_validate_api()
+        r2 = srv.config_validate_api()
+        self.assertIs(r1, r2)
+
+    def test_expired_cache_reruns_scan(self) -> None:
+        """After TTL expiry a fresh scan is performed."""
+        import time
+        srv = self._make_server_stub()
+        srv.config_validate_api()
+        # Backdate the timestamp to force expiry.
+        srv._config_validate_cache_ts = time.monotonic() - srv._config_validate_ttl - 1.0
+        # Add a file so the second scan detects a change.
+        (self.tmp_path / "new.json").write_text('{"x": 1}', encoding="utf-8")
+        r2 = srv.config_validate_api()
+        self.assertEqual(r2["report"]["json_checked"], 1)
+
+    def test_cache_populated_after_first_call(self) -> None:
+        """_config_validate_cache must be non-empty after the first call."""
+        srv = self._make_server_stub()
+        srv.config_validate_api()
+        self.assertNotEqual(srv._config_validate_cache, {})
 
 
 # ---------------------------------------------------------------------------

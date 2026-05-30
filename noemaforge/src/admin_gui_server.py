@@ -637,6 +637,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         # ConfigValidator scans the installation root (e.g. /opt/noemaforge).
         # Do NOT use self.root.parent (/opt/) — that would scan the entire parent.
         self._config_validate_root = self.root
+        # TTL cache for /api/config/validate.  A full rglob of the install tree
+        # is expensive; cache the result for _config_validate_ttl seconds.
+        # The lock prevents cache stampede: only one thread runs the scan at a
+        # time; other threads wait and then receive the freshly cached result.
+        self._config_validate_cache: Dict[str, Any] = {}
+        self._config_validate_cache_ts: float = 0.0
+        self._config_validate_lock = threading.Lock()
+        self._config_validate_ttl: float = 60.0  # seconds
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -755,15 +763,29 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     # --- config validation ---------------------------------------------------------
     def config_validate_api(self) -> Dict[str, Any]:
-        """Scan the repo for broken JSON/YAML files and return a structured report."""
-        try:
-            report = ConfigValidator(self._config_validate_root).scan().to_dict()
-            return {"ok": report.get("ok", False), "version": RUNTIME_VERSION, "report": report}
-        except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "report": {
-                "ok": False, "files_checked": 0, "json_checked": 0, "yaml_checked": 0,
-                "errors": [], "version": RUNTIME_VERSION,
-            }, "error": str(exc)}
+        """Scan the repo for broken JSON/YAML files and return a structured report.
+
+        Results are cached for ``_config_validate_ttl`` seconds (default 60 s) to
+        avoid running an expensive filesystem rglob on every HTTP request.  A
+        threading.Lock serialises concurrent requests so only one scan runs at a
+        time; latecomers receive the freshly cached result instead of starting a
+        redundant scan.
+        """
+        with self._config_validate_lock:
+            now = time.monotonic()
+            if now - self._config_validate_cache_ts < self._config_validate_ttl and self._config_validate_cache:
+                return self._config_validate_cache
+            try:
+                report = ConfigValidator(self._config_validate_root).scan().to_dict()
+                result: Dict[str, Any] = {"ok": report.get("ok", False), "version": RUNTIME_VERSION, "report": report}
+            except Exception as exc:
+                result = {"ok": False, "version": RUNTIME_VERSION, "report": {
+                    "ok": False, "files_checked": 0, "json_checked": 0, "yaml_checked": 0,
+                    "errors": [], "version": RUNTIME_VERSION,
+                }, "error": str(exc)}
+            self._config_validate_cache = result
+            self._config_validate_cache_ts = now
+            return result
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
