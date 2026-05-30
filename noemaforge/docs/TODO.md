@@ -2,6 +2,11 @@
 
 ## 0.32.2 release-hardening checkpoints
 
+- 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.
+  Active release docs and evidence use neutral target-host wording instead of
+  legacy host-specific names, and `docs_hygiene_runtime.py` fails if those
+  forbidden strings reappear outside project trash.
+
 - 2026-05-30: Three new task branches pushed, all with clean single-concern
   three-dot diffs against `release/0.32.2-hardening`:
   - `claude/task-13-config-validate-api` (3 files): adds ConfigValidator +
@@ -289,7 +294,7 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   Add a `_preflight_warning` field to `/api/health` output when preflight
   raises. Blocked until task-10/11 merge.
 
-BigBro-BOS required items:
+Target-host required items:
 
 - [ ] **SHA256SUMS regeneration** after all PR branches merge.
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
@@ -298,7 +303,7 @@ BigBro-BOS required items:
   `claude/task-19-sha256sums-premerge-check` (8 tests: 5 source-text + 3
   functional pwsh subprocess). The check currently flags 4 files added during
   0.32.2 hardening that are absent from SHA256SUMS and need regeneration on
-  BigBro-BOS: `event_log.py`, `noemaforge_version.py`,
+  the target host: `event_log.py`, `noemaforge_version.py`,
   `orchestration_state.py`, `session_store.py`.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
@@ -364,36 +369,77 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   inside `_load_json` except block; ROLE_OUTPUT_PARSE_FAILED event + inner guard;
   7 source-text tests pass (24336d1).
 
+## 0.32.2 hardening — fourth deep analysis cycle (2026-05-30)
+
+High-effort three-angle code review of tasks 28–36 (EventLog lock/rotation,
+session_id validation, session_store error logging, tmp cleanup, streaming read,
+conv mutation guard, limit clamp comment, _write_event guard).
+Four findings — 4 new Windows-doable tasks (37–40) proposed below.
+
+- [ ] **task-37 (HIGH): Fix `append()`-outside-lock vs `_maybe_rotate()`-rename race**
+  `append()` writes to the file outside `self._lock` while `_maybe_rotate()`
+  renames the file inside the lock. On Linux, a post-rotation write from Thread A
+  (fd remains valid post-rename) goes into the archive, polluting `events.jsonl.1`
+  with post-rotation events. On Windows, `replace()` inside the lock fails with
+  PermissionError when a concurrent `append()` holds the file open (silently
+  swallowed by `except OSError: pass`). Fix: hold `self._lock` for the entire
+  append + optional rotation cycle so write and rename never overlap.
+
+- [ ] **task-38 (MEDIUM): Fix combined task-32 + task-28 Windows handle-vs-rename race**
+  When both branches merge, `read()` (streaming via `path.open()`) holds a file
+  handle during iteration while `_maybe_rotate()` calls `self.path.replace(archive)`.
+  On Windows, MoveFileEx fails with PermissionError if any handle is open — caught
+  silently by `except OSError: pass` — so rotation permanently and silently fails
+  while `/api/events` is polled every 10 s. Fix: coordinate read and rotate via the
+  shared `self._lock`, or adopt a copy-then-truncate strategy that does not require
+  renaming while readers are active.
+
+- [ ] **task-39 (LOW): Narrow `_cleanup_stale_tmp_files()` glob pattern**
+  `glob("**/*.tmp")` matches ANY `.tmp` file, not just thread-unique
+  `{name}.{tid}.tmp` files created by `_write_json`/`_write_atomic`. Any legitimate
+  `.tmp` file created by an external tool or job subprocess in the scanned
+  directories (gui_state_dir, jobs_dir, sessions) would be deleted on startup.
+  Fix: use a more specific pattern such as `*.*.tmp` (requires a dot in the stem)
+  or compile a regex from the known `{name}.{digits}.tmp` naming convention and
+  filter glob results before unlinking.
+
+- [ ] **task-40 (LOW): Fix falsy `session_id` substitution in POST `/api/session/mode`**
+  `str(body.get("session_id") or "default")` silently maps any falsy value
+  (integer `0`, boolean `False`, empty list `[]`) to `"default"`, with no error
+  reported to the client. A client sending `{"session_id": 0}` would have its mode
+  set on the default session unexpectedly. Fix: use an explicit `is None` check:
+  `raw = body.get("session_id"); raw_sid = str(raw) if raw is not None else "default"`.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
 
-### Day 1 — repository hygiene (partial — needs Linux / BigBro-BOS for shell validation)
+### Day 1 — repository hygiene (partial — needs Linux / target host for shell validation)
 
-- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on BigBro-BOS to verify all shell scripts pass syntax check.
-- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on BigBro-BOS.
+- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on the target host to verify all shell scripts pass syntax check.
+- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on the target host.
 - [x] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found. — Both files clean, no stale strings (2026-05-28).
 - [x] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`. — Both clean (2026-05-28).
 - [x] Verify `.gitignore` has `__pycache__/` and `*.pyc` exclusions (and add them if missing). — Created full `.gitignore` (2026-05-28).
 
-### Day 3 — frontend UX (partial — needs live GUI on BigBro-BOS)
+### Day 3 — frontend UX (partial — needs live GUI on the target host)
 
 - [x] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". — Implemented in app.js sendAdmin() (2026-05-28).
 - [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI).
 - [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive.
 
-### Day 4 — duplicate-safe jobs (partial — needs BigBro-BOS smoke)
+### Day 4 — duplicate-safe jobs (partial — needs target-host smoke)
 
-- [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs BigBro-BOS.
-- [ ] Manual smoke (BigBro-BOS): send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
-- [ ] Manual smoke (BigBro-BOS): click Vault re-inventory twice rapidly and confirm one job, not two.
+- [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs the target host.
+- [ ] Manual smoke on the target host: send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
+- [ ] Manual smoke on the target host: click Vault re-inventory twice rapidly and confirm one job, not two.
 
-### Day 5 — release validation (BigBro-BOS required)
+### Day 5 — release validation (target host required)
 
-- [ ] Run full test suite on BigBro-BOS: `python -m unittest discover noemaforge/tests/` and record pass/fail counts.
+- [ ] Run full test suite on the target host: `python -m unittest discover noemaforge/tests/` and record pass/fail counts.
 - [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`.
 - [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`.
-- [ ] Target-machine validation checklist (all on BigBro-BOS):
+- [ ] Target-machine validation checklist (all on the target host):
   - Admin GUI stays alive during first-start `--dry-run --keep-display`.
   - Admin chat responds to smalltalk/help without launching a pipeline.
   - Mode switch persists and is visible after browser refresh.
