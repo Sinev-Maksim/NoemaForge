@@ -180,11 +180,12 @@ All are Windows-doable.
   Fix: add `MAX_CONVERSATION_MESSAGES = 1000` slice in `_save_conversation()`.
   DONE: `claude/task-21-conversation-cap` — 13 tests passing (747334d).
 
-- [ ] **task-22 (HIGH): Confirm/re-fix save_message() double append_message call**
+- [x] **task-22 (HIGH): Confirm/re-fix save_message() double append_message call**
   — Audit the task-14 fix is correctly applied (the double-write bug sends two
   calls to `session_store.append_message()` per `save_message()`, doubling the
   message count and halving the 500-message window). Verify tests pass on
   `release/0.32.2-hardening` after task-14 merges.
+  DONE: `claude/task-22-fix-double-append` — removed slim-dict call, 10 tests passing (75d23d2).
 
 - [ ] **task-23 (MEDIUM): Add `_write_json` atomic tmp-rename pattern**
   — `_write_json` calls `path.write_text()` directly; a crash or concurrent
