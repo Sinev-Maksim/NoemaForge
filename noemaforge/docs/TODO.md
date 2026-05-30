@@ -427,15 +427,12 @@ glob narrowing, session_id falsy fix). Three confirmed/plausible findings.
 High-effort three-angle review of tasks 41–43 (archive-shift rotation,
 duplicate-init removal, cleanup-tmp comment). Three surviving findings.
 
-- [ ] **task-44 (HIGH): Fix `_STALE_TMP_RE` pattern — does not match current `_write_atomic` output**
-  `_write_atomic()` in `session_store.py` (release base, pre-task-34) creates
-  `{name}.json.tmp` (no thread-ID). `_STALE_TMP_RE = re.compile(r"\.\d+\.tmp$")`
-  requires a digit run before `.tmp`, so it never matches any real orphan session
-  tmp file. After a process crash between the write and replace, stale session
-  tmp files survive undetected on the next startup. Fix: use the pattern
-  `r"\.json(\.\d+)?\.tmp$"` to match both the current (pre-task-34) and
-  the future (post-task-34 thread-unique) conventions while remaining specific
-  enough to avoid matching unrelated `.tmp` files.
+- [x] **task-44 (HIGH): Fix `_STALE_TMP_RE` pattern — does not match current `_write_atomic` output**
+  DONE: `claude/task-44-stale-tmp-regex` — changed pattern from
+  `r"\.\d+\.tmp$"` (requires digits, never matched `default.json.tmp`) to
+  `r"\.json(\.\d+)?\.tmp$"` (matches both pre-task-34 `{sid}.json.tmp` and
+  post-task-34 `{sid}.json.{tid}.tmp` while rejecting unrelated `.tmp` files);
+  16 tests pass (c7db340).
 
 - [ ] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
   Each `src.replace(dst)` call in `_shift_archives()` is wrapped in its own
