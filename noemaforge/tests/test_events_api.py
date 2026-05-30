@@ -125,8 +125,8 @@ class TestEventsApiRoute(unittest.TestCase):
         responses = []
 
         class ServerStub:
-            def events_api(self, after_index: int = 0):
-                calls.append(after_index)
+            def events_api(self, after_index: int = 0, limit: int = 200):
+                calls.append((after_index, limit))
                 return {"ok": True, "version": RUNTIME_VERSION, "events": [], "count": 0}
 
         handler = object.__new__(admin_gui_server.AdminGuiHandler)
@@ -141,14 +141,16 @@ class TestEventsApiRoute(unittest.TestCase):
     def test_events_route_defaults_after_index_to_zero(self) -> None:
         (status, payload), calls = self._call_route("/api/events")
         self.assertEqual(status, 200)
-        self.assertEqual(calls, [0])
+        after_index, limit = calls[0]
+        self.assertEqual(after_index, 0)
         self.assertTrue(payload["ok"])
         self.assertIsInstance(payload["events"], list)
 
     def test_events_route_passes_after_index_to_api(self) -> None:
         (status, payload), calls = self._call_route("/api/events?after_index=3")
         self.assertEqual(status, 200)
-        self.assertEqual(calls, [3])
+        after_index, limit = calls[0]
+        self.assertEqual(after_index, 3)
         self.assertEqual(payload["count"], 0)
 
     def test_events_route_rejects_non_integer_after_index(self) -> None:
@@ -164,6 +166,73 @@ class TestEventsApiRoute(unittest.TestCase):
         self.assertEqual(calls, [])
         self.assertFalse(payload["ok"])
         self.assertEqual(payload["error"], "after_index must be >= 0")
+
+
+class TestEventsApiLimitClamp(unittest.TestCase):
+    """GET /api/events clamps ?limit= to [1, 1000] to prevent DoS."""
+
+    def _call_route(self, path: str):
+        calls = []
+        responses = []
+
+        class ServerStub:
+            def events_api(self, after_index: int = 0, limit: int = 200):
+                calls.append((after_index, limit))
+                return {"ok": True, "version": "0.32.2", "events": [], "count": 0}
+
+        handler = object.__new__(admin_gui_server.AdminGuiHandler)
+        handler.path = path
+        handler.server = ServerStub()
+        handler._send_json = lambda obj, status=200: responses.append((status, obj))
+        admin_gui_server.AdminGuiHandler.do_GET(handler)
+        return responses, calls
+
+    def test_default_limit_is_200(self) -> None:
+        """No ?limit= → default 200 (clamped to valid range)."""
+        responses, calls = self._call_route("/api/events")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 200)
+
+    def test_limit_1000_passes_through(self) -> None:
+        """?limit=1000 is the maximum allowed value."""
+        responses, calls = self._call_route("/api/events?limit=1000")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 1000)
+
+    def test_limit_above_1000_clamped_to_1000(self) -> None:
+        """?limit=1000000 is clamped to 1000."""
+        responses, calls = self._call_route("/api/events?limit=1000000")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 1000)
+
+    def test_limit_zero_clamped_to_1(self) -> None:
+        """?limit=0 is clamped to 1 (minimum)."""
+        responses, calls = self._call_route("/api/events?limit=0")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 1)
+
+    def test_limit_negative_clamped_to_1(self) -> None:
+        """?limit=-5 is clamped to 1."""
+        responses, calls = self._call_route("/api/events?limit=-5")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 1)
+
+    def test_invalid_limit_falls_back_to_200(self) -> None:
+        """?limit=abc (non-integer) falls back to default 200."""
+        responses, calls = self._call_route("/api/events?limit=abc")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 200)
+
+    def test_limit_1_passes_through(self) -> None:
+        """?limit=1 is the minimum allowed value."""
+        responses, calls = self._call_route("/api/events?limit=1")
+        _after, limit = calls[0]
+        self.assertEqual(limit, 1)
+
+    def test_source_contains_clamp(self) -> None:
+        """Source code contains the clamp expression."""
+        src = (Path(__file__).parent.parent / "src" / "admin_gui_server.py").read_text(encoding="utf-8")
+        self.assertIn("min(max(1, limit), 1000)", src)
 
 
 if __name__ == "__main__":

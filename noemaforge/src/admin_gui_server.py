@@ -375,6 +375,7 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 limit = int((query.get("limit") or ["200"])[0])
             except (TypeError, ValueError):
                 limit = 200
+            limit = min(max(1, limit), 1000)  # clamp to [1, 1000] to prevent DoS
             self._send_json(self.server.events_api(after_index=after, limit=limit))
             return
         if path == "/api/session/current":
