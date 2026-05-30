@@ -226,6 +226,47 @@ if ($Strict -and (Test-Path $srcDir)) {
 }
 
 # ---------------------------------------------------------------------------
+# 9. SHA256SUMS staleness — every noemaforge/src/*.py must be listed
+# ---------------------------------------------------------------------------
+#
+# SHA256SUMS is regenerated on the target Linux host after each release
+# batch.  On Windows we cannot re-hash files (hashes may differ due to
+# line-ending normalisation), but we CAN detect when a new Python source
+# file was added without updating the checksum manifest.  Any src/*.py
+# whose relative path is absent from SHA256SUMS indicates the manifest is
+# stale and must be regenerated before the PR merges.
+
+Write-Host ""
+Write-Host "--- Check 9: SHA256SUMS covers all noemaforge/src/*.py ---"
+$sha256sumsPath = Join-Path $Root "SHA256SUMS"
+if (Test-Path $sha256sumsPath) {
+    $sumsContent = Get-Content $sha256sumsPath -Raw -Encoding UTF8
+    if (Test-Path $srcDir) {
+        $pyFiles9 = Get-ChildItem -Path $srcDir -Filter "*.py" -File
+        $missing9 = @()
+        foreach ($f in $pyFiles9) {
+            # Relative path as it appears in SHA256SUMS, e.g. "noemaforge/src/foo.py"
+            $relPath = "noemaforge/src/$($f.Name)"
+            if ($sumsContent -notmatch [regex]::Escape($relPath)) {
+                $missing9 += $relPath
+            }
+        }
+        $detail9 = if ($missing9.Count -eq 0) {
+            "$($pyFiles9.Count) src/*.py files all present in SHA256SUMS"
+        } else {
+            "Missing from SHA256SUMS (regenerate on target host): " +
+            (($missing9 | Select-Object -First 5) -join ", ") +
+            $(if ($missing9.Count -gt 5) { " (+$($missing9.Count-5) more)" })
+        }
+        Ok-Check "SHA256SUMS covers all $($pyFiles9.Count) src/*.py files" ($missing9.Count -eq 0) $detail9
+    } else {
+        Fail-Check "SHA256SUMS check skipped" "noemaforge/src not found"
+    }
+} else {
+    Fail-Check "SHA256SUMS exists" "SHA256SUMS not found at repo root — regenerate on target host before merging"
+}
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 
