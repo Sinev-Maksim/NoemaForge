@@ -68,6 +68,12 @@ DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaf
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
+# Pattern for thread-unique tmp files written by _write_json / _write_atomic:
+#   {basename}.{thread_id}.tmp  (e.g. conversation-current.json.140123456789.tmp)
+# Using a specific pattern avoids accidentally deleting legitimate .tmp files
+# created by external tools or job subprocesses in the same directories.
+_STALE_TMP_RE = re.compile(r"\.\d+\.tmp$")
+
 
 def now_iso() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -630,7 +636,34 @@ class AdminGuiServer(ThreadingHTTPServer):
             d.mkdir(parents=True, exist_ok=True)
         self.session_store = SessionStore(self.data_root / "sessions")
         self.event_log = EventLog(self.data_root / "events")
+        self._cleanup_stale_tmp_files()
         super().__init__(address, AdminGuiHandler)
+
+    def _cleanup_stale_tmp_files(self) -> None:
+        """Remove orphaned thread-unique .tmp files left by a previous crashed process.
+
+        Only files whose names match the pattern ``{basename}.{digits}.tmp``
+        (the exact naming convention used by ``_write_json`` / ``_write_atomic``)
+        are removed.  The pattern is deliberately narrow so that legitimate .tmp
+        files created by external tools or job subprocesses in the same
+        directories are never touched.
+        """
+        scan_dirs = [
+            self.gui_state_dir,
+            self.jobs_dir,
+            self.data_root / "sessions",
+        ]
+        for scan_dir in scan_dirs:
+            if not scan_dir.exists():
+                continue
+            for tmp_path in scan_dir.glob("**/*.tmp"):
+                if not _STALE_TMP_RE.search(tmp_path.name):
+                    # Not a thread-unique tmp file — skip to avoid false deletions.
+                    continue
+                try:
+                    tmp_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
 
     def env(self, locale: str = "") -> Dict[str, str]:
         env = os.environ.copy()
