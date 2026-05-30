@@ -335,12 +335,9 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-29-mode-session-id-validation` — [:128] clamp + alphanumeric guard
   in do_POST; removed dead duplicate block; 16 tests pass (38f78f3).
 
-- [ ] **task-30 (MEDIUM): Log session_store failures instead of silent pass in save_message()**
-  — `save_message()` wraps `session_store.append_message("default", msg)` in a bare
-  `except Exception: pass`, meaning any bug in `append_message()` (malformed msg,
-  file lock, AttributeError from a future refactor) leaves session history silently
-  out of sync. Fix: log failures via `self.event_log.append("gui.session_store_error", {...})`
-  inside the except block before passing.
+- [x] **task-30 (MEDIUM): Log session_store failures instead of silent pass in save_message()**
+  DONE: `claude/task-30-log-session-store-errors` — `except Exception as _ss_exc` +
+  `event_log.append("gui.session_store_error", ...)` + inner guard; 11 tests pass (62075c3).
 
 - [ ] **task-31 (MEDIUM): Clean up orphaned `.{tid}.tmp` files on AdminGuiServer startup**
   — `_write_json()` uses thread-unique `.{tid}.tmp` tmp filenames. If the process is
