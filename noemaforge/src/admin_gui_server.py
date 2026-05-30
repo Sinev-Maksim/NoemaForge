@@ -778,6 +778,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         return conv
 
     def _save_conversation(self, conv: Dict[str, Any]) -> None:
+        # Work on a shallow copy so the caller's dict is not mutated.
+        # This prevents a cached reference from silently gaining an updated_at
+        # field that was meant only for the persisted snapshot.
+        conv = dict(conv)
         conv["updated_at"] = now_iso()
         self._write_json(self.conversation_file(), conv)
 
