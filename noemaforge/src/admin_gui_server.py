@@ -825,8 +825,17 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Also persist in session_store for browser-refresh restore.
         try:
             self.session_store.append_message("default", msg)
-        except Exception:
-            pass
+        except Exception as _ss_exc:
+            # Log the failure so it is observable in /api/events instead of
+            # silently dropping the session history update.
+            try:
+                self.event_log.append(
+                    "gui.session_store_error",
+                    {"message_id": msg.get("message_id", ""), "error": str(_ss_exc)},
+                    actor="admin_gui",
+                )
+            except Exception:
+                pass
         return msg
 
     def record_system_event(self, event_type: str, payload: Dict[str, Any]) -> None:
