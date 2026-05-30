@@ -205,10 +205,11 @@ All are Windows-doable.
   memory per request. Fix: add a rotation threshold (10 000 lines or 10 MB).
   DONE: `claude/task-25-eventlog-rotation` — `_maybe_rotate()` + 19 tests (612714d).
 
-- [ ] **task-26 (MEDIUM): Cap `session_id` query param length to prevent proliferation**
+- [x] **task-26 (MEDIUM): Cap `session_id` query param length to prevent proliferation**
   — `GET /api/session/current?session_id=<10k-chars>` creates a new session file
   for any novel sanitized id, enabling unbounded session-file growth. Fix: clamp
   to 128 characters in `do_GET` and return 400 for all-non-alphanumeric values.
+  DONE: `claude/task-26-cap-session-id` — [:128] clamp + alphanumeric guard + 16 tests (8a7165d).
 
 - [ ] **task-27 (MEDIUM): Surface `noemaforge_core.py` exception in role output load**
   — Around line 2118, a `return None` in a finally-equivalent path silently
