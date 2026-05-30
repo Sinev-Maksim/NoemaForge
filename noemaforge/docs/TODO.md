@@ -188,18 +188,19 @@ four fixed in commit `5d9961b` on the same branch:
   handles per-directory PermissionError internally; the outer `try/except` is
   redundant but harmless.
 
-New open items from this review:
+New open items from this review (both absorbed into task-13 branch):
 
-- [ ] **task-17: Rate-limit / cache `/api/config/validate`** — `config_validate_api()`
-  runs a full `rglob` of `/opt/noemaforge` on every GET request with no caching
-  or cooldown. ThreadingHTTPServer spawns one thread per request, so a burst of
-  GETs (or repeated browser refreshes) can run concurrent full-tree walks.
-  Add a simple TTL cache (e.g. 60 s) or an asyncio lock. Windows-doable.
+- [x] **task-17: Rate-limit / cache `/api/config/validate`** — Added 60-second
+  TTL cache with `threading.Lock` (prevents cache stampede) in
+  `config_validate_api()`. Committed in `fb3ecfa` on
+  `claude/task-13-config-validate-api`. 22 tests pass.
 
-- [ ] **task-18: Surface `yaml_skipped=True` in Admin GUI health badge** — when
-  the `/api/config/validate` report includes `yaml_skipped: true`, the GUI should
-  display a "YAML validation skipped (PyYAML missing)" warning alongside the
-  ok/fail badge instead of silently showing green. Windows-doable.
+- [x] **task-18: Surface `yaml_skipped=True` in Admin GUI health badge** — Added
+  "Config validation" card to the right sidebar in index.html with a status pill;
+  `refreshConfigValidate()` in app.js shows `⚠ yaml skipped` pill-warn when
+  `yaml_skipped=true`, `✗ N errors` pill-error with first-three error paths, or
+  `✓ ok (N files)` pill-ok. Polled on startup and every 5 minutes. Committed in
+  `656d00d` on `claude/task-13-config-validate-api`. 27 tests pass.
 
 ## 0.32.2 hardening — new proposals (2026-05-30)
 
