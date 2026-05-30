@@ -437,14 +437,12 @@ duplicate-init removal, cleanup-tmp comment). Three surviving findings.
   the future (post-task-34 thread-unique) conventions while remaining specific
   enough to avoid matching unrelated `.tmp` files.
 
-- [ ] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
-  Each `src.replace(dst)` call in `_shift_archives()` is wrapped in its own
-  independent `except OSError: pass`. If the `.1→.2` shift fails (e.g. cross-device
-  link, permissions), execution continues and `_maybe_rotate()` subsequently calls
-  `archive.write_bytes(content)`, overwriting `events.jsonl.1` and permanently
-  destroying whatever was in it. Fix: track whether any shift step failed and
-  return early from `_maybe_rotate()` (skipping the archive write and truncate)
-  if any shift failed, rather than silently continuing.
+- [x] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
+  DONE: `claude/task-45-shift-archives-abort` — `_shift_archives()` now returns
+  `True`/`False` instead of `None`; `_maybe_rotate()` skips archive write and
+  truncate when it receives `False`, preserving both existing archives and live
+  file data; also incorporated task-37/38/41 improvements (Lock, copy-truncate,
+  generation shift, streaming read); 12 tests pass (272071e).
 
 - [ ] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
   `read()` indexes events by line-number within the current file. After
