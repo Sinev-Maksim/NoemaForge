@@ -167,13 +167,11 @@
 Eight new proposals from cross-cutting analysis of completed tasks 13–19.
 All are Windows-doable.
 
-- [ ] **task-20 (HIGH): Add threading.Lock on shared file read-modify-write in
-  AdminGuiServer** — `ThreadingHTTPServer` spawns one thread per request;
-  `_write_json`, `_append_jsonl`, `jobs_data()`/`_upsert_job`, `tasks_data()`,
-  `_conversation()`/`_save_conversation` all do read-modify-write on shared JSON
-  files without any lock. Concurrent browser tabs or simultaneous API calls can
-  produce torn writes. Fix: one `threading.Lock` instance on `AdminGuiServer`
-  held around each shared-file read-modify-write.
+- [x] **task-20 (HIGH): Add threading.Lock on shared file read-modify-write in
+  AdminGuiServer** — Added `self._state_lock = threading.Lock()` and wrapped
+  the R-M-W sections of `_upsert_job()`, `_persist_job()`, `job_cancel()`, and
+  `save_message()`. Done in `claude/task-20-state-lock` (9 tests including
+  concurrent-create stress test with 20 threads). All passing.
 
 - [ ] **task-21 (HIGH): Cap `conversation-current.json` to MAX_CONVERSATION_MESSAGES**
   — `save_message()` appends to `conv["messages"]` with no upper bound (unlike
