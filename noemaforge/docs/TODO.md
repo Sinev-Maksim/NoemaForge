@@ -173,11 +173,12 @@ All are Windows-doable.
   `save_message()`. Done in `claude/task-20-state-lock` (9 tests including
   concurrent-create stress test with 20 threads). All passing.
 
-- [ ] **task-21 (HIGH): Cap `conversation-current.json` to MAX_CONVERSATION_MESSAGES**
+- [x] **task-21 (HIGH): Cap `conversation-current.json` to MAX_CONVERSATION_MESSAGES**
   — `save_message()` appends to `conv["messages"]` with no upper bound (unlike
   `session_store` which has a 500-message cap). Long-running sessions produce
   multi-MB files that are fully re-read and re-written on every request.
   Fix: add `MAX_CONVERSATION_MESSAGES = 1000` slice in `_save_conversation()`.
+  DONE: `claude/task-21-conversation-cap` — 13 tests passing (747334d).
 
 - [ ] **task-22 (HIGH): Confirm/re-fix save_message() double append_message call**
   — Audit the task-14 fix is correctly applied (the double-write bug sends two
