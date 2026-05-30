@@ -233,8 +233,14 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
 BigBro-BOS required items:
 
 - [ ] **SHA256SUMS regeneration** after all PR branches merge.
-- [ ] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
-  add step that checks every `noemaforge/src/*.py` appears in SHA256SUMS.
+- [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
+  Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
+  verifies every `noemaforge/src/*.py` has an entry. Done in
+  `claude/task-19-sha256sums-premerge-check` (8 tests: 5 source-text + 3
+  functional pwsh subprocess). The check currently flags 4 files added during
+  0.32.2 hardening that are absent from SHA256SUMS and need regeneration on
+  BigBro-BOS: `event_log.py`, `noemaforge_version.py`,
+  `orchestration_state.py`, `session_store.py`.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 
