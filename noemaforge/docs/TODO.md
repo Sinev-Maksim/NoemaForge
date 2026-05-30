@@ -347,36 +347,22 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-32-stream-eventlog-read` — `path.open()` iteration with early
   `break`; OSError guard added; 14 tests pass (6a1d859).
 
-- [ ] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
-  — `conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]` replaces the list in the
-  same dict passed in by the caller, which could corrupt a cached reference in a
-  future refactor. Fix: replace the list without mutating the caller's dict by
-  assigning a copy: `conv = dict(conv); conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]`
-  before the `_write_json()` call.
+- [x] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
+  DONE: `claude/task-33-conv-no-mutation` — `conv = dict(conv)` shallow copy before
+  stamping updated_at; 5 tests pass (628a3da).
 
 - [x] **task-34 (HIGH): Add threading.Lock to SessionStore to prevent message-loss race**
-  — `SessionStore.append_message()` does `load()` then `save()` with no lock:
-  two concurrent HTTP threads writing to the same session will each load the old
-  session, each append their own message, and then both write back — whichever saves
-  last wins and the other message is silently dropped. Additionally,
-  `_write_atomic()` uses a fixed `.tmp` suffix so concurrent writes for the same
-  session file race on the same tmp path. Fix: add `threading.Lock` to `SessionStore`
-  and hold it for the full `load → modify → save` cycle in `append_message()`,
-  `set_mode()`, and `attach_active_jobs()`.
+  DONE: `claude/task-34-sessionstore-lock` — Lock on update()/append_message() +
+  thread-unique tmp names, 14 tests (48b3cdf).
 
-- [ ] **task-35 (LOW): Add comment explaining clamp handles negative limit values**
-  — In the `/api/events` route, negative `limit` values (e.g. `?limit=-5000`)
-  parse as `int(-5000)` successfully (no ValueError), skip the `except` branch,
-  and are correctly clamped to 1 by `min(max(1, limit), 1000)`. A developer
-  reading the code might think only non-negative values reach the clamp.
-  Fix: add a one-line comment above the clamp documenting this.
+- [x] **task-35 (LOW): Add comment explaining clamp handles negative limit values**
+  DONE: `claude/task-35-36-minor-fixes` — comment + `min(max(1, limit), 1000)` clamp
+  added to /api/events do_GET; 9 tests pass.
 
-- [ ] **task-36 (MEDIUM): Wrap `_write_event()` call in except block in noemaforge_core.py**
-  — In `_run_role_compute()`, the `_write_event("S2", "ROLE_OUTPUT_PARSE_FAILED", ...)`
-  call inside the except clause can itself raise (disk full, permission error, locked
-  event log), causing an unexpected `OSError` to propagate from what was supposed to
-  be a non-fatal error-handling path. Fix: wrap the `_write_event()` call in its own
-  `try/except Exception: pass` so `res = None` is always reached.
+- [x] **task-36 (MEDIUM): Wrap `_write_event()` call in except block in noemaforge_core.py**
+  DONE: `claude/task-35-36-minor-fixes` — nested try/except guards `_write_event()`
+  inside `_load_json` except block; ROLE_OUTPUT_PARSE_FAILED event + inner guard;
+  7 source-text tests pass (24336d1).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
