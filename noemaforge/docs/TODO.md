@@ -427,34 +427,64 @@ glob narrowing, session_id falsy fix). Three confirmed/plausible findings.
 High-effort three-angle review of tasks 41–43 (archive-shift rotation,
 duplicate-init removal, cleanup-tmp comment). Three surviving findings.
 
-- [ ] **task-44 (HIGH): Fix `_STALE_TMP_RE` pattern — does not match current `_write_atomic` output**
-  `_write_atomic()` in `session_store.py` (release base, pre-task-34) creates
-  `{name}.json.tmp` (no thread-ID). `_STALE_TMP_RE = re.compile(r"\.\d+\.tmp$")`
-  requires a digit run before `.tmp`, so it never matches any real orphan session
-  tmp file. After a process crash between the write and replace, stale session
-  tmp files survive undetected on the next startup. Fix: use the pattern
-  `r"\.json(\.\d+)?\.tmp$"` to match both the current (pre-task-34) and
-  the future (post-task-34 thread-unique) conventions while remaining specific
-  enough to avoid matching unrelated `.tmp` files.
+- [x] **task-44 (HIGH): Fix `_STALE_TMP_RE` pattern — does not match current `_write_atomic` output**
+  DONE: `claude/task-44-stale-tmp-regex` — changed pattern from
+  `r"\.\d+\.tmp$"` (requires digits, never matched `default.json.tmp`) to
+  `r"\.json(\.\d+)?\.tmp$"` (matches both pre-task-34 `{sid}.json.tmp` and
+  post-task-34 `{sid}.json.{tid}.tmp` while rejecting unrelated `.tmp` files);
+  16 tests pass (c7db340).
 
-- [ ] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
-  Each `src.replace(dst)` call in `_shift_archives()` is wrapped in its own
-  independent `except OSError: pass`. If the `.1→.2` shift fails (e.g. cross-device
-  link, permissions), execution continues and `_maybe_rotate()` subsequently calls
-  `archive.write_bytes(content)`, overwriting `events.jsonl.1` and permanently
-  destroying whatever was in it. Fix: track whether any shift step failed and
-  return early from `_maybe_rotate()` (skipping the archive write and truncate)
-  if any shift failed, rather than silently continuing.
+- [x] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
+  DONE: `claude/task-45-shift-archives-abort` — `_shift_archives()` now returns
+  `True`/`False` instead of `None`; `_maybe_rotate()` skips archive write and
+  truncate when it receives `False`, preserving both existing archives and live
+  file data; also incorporated task-37/38/41 improvements (Lock, copy-truncate,
+  generation shift, streaming read); 12 tests pass (272071e).
 
-- [ ] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
-  `read()` indexes events by line-number within the current file. After
-  `_maybe_rotate()` truncates `events.jsonl` to 0, the next `read(after_index=N)`
-  skips all new events (they restart at index 0) until the log grows past N new
-  lines. This is a design issue: callers polling with a saved `after_index` will
-  miss events after a rotation. Fix or mitigation: add a `file_generation` or
-  truncation counter to `EventLog`, expose it in the `read()` return value (or
-  via a separate `status()` call), and document that callers must reset
-  `after_index=0` when they detect a generation change.
+- [x] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
+  DONE: `claude/task-46-read-generation` — added `_rotation_count` counter
+  (incremented once per successful truncation in `_maybe_rotate()`), exposed via
+  new `status()` method returning `rotation_count/current_size_bytes/path`;
+  documented reset-on-rotation polling pattern in class/read/status docstrings
+  with code example; 16 tests pass (bccdf2f).
+
+## 0.32.2 hardening — seventh deep analysis cycle (2026-05-30)
+
+High-effort three-angle review of tasks 44–46 (regex fix, abort-on-shift-failure,
+rotation_count/status). Three confirmed findings.
+
+- [ ] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
+  `events_api()` returns `{ok, events, count}` but does NOT include
+  `EventLog.status()["rotation_count"]`. The browser's `pollEvents()` advances
+  `lastEventIndex` but has no way to detect when the live file was truncated to 0.
+  After a rotation, every subsequent `GET /api/events?after_index=N` returns
+  `{count: 0}` — indistinguishable from "no new events" — until the log
+  re-grows past line N. Fix: add `"rotation_count": self.event_log.status()["rotation_count"]`
+  to `events_api()` return dict; add `let lastRotationCount = 0` tracking in app.js
+  `pollEvents()` and reset `lastEventIndex = 0` when `rotation_count` changes.
+
+- [ ] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
+  The comment in `status()` says "to ensure consistency between the two counters"
+  but `current_size_bytes` is captured OUTSIDE `self._lock` while only
+  `_rotation_count` is captured inside. A caller can receive `rotation_count=1`
+  (post-rotation) alongside `current_size_bytes=10485760` (pre-rotation). Fix:
+  update the comment to state the lock only protects `_rotation_count`; update the
+  docstring to explicitly note `current_size_bytes` is a best-effort sample and may
+  not be consistent with `rotation_count` in a single call.
+
+- [ ] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
+  `_maybe_rotate()` uses `except OSError: pass`. A `KeyboardInterrupt` or
+  `SystemExit` raised between `archive.write_bytes(content)` (archive written) and
+  `fh.truncate(0)` (live file not yet cleared) leaves both the live file and the
+  `.1` archive containing the same content. On subsequent startup/rotation,
+  `_shift_archives()` moves that archive to `.2`, and the next rotation writes a
+  new `.1` with the same data again. Over several such events, archive slots fill
+  with duplicate copies of the live data, consuming up to `_MAX_ARCHIVE_DEPTH ×
+  MAX_EVENT_BYTES` (30 MB) of disk space. Fix: narrow the `except OSError` guard
+  to wrap only step A (`archive.write_bytes`) and step B (`fh.truncate`) with
+  separate try/except blocks, using `BaseException` for the outer guard or
+  adding a plain comment explaining why `KeyboardInterrupt` is an accepted risk
+  in this path.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
