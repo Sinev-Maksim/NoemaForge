@@ -446,15 +446,12 @@ duplicate-init removal, cleanup-tmp comment). Three surviving findings.
   return early from `_maybe_rotate()` (skipping the archive write and truncate)
   if any shift failed, rather than silently continuing.
 
-- [ ] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
-  `read()` indexes events by line-number within the current file. After
-  `_maybe_rotate()` truncates `events.jsonl` to 0, the next `read(after_index=N)`
-  skips all new events (they restart at index 0) until the log grows past N new
-  lines. This is a design issue: callers polling with a saved `after_index` will
-  miss events after a rotation. Fix or mitigation: add a `file_generation` or
-  truncation counter to `EventLog`, expose it in the `read()` return value (or
-  via a separate `status()` call), and document that callers must reset
-  `after_index=0` when they detect a generation change.
+- [x] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
+  DONE: `claude/task-46-read-generation` — added `_rotation_count` counter
+  (incremented once per successful truncation in `_maybe_rotate()`), exposed via
+  new `status()` method returning `rotation_count/current_size_bytes/path`;
+  documented reset-on-rotation polling pattern in class/read/status docstrings
+  with code example; 16 tests pass (bccdf2f).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
