@@ -339,12 +339,9 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   DONE: `claude/task-30-log-session-store-errors` — `except Exception as _ss_exc` +
   `event_log.append("gui.session_store_error", ...)` + inner guard; 11 tests pass (62075c3).
 
-- [ ] **task-31 (MEDIUM): Clean up orphaned `.{tid}.tmp` files on AdminGuiServer startup**
-  — `_write_json()` uses thread-unique `.{tid}.tmp` tmp filenames. If the process is
-  SIGKILL'd after `tmp.write_text()` but before `tmp.replace()`, the `.tmp` file is
-  left permanently. Fix: in `AdminGuiServer.__init__`, scan `gui_state_dir` and
-  `jobs_dir` for `*.tmp` files and delete them (they are always stale after startup
-  because the original thread no longer exists).
+- [x] **task-31 (MEDIUM): Clean up orphaned `.{tid}.tmp` files on AdminGuiServer startup**
+  DONE: `claude/task-31-cleanup-tmp-files` — `_cleanup_stale_tmp_files()` added; scans
+  gui_state_dir/jobs_dir/sessions with `glob("**/*.tmp")`; 13 tests pass (20062af).
 
 - [ ] **task-32 (MEDIUM): Stream EventLog.read() instead of loading entire file into RAM**
   — `EventLog.read()` calls `self.path.read_text().splitlines()` unconditionally,
