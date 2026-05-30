@@ -808,8 +808,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         if persona:
             conv["active_persona"] = persona
         self._save_conversation(conv)
-        # Sync message into session store so browser refresh can restore history.
-        self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
