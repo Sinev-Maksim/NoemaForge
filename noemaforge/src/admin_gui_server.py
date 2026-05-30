@@ -758,7 +758,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         """Scan the repo for broken JSON/YAML files and return a structured report."""
         try:
             report = ConfigValidator(self._config_validate_root).scan().to_dict()
-            return {"ok": report.get("ok", True), "version": RUNTIME_VERSION, "report": report}
+            return {"ok": report.get("ok", False), "version": RUNTIME_VERSION, "report": report}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "report": {
                 "ok": False, "files_checked": 0, "json_checked": 0, "yaml_checked": 0,

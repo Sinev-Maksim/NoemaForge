@@ -119,12 +119,29 @@ class TestConfigValidateApiMethod(unittest.TestCase):
         self.assertEqual(r1["ok"], r2["ok"])
         self.assertEqual(r1["report"]["files_checked"], r2["report"]["files_checked"])
 
-    def test_nonexistent_root_returns_ok_true_zero_files(self) -> None:
-        """A missing scan root degrades gracefully — scan() catches OSError."""
+    def test_nonexistent_root_returns_ok_false(self) -> None:
+        """A missing scan root must return ok=False, not a false-clean green report."""
         srv = self._make_server_stub(self.tmp_path / "does_not_exist")
         result = srv.config_validate_api()
-        self.assertTrue(result["ok"])
+        self.assertFalse(result["ok"])
         self.assertEqual(result["report"]["files_checked"], 0)
+        self.assertGreater(len(result["report"]["errors"]), 0)
+
+    def test_report_has_yaml_skipped_field(self) -> None:
+        """ValidationReport.to_dict() must expose yaml_skipped."""
+        srv = self._make_server_stub()
+        report = srv.config_validate_api()["report"]
+        self.assertIn("yaml_skipped", report)
+
+    def test_invalid_utf8_json_returns_ok_false(self) -> None:
+        """Files with invalid UTF-8 must be flagged as broken (errors='strict')."""
+        bad_path = self.tmp_path / "corrupt.json"
+        # Write valid JSON structure but with an invalid UTF-8 sequence embedded.
+        bad_path.write_bytes(b'{"key": "val\xff ue"}')
+        srv = self._make_server_stub()
+        result = srv.config_validate_api()
+        self.assertFalse(result["ok"])
+        self.assertEqual(len(result["report"]["errors"]), 1)
 
 
 # ---------------------------------------------------------------------------

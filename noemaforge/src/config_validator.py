@@ -77,6 +77,10 @@ class ValidationReport:
     yaml_checked: int
     errors: List[FileCheckResult] = field(default_factory=list)
     version: str = RUNTIME_VERSION
+    # True when YAML files were found but PyYAML is not installed, meaning
+    # YAML validation was skipped entirely.  Consumers that treat ok=True as a
+    # health gate should also check this flag.
+    yaml_skipped: bool = False
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -86,6 +90,7 @@ class ValidationReport:
             "yaml_checked": self.yaml_checked,
             "errors": [e.to_dict() for e in self.errors],
             "version": self.version,
+            "yaml_skipped": self.yaml_skipped,
         }
 
 
@@ -118,11 +123,15 @@ class ConfigValidator:
     # ------------------------------------------------------------------
 
     def validate_json_file(self, path: "str | Path") -> FileCheckResult:
-        """Parse *path* as JSON and return the result."""
+        """Parse *path* as JSON and return the result.
+
+        Uses ``errors='strict'`` so that files with invalid UTF-8 byte
+        sequences are flagged as broken rather than silently repaired.
+        """
         p = Path(path)
         str_path = str(p)
         try:
-            text = p.read_text(encoding="utf-8", errors="replace")
+            text = p.read_text(encoding="utf-8", errors="strict")
             json.loads(text)
             return FileCheckResult(path=str_path, kind="json", ok=True)
         except Exception as exc:
@@ -131,8 +140,12 @@ class ConfigValidator:
     def validate_yaml_file(self, path: "str | Path") -> FileCheckResult:
         """Parse *path* as YAML and return the result.
 
-        Returns a passing result with a warning in ``error`` if PyYAML is
-        not installed (YAML validation is skipped rather than hard-failing).
+        When PyYAML is not installed the file is skipped and the result is
+        marked ``ok=True`` with a sentinel ``error`` string.  The caller
+        (``scan``) propagates this via ``ValidationReport.yaml_skipped`` so
+        consumers can distinguish a passing scan from an unvalidated one.
+        Uses ``errors='strict'`` so that files with invalid UTF-8 byte
+        sequences are flagged as broken rather than silently repaired.
         """
         p = Path(path)
         str_path = str(p)
@@ -142,7 +155,7 @@ class ConfigValidator:
                 error="warn: PyYAML not installed; YAML validation skipped",
             )
         try:
-            text = p.read_text(encoding="utf-8", errors="replace")
+            text = p.read_text(encoding="utf-8", errors="strict")
             _yaml.safe_load(text)
             return FileCheckResult(path=str_path, kind="yaml", ok=True)
         except Exception as exc:
@@ -158,8 +171,27 @@ class ConfigValidator:
         Returns
         -------
         ValidationReport
-            ``ok=True`` only when every file parsed without errors.
+            ``ok=True`` only when every file parsed without errors **and**
+            the root directory exists.  Check ``yaml_skipped`` to determine
+            whether YAML files were validated (requires PyYAML).
         """
+        # Fail fast and explicitly when the root is absent so callers get a
+        # meaningful error rather than a false-clean report with 0 files.
+        if not self._root.exists():
+            return ValidationReport(
+                ok=False,
+                files_checked=0,
+                json_checked=0,
+                yaml_checked=0,
+                errors=[FileCheckResult(
+                    path=str(self._root),
+                    kind="",
+                    ok=False,
+                    error=f"Root directory does not exist: {self._root}",
+                )],
+                version=RUNTIME_VERSION,
+            )
+
         json_results: List[FileCheckResult] = []
         yaml_results: List[FileCheckResult] = []
 
@@ -172,6 +204,9 @@ class ConfigValidator:
 
         all_results = json_results + yaml_results
         errors = [r for r in all_results if not r.ok]
+        # yaml_skipped is True when YAML files exist but PyYAML is absent and
+        # therefore none of them were actually parsed.
+        yaml_skipped = not _YAML_AVAILABLE and len(yaml_results) > 0
         return ValidationReport(
             ok=len(errors) == 0,
             files_checked=len(all_results),
@@ -179,6 +214,7 @@ class ConfigValidator:
             yaml_checked=len(yaml_results),
             errors=errors,
             version=RUNTIME_VERSION,
+            yaml_skipped=yaml_skipped,
         )
 
     def _iter_files(self):
