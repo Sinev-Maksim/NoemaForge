@@ -1,5 +1,247 @@
 # Claude Review Queue 0.32.2
 
+## Claude Review Packet: Admin GUI job path-safety refactor
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #2
+Changed files:
+- noemaforge/src/admin_gui_server.py
+- noemaforge/tests/test_admin_gui_session_event_wiring.py
+- noemaforge/docs/TODO.md
+- noemaforge/docs/quality/CLAUDE_REVIEW_QUEUE_0.32.2.md
+
+Intent:
+Centralize Admin GUI per-job file and cancel-marker path construction so
+create, persist, get and cancel paths all preserve the existing `safe_id()`
+path-safety contract.
+
+Risk areas:
+- Admin GUI `/api/jobs` and cancel behavior.
+- Path-safety semantics for user-controlled or externally supplied `job_id`
+  values.
+- Compatibility with existing job JSON filenames and cancel marker polling.
+
+Questions for Claude:
+1. Is centralizing per-job JSON and `.cancel` paths in `AdminGuiServer`
+   sufficient for the current release, or should a dedicated JobManager layer
+   own this contract after PR #8/#9 are reconciled?
+2. Should cancel marker polling treat sanitized job IDs as the only supported
+   filesystem representation?
+3. Are there any target BigBro-BOS compatibility concerns with this helper-only
+   refactor?
+
+Validation already run:
+- `py -3 -m unittest noemaforge/tests/test_admin_gui_session_event_wiring.py`
+  (34 tests)
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `git diff --check`
+
+Do not merge before:
+- Claude reviews the Admin GUI job path-safety contract.
+- The change is considered alongside the pending PR #8/#9 JobManager ordering.
+
+## Claude Review Packet: PR #12 Startup preflight mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #12
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/startup_preflight.py
+- noemaforge/tests/test_startup_preflight.py
+
+Intent:
+Add startup preflight checks for storage, display, and journald gates before
+unsafe first-start or target-machine actions.
+
+Risk areas:
+- First-start and target-machine safety gating.
+- Storage/display/journald probe semantics on BigBro-BOS.
+- CI workflow changes are present in this safety branch and need scope review
+  before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Are the startup preflight gates sufficient and conservative enough for
+   target BigBro-BOS safety?
+2. Should CI workflow changes be removed from this branch or split into a
+   dedicated workflow PR?
+3. Should Codex be re-run after branch cleanup because the current Codex FAIL
+   text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #12 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `fa2b15be68a2bd5a0b64ddabd89f257a100be845`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_startup_preflight.py` (30 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews the startup preflight safety contract.
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+
+## Claude Review Packet: PR #11 Job heartbeat and ProcessGroupRunner mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #11
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/job_manager.py
+- noemaforge/src/process_group_runner.py
+- noemaforge/tests/test_job_heartbeat_and_process_runner.py
+
+Intent:
+Add JobManager heartbeat/staleness handling and ProcessGroupRunner support for
+process-group-aware long-running job execution and cancellation foundations.
+
+Risk areas:
+- JobManager/orchestration lifecycle semantics.
+- Process-group creation and cancellation behavior across Windows/Linux target
+  differences.
+- Repeated introduction of `job_manager.py` across task branches.
+- CI workflow changes are present in this orchestration branch and need scope
+  review before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Are the heartbeat/staleness thresholds and ProcessGroupRunner contracts
+   correct for target BigBro-BOS orchestration?
+2. Should CI workflow changes be removed from this branch or split into a
+   dedicated workflow PR?
+3. Should Codex be re-run after branch cleanup because the current Codex FAIL
+   text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #11 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `d2232a6d79eb08e3884781dd15015a1e0d7c10ba`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_job_heartbeat_and_process_runner.py`
+  (24 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews the heartbeat/process-group contract and target OS implications.
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+- Duplicate JobManager changes are reconciled with PR #8/#9 ordering.
+
+## Claude Review Packet: PR #10 Admin chat routing mixed-scope review
+
+Status: pending-claude-review
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #10
+Changed files:
+- .github/workflows/autonomous-pipeline.yml
+- .github/workflows/qa-version-bump.yml
+- noemaforge/src/admin_gui_server.py
+- noemaforge/src/job_manager.py
+- noemaforge/tests/test_admin_chat_routing.py
+
+Intent:
+Route direct Admin GUI chat actions into model-selection and Vault
+re-inventory job creation, with focused tests around Admin chat routing.
+
+Risk areas:
+- Admin GUI behavior and job creation semantics.
+- Repeated introduction of `job_manager.py` across task branches.
+- CI workflow changes are present in a chat-routing branch and need scope
+  review before this PR can be considered clean.
+- GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
+  which is not present on the current checked head.
+
+Questions for Claude:
+1. Should the CI workflow changes be removed from this chat-routing PR or split
+   into a dedicated workflow PR?
+2. Is the current chat-routing behavior sufficient once the workflow scope is
+   cleaned up?
+3. Should Codex be re-run after the branch is rebased/scope-cleaned, because the
+   current Codex FAIL text appears inconsistent with the checked diff?
+
+Validation already run:
+- Public GitHub API inspection of PR #10 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `b0a8cb389184284c21cc799a465328eeadd1f3fc`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_admin_chat_routing.py` (26 tests)
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- Claude reviews or removes the CI workflow changes from this task branch.
+- Codex review is re-run on the scope-cleaned/current branch.
+- Any duplicated JobManager introduction is reconciled with PR #8/#9 ordering.
+
+## Claude Review Packet: PR #9 Admin GUI JobManager wiring return
+
+Status: pending-claude-fix
+Branch: release/0.32.2-hardening
+Related issue: #1
+Related PR: #9
+Changed files:
+- noemaforge/src/admin_gui_server.py
+- noemaforge/src/job_manager.py
+- noemaforge/src/orchestration_state.py
+- noemaforge/tests/test_admin_gui_job_manager_wiring.py
+
+Intent:
+Wire JobManager into AdminGuiServer job methods so Admin GUI job listing,
+lookup, creation, persistence, and cancellation use the file-backed job
+registry introduced by the previous task.
+
+Risk areas:
+- Admin GUI `/api/jobs` behavior and runtime job visibility.
+- JobManager integration with legacy job JSON shape and privileged job fields.
+- Cancellation behavior and dead legacy code left after early returns.
+- Path safety around raw `job_id` lookups through `JobManager.get()`.
+
+Questions for Claude:
+1. Fix `AdminGuiServer.jobs_list()` so it no longer references removed `data`
+   and all focused tests pass.
+2. Decide whether the dead legacy block after `job_cancel()`'s new return should
+   be removed in this branch.
+3. Decide whether `JobManager.get()` must sanitize `job_id` internally to retain
+   the previous `safe_id(job_id)` path-safety contract for all callers.
+
+Validation already run:
+- Public GitHub API inspection of PR #9 comments/checks.
+- CodeRabbit summary comment present; blocking/actionable review comments
+  observed: 0.
+- GitHub `Quality gate` and `validate-claude-push`: success.
+- GitHub `codex-review`: FAIL on commit
+  `970b5267deea27240e37b735e2fa5a9c8cb51f54`.
+- `py -3 -c "import compileall, sys; ok = compileall.compile_dir('noemaforge/src', quiet=1, force=True); sys.exit(0 if ok else 1)"`
+- `py -3 -m unittest noemaforge/tests/test_admin_gui_job_manager_wiring.py`
+  reproduced the blocker: 27 tests run, 5 errors, all in `jobs_list()` with
+  `NameError: data is not defined`.
+- `git diff --check origin/release/0.32.2-hardening...HEAD`
+
+Do not merge before:
+- The `jobs_list()` blocker is fixed and the focused unittest passes.
+- Codex review is re-run on the fixed branch.
+- Claude explicitly resolves the cancellation dead-code and path-safety
+  questions above.
+
 ## Claude Review Packet: PR #8 JobManager file-backed registry
 
 Status: pending-claude-review

@@ -29,7 +29,7 @@ _SRC = Path(__file__).parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-from admin_gui_server import AdminGuiServer  # noqa: E402
+from admin_gui_server import AdminGuiServer, safe_id  # noqa: E402
 from session_store import SessionStore  # noqa: E402
 from event_log import EventLog  # noqa: E402
 from noemaforge_version import RUNTIME_VERSION  # noqa: E402
@@ -291,7 +291,7 @@ class TestJobCancelMarker(unittest.TestCase):
         jobs_file.parent.mkdir(parents=True, exist_ok=True)
         import json as _json
         jobs_file.write_text(_json.dumps({"jobs": [job]}), encoding="utf-8")
-        (self.srv.jobs_dir / f"{job_id}.json").write_text(_json.dumps(job), encoding="utf-8")
+        (self.srv.jobs_dir / f"{safe_id(job_id)}.json").write_text(_json.dumps(job), encoding="utf-8")
 
     def test_cancel_sets_cancel_requested_status(self) -> None:
         jid = "job_test_001"
@@ -314,6 +314,16 @@ class TestJobCancelMarker(unittest.TestCase):
         marker = self.srv.jobs_dir / f"{jid}.cancel"
         content = marker.read_text(encoding="utf-8").strip()
         self.assertTrue(content.startswith("202"), f"marker should contain ISO timestamp, got: {content!r}")
+
+    def test_cancel_marker_file_sanitizes_job_id_path(self) -> None:
+        jid = "../unsafe job"
+        self._seed_job(jid)
+        result = self.srv.job_cancel(jid)
+        self.assertTrue(result["ok"])
+
+        marker = self.srv.jobs_dir / f"{safe_id(jid)}.cancel"
+        self.assertTrue(marker.exists())
+        self.assertFalse((self.srv.jobs_dir.parent / "unsafe job.cancel").exists())
 
     def test_cancel_missing_job_returns_ok_false(self) -> None:
         result = self.srv.job_cancel("nonexistent_job_id")
