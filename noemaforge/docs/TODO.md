@@ -199,10 +199,11 @@ All are Windows-doable.
   `do_GET` before calling `events_api()`.
   DONE: `claude/task-24-clamp-events-limit` — clamp + stub fix + 8 new clamp tests, 20 total (ca5b0a4).
 
-- [ ] **task-25 (MEDIUM): Add EventLog rotation/size cap**
+- [x] **task-25 (MEDIUM): Add EventLog rotation/size cap**
   — `EventLog.append()` opens the JSONL file in `"a"` mode indefinitely; after
   weeks of uptime the file can be tens of thousands of lines loaded entirely into
   memory per request. Fix: add a rotation threshold (10 000 lines or 10 MB).
+  DONE: `claude/task-25-eventlog-rotation` — `_maybe_rotate()` + 19 tests (612714d).
 
 - [ ] **task-26 (MEDIUM): Cap `session_id` query param length to prevent proliferation**
   — `GET /api/session/current?session_id=<10k-chars>` creates a new session file
