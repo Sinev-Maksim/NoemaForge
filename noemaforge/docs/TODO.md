@@ -162,6 +162,45 @@
 
 - [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
 
+## 0.32.2 hardening — deep code-review cycle (2026-05-30)
+
+High-effort three-angle code review on `claude/task-13-config-validate-api`
+(config_validator.py + /api/config/validate wiring). Six candidates surfaced;
+four fixed in commit `5d9961b` on the same branch:
+
+- [x] **CONFIRMED-HIGH fixed**: `scan()` returned `ok=True` with `files_checked=0`
+  when the root directory did not exist. Now returns `ok=False` with an explicit
+  error describing the missing path.
+
+- [x] **CONFIRMED-MEDIUM fixed**: `validate_json_file` and `validate_yaml_file`
+  used `errors='replace'` before parsing, silently repairing invalid UTF-8 byte
+  sequences and reporting corrupt files as valid. Changed to `errors='strict'`.
+
+- [x] **CONFIRMED-MEDIUM**: `ValidationReport` now includes a `yaml_skipped: bool`
+  field exposed via `to_dict()` so consumers can distinguish a passing scan from
+  one where PyYAML was absent and YAML files were never parsed.
+
+- [x] **PLAUSIBLE-LOW fixed**: `report.get("ok", True)` → `report.get("ok", False)`
+  in `config_validate_api()` — wrong default would silently promote a missing key
+  to success instead of failure.
+
+- **REFUTED**: mid-iteration OSError in `_iter_files` — Python's `Path.rglob()`
+  handles per-directory PermissionError internally; the outer `try/except` is
+  redundant but harmless.
+
+New open items from this review:
+
+- [ ] **task-17: Rate-limit / cache `/api/config/validate`** — `config_validate_api()`
+  runs a full `rglob` of `/opt/noemaforge` on every GET request with no caching
+  or cooldown. ThreadingHTTPServer spawns one thread per request, so a burst of
+  GETs (or repeated browser refreshes) can run concurrent full-tree walks.
+  Add a simple TTL cache (e.g. 60 s) or an asyncio lock. Windows-doable.
+
+- [ ] **task-18: Surface `yaml_skipped=True` in Admin GUI health badge** — when
+  the `/api/config/validate` report includes `yaml_skipped: true`, the GUI should
+  display a "YAML validation skipped (PyYAML missing)" warning alongside the
+  ok/fail badge instead of silently showing green. Windows-doable.
+
 ## 0.32.2 hardening — new proposals (2026-05-30)
 
 Windows-doable items derived from deep analysis of task-11/12/13/14 work:
