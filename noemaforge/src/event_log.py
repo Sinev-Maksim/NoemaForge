@@ -49,20 +49,31 @@ class EventLog:
         return row
 
     def read(self, after_index: int = 0, limit: int = 200) -> list[Dict[str, Any]]:
+        """Return up to ``limit`` events starting after ``after_index``.
+
+        Reads the file line-by-line (streaming) instead of loading the entire
+        file into memory with ``read_text()``, so large logs are not fully
+        allocated per request regardless of ``limit``.  Iteration stops once
+        ``limit`` matching rows have been collected.
+        """
         if not self.path.exists():
             return []
         rows: list[Dict[str, Any]] = []
-        for idx, line in enumerate(self.path.read_text(encoding="utf-8", errors="replace").splitlines()):
-            if idx < after_index or not line.strip():
-                continue
-            try:
-                row = json.loads(line)
-                row["index"] = idx
-                rows.append(row)
-            except Exception:
-                continue
-            if len(rows) >= limit:
-                break
+        try:
+            with self.path.open(encoding="utf-8", errors="replace") as fh:
+                for idx, line in enumerate(fh):
+                    if idx < after_index or not line.strip():
+                        continue
+                    try:
+                        row = json.loads(line)
+                        row["index"] = idx
+                        rows.append(row)
+                    except Exception:
+                        continue
+                    if len(rows) >= limit:
+                        break
+        except OSError:
+            pass
         return rows
 
 
