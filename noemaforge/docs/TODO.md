@@ -187,10 +187,11 @@ All are Windows-doable.
   `release/0.32.2-hardening` after task-14 merges.
   DONE: `claude/task-22-fix-double-append` — removed slim-dict call, 10 tests passing (75d23d2).
 
-- [ ] **task-23 (MEDIUM): Add `_write_json` atomic tmp-rename pattern**
+- [x] **task-23 (MEDIUM): Add `_write_json` atomic tmp-rename pattern**
   — `_write_json` calls `path.write_text()` directly; a crash or concurrent
   read during the write will observe a truncated/partial JSON file. Fix: adopt
   the same tmp-then-rename approach already used by `SessionStore._write_atomic()`.
+  DONE: `claude/task-23-atomic-write-json` — thread-unique tmp names, 12 tests passing (6e94a1e).
 
 - [ ] **task-24 (MEDIUM): Clamp `/api/events` limit parameter to prevent DoS**
   — `?limit=1000000` causes `EventLog.read()` to build a million-entry list in
