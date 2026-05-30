@@ -218,6 +218,9 @@ All are Windows-doable.
   Fix: log the exception or add it to the return tuple as a structured field.
   DONE: `claude/task-27-surface-core-exception` — `_write_event("S2", "ROLE_OUTPUT_PARSE_FAILED")` in except block, 7 tests (3db19bf).
 
+- [x] **task-34 (HIGH): SessionStore threading.Lock + thread-unique _write_atomic**
+  DONE: `claude/task-34-sessionstore-lock` — Lock on update()/append_message() + thread-unique tmp names, 14 tests (48b3cdf).
+
 ## 0.32.2 hardening — deep code-review cycle (2026-05-30)
 
 High-effort three-angle code review on `claude/task-13-config-validate-api`
@@ -367,7 +370,7 @@ Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
   assigning a copy: `conv = dict(conv); conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]`
   before the `_write_json()` call.
 
-- [ ] **task-34 (HIGH): Add threading.Lock to SessionStore to prevent message-loss race**
+- [x] **task-34 (HIGH): Add threading.Lock to SessionStore to prevent message-loss race**
   — `SessionStore.append_message()` does `load()` then `save()` with no lock:
   two concurrent HTTP threads writing to the same session will each load the old
   session, each append their own message, and then both write back — whichever saves
