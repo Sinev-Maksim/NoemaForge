@@ -422,6 +422,40 @@ glob narrowing, session_id falsy fix). Three confirmed/plausible findings.
   write merges) while sessions scan is already active via task-34 `_write_atomic()`;
   absorbed task-39 narrow-regex fix; 10 tests pass (de45b2b).
 
+## 0.32.2 hardening — sixth deep analysis cycle (2026-05-30)
+
+High-effort three-angle review of tasks 41–43 (archive-shift rotation,
+duplicate-init removal, cleanup-tmp comment). Three surviving findings.
+
+- [ ] **task-44 (HIGH): Fix `_STALE_TMP_RE` pattern — does not match current `_write_atomic` output**
+  `_write_atomic()` in `session_store.py` (release base, pre-task-34) creates
+  `{name}.json.tmp` (no thread-ID). `_STALE_TMP_RE = re.compile(r"\.\d+\.tmp$")`
+  requires a digit run before `.tmp`, so it never matches any real orphan session
+  tmp file. After a process crash between the write and replace, stale session
+  tmp files survive undetected on the next startup. Fix: use the pattern
+  `r"\.json(\.\d+)?\.tmp$"` to match both the current (pre-task-34) and
+  the future (post-task-34 thread-unique) conventions while remaining specific
+  enough to avoid matching unrelated `.tmp` files.
+
+- [ ] **task-45 (MEDIUM): `_shift_archives()` must abort on partial failure to prevent data loss**
+  Each `src.replace(dst)` call in `_shift_archives()` is wrapped in its own
+  independent `except OSError: pass`. If the `.1→.2` shift fails (e.g. cross-device
+  link, permissions), execution continues and `_maybe_rotate()` subsequently calls
+  `archive.write_bytes(content)`, overwriting `events.jsonl.1` and permanently
+  destroying whatever was in it. Fix: track whether any shift step failed and
+  return early from `_maybe_rotate()` (skipping the archive write and truncate)
+  if any shift failed, rather than silently continuing.
+
+- [ ] **task-46 (LOW): Document `read()` after-rotation blind spot for `after_index` callers**
+  `read()` indexes events by line-number within the current file. After
+  `_maybe_rotate()` truncates `events.jsonl` to 0, the next `read(after_index=N)`
+  skips all new events (they restart at index 0) until the log grows past N new
+  lines. This is a design issue: callers polling with a saved `after_index` will
+  miss events after a rotation. Fix or mitigation: add a `file_generation` or
+  truncation counter to `EventLog`, expose it in the `read()` return value (or
+  via a separate `status()` call), and document that callers must reset
+  `after_index=0` when they detect a generation change.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
