@@ -318,6 +318,79 @@ BigBro-BOS required items:
 - [x] 244 stale alpha/0.29.x files removed from git tree (moved to trash/).
 - [x] Docs versions bumped: noemaforge/docs/README.md, noemaforge/docs/Manifest.md → 0.32.2.
 
+## 0.32.2 hardening — third deep analysis cycle (2026-05-30)
+
+Third-cycle deep review of tasks 21–27 (conversation cap, double-append, atomic write,
+events-limit clamp, EventLog rotation, session_id cap, noemaforge_core exception surface).
+Ten findings — 9 new Windows-doable tasks (28–36) proposed below.
+
+- [ ] **task-28 (HIGH): Fix EventLog `_maybe_rotate()` TOCTOU race and per-append full-file read**
+  — After the 1 MB fast path, every `append()` call reads the entire file into RAM to
+  count lines, even when the file won't rotate yet. Two concurrent threads can both
+  see size > threshold, both read the file, and both call `self.path.replace(archive)`
+  — the second rename silently drops the archive written by the first.
+  Fix: add `threading.Lock` to `EventLog`, hold it inside `_maybe_rotate()` for the
+  stat+read+rename sequence; also add a counter so line-count read happens at most
+  every N appends (not every single append past threshold).
+
+- [ ] **task-29 (HIGH): Validate `session_id` in POST `/api/session/mode` body**
+  — `do_POST` branch for `/api/session/mode` reads `session_id = str(body.get('session_id') or 'default')`
+  with no length limit and no character filter. The GET `/api/session/current` path
+  was fixed in task-26 (128-char clamp, alphanumeric guard) but the POST path is still
+  unguarded. Fix: apply the same clamp and alphanumeric check in the POST handler.
+
+- [ ] **task-30 (MEDIUM): Log session_store failures instead of silent pass in save_message()**
+  — `save_message()` wraps `session_store.append_message("default", msg)` in a bare
+  `except Exception: pass`, meaning any bug in `append_message()` (malformed msg,
+  file lock, AttributeError from a future refactor) leaves session history silently
+  out of sync. Fix: log failures via `self.event_log.append("gui.session_store_error", {...})`
+  inside the except block before passing.
+
+- [ ] **task-31 (MEDIUM): Clean up orphaned `.{tid}.tmp` files on AdminGuiServer startup**
+  — `_write_json()` uses thread-unique `.{tid}.tmp` tmp filenames. If the process is
+  SIGKILL'd after `tmp.write_text()` but before `tmp.replace()`, the `.tmp` file is
+  left permanently. Fix: in `AdminGuiServer.__init__`, scan `gui_state_dir` and
+  `jobs_dir` for `*.tmp` files and delete them (they are always stale after startup
+  because the original thread no longer exists).
+
+- [ ] **task-32 (MEDIUM): Stream EventLog.read() instead of loading entire file into RAM**
+  — `EventLog.read()` calls `self.path.read_text().splitlines()` unconditionally,
+  loading up to 10 MB into RAM on every `/api/events` poll regardless of the `limit`
+  parameter. Fix: iterate the file line-by-line (`path.open()` with iteration) and
+  stop after collecting `after_index + limit` rows, so only the needed slice is
+  ever allocated.
+
+- [ ] **task-33 (LOW): Avoid in-place mutation of conv dict in `_save_conversation()`**
+  — `conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]` replaces the list in the
+  same dict passed in by the caller, which could corrupt a cached reference in a
+  future refactor. Fix: replace the list without mutating the caller's dict by
+  assigning a copy: `conv = dict(conv); conv["messages"] = msgs[-MAX_CONVERSATION_MESSAGES:]`
+  before the `_write_json()` call.
+
+- [ ] **task-34 (HIGH): Add threading.Lock to SessionStore to prevent message-loss race**
+  — `SessionStore.append_message()` does `load()` then `save()` with no lock:
+  two concurrent HTTP threads writing to the same session will each load the old
+  session, each append their own message, and then both write back — whichever saves
+  last wins and the other message is silently dropped. Additionally,
+  `_write_atomic()` uses a fixed `.tmp` suffix so concurrent writes for the same
+  session file race on the same tmp path. Fix: add `threading.Lock` to `SessionStore`
+  and hold it for the full `load → modify → save` cycle in `append_message()`,
+  `set_mode()`, and `attach_active_jobs()`.
+
+- [ ] **task-35 (LOW): Add comment explaining clamp handles negative limit values**
+  — In the `/api/events` route, negative `limit` values (e.g. `?limit=-5000`)
+  parse as `int(-5000)` successfully (no ValueError), skip the `except` branch,
+  and are correctly clamped to 1 by `min(max(1, limit), 1000)`. A developer
+  reading the code might think only non-negative values reach the clamp.
+  Fix: add a one-line comment above the clamp documenting this.
+
+- [ ] **task-36 (MEDIUM): Wrap `_write_event()` call in except block in noemaforge_core.py**
+  — In `_run_role_compute()`, the `_write_event("S2", "ROLE_OUTPUT_PARSE_FAILED", ...)`
+  call inside the except clause can itself raise (disk full, permission error, locked
+  event log), causing an unexpected `OSError` to propagate from what was supposed to
+  be a non-fatal error-handling path. Fix: wrap the `_write_event()` call in its own
+  `try/except Exception: pass` so `res = None` is always reached.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
