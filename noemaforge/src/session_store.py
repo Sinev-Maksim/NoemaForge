@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import threading
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional
 
@@ -34,6 +35,9 @@ class SessionStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
         self.events_path = self.root / "session-events.jsonl"
+        # Serializes read-modify-write cycles (load → modify → save) so concurrent
+        # HTTP threads cannot interleave and silently drop each other's messages.
+        self._lock = threading.Lock()
 
     def _session_path(self, session_id: str) -> Path:
         clean = "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in str(session_id or "default"))[:96] or "default"
@@ -41,7 +45,9 @@ class SessionStore:
 
     def _write_atomic(self, path: Path, payload: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(path.suffix + ".tmp")
+        # Thread-unique tmp name prevents concurrent writes for the same session
+        # from clobbering each other's .tmp file (same pattern as _write_json).
+        tmp = path.parent / f"{path.name}.{threading.get_ident()}.tmp"
         tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
         tmp.replace(path)
 
@@ -78,24 +84,26 @@ class SessionStore:
 
     def update(self, session_id: str = "default", **changes: Any) -> Dict[str, Any]:
         """Patch a session record and persist it."""
-        session = self.load(session_id)
-        session.update(changes)
-        saved = self.save(session)
-        self._append_event("session.updated", saved, changes)
-        return saved
+        with self._lock:
+            session = self.load(session_id)
+            session.update(changes)
+            saved = self.save(session)
+            self._append_event("session.updated", saved, changes)
+            return saved
 
     def append_message(self, session_id: str, message: Dict[str, Any], max_messages: int = 500) -> Dict[str, Any]:
         """Append a GUI message while keeping bounded history."""
-        session = self.load(session_id)
-        messages = list(session.get("messages") or [])
-        row = dict(message)
-        row.setdefault("ts", nowz())
-        row.setdefault("version", RUNTIME_VERSION)
-        messages.append(row)
-        session["messages"] = messages[-max_messages:]
-        saved = self.save(session)
-        self._append_event("session.message", saved, {"message": row})
-        return saved
+        with self._lock:
+            session = self.load(session_id)
+            messages = list(session.get("messages") or [])
+            row = dict(message)
+            row.setdefault("ts", nowz())
+            row.setdefault("version", RUNTIME_VERSION)
+            messages.append(row)
+            session["messages"] = messages[-max_messages:]
+            saved = self.save(session)
+            self._append_event("session.message", saved, {"message": row})
+            return saved
 
     def set_mode(self, session_id: str, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist a selected model-selection mode for subsequent GUI actions."""
