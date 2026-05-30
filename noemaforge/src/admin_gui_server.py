@@ -478,15 +478,18 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 ))
                 return
             if path == "/api/session/mode":
+                # Use explicit is-None check instead of 'or "default"' to avoid
+                # silently mapping falsy values (0, False, []) to "default" (task-40).
+                _raw_sid = body.get("session_id")
+                session_id = str(_raw_sid) if _raw_sid is not None else "default"
+                session_id = session_id[:128]  # clamp length to prevent file growth
+                mode = str(body.get("mode") or "normal")
                 try:
                     composite_top_n = int(body.get("composite_top_n") or 0)
                 except (TypeError, ValueError):
                     self._send_json({"ok": False, "error": "composite_top_n must be an integer"}, status=400)
                     return
-                self._send_json(self.server.session_mode(
-                    str(body.get("mode") or "normal"),
-                    composite_top_n=composite_top_n,
-                ))
+                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
                 return
             if path == "/api/conversation/reset":
                 self._send_json(self.server.conversation_reset())
@@ -547,12 +550,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/vault/reinventory":
                 self._send_json(self.server.vault_reinventory())
-                return
-            if path == "/api/session/mode":
-                session_id = str(body.get("session_id") or "default")
-                mode = str(body.get("mode") or "normal")
-                composite_top_n = int(body.get("composite_top_n") or 0)
-                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
                 return
             if path == "/api/workflow/stop":
                 self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
