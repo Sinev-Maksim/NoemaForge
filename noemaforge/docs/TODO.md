@@ -453,15 +453,12 @@ duplicate-init removal, cleanup-tmp comment). Three surviving findings.
 High-effort three-angle review of tasks 44–46 (regex fix, abort-on-shift-failure,
 rotation_count/status). Three confirmed findings.
 
-- [ ] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
-  `events_api()` returns `{ok, events, count}` but does NOT include
-  `EventLog.status()["rotation_count"]`. The browser's `pollEvents()` advances
-  `lastEventIndex` but has no way to detect when the live file was truncated to 0.
-  After a rotation, every subsequent `GET /api/events?after_index=N` returns
-  `{count: 0}` — indistinguishable from "no new events" — until the log
-  re-grows past line N. Fix: add `"rotation_count": self.event_log.status()["rotation_count"]`
-  to `events_api()` return dict; add `let lastRotationCount = 0` tracking in app.js
-  `pollEvents()` and reset `lastEventIndex = 0` when `rotation_count` changes.
+- [x] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
+  DONE: `claude/task-47-events-rotation-count` — added `rotation_count` field to
+  `events_api()` response (from `event_log.status()`, graceful fallback to 0 when
+  absent); added `let lastRotationCount = 0` in app.js and reset/update logic in
+  `pollEvents()` when `r.rotation_count` changes; incorporated full EventLog
+  rotation machinery (task-37/38/41/45/46 improvements); 12 tests pass (8fc4bf2).
 
 - [ ] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
   The comment in `status()` says "to ensure consistency between the two counters"
