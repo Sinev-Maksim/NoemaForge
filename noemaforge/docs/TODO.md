@@ -211,11 +211,12 @@ All are Windows-doable.
   to 128 characters in `do_GET` and return 400 for all-non-alphanumeric values.
   DONE: `claude/task-26-cap-session-id` — [:128] clamp + alphanumeric guard + 16 tests (8a7165d).
 
-- [ ] **task-27 (MEDIUM): Surface `noemaforge_core.py` exception in role output load**
+- [x] **task-27 (MEDIUM): Surface `noemaforge_core.py` exception in role output load**
   — Around line 2118, a `return None` in a finally-equivalent path silently
   swallows any exception from `_load_json(out_path)`. Callers receive
   `(None, runner_out)` with no indication of why output parsing failed.
   Fix: log the exception or add it to the return tuple as a structured field.
+  DONE: `claude/task-27-surface-core-exception` — `_write_event("S2", "ROLE_OUTPUT_PARSE_FAILED")` in except block, 7 tests (3db19bf).
 
 ## 0.32.2 hardening — deep code-review cycle (2026-05-30)
 
