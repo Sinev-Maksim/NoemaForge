@@ -376,39 +376,28 @@ session_id validation, session_store error logging, tmp cleanup, streaming read,
 conv mutation guard, limit clamp comment, _write_event guard).
 Four findings — 4 new Windows-doable tasks (37–40) proposed below.
 
-- [ ] **task-37 (HIGH): Fix `append()`-outside-lock vs `_maybe_rotate()`-rename race**
-  `append()` writes to the file outside `self._lock` while `_maybe_rotate()`
-  renames the file inside the lock. On Linux, a post-rotation write from Thread A
-  (fd remains valid post-rename) goes into the archive, polluting `events.jsonl.1`
-  with post-rotation events. On Windows, `replace()` inside the lock fails with
-  PermissionError when a concurrent `append()` holds the file open (silently
-  swallowed by `except OSError: pass`). Fix: hold `self._lock` for the entire
-  append + optional rotation cycle so write and rename never overlap.
+- [x] **task-37 (HIGH): Fix `append()`-outside-lock vs `_maybe_rotate()`-rename race**
+  DONE: `claude/task-37-eventlog-append-lock` — entire append + rotation cycle now
+  under `self._lock`; eliminates archive-pollution race (Linux) and PermissionError
+  race (Windows); incorporates task-28 Lock/throttle and task-32 streaming-read
+  improvements; 23 tests pass (574e10b).
 
-- [ ] **task-38 (MEDIUM): Fix combined task-32 + task-28 Windows handle-vs-rename race**
-  When both branches merge, `read()` (streaming via `path.open()`) holds a file
-  handle during iteration while `_maybe_rotate()` calls `self.path.replace(archive)`.
-  On Windows, MoveFileEx fails with PermissionError if any handle is open — caught
-  silently by `except OSError: pass` — so rotation permanently and silently fails
-  while `/api/events` is polled every 10 s. Fix: coordinate read and rotate via the
-  shared `self._lock`, or adopt a copy-then-truncate strategy that does not require
-  renaming while readers are active.
+- [x] **task-38 (MEDIUM): Fix combined task-32 + task-28 Windows handle-vs-rename race**
+  DONE: `claude/task-38-read-rotate-windows` — `_maybe_rotate()` now uses
+  copy-then-truncate (`archive.write_bytes(content)` + `path.open("r+b").truncate(0)`)
+  instead of `path.replace()` (MoveFileEx); readers with an open handle hit EOF at
+  truncation instead of causing PermissionError; 16 tests pass (2815756).
 
-- [ ] **task-39 (LOW): Narrow `_cleanup_stale_tmp_files()` glob pattern**
-  `glob("**/*.tmp")` matches ANY `.tmp` file, not just thread-unique
-  `{name}.{tid}.tmp` files created by `_write_json`/`_write_atomic`. Any legitimate
-  `.tmp` file created by an external tool or job subprocess in the scanned
-  directories (gui_state_dir, jobs_dir, sessions) would be deleted on startup.
-  Fix: use a more specific pattern such as `*.*.tmp` (requires a dot in the stem)
-  or compile a regex from the known `{name}.{digits}.tmp` naming convention and
-  filter glob results before unlinking.
+- [x] **task-39 (LOW): Narrow `_cleanup_stale_tmp_files()` glob pattern**
+  DONE: `claude/task-39-narrow-tmp-glob` — added module-level
+  `_STALE_TMP_RE = re.compile(r'\.\d+\.tmp$')` and filters every glob hit through
+  the regex before unlinking; plain `.tmp` files are preserved; 10 tests pass (a1b55bc).
 
-- [ ] **task-40 (LOW): Fix falsy `session_id` substitution in POST `/api/session/mode`**
-  `str(body.get("session_id") or "default")` silently maps any falsy value
-  (integer `0`, boolean `False`, empty list `[]`) to `"default"`, with no error
-  reported to the client. A client sending `{"session_id": 0}` would have its mode
-  set on the default session unexpectedly. Fix: use an explicit `is None` check:
-  `raw = body.get("session_id"); raw_sid = str(raw) if raw is not None else "default"`.
+- [x] **task-40 (LOW): Fix falsy `session_id` substitution in POST `/api/session/mode`**
+  DONE: `claude/task-40-session-id-falsy` — replaced `or "default"` with explicit
+  `is not None` guard; added `[:128]` clamp and `composite_top_n` 400-error;
+  removed dead unreachable duplicate block; switched to `session_set_mode` interface;
+  10 tests pass (b3922d2).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
