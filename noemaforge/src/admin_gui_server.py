@@ -642,6 +642,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         # (same pattern as _jobs_lock above — task_create and task_update both
         # do tasks_data() + _write_json() without a lock otherwise).
         self._tasks_lock = threading.Lock()
+        # Protect conversation read-modify-write cycles (save_message).
+        # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+        # then calls save_message which acquires _conv_lock — never reversed).
+        self._conv_lock = threading.Lock()
         self.runtime_dir = self.data_root / "runtime"
         self.ui_dir = self.root / "templates" / "pipeline-dashboard"
         if not self.ui_dir.exists():
@@ -844,32 +848,37 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.conversation_file(), conv)
 
     def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
-        conv = self._conversation()
-        idx = len(conv.get("messages", [])) + 1
-        raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
-        tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
-        affordance_artifacts = enrich_artifact_cards(artifacts)
-        msg = {
-            "message_id": f"msg_{int(time.time())}_{idx}",
-            "trace_id": tid,
-            "conversation_id": conv["conversation_id"],
-            "ts": now_iso(),
-            "role": role,
-            "persona": persona,
-            "locale": locale or conv.get("locale", "ru"),
-            "intent": intent,
-            "text": text,
-            "artifacts": affordance_artifacts,
-            "system_event": bool(system_event),
-        }
-        conv.setdefault("messages", []).append(msg)
-        if affordance_artifacts:
-            conv.setdefault("artifacts", []).extend(affordance_artifacts)
-        if locale:
-            conv["locale"] = locale
-        if persona:
-            conv["active_persona"] = persona
-        self._save_conversation(conv)
+        # Acquire _conv_lock to serialise concurrent save_message() calls on
+        # the conversation R-M-W cycle (_conversation + _save_conversation).
+        # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+        # first, then calls save_message — never the other way around).
+        with self._conv_lock:
+            conv = self._conversation()
+            idx = len(conv.get("messages", [])) + 1
+            raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
+            tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
+            affordance_artifacts = enrich_artifact_cards(artifacts)
+            msg = {
+                "message_id": f"msg_{int(time.time())}_{idx}",
+                "trace_id": tid,
+                "conversation_id": conv["conversation_id"],
+                "ts": now_iso(),
+                "role": role,
+                "persona": persona,
+                "locale": locale or conv.get("locale", "ru"),
+                "intent": intent,
+                "text": text,
+                "artifacts": affordance_artifacts,
+                "system_event": bool(system_event),
+            }
+            conv.setdefault("messages", []).append(msg)
+            if affordance_artifacts:
+                conv.setdefault("artifacts", []).extend(affordance_artifacts)
+            if locale:
+                conv["locale"] = locale
+            if persona:
+                conv["active_persona"] = persona
+            self._save_conversation(conv)
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
@@ -994,11 +1003,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def tasks_list(self) -> Dict[str, Any]:
-        data = self.tasks_data()
-        tasks = data.get("tasks", [])
-        categories = {}
-        for t in tasks:
-            categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
+        # Acquire _tasks_lock so reads are consistent with concurrent
+        # task_create()/task_update() writes (same pattern as jobs_list/_jobs_lock).
+        with self._tasks_lock:
+            data = self.tasks_data()
+            tasks = data.get("tasks", [])
+            categories = {}
+            for t in tasks:
+                categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
         return {"ok": True, "version": RUNTIME_VERSION, "tasks": tasks, "summary": {"total": len(tasks), "by_category": categories, "pending": sum(1 for t in tasks if t.get("status") == "pending"), "blocked": sum(1 for t in tasks if t.get("status") == "blocked")}}
 
     def task_create(self, body: Dict[str, Any]) -> Dict[str, Any]:
