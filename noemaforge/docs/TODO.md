@@ -453,7 +453,7 @@ duplicate-init removal, cleanup-tmp comment). Three surviving findings.
 High-effort three-angle review of tasks 44–46 (regex fix, abort-on-shift-failure,
 rotation_count/status). Three confirmed findings.
 
-- [ ] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
+- [x] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
   `events_api()` returns `{ok, events, count}` but does NOT include
   `EventLog.status()["rotation_count"]`. The browser's `pollEvents()` advances
   `lastEventIndex` but has no way to detect when the live file was truncated to 0.
@@ -462,8 +462,10 @@ rotation_count/status). Three confirmed findings.
   re-grows past line N. Fix: add `"rotation_count": self.event_log.status()["rotation_count"]`
   to `events_api()` return dict; add `let lastRotationCount = 0` tracking in app.js
   `pollEvents()` and reset `lastEventIndex = 0` when `rotation_count` changes.
+  Done: implemented on claude/task-47-events-rotation-count (8fc4bf2) and
+  superseded by task-50 which adds both rotation_count AND server_epoch.
 
-- [ ] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
+- [x] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
   The comment in `status()` says "to ensure consistency between the two counters"
   but `current_size_bytes` is captured OUTSIDE `self._lock` while only
   `_rotation_count` is captured inside. A caller can receive `rotation_count=1`
@@ -471,6 +473,8 @@ rotation_count/status). Three confirmed findings.
   update the comment to state the lock only protects `_rotation_count`; update the
   docstring to explicitly note `current_size_bytes` is a best-effort sample and may
   not be consistent with `rotation_count` in a single call.
+  Done: fixed on claude/task-48-status-comment (7154b45); status() docstring now
+  explicitly states "May not be consistent with rotation_count."
 
 - [x] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
   `_maybe_rotate()` uses `except OSError: pass`. A `KeyboardInterrupt` or
@@ -568,6 +572,33 @@ change.
   a new focused file).
   Done: __all__ updated to include MAX_EVENT_LINES and MAX_EVENT_BYTES;
   import verified in stub environment (claude/task-50-server-epoch).
+
+## 0.32.2 hardening — ninth deep analysis cycle (2026-05-31)
+
+High-effort review of tasks 50-52 (server_epoch, hasattr cleanup, __all__ exports).
+Six candidate findings; three confirmed/plausible and fixed.
+
+- [x] **task-53 (MEDIUM): Remove duplicate EventLog/SessionStore init in AdminGuiServer.__init__**
+  Second init at lines 631-632 used `data_root/sessions` (wrong path, differs from
+  DEFAULT_SESSION_STATE=`.../gui/sessions`) and created a fresh EventLog with a new
+  server_epoch mid-init. Removed duplicate assignments; kept correct first init
+  (lines 620-621) using `gui_state_dir/sessions`.
+  Done: 4 source-guard tests pass; py_compile OK (cb668ec).
+
+- [x] **task-54 (MEDIUM): Fix pollEvents() stale-events processing after rotation/restart**
+  After resetting `lastEventIndex=0` on epoch/rotation change, the function
+  continued processing `r.events` from the stale poll (fetched with the OLD
+  after_index). If the new log already had >N lines when rotation was detected,
+  events 0..N-1 would be permanently skipped.
+  Fix: added `return` immediately after the reset in both branches.
+  Done: 3 source-guard tests pass; node --check OK (cb668ec).
+
+- [x] **task-55 (LOW): Guard status() call in events_api() to preserve events on failure**
+  Previously one try block covered both read() and status(); a status() failure
+  discarded already-fetched events and returned ok=false with empty events.
+  Fix: two separate try blocks — read() failure returns ok=false; status()
+  failure returns ok=true with fetched events and safe defaults.
+  Done: 3 tests pass (source inspection + behavioural) (cb668ec).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
