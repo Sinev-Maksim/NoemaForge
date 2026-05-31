@@ -964,16 +964,19 @@ Eight findings identified; six fixed as tasks 81-86.
 
 ### Remaining findings from this cycle (deferred as new tasks):
 
-- **task-87 (LOW)**: _read_json() swallows all exceptions silently including
+- [x] **task-87 (LOW)**: _read_json() swallows all exceptions silently including
   json.JSONDecodeError from corrupt files. Operator gets no log output; next
   _upsert_job() overwrites jobs.json with empty list. Fix: add sys.stderr.write
   warning inside the except block to surface corruption without re-raising.
+  Done: 3 source-guard + 3 behavioural tests; py_compile clean (2106cd9).
 
-- **task-88 (LOW)**: normalize_job_record() sets progress to {"current":0,"total":0,
+- [x] **task-88 (LOW)**: normalize_job_record() sets progress to {"current":0,"total":0,
   "label":"queued"} only when progress is not a dict. If progress IS a dict but
   missing internal keys (e.g. {"current": 5}), normalize_job_record returns it
   as-is. Frontend code that accesses progress.label receives undefined.
   Fix: add normalize_job_progress() helper ensuring all three sub-keys exist.
+  Done: normalize_job_progress() in orchestration_state.py; normalize_job_record()
+  delegates to it; 8 functional + 2 source-guard tests pass (2106cd9).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
