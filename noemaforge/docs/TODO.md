@@ -655,6 +655,22 @@ Five findings; one confirmed and fixed, others refuted or low-priority.
   7 tests in test_write_json_atomic.py pass (consistency with SessionStore
   and event_log patterns verified) (see current commit).
 
+## 0.32.2 hardening — thirteenth deep analysis cycle (2026-05-31)
+
+Broad coverage scan: identified zero-coverage paths in SessionStore and
+admin_gui_server. Two gaps found: SessionStore.events() had no tests, and
+_serve_static() parent-dir boundary had no tests.
+
+- [x] **task-61 (MEDIUM): Add test coverage for SessionStore.events() read-back path**
+  `SessionStore.events()` — the JSONL read-back method feeding `/api/events`
+  polling and SSE — had zero test coverage. Any regression (missing index field,
+  broken after_index filter, malformed-line crash) would pass silently.
+  14 tests in `test_session_store_events.py` cover: empty file returns [],
+  index field injection, after_index pagination (0/N/9999), limit truncation,
+  malformed JSON skipped without crash, empty lines skipped, and event-type
+  verification (session.created / session.updated / session.message).
+  14/14 pass; ResourceWarning (unclosed file) fixed before commit (this commit).
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
