@@ -29,13 +29,30 @@ def nowz() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def normalize_job_progress(progress: Any) -> Dict[str, Any]:
+    """Return a progress dict with all required sub-fields filled in.
+
+    Guarantees that ``current``, ``total``, and ``label`` are always present
+    so frontend code can safely access ``progress.label`` without undefined
+    errors even when the stored progress dict was created by an older code path
+    that omitted some keys.
+    """
+    if not isinstance(progress, dict):
+        return {"current": 0, "total": 0, "label": "queued"}
+    return {
+        "current": _safe_int(progress.get("current"), 0),
+        "total": _safe_int(progress.get("total"), 0),
+        "label": str(progress.get("label") or "queued"),
+    }
+
+
 def normalize_job_record(record: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "job_id": str(record.get("job_id") or ""),
         "kind": str(record.get("kind") or "unknown"),
         "status": str(record.get("status") or "queued"),
         "lock_key": str(record.get("lock_key") or ""),
-        "progress": record.get("progress") if isinstance(record.get("progress"), dict) else {"current": 0, "total": 0, "label": "queued"},
+        "progress": normalize_job_progress(record.get("progress")),
         "artifacts": list(record.get("artifacts") or []),
         "created_at": str(record.get("created_at") or nowz()),
         "updated_at": str(record.get("updated_at") or nowz()),

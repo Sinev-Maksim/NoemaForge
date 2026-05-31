@@ -662,7 +662,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         try:
             if path.exists():
                 return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - fallback is intentional
+            # Surface file corruption to the operator log without disrupting
+            # availability.  Callers receive the safe default and continue.
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _read_json: corrupt or unreadable {path}: {exc}\n")
             return default
         return default
 
