@@ -472,7 +472,7 @@ rotation_count/status). Three confirmed findings.
   docstring to explicitly note `current_size_bytes` is a best-effort sample and may
   not be consistent with `rotation_count` in a single call.
 
-- [ ] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
+- [x] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
   `_maybe_rotate()` uses `except OSError: pass`. A `KeyboardInterrupt` or
   `SystemExit` raised between `archive.write_bytes(content)` (archive written) and
   `fh.truncate(0)` (live file not yet cleared) leaves both the live file and the
@@ -485,6 +485,10 @@ rotation_count/status). Three confirmed findings.
   separate try/except blocks, using `BaseException` for the outer guard or
   adding a plain comment explaining why `KeyboardInterrupt` is an accepted risk
   in this path.
+  Done: expanded `_maybe_rotate()` docstring to document KeyboardInterrupt/SystemExit
+  risk, intentional narrowness of `except OSError`, and accepted duplicate-archive
+  scenario. 11 tests in `test_rotate_interrupt_doc.py` pass (bea0aca,
+  claude/task-49-rotate-interrupt-doc).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
