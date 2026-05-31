@@ -628,8 +628,6 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
-        self.session_store = SessionStore(self.data_root / "sessions")
-        self.event_log = EventLog(self.data_root / "events")
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -757,15 +755,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         """
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
-            st = self.event_log.status()
-            return {
-                "ok": True,
-                "version": RUNTIME_VERSION,
-                "events": events,
-                "count": len(events),
-                "server_epoch": st.get("server_epoch", ""),
-                "rotation_count": st.get("rotation_count", 0),
-            }
         except Exception as exc:
             return {
                 "ok": False,
@@ -776,6 +765,23 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "rotation_count": 0,
                 "error": str(exc),
             }
+        # status() is best-effort: if it fails, still return the events we already
+        # fetched rather than discarding them.
+        try:
+            st = self.event_log.status()
+            server_epoch = st.get("server_epoch", "")
+            rotation_count = int(st.get("rotation_count", 0))
+        except Exception:
+            server_epoch = ""
+            rotation_count = 0
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "events": events,
+            "count": len(events),
+            "server_epoch": server_epoch,
+            "rotation_count": rotation_count,
+        }
 
     # --- session state ----------------------------------------------------------------
     def session_current(self) -> Dict[str, Any]:

@@ -292,13 +292,18 @@ async function pollEvents(){
     if(lastServerEpoch === null) lastServerEpoch = r.server_epoch || null;
     if(r.server_epoch && r.server_epoch !== lastServerEpoch){
       // Server restarted — reset cursor and adopt new epoch.
+      // Return immediately: current r.events was fetched with a stale after_index;
+      // processing it would advance lastEventIndex past events 0..N that we must
+      // still fetch. The next poll will start clean from after_index=0.
       lastEventIndex = 0;
       lastServerEpoch = r.server_epoch;
       lastRotationCount = r.rotation_count || 0;
+      return;
     } else if(typeof r.rotation_count === 'number' && r.rotation_count !== lastRotationCount){
-      // In-process rotation — log was truncated.
+      // In-process rotation — log was truncated. Same reasoning: return early.
       lastEventIndex = 0;
       lastRotationCount = r.rotation_count;
+      return;
     }
     const events = r.events || [];
     if(!events.length) return;
