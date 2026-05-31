@@ -35,6 +35,7 @@ if str(_SRC) not in sys.path:
 
 _LSP_SRC = (_SRC / "lsp_facade.py").read_text(encoding="utf-8")
 _MCR_SRC = (_SRC / "mcp_router.py").read_text(encoding="utf-8")
+_PLR_SRC = (_SRC / "plugin_runner.py").read_text(encoding="utf-8")
 _ORCH_SRC = (_SRC / "orchestration_state.py").read_text(encoding="utf-8")
 
 
@@ -80,6 +81,19 @@ class TestSafeIntDeduplicated(unittest.TestCase):
         call_idx = _MCR_SRC.index("_safe_int(", import_idx + 1)
         self.assertLess(import_idx, call_idx,
                         "orchestration_state import must precede first _safe_int() call")
+
+    # --- plugin_runner.py ---
+
+    def test_plugin_runner_no_local_safe_int_def(self) -> None:
+        """plugin_runner.py must NOT define its own _safe_int."""
+        count = _PLR_SRC.count("def _safe_int(")
+        self.assertEqual(count, 0,
+                         "plugin_runner.py must not define its own _safe_int (import from orchestration_state)")
+
+    def test_plugin_runner_imports_safe_int_from_orchestration_state(self) -> None:
+        """plugin_runner.py must import _safe_int from orchestration_state."""
+        self.assertIn("from orchestration_state import _safe_int", _PLR_SRC,
+                      "plugin_runner.py must import _safe_int from orchestration_state")
 
     # --- orchestration_state.py (canonical version) ---
 

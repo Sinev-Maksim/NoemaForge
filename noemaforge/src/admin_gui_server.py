@@ -862,8 +862,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         if persona:
             conv["active_persona"] = persona
         self._save_conversation(conv)
-        # Sync message into session store so browser refresh can restore history.
-        self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
@@ -1179,14 +1177,19 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
-        job = self._read_json(self.job_file(job_id), None)
-        if not job:
-            for j in self.jobs_data().get("jobs", []):
-                if j.get("job_id") == job_id:
-                    job = j
-                    break
+        # Acquire _jobs_lock so reads are consistent with concurrent
+        # _upsert_job()/_persist_job()/job_cancel() writes.
+        with self._jobs_lock:
+            job = self._read_json(self.job_file(job_id), None)
+            if not job:
+                for j in self.jobs_data().get("jobs", []):
+                    if j.get("job_id") == job_id:
+                        job = j
+                        break
         if isinstance(job, dict):
-            job = dict(job)
+            # normalize_job_record() guarantees all schema fields have safe
+            # defaults; enrich_artifact_cards() adds GUI display metadata.
+            job = normalize_job_record(dict(job))
             job["artifacts"] = enrich_artifact_cards(job.get("artifacts") if isinstance(job.get("artifacts"), list) else [])
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
@@ -1198,14 +1201,20 @@ class AdminGuiServer(ThreadingHTTPServer):
                 if j.get("job_id") == job_id:
                     if j.get("status") in FINAL_JOB_STATES:
                         # Job is already done/failed/cancelled — do not revert it.
-                        # Return the existing record so the UI can refresh its state.
-                        return {"ok": False, "version": RUNTIME_VERSION, "job": j, "reply": f"Job already in terminal state: {j['status']}"}
+                        # Return the normalized record so the UI can refresh its state.
+                        norm = normalize_job_record(dict(j))
+                        norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                        return {"ok": False, "version": RUNTIME_VERSION, "job": norm, "reply": f"Job already in terminal state: {j['status']}"}
                     # Use cancel_requested so running subprocesses can detect the
                     # request before the orchestrator confirms the final cancelled state.
                     j["status"] = "cancel_requested"
                     j["updated_at"] = now_iso()
                     target = j
-            self._write_json(self.jobs_file(), data)
+            # Only write jobs.json when a job was actually mutated (task-84).
+            # Skipping the write for not-found avoids a no-op disk round-trip
+            # while holding _jobs_lock under concurrency.
+            if target is not None:
+                self._write_json(self.jobs_file(), data)
         if target:
             jid = target["job_id"]
             # Intentionally outside _jobs_lock: the status update is already
@@ -1214,7 +1223,9 @@ class AdminGuiServer(ThreadingHTTPServer):
             # idempotent, so a concurrent duplicate call produces the same bytes.
             # _write_json() uses tmp-then-replace atomicity, so readers always
             # see a complete file even without the lock.
-            self._write_json(self.job_file(str(jid)), target)
+            norm_target = normalize_job_record(dict(target))
+            norm_target["artifacts"] = enrich_artifact_cards(norm_target.get("artifacts") if isinstance(norm_target.get("artifacts"), list) else [])
+            self._write_json(self.job_file(str(jid)), norm_target)
             # Write a sentinel file that long-running subprocesses can poll
             # without parsing JSON (lightweight cancel-marker check).
             marker = self.job_cancel_marker_file(str(jid))
@@ -1222,7 +1233,8 @@ class AdminGuiServer(ThreadingHTTPServer):
                 marker.write_text(now_iso() + "\n", encoding="utf-8")
             except OSError:
                 pass
-        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Cancel requested" if target else "Job not found"}
+        result_job = norm_target if target else {}
+        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": result_job, "reply": "Cancel requested" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:

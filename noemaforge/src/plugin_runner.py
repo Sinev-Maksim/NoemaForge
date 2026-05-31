@@ -54,6 +54,7 @@ import json
 import os
 from typing import Any, Dict, Optional, Tuple
 
+from orchestration_state import _safe_int  # canonical NaN/Inf-safe implementation
 from sandbox import run as sandbox_run, roots_from_allowlist_patterns, quota_from_policy, microvm_available
 from toolvault import (
     bundle_paths,
@@ -62,25 +63,6 @@ from toolvault import (
     prepare_plugin_bundle,
     verify_bundle_attestation,
 )
-
-
-# === NoemaForge Autodoc Function Header ===
-# Function: _safe_int(x, default: int)
-# Purpose: Implement the routine ' safe int'.
-# Inputs:
-#   - x
-#   - default: int
-# Called by:
-#   - No external Python callsite detected; may be internal-only, callback-based, or CLI-dispatched.
-# Calls:
-#   - int
-# Returns / emits: int
-# === End NoemaForge Autodoc Function Header ===
-def _safe_int(x: Any, default: int) -> int:
-    try:
-        return int(x)
-    except Exception:
-        return int(default)
 
 
 # === NoemaForge Autodoc Function Header ===
