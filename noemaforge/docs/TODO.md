@@ -978,6 +978,45 @@ Eight findings identified; six fixed as tasks 81-86.
   Done: normalize_job_progress() in orchestration_state.py; normalize_job_record()
   delegates to it; 8 functional + 2 source-guard tests pass (2106cd9).
 
+## 0.32.2 hardening — nineteenth deep analysis cycle (2026-06-01)
+
+Targeted review of remaining gaps after tasks 77-88 (jobs_list lock, per-job
+normalize, job_cancel normalize/write-guard, save_message dedup, job_get lock,
+_read_json stderr, normalize_job_progress). Five findings; four MEDIUM fixed.
+
+- [x] **task-89 (MEDIUM): Remove double session.saved event from session_store.save()**
+  save() emitted 'session.saved' then each caller (update/append_message) emitted
+  its own semantic event — every GUI action wrote 2 events to session-events.jsonl,
+  doubling the log size and making after_index polling unreliable.
+  Fixed: save() is now a pure persistence helper; callers retain their events.
+  4 source-guard tests + 157 total tests green (5306b2b).
+
+- [x] **task-90 (MEDIUM): _upsert_job() and _persist_job() write normalized per-job files**
+  Per-job .json files were written with raw job dicts — missing fields like
+  lock_key, finished_at, version that normalize_job_record() would add.
+  Fixed: both methods now call normalize_job_record(dict(job)) for the per-job
+  file write so job_get() always reads a schema-complete record.
+  3 source-guard tests; all regression suites green (5306b2b).
+
+- [x] **task-91 (MEDIUM): Add _tasks_lock to task_create() and task_update()**
+  Both methods did tasks_data() + _write_json() without a lock — concurrent
+  POST /api/tasks requests could silently overwrite each other's tasks.
+  Fixed: self._tasks_lock = threading.Lock() in __init__; both methods acquire it.
+  6 source-guard tests (5306b2b).
+
+- [x] **task-92 (LOW): Initialize norm_target before 'if target:' in job_cancel()**
+  norm_target was only defined inside 'if target:' but used in the ternary on the
+  return line. Runtime-safe due to ternary short-circuit, but fragile under refactor.
+  Fixed: norm_target: Dict[str, Any] = {} initialized before the if block.
+  2 source-guard tests (5306b2b).
+
+### Remaining findings from nineteenth cycle (deferred as new tasks):
+
+- **task-93 (LOW)**: _append_event() in session_store.py documents "Caller must
+  hold self._lock" in its docstring but does not enforce this contract. A future
+  developer adding a new call outside the lock would create a JSONL race silently.
+  Fix: rename to _append_event_locked or add an internal assertion.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
