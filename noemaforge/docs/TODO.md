@@ -716,7 +716,17 @@ Coverage scan of admin_gui_server.py found two dead-code bugs:
   critical). 9 tests cover: empty rejected, tilde rejected, relative rejected,
   outside-roots rejected, traversal via '..' rejected, nonexistent rejected,
   valid file accepted with size, valid directory accepted with is_dir=True.
-  22/22 pass; py_compile clean.
+  22/22 pass; py_compile clean (15aa488).
+
+- [x] **task-65 (MEDIUM): Add OSError cleanup to SessionStore._write_atomic()**
+  `_write_atomic()` used no try/except — if `tmp.replace(path)` failed, the
+  `.tmp` file was left behind (disk full, permissions, Windows lock). Multiple
+  failed writes would accumulate orphaned `.tmp` files.
+  Fix: wrap the write+replace in try/except OSError; unlink the tmp file on
+  failure (matching the pattern already enforced in AdminGuiServer._write_json()
+  since task-60). Added `test_session_store_cleans_up_tmp_on_error` guard to
+  test_write_json_atomic.py `TestWriteJsonConsistency`.
+  8 write_json_atomic tests + 35 total session-store tests all pass; py_compile clean.
 
 ## 0.32.2 Cursor Brief — remaining open items
 

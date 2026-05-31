@@ -49,10 +49,25 @@ class SessionStore:
         return self.root / f"{clean}.json"
 
     def _write_atomic(self, path: Path, payload: Dict[str, Any]) -> None:
+        """Write payload as JSON to path atomically via a tmp-then-replace.
+
+        On failure the tmp file is removed so stale .tmp files do not accumulate.
+        Matches the OSError-cleanup pattern used by AdminGuiServer._write_json().
+        """
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        tmp.replace(path)
+        try:
+            tmp.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
+            tmp.replace(path)
+        except OSError:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     def _append_event(self, event_type: str, session: Dict[str, Any], data: Optional[Dict[str, Any]] = None) -> None:
         """Append a structured event row to session-events.jsonl.  Caller must hold self._lock."""

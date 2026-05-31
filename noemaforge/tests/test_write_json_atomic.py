@@ -136,6 +136,15 @@ class TestWriteJsonConsistency(unittest.TestCase):
         self.assertIn(".tmp", session_src)
         self.assertIn(".replace(", session_src)
 
+    def test_session_store_cleans_up_tmp_on_error(self):
+        """_write_atomic() must call unlink(missing_ok=True) on OSError to match _write_json()."""
+        session_src = (_SRC / "session_store.py").read_text(encoding="utf-8")
+        self.assertTrue(
+            "unlink" in session_src or "missing_ok" in session_src,
+            "_write_atomic() must clean up the tmp file on OSError — "
+            "matches the pattern already enforced in AdminGuiServer._write_json()."
+        )
+
     def test_event_log_uses_copy_then_truncate(self):
         """event_log.py uses copy-then-truncate (write_bytes + truncate) not direct overwrite."""
         event_src = (_SRC / "event_log.py").read_text(encoding="utf-8")
