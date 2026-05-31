@@ -223,6 +223,18 @@ class TestSessionStoreLock(unittest.TestCase):
                 except json.JSONDecodeError as exc:
                     self.fail(f"JSONL corruption on line {lineno}: {exc!r}\nLine: {line!r}")
 
+        # Verify session JSON contains all messages (not just valid JSONL).
+        # Without proper locking, a late thread's save() could overwrite an
+        # earlier thread's save(), silently dropping messages from the session.
+        final_session = self.store.load("default")
+        final_messages = final_session.get("messages", [])
+        self.assertEqual(
+            len(final_messages), n_threads * n_messages,
+            f"Expected {n_threads * n_messages} messages in session JSON after concurrent "
+            f"append_message() calls; got {len(final_messages)}. "
+            "This indicates a lost-update race despite RLock."
+        )
+
     def test_load_and_save_do_not_deadlock(self):
         """load() followed by save() must not deadlock (RLock allows re-entry)."""
         session = self.store.load("default")
