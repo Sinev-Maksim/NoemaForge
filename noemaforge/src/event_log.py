@@ -240,4 +240,10 @@ class EventLog:
         return rows
 
 
-__all__ = ["EventLog", "DEFAULT_EVENT_STATE", "_MAX_ARCHIVE_DEPTH"]
+__all__ = [
+    "EventLog",
+    "DEFAULT_EVENT_STATE",
+    "MAX_EVENT_LINES",
+    "MAX_EVENT_BYTES",
+    "_MAX_ARCHIVE_DEPTH",
+]

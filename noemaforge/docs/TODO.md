@@ -514,7 +514,7 @@ Fix: add a `server_epoch` field (UUID4 hex, generated at `EventLog.__init__`
 time) to `status()` and include it in `/api/events`.  Browser tracks
 `lastServerEpoch`; any mismatch → `lastEventIndex = 0` + update.
 
-- [ ] **task-50 (HIGH): Add `server_epoch` to `EventLog.status()` and `/api/events`
+- [x] **task-50 (HIGH): Add `server_epoch` to `EventLog.status()` and `/api/events`
   to fix missed-event bug after server restart**
   In `EventLog.__init__`: `self._server_epoch = uuid.uuid4().hex[:16]`.
   In `status()`: add `"server_epoch": self._server_epoch`.
@@ -526,6 +526,9 @@ time) to `status()` and include it in `/api/events`.  Browser tracks
   Tests: `test_eventlog_server_epoch.py` (epoch stable within process,
   different across instances, present in status() dict, triggers reset in
   pollEvents simulation).
+  Done: 13 tests pass; events_api() returns server_epoch + rotation_count;
+  app.js resets lastEventIndex on epoch or rotation_count change (620f5db,
+  claude/task-50-server-epoch).
 
 ### Finding 2 — Dead `hasattr` guard in `events_api()` (LOW)
 
@@ -534,7 +537,7 @@ try: rotation_count = int(self.event_log.status()...)` as a defensive
 fallback.  Since `EventLog` always has `status()`, this guard is dead code
 that adds visual noise and an extra try/except nesting level.
 
-- [ ] **task-51 (LOW): Remove dead `hasattr(self.event_log, "status")` guard
+- [x] **task-51 (LOW): Remove dead `hasattr(self.event_log, "status")` guard
   in `events_api()`**
   Replace the three-level defensive block with a direct call:
   `rotation_count = int(self.event_log.status().get("rotation_count", 0))`.
@@ -542,6 +545,9 @@ that adds visual noise and an extra try/except nesting level.
   existing error path.
   Tests: update `test_events_api_rotation_count.py` to assert no `hasattr`
   call is made (source inspection); verify the simplified path in unit test.
+  Done: absorbed into task-50 — events_api() on claude/task-50-server-epoch
+  was written without hasattr guard from the start; direct st = self.event_log.status()
+  call used throughout. No separate commit needed.
 
 ### Finding 3 — Threshold constants not exported from `event_log` (LOW)
 
@@ -552,7 +558,7 @@ and `test_eventlog_rotation_count.py` hardcode `10_000` and `10 * 1024 *
 1024` instead of importing the constants, making them brittle if thresholds
 change.
 
-- [ ] **task-52 (LOW): Add `MAX_EVENT_LINES` and `MAX_EVENT_BYTES` to
+- [x] **task-52 (LOW): Add `MAX_EVENT_LINES` and `MAX_EVENT_BYTES` to
   `event_log.__all__` and update tests to import them**
   One-line change to `__all__` in `event_log.py`.
   Update affected test files to `from event_log import MAX_EVENT_LINES,
@@ -560,6 +566,8 @@ change.
   Tests: verify `from event_log import MAX_EVENT_LINES, MAX_EVENT_BYTES`
   works in a stub-installed environment (add to test_rotate_interrupt_doc or
   a new focused file).
+  Done: __all__ updated to include MAX_EVENT_LINES and MAX_EVENT_BYTES;
+  import verified in stub environment (claude/task-50-server-epoch).
 
 ## 0.32.2 Cursor Brief — remaining open items
 
