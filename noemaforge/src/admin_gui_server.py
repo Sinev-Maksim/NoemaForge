@@ -55,7 +55,7 @@ from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
-from orchestration_state import is_active_job, FINAL_JOB_STATES
+from orchestration_state import is_active_job, FINAL_JOB_STATES, normalize_job_record
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -1111,14 +1111,24 @@ class AdminGuiServer(ThreadingHTTPServer):
             return job
 
     def jobs_list(self) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = []
-        for job in data.get("jobs", []):
-            if isinstance(job, dict):
-                item = dict(job)
-                item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
-                jobs.append(item)
+        # Acquire _jobs_lock so the read-then-copy cycle is consistent with
+        # _upsert_job()/_persist_job()/job_cancel() which all write inside the
+        # same lock.  The lock is released before the session_store sync to
+        # avoid holding it during the (potentially slow) JSONL write.
+        with self._jobs_lock:
+            data = self.jobs_data()
+            jobs = []
+            for job in data.get("jobs", []):
+                if isinstance(job, dict):
+                    # normalize_job_record() guarantees all schema fields are
+                    # present with safe defaults, then enrich_artifact_cards()
+                    # adds GUI-specific display metadata on top.
+                    item = normalize_job_record(dict(job))
+                    item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+                    jobs.append(item)
         # Sync active jobs into session store for browser-refresh restore.
+        # This is intentionally outside _jobs_lock to avoid holding the lock
+        # during the session_store JSONL write.
         try:
             active = [j for j in jobs if is_active_job(j)]
             self.session_store.attach_active_jobs("default", active)
@@ -1198,6 +1208,12 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.jobs_file(), data)
         if target:
             jid = target["job_id"]
+            # Intentionally outside _jobs_lock: the status update is already
+            # committed to jobs.json under the lock above; these two writes are
+            # supplementary (per-job JSON + cancel sentinel).  Both writes are
+            # idempotent, so a concurrent duplicate call produces the same bytes.
+            # _write_json() uses tmp-then-replace atomicity, so readers always
+            # see a complete file even without the lock.
             self._write_json(self.job_file(str(jid)), target)
             # Write a sentinel file that long-running subprocesses can poll
             # without parsing JSON (lightweight cancel-marker check).

@@ -48,6 +48,7 @@ def _install_stubs() -> None:
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-05-31T00:00:00Z"
     stub_orch.normalize_session_record = lambda r: r
+    stub_orch.normalize_job_record = lambda r: dict(r)  # passthrough for job tests
     stub_orch.is_active_job = lambda job: str(job.get("status") or "") in {"queued", "running", "needs_privilege", "starting", "cancel_requested"}
     stub_orch.ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested", "needs_privilege"}
     stub_orch.FINAL_JOB_STATES = {"done", "failed", "cancelled"}
