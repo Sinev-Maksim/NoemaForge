@@ -600,6 +600,32 @@ Six candidate findings; three confirmed/plausible and fixed.
   failure returns ok=true with fetched events and safe defaults.
   Done: 3 tests pass (source inspection + behavioural) (cb668ec).
 
+## 0.32.2 hardening — tenth deep analysis cycle (2026-05-31)
+
+Review of ninth-cycle fixes (double-init, stale-events return, events_api split).
+Five candidate findings; three confirmed and fixed.
+
+- [x] **task-56 (LOW): Add server_epoch/rotation_count shape assertions to events_api tests**
+  Test stubs for events_api() only checked `{ok, events, count}`; removing
+  server_epoch or rotation_count from the real method would pass silently.
+  Done: 4 source-guard tests in test_session_store_thread_safety.py verify
+  both fields appear in ok AND error return paths (72597f4).
+
+- [x] **task-57 (MEDIUM): Fix empty-string server_epoch trap in app.js pollEvents()**
+  First-poll assignment `lastServerEpoch = r.server_epoch || null` coerced ""
+  (returned by events_api error path) to null, keeping lastServerEpoch=null
+  permanently and making restart-detection always false.
+  Fix: `if(lastServerEpoch === null && r.server_epoch) lastServerEpoch = r.server_epoch`
+  — only adopts truthy (non-empty) epoch values. 3 source-guard tests pass (72597f4).
+
+- [x] **task-58 (HIGH): Add threading.RLock() to SessionStore**
+  ThreadingHTTPServer dispatches concurrent request threads; concurrent
+  append_message()/update() calls shared _append_event() which used bare
+  open("a") without any lock, risking interleaved JSONL writes.
+  Fix: self._lock = threading.RLock(); acquired at top of load(), save(),
+  update(), append_message(). Reentrant so update→load→save chain does not
+  deadlock. 6 tests including concurrent-write JSONL validation all pass (72597f4).
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
