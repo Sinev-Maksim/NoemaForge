@@ -703,7 +703,20 @@ Coverage scan of admin_gui_server.py found two dead-code bugs:
   Added 7 source-guard tests in `test_dead_code_removal.py`.
   All directly-related tests pass; test_session_mode_history.py has 3 pre-
   existing failures unrelated to this change (double-append regression in
-  the unmerged branch state). py_compile clean.
+  the unmerged branch state). py_compile clean (580ec78).
+
+- [x] **task-64 (MEDIUM): Unit tests for safe_id() and resolve_artifact_path()**
+  `safe_id()` is used for ALL path construction (job files, avatar paths,
+  artifact names). A regression allowing '..' or '/' would re-introduce
+  path traversal in every caller. 13 safe_id tests cover: normal input
+  unchanged, slashes replaced, '..' → "item" (default), traversal seq
+  sanitized, empty/whitespace → default, all-special → default, 96-char
+  truncation, custom default parameter.
+  `resolve_artifact_path()` enforces containment in allowed roots (security
+  critical). 9 tests cover: empty rejected, tilde rejected, relative rejected,
+  outside-roots rejected, traversal via '..' rejected, nonexistent rejected,
+  valid file accepted with size, valid directory accepted with is_dir=True.
+  22/22 pass; py_compile clean.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
