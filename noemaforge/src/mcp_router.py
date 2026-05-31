@@ -58,6 +58,8 @@ import os
 import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+from orchestration_state import _safe_int  # canonical NaN/Inf-safe implementation
+
 try:
     import yaml  # type: ignore
 except Exception:
@@ -189,24 +191,6 @@ def _resolve_paths(base_dir: str, raw: Any) -> List[str]:
             continue
         vals.append(txt if os.path.isabs(txt) else os.path.abspath(os.path.join(base_dir, txt)))
     return vals
-
-
-# === NoemaForge Autodoc Function Header ===
-# Function: _safe_int(value: Any, default: int)
-# Purpose: Coerce arbitrary values to an integer.
-# Inputs:
-#   - value: Any
-#   - default: int
-# Called by:
-#   - _docs_search
-#   - _issue_tracker
-# Returns / emits: int
-# === End NoemaForge Autodoc Function Header ===
-def _safe_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return int(default)
 
 
 # === NoemaForge Autodoc Function Header ===

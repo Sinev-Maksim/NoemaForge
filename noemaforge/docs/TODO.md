@@ -864,10 +864,12 @@ a partial-JSON read unlikely, but the read is still outside the lock intent.
 Fix: wrap `jobs_data()` call in `jobs_list()` with `with self._jobs_lock:` to
 make the read-then-copy operation consistent with the write callers.
 
-- [ ] **task-77 (MEDIUM): Acquire _jobs_lock in jobs_list() for consistent read**
+- [x] **task-77 (MEDIUM): Acquire _jobs_lock in jobs_list() for consistent read**
   Wrap the `jobs_data()` call and the subsequent list comprehension in
   `jobs_list()` inside `with self._jobs_lock:`. Add a source-guard test
   verifying `_jobs_lock` appears in the `jobs_list` method body.
+  Done: 4 lock source-guard tests + session_store-sync-outside comment guard;
+  15/15 in test_jobs_list_lock_normalize.py (8566a81).
 
 ### Finding 2 — job_cancel() writes cancel marker OUTSIDE _jobs_lock (LOW)
 
@@ -882,10 +884,12 @@ inconsistent with the stated lock semantics.
 No fix required; document the intentional out-of-lock marker write with a
 comment explaining the double-write is safe (sentinel is idempotent).
 
-- [ ] **task-78 (LOW): Document out-of-lock cancel marker write in job_cancel()**
+- [x] **task-78 (LOW): Document out-of-lock cancel marker write in job_cancel()**
   Add a one-line comment above the `self.job_file()` / `marker.write_text()`
   calls explaining they are intentionally outside `_jobs_lock` because the
   marker write is idempotent and the status is already committed under lock.
+  Done: multi-line comment added explaining idempotency + atomic tmp-replace;
+  3 source-guard tests pass (8566a81).
 
 ### Finding 3 — normalize_job_record() still dead code; jobs_list() returns raw dicts (LOW)
 
@@ -896,11 +900,13 @@ If a job was created by an older code path missing a key (e.g. `"artifacts"`,
 `normalize_job_record(job)` in `jobs_list()` would guarantee all fields are
 present with safe defaults.
 
-- [ ] **task-79 (LOW): Wire normalize_job_record() into jobs_list() return path**
+- [x] **task-79 (LOW): Wire normalize_job_record() into jobs_list() return path**
   In `jobs_list()`, replace `dict(job)` with
   `normalize_job_record(dict(job))` (import already present from
   orchestration_state). Add a source-guard test verifying `normalize_job_record`
   is called inside the `jobs_list` method body.
+  Done: 3 source-guard tests + 5 behavioural tests (minimal job gets all schema
+  fields, progress defaults to dict, full job preserved); 15/15 (8566a81).
 
 ### Finding 4 — Three duplicate _safe_int implementations (LOW, deferred from cycle 16)
 
