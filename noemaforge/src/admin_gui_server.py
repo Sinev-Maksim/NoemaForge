@@ -651,8 +651,23 @@ class AdminGuiServer(ThreadingHTTPServer):
         return default
 
     def _write_json(self, path: Path, obj: Any) -> None:
+        """Write obj as pretty JSON to path atomically via a tmp-then-replace.
+
+        The tmp-then-replace pattern prevents partial reads of a half-written file
+        (consistent with SessionStore._write_atomic() and EventLog copy-then-truncate).
+        On Windows, os.replace() can replace a file that is open for reading.
+        """
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json_dumps(obj), encoding="utf-8")
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        try:
+            tmp.write_text(json_dumps(obj), encoding="utf-8")
+            tmp.replace(path)
+        except OSError:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     def _append_jsonl(self, path: Path, obj: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)

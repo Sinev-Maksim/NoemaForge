@@ -626,6 +626,35 @@ Five candidate findings; three confirmed and fixed.
   update(), append_message(). Reentrant so update→load→save chain does not
   deadlock. 6 tests including concurrent-write JSONL validation all pass (72597f4).
 
+## 0.32.2 hardening — eleventh deep analysis cycle (2026-05-31)
+
+Review of tenth-cycle fixes (SessionStore RLock, empty-epoch guard, test shape).
+Four candidate findings; one real improvement actioned.
+
+- [x] **task-59 (LOW): Add session-count assertion to concurrent-write test**
+  test_concurrent_append_message_no_corruption() only checked JSONL format;
+  a lost-update regression would pass silently. Added final session load +
+  len(messages) == 80 assertion (955fe5e).
+
+## 0.32.2 hardening — twelfth deep analysis cycle (2026-05-31)
+
+Broad review of admin_gui_server.py beyond event_log/session_store.
+Five findings; one confirmed and fixed, others refuted or low-priority.
+
+- Path traversal via fallback-avatar path: REFUTED — safe_id().strip("-._")
+  converts ".." → "" → default "item"; no literal separator survives.
+- /api/shutdown without auth: accepted design — local-only 127.0.0.1 service.
+- _append_jsonl() race: low risk — concurrent admin GUI calls are rare.
+- _serve_static() without per-handler try/except: outer do_GET catch-all covers it.
+
+- [x] **task-60 (MEDIUM): Make _write_json() atomic via tmp-then-replace**
+  `path.write_text(json_dumps(obj))` writes directly — a concurrent reader
+  could see a half-written file (partial JSON). Fix: write to `.tmp` then
+  `tmp.replace(path)`, matching SessionStore._write_atomic() pattern.
+  Added OSError cleanup (tmp.unlink) on failure to prevent tmp-file leaks.
+  7 tests in test_write_json_atomic.py pass (consistency with SessionStore
+  and event_log patterns verified) (see current commit).
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
