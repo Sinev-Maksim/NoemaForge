@@ -289,7 +289,8 @@ async function pollEvents(){
   // log file is rotated in-process (rotation_count changes).
   try{
     const r = await api(`/api/events?after_index=${lastEventIndex}`);
-    if(lastServerEpoch === null) lastServerEpoch = r.server_epoch || null;
+    // Only adopt a non-empty server_epoch; empty string ("") from error paths is ignored.
+    if(lastServerEpoch === null && r.server_epoch) lastServerEpoch = r.server_epoch;
     if(r.server_epoch && r.server_epoch !== lastServerEpoch){
       // Server restarted — reset cursor and adopt new epoch.
       // Return immediately: current r.events was fetched with a stale after_index;
