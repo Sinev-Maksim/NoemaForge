@@ -548,12 +548,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/vault/reinventory":
                 self._send_json(self.server.vault_reinventory())
                 return
-            if path == "/api/session/mode":
-                session_id = str(body.get("session_id") or "default")
-                mode = str(body.get("mode") or "normal")
-                composite_top_n = int(body.get("composite_top_n") or 0)
-                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
-                return
             if path == "/api/workflow/stop":
                 self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
                 return
@@ -799,11 +793,6 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     # --- session state ----------------------------------------------------------------
-    def session_current(self) -> Dict[str, Any]:
-        """Return the current GUI session record (default session)."""
-        session = self.session_store.load("default")
-        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
-
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
         session = self.session_store.set_mode("default", mode, composite_top_n)

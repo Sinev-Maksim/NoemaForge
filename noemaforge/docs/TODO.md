@@ -680,7 +680,30 @@ _serve_static() parent-dir boundary had no tests.
   index.html (SPA safe default, no data exposure); URL-encoded traversal
   (%2e%2e) also falls back; empty/root path serves index.html; content-type
   detection for CSS and PNG verified.
-  14 tests in `test_serve_static.py`; 14/14 pass.
+  14 tests in `test_serve_static.py`; 14/14 pass (1df64a1).
+
+## 0.32.2 hardening — fourteenth deep analysis cycle (2026-05-31)
+
+Coverage scan of admin_gui_server.py found two dead-code bugs:
+1. `session_current()` defined twice — second definition (line ~1105) silently
+   overrides the first (line ~802); first had no try/except and hardcoded "default"
+   with no session_id param.
+2. `POST /api/session/mode` handled twice in `do_POST` — the second handler
+   (after /api/vault/reinventory) was unreachable because the first already
+   `return`s; dead handler also lacked composite_top_n validation.
+
+- [x] **task-63 (HIGH): Remove dead session_current() overload and duplicate
+  POST /api/session/mode handler from admin_gui_server.py**
+  Removed 4-line dead `session_current(self)` method (no session_id, no
+  try/except) that was always shadowed by the 6-line version at line ~1105.
+  Removed 6-line unreachable second `POST /api/session/mode` handler in
+  do_POST (called session_set_mode() without composite_top_n validation).
+  Updated `test_session_current_api.py`: changed stale zero-arg check
+  `session_current()` to `session_current(session_id)` (the real call).
+  Added 7 source-guard tests in `test_dead_code_removal.py`.
+  All directly-related tests pass; test_session_mode_history.py has 3 pre-
+  existing failures unrelated to this change (double-append regression in
+  the unmerged branch state). py_compile clean.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
