@@ -327,133 +327,139 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
-        if path == "/api/health":
-            self._send_json(self.server.health())
-            return
-        if path in {"/api/state", "/api/gui/state"}:
-            self._send_json(self.server.gui_state())
-            return
-        if path in {"/api/dashboard", "/api/dashboard/state"}:
-            self._send_json(self.server.dashboard_api())
-            return
-        if path == "/api/locales":
-            self._send_json(self.server.locales())
-            return
-        if path == "/api/epoch/status":
-            self._send_json(self.server.epoch_status())
-            return
-        if path == "/api/runtime/status":
-            self._send_json(self.server.runtime_status())
-            return
-        if path == "/api/runtime/observer-cards":
-            self._send_json(self.server.runtime_observer_cards())
-            return
-        if path == "/api/runtime/device-policy":
-            self._send_json(self.server.device_policy())
-            return
-        if path == "/api/telemetry/status":
-            self._send_json(self.server.telemetry_status())
-            return
-        if path == "/api/usecases":
-            self._send_json(self.server.usecases())
-            return
-        if path == "/api/public-showcase/scenario":
-            self._send_json(self.server.public_showcase_scenario())
-            return
+        try:
+            if path == "/api/health":
+                self._send_json(self.server.health())
+                return
+            if path in {"/api/state", "/api/gui/state"}:
+                self._send_json(self.server.gui_state())
+                return
+            if path in {"/api/dashboard", "/api/dashboard/state"}:
+                self._send_json(self.server.dashboard_api())
+                return
+            if path == "/api/locales":
+                self._send_json(self.server.locales())
+                return
+            if path == "/api/epoch/status":
+                self._send_json(self.server.epoch_status())
+                return
+            if path == "/api/runtime/status":
+                self._send_json(self.server.runtime_status())
+                return
+            if path == "/api/runtime/observer-cards":
+                self._send_json(self.server.runtime_observer_cards())
+                return
+            if path == "/api/runtime/device-policy":
+                self._send_json(self.server.device_policy())
+                return
+            if path == "/api/telemetry/status":
+                self._send_json(self.server.telemetry_status())
+                return
+            if path == "/api/usecases":
+                self._send_json(self.server.usecases())
+                return
+            if path == "/api/public-showcase/scenario":
+                self._send_json(self.server.public_showcase_scenario())
+                return
 
-        if path == "/api/events":
-            query = parse_qs(urlparse(self.path).query)
-            try:
-                after = int((query.get("after_index") or ["0"])[0])
-            except (TypeError, ValueError):
-                self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
-                return
-            if after < 0:
-                self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
-                return
-            try:
-                limit = int((query.get("limit") or ["200"])[0])
-            except (TypeError, ValueError):
-                limit = 200
-            self._send_json(self.server.events_api(after_index=after, limit=limit))
-            return
-        if path == "/api/session/current":
-            query = parse_qs(urlparse(self.path).query)
-            session_id = str((query.get("session_id") or ["default"])[0])
-            self._send_json(self.server.session_current(session_id))
-            return
-        if path == "/api/conversation/current":
-            self._send_json(self.server.conversation_current())
-            return
-        if path == "/api/conversation/history":
-            self._send_json(self.server.conversation_history())
-            return
-        if path == "/api/artifacts/open":
-            query = parse_qs(urlparse(self.path).query)
-            self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
-            return
-        if path == "/api/artifacts/download":
-            query = parse_qs(urlparse(self.path).query)
-            payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
-            if not payload.get("ok"):
-                self._send_json(payload, status=404 if payload.get("error") == "artifact not found" else 403)
-                return
-            data = payload.get("data") if isinstance(payload.get("data"), bytes) else b""
-            self.send_response(200)
-            self.send_header("Content-Type", str(payload.get("content_type") or "application/octet-stream"))
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Content-Disposition", f"attachment; filename=\"{safe_id(str(payload.get('filename') or 'artifact'), 'artifact')}\"")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(data)
-            return
-        if path == "/api/tasks":
-            self._send_json(self.server.tasks_list())
-            return
-        if path == "/api/inactivity/status":
-            self._send_json(self.server.inactivity_status())
-            return
-        if path == "/api/jobs":
-            self._send_json(self.server.jobs_list())
-            return
-        if path == "/api/jobs/stream":
-            self._send_sse(self.server.job_stream_events())
-            return
-        if path == "/api/persona/current":
-            self._send_json(self.server.persona_current())
-            return
-        if path == "/api/persona/catalog":
-            self._send_json(self.server.persona_catalog_api())
-            return
-        if path.startswith("/api/persona/fallback-avatar/"):
-            name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
-            candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
-            if candidate.exists():
-                self._send_bytes(candidate.read_bytes(), "image/svg+xml")
-            else:
-                self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
-            return
-        if path == "/api/pipelines/catalog":
-            self._send_json(self.server.pipeline_catalog_api())
-            return
-        if path.startswith("/api/pipelines/"):
-            parts = path.split("/")
-            if len(parts) >= 5:
-                pipeline_id = unquote(parts[3])
-                action = parts[4]
-                if action == "diagram":
-                    self._send_json(self.server.pipeline_diagram(pipeline_id))
+            if path == "/api/events":
+                query = parse_qs(urlparse(self.path).query)
+                try:
+                    after = int((query.get("after_index") or ["0"])[0])
+                except (TypeError, ValueError):
+                    self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
                     return
-                if action == "stats":
-                    self._send_json(self.server.pipeline_stats(pipeline_id))
+                if after < 0:
+                    self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
                     return
-            self._send_json({"ok": False, "error": "unknown pipeline API path"}, status=404)
-            return
-        if path.startswith("/api/jobs/"):
-            job_id = unquote(path.rsplit("/", 1)[-1])
-            self._send_json(self.server.job_get(job_id))
-            return
-        self._serve_static(path)
+                try:
+                    limit = int((query.get("limit") or ["200"])[0])
+                except (TypeError, ValueError):
+                    limit = 200
+                # Clamp limit: prevent DoS via huge values; file bounded by MAX_EVENT_LINES
+                # but response serialisation of 10 000 rows is still ~3 MB per request.
+                limit = min(max(1, limit), 1000)
+                self._send_json(self.server.events_api(after_index=after, limit=limit))
+                return
+            if path == "/api/session/current":
+                query = parse_qs(urlparse(self.path).query)
+                session_id = str((query.get("session_id") or ["default"])[0])
+                self._send_json(self.server.session_current(session_id))
+                return
+            if path == "/api/conversation/current":
+                self._send_json(self.server.conversation_current())
+                return
+            if path == "/api/conversation/history":
+                self._send_json(self.server.conversation_history())
+                return
+            if path == "/api/artifacts/open":
+                query = parse_qs(urlparse(self.path).query)
+                self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
+                return
+            if path == "/api/artifacts/download":
+                query = parse_qs(urlparse(self.path).query)
+                payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
+                if not payload.get("ok"):
+                    self._send_json(payload, status=404 if payload.get("error") == "artifact not found" else 403)
+                    return
+                data = payload.get("data") if isinstance(payload.get("data"), bytes) else b""
+                self.send_response(200)
+                self.send_header("Content-Type", str(payload.get("content_type") or "application/octet-stream"))
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Content-Disposition", f"attachment; filename=\"{safe_id(str(payload.get('filename') or 'artifact'), 'artifact')}\"")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            if path == "/api/tasks":
+                self._send_json(self.server.tasks_list())
+                return
+            if path == "/api/inactivity/status":
+                self._send_json(self.server.inactivity_status())
+                return
+            if path == "/api/jobs":
+                self._send_json(self.server.jobs_list())
+                return
+            if path == "/api/jobs/stream":
+                self._send_sse(self.server.job_stream_events())
+                return
+            if path == "/api/persona/current":
+                self._send_json(self.server.persona_current())
+                return
+            if path == "/api/persona/catalog":
+                self._send_json(self.server.persona_catalog_api())
+                return
+            if path.startswith("/api/persona/fallback-avatar/"):
+                name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
+                candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
+                if candidate.exists():
+                    self._send_bytes(candidate.read_bytes(), "image/svg+xml")
+                else:
+                    self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
+                return
+            if path == "/api/pipelines/catalog":
+                self._send_json(self.server.pipeline_catalog_api())
+                return
+            if path.startswith("/api/pipelines/"):
+                parts = path.split("/")
+                if len(parts) >= 5:
+                    pipeline_id = unquote(parts[3])
+                    action = parts[4]
+                    if action == "diagram":
+                        self._send_json(self.server.pipeline_diagram(pipeline_id))
+                        return
+                    if action == "stats":
+                        self._send_json(self.server.pipeline_stats(pipeline_id))
+                        return
+                self._send_json({"ok": False, "error": "unknown pipeline API path"}, status=404)
+                return
+            if path.startswith("/api/jobs/"):
+                job_id = unquote(path.rsplit("/", 1)[-1])
+                self._send_json(self.server.job_get(job_id))
+                return
+            self._serve_static(path)
+        except Exception as exc:  # pragma: no cover - server safety net
+            self._send_json({"ok": False, "error": repr(exc)}, status=500)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
