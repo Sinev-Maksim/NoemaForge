@@ -638,6 +638,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         # _upsert_job(), _persist_job(), and job_cancel() all do jobs_data()
         # + _write_json() without atomicity — the last writer wins otherwise.
         self._jobs_lock = threading.Lock()
+        # Protect task read-modify-write cycles from concurrent request threads
+        # (same pattern as _jobs_lock above — task_create and task_update both
+        # do tasks_data() + _write_json() without a lock otherwise).
+        self._tasks_lock = threading.Lock()
         self.runtime_dir = self.data_root / "runtime"
         self.ui_dir = self.root / "templates" / "pipeline-dashboard"
         if not self.ui_dir.exists():
@@ -998,41 +1002,43 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "tasks": tasks, "summary": {"total": len(tasks), "by_category": categories, "pending": sum(1 for t in tasks if t.get("status") == "pending"), "blocked": sum(1 for t in tasks if t.get("status") == "blocked")}}
 
     def task_create(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.tasks_data()
-        title = str(body.get("title") or body.get("task") or body.get("request") or "Untitled task")
-        task = {
-            "task_id": "task_" + safe_id(str(int(time.time())) + "_" + title, "task"),
-            "title": title,
-            "category": str(body.get("category") or "general"),
-            "priority": int(body.get("priority") or 50),
-            "status": str(body.get("status") or "pending"),
-            "assignee": str(body.get("assignee") or "Admin"),
-            "created_by": str(body.get("created_by") or "Admin"),
-            "created_at": now_iso(),
-            "updated_at": now_iso(),
-            "requires_approval": bool(body.get("requires_approval", True)),
-            "artifacts": [],
-        }
-        data.setdefault("tasks", []).append(task)
-        self._write_json(self.task_store_file(), data)
+        with self._tasks_lock:
+            data = self.tasks_data()
+            title = str(body.get("title") or body.get("task") or body.get("request") or "Untitled task")
+            task = {
+                "task_id": "task_" + safe_id(str(int(time.time())) + "_" + title, "task"),
+                "title": title,
+                "category": str(body.get("category") or "general"),
+                "priority": int(body.get("priority") or 50),
+                "status": str(body.get("status") or "pending"),
+                "assignee": str(body.get("assignee") or "Admin"),
+                "created_by": str(body.get("created_by") or "Admin"),
+                "created_at": now_iso(),
+                "updated_at": now_iso(),
+                "requires_approval": bool(body.get("requires_approval", True)),
+                "artifacts": [],
+            }
+            data.setdefault("tasks", []).append(task)
+            self._write_json(self.task_store_file(), data)
         self.save_message("system", f"Task created: {task['title']}", persona="Task Manager", intent="task_create", raw=task)
         return {"ok": True, "version": RUNTIME_VERSION, "task": task, "reply": f"Task created: {task['title']}"}
 
     def task_update(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.tasks_data()
         task_id = str(body.get("task_id") or body.get("id") or "")
-        found = None
-        for t in data.get("tasks", []):
-            if t.get("task_id") == task_id:
-                found = t
-                break
-        if not found:
-            return {"ok": False, "version": RUNTIME_VERSION, "error": "task not found", "task_id": task_id}
-        for key in ["title", "category", "priority", "status", "assignee", "deadline", "notes"]:
-            if key in body:
-                found[key] = body[key]
-        found["updated_at"] = now_iso()
-        self._write_json(self.task_store_file(), data)
+        with self._tasks_lock:
+            data = self.tasks_data()
+            found = None
+            for t in data.get("tasks", []):
+                if t.get("task_id") == task_id:
+                    found = t
+                    break
+            if not found:
+                return {"ok": False, "version": RUNTIME_VERSION, "error": "task not found", "task_id": task_id}
+            for key in ["title", "category", "priority", "status", "assignee", "deadline", "notes"]:
+                if key in body:
+                    found[key] = body[key]
+            found["updated_at"] = now_iso()
+            self._write_json(self.task_store_file(), data)
         self.save_message("system", f"Task updated: {task_id}", persona="Task Manager", intent="task_update", raw=found)
         return {"ok": True, "version": RUNTIME_VERSION, "task": found, "reply": f"Task updated: {task_id}"}
 
@@ -1088,7 +1094,10 @@ class AdminGuiServer(ThreadingHTTPServer):
                         return existing
             data.setdefault("jobs", []).append(job)
             self._write_json(self.jobs_file(), data)
-            self._write_json(self.job_file(str(job["job_id"])), job)
+            # Write the normalized schema to the per-job file so job_get()
+            # always reads a schema-complete record regardless of which code
+            # path created the job.
+            self._write_json(self.job_file(str(job["job_id"])), normalize_job_record(dict(job)))
             return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
@@ -1109,7 +1118,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             if not replaced:
                 jobs.append(job)
             self._write_json(self.jobs_file(), data)
-            self._write_json(self.job_file(str(job["job_id"])), job)
+            # Write normalized schema for schema-consistency with job_get().
+            self._write_json(self.job_file(str(job["job_id"])), normalize_job_record(dict(job)))
             return job
 
     def jobs_list(self) -> Dict[str, Any]:
@@ -1219,6 +1229,9 @@ class AdminGuiServer(ThreadingHTTPServer):
             # while holding _jobs_lock under concurrency.
             if target is not None:
                 self._write_json(self.jobs_file(), data)
+        # Initialize norm_target before the conditional so the ternary on the
+        # final return line is always defined regardless of branch taken.
+        norm_target: Dict[str, Any] = {}
         if target:
             jid = target["job_id"]
             # Intentionally outside _jobs_lock: the status update is already

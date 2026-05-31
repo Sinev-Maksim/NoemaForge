@@ -96,11 +96,15 @@ class SessionStore:
             return session
 
     def save(self, session: Dict[str, Any]) -> Dict[str, Any]:
-        """Normalize and persist a session record."""
+        """Normalize and persist a session record.
+
+        Does NOT emit a session event — callers (update, append_message) append
+        their own semantic event after calling save(), so emitting a generic
+        'session.saved' here would double every event in session-events.jsonl.
+        """
         with self._lock:
             normalized = normalize_session_record(session)
             self._write_atomic(self._session_path(normalized["session_id"]), normalized)
-            self._append_event("session.saved", normalized)
             return normalized
 
     def update(self, session_id: str = "default", **changes: Any) -> Dict[str, Any]:
