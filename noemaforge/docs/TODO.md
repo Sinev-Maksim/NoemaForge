@@ -1019,6 +1019,32 @@ _read_json stderr, normalize_job_progress). Five findings; four MEDIUM fixed.
   already holding it re-enter without deadlock). No caller changes needed.
   20/20 session_store_sanitization tests pass; py_compile clean.
 
+## 0.32.2 hardening — twentieth deep analysis cycle (2026-06-01)
+
+Final Windows-accessible hardening scan. Two concurrency gaps found in paths
+not yet locked. Both fixed.
+
+- [x] **task-94 (MEDIUM): tasks_list() acquires _tasks_lock for consistent reads**
+  tasks_list() called tasks_data() without _tasks_lock, racing with concurrent
+  task_create()/task_update() writes. Fixed: wrapped in 'with self._tasks_lock:'
+  (same pattern as jobs_list/_jobs_lock from task-77).
+  3 source-guard tests; py_compile clean (5b57adb).
+
+- [x] **task-95 (MEDIUM): save_message() acquires _conv_lock for conversation R-M-W**
+  Two concurrent request threads calling save_message() could both read
+  conversation-current.json, both append a message, and the last writer would
+  overwrite the other's entry. Fixed: self._conv_lock = threading.Lock() added
+  to __init__; save_message() acquires it around _conversation() + _save_conversation().
+  Lock order documented: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+  first, then calls save_message — never reversed, no deadlock).
+  8 source-guard tests; all regression suites green (5b57adb).
+
+### Windows-accessible tasks status: ALL CLOSED (tasks 1-95)
+All remaining open items require the target host (SHA256SUMS, smoke tests,
+shell validation) or are blocked on other branches merging (prune_terminal,
+preflight exception). No new Windows-doable hardening tasks identified after
+twentieth analysis cycle.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
