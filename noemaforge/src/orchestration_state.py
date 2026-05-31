@@ -54,9 +54,16 @@ def _safe_int(value: Any, default: int = 0) -> int:
     Needed because session files may be manually edited or migrated and could
     contain string values where integers are expected.  Using ``int(x or 0)``
     raises ValueError when x is a non-numeric string like "abc".
+
+    The isinstance fast-path for int/float is also guarded: int(float('nan'))
+    raises ValueError and int(float('inf')) raises OverflowError — both caught
+    and returned as default so callers always get a valid int.
     """
     if isinstance(value, (int, float)):
-        return int(value)
+        try:
+            return int(value)
+        except (ValueError, OverflowError):
+            return default
     try:
         return int(value)
     except (TypeError, ValueError):

@@ -113,6 +113,29 @@ class TestSafeInt(unittest.TestCase):
     def test_list_returns_default(self) -> None:
         self.assertEqual(_safe_int([1, 2, 3], -1), -1)
 
+    def test_nan_float_returns_default(self) -> None:
+        """float('nan') must return default, not raise ValueError (task-71 fix).
+
+        int(float('nan')) raises ValueError; _safe_int must catch it via the
+        isinstance fast-path's own try/except (ValueError, OverflowError).
+        """
+        import math
+        result = _safe_int(float("nan"), 99)
+        self.assertEqual(result, 99, "_safe_int(nan) must return default, not raise")
+
+    def test_inf_float_returns_default(self) -> None:
+        """float('inf') must return default, not raise OverflowError (task-71 fix).
+
+        int(float('inf')) raises OverflowError; _safe_int must catch it.
+        """
+        result = _safe_int(float("inf"), 42)
+        self.assertEqual(result, 42, "_safe_int(inf) must return default, not raise")
+
+    def test_negative_inf_float_returns_default(self) -> None:
+        """float('-inf') must return default, not raise OverflowError."""
+        result = _safe_int(float("-inf"), -1)
+        self.assertEqual(result, -1, "_safe_int(-inf) must return default, not raise")
+
 
 class TestNormalizeSessionRecord(unittest.TestCase):
     """normalize_session_record() must normalise all fields."""

@@ -459,7 +459,13 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             self._serve_static(path)
         except Exception as exc:  # pragma: no cover - server safety net
-            self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            # Guard against double-response: if wfile.write() already failed (e.g.
+            # BrokenPipeError on client disconnect mid-stream), the second _send_json
+            # call would also raise — suppress it to avoid propagating to the server.
+            try:
+                self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            except Exception:
+                pass
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
@@ -586,7 +592,10 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             self._send_json({"ok": False, "error": f"unknown API endpoint: {path}"}, status=404)
         except Exception as exc:  # pragma: no cover - server safety net
-            self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            try:
+                self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            except Exception:
+                pass
 
     def _serve_static(self, path: str, *, head_only: bool = False) -> None:
         rel = unquote(path).lstrip("/") or "index.html"

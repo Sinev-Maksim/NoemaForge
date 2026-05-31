@@ -96,9 +96,12 @@ class TestDoGetOuterTryExcept(unittest.TestCase):
     def test_except_sends_json_500(self) -> None:
         """The except block must call _send_json with status=500."""
         body = _do_get_body()
-        # Find the except block and check it sends 500
-        exc_idx = body.rindex("except Exception")
-        tail = body[exc_idx:exc_idx + 200]
+        # Use 'except Exception as exc' to target the OUTER safety-net block.
+        # The nested guard block uses plain 'except Exception:' (no 'as exc'),
+        # so rindex("except Exception as exc") uniquely identifies the outer block.
+        exc_idx = body.rindex("except Exception as exc")
+        # Window of 500 chars to cover the comment lines before _send_json.
+        tail = body[exc_idx:exc_idx + 500]
         self.assertIn("500", tail,
                       "do_GET except block must return HTTP 500")
         self.assertIn("_send_json", tail,
@@ -107,16 +110,16 @@ class TestDoGetOuterTryExcept(unittest.TestCase):
     def test_except_includes_error_field(self) -> None:
         """The 500 response must include an 'error' field."""
         body = _do_get_body()
-        exc_idx = body.rindex("except Exception")
-        tail = body[exc_idx:exc_idx + 200]
+        exc_idx = body.rindex("except Exception as exc")
+        tail = body[exc_idx:exc_idx + 500]
         self.assertIn('"error"', tail,
                       "do_GET except block 500 response must include 'error' field")
 
     def test_do_get_outer_try_matches_do_post_pattern(self) -> None:
         """do_GET safety net comment must indicate parity with do_POST."""
         body = _do_get_body()
-        exc_idx = body.rindex("except Exception")
-        tail = body[exc_idx:exc_idx + 200]
+        exc_idx = body.rindex("except Exception as exc")
+        tail = body[exc_idx:exc_idx + 500]
         # Both do_GET and do_POST use '# pragma: no cover - server safety net'
         self.assertIn("safety net", tail,
                       "do_GET safety-net comment must be present (matches do_POST pattern)")
@@ -181,6 +184,51 @@ class TestEventsLimitClamp(unittest.TestCase):
         # Must be: limit = min(max(1, limit), 1000)
         self.assertIn("limit = min(", block,
                       "limit must be reassigned to the clamped value")
+
+
+class TestSafetyNetDoubleWriteGuard(unittest.TestCase):
+    """Safety-net except blocks must not propagate double-write errors (task-72)."""
+
+    def _get_do_get_except_block(self) -> str:
+        body = _do_get_body()
+        idx = body.rindex("except Exception as exc")
+        return body[idx:]
+
+    def _get_do_post_except_block(self) -> str:
+        start = _SOURCE.index("def do_POST(self)")
+        try:
+            end = _SOURCE.index("\n    def ", start + 1)
+        except ValueError:
+            end = len(_SOURCE)
+        body = _SOURCE[start:end]
+        idx = body.rindex("except Exception as exc")
+        return body[idx:]
+
+    def test_do_get_except_wraps_send_json_in_try(self) -> None:
+        """do_GET safety-net block must guard _send_json in a nested try/except.
+
+        If wfile.write() already raised (e.g. BrokenPipeError on client
+        disconnect), the second _send_json call would also raise and propagate
+        up to process_request_thread. The nested try/except suppresses it.
+        """
+        block = self._get_do_get_except_block()
+        # The nested try should appear INSIDE the outer except block
+        self.assertIn("try:", block,
+                      "do_GET safety-net except block must have a nested try:")
+
+    def test_do_get_except_has_pass_guard(self) -> None:
+        """do_GET safety-net block must silently swallow the nested exception."""
+        block = self._get_do_get_except_block()
+        self.assertIn("pass", block,
+                      "do_GET safety-net nested except must have 'pass' to suppress error")
+
+    def test_do_post_except_also_guarded(self) -> None:
+        """do_POST safety-net block must also guard _send_json in a nested try/except."""
+        block = self._get_do_post_except_block()
+        self.assertIn("try:", block,
+                      "do_POST safety-net except block must have a nested try:")
+        self.assertIn("pass", block,
+                      "do_POST safety-net nested except must have 'pass'")
 
 
 if __name__ == "__main__":
