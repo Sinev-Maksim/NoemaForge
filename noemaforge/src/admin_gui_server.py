@@ -55,7 +55,7 @@ from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
-from orchestration_state import is_active_job
+from orchestration_state import is_active_job, FINAL_JOB_STATES
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
 DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
@@ -383,7 +383,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/session/current":
                 query = parse_qs(urlparse(self.path).query)
-                session_id = str((query.get("session_id") or ["default"])[0])
+                # Clamp session_id to 128 chars to prevent unbounded JSON growth in
+                # the stored session record (matches POST /api/session/mode clamping).
+                session_id = str((query.get("session_id") or ["default"])[0])[:128]
                 self._send_json(self.server.session_current(session_id))
                 return
             if path == "/api/conversation/current":
@@ -631,6 +633,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.jobs_dir = self.data_root / "jobs"
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
+        # Protect job read-modify-write cycles from concurrent request threads.
+        # ThreadingHTTPServer dispatches each request on its own thread;
+        # _upsert_job(), _persist_job(), and job_cancel() all do jobs_data()
+        # + _write_json() without atomicity — the last writer wins otherwise.
+        self._jobs_lock = threading.Lock()
         self.runtime_dir = self.data_root / "runtime"
         self.ui_dir = self.root / "templates" / "pipeline-dashboard"
         if not self.ui_dir.exists():
@@ -1071,15 +1078,16 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
-        data = self.jobs_data()
-        if idempotency_key:
-            for existing in data.get("jobs", []):
-                if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
-                    return existing
-        data.setdefault("jobs", []).append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        with self._jobs_lock:
+            data = self.jobs_data()
+            if idempotency_key:
+                for existing in data.get("jobs", []):
+                    if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "starting", "running", "needs_privilege", "cancel_requested"}:
+                        return existing
+            data.setdefault("jobs", []).append(job)
+            self._write_json(self.jobs_file(), data)
+            self._write_json(self.job_file(str(job["job_id"])), job)
+            return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
@@ -1087,19 +1095,20 @@ class AdminGuiServer(ThreadingHTTPServer):
         return self._upsert_job(job, idempotency_key=idempotency_key)
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = data.setdefault("jobs", [])
-        replaced = False
-        for index, existing in enumerate(jobs):
-            if existing.get("job_id") == job.get("job_id"):
-                jobs[index] = job
-                replaced = True
-                break
-        if not replaced:
-            jobs.append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        with self._jobs_lock:
+            data = self.jobs_data()
+            jobs = data.setdefault("jobs", [])
+            replaced = False
+            for index, existing in enumerate(jobs):
+                if existing.get("job_id") == job.get("job_id"):
+                    jobs[index] = job
+                    replaced = True
+                    break
+            if not replaced:
+                jobs.append(job)
+            self._write_json(self.jobs_file(), data)
+            self._write_json(self.job_file(str(job["job_id"])), job)
+            return job
 
     def jobs_list(self) -> Dict[str, Any]:
         data = self.jobs_data()
@@ -1172,16 +1181,21 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
-        data = self.jobs_data()
-        target = None
-        for j in data.get("jobs", []):
-            if j.get("job_id") == job_id:
-                # Use cancel_requested so running subprocesses can detect the
-                # request before the orchestrator confirms the final cancelled state.
-                j["status"] = "cancel_requested"
-                j["updated_at"] = now_iso()
-                target = j
-        self._write_json(self.jobs_file(), data)
+        with self._jobs_lock:
+            data = self.jobs_data()
+            target = None
+            for j in data.get("jobs", []):
+                if j.get("job_id") == job_id:
+                    if j.get("status") in FINAL_JOB_STATES:
+                        # Job is already done/failed/cancelled — do not revert it.
+                        # Return the existing record so the UI can refresh its state.
+                        return {"ok": False, "version": RUNTIME_VERSION, "job": j, "reply": f"Job already in terminal state: {j['status']}"}
+                    # Use cancel_requested so running subprocesses can detect the
+                    # request before the orchestrator confirms the final cancelled state.
+                    j["status"] = "cancel_requested"
+                    j["updated_at"] = now_iso()
+                    target = j
+            self._write_json(self.jobs_file(), data)
         if target:
             jid = target["job_id"]
             self._write_json(self.job_file(str(jid)), target)
