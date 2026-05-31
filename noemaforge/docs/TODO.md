@@ -669,7 +669,18 @@ _serve_static() parent-dir boundary had no tests.
   index field injection, after_index pagination (0/N/9999), limit truncation,
   malformed JSON skipped without crash, empty lines skipped, and event-type
   verification (session.created / session.updated / session.message).
-  14/14 pass; ResourceWarning (unclosed file) fixed before commit (this commit).
+  14/14 pass; ResourceWarning (unclosed file) fixed before commit (954df64).
+
+- [x] **task-62 (MEDIUM): Add test coverage for AdminGuiHandler._serve_static()**
+  `_serve_static()` — the static asset dispatch path — had zero test coverage.
+  Key behaviors now verified: api/ prefix returns 404 JSON without filesystem
+  access; ui/ path traversal (../../etc/passwd) is blocked by parent-containment
+  guard and returns 404; ui/ non-existent and directory paths return 404; valid
+  ui/ file served with correct bytes; general path traversal falls back to
+  index.html (SPA safe default, no data exposure); URL-encoded traversal
+  (%2e%2e) also falls back; empty/root path serves index.html; content-type
+  detection for CSS and PNG verified.
+  14 tests in `test_serve_static.py`; 14/14 pass.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
