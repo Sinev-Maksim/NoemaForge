@@ -490,6 +490,77 @@ rotation_count/status). Three confirmed findings.
   scenario. 11 tests in `test_rotate_interrupt_doc.py` pass (bea0aca,
   claude/task-49-rotate-interrupt-doc).
 
+## 0.32.2 hardening — eighth deep analysis cycle (2026-05-31)
+
+Tasks 44-49 completed (sixth and seventh cycles): stale-tmp regex,
+_shift_archives() abort-on-failure, EventLog.status()/rotation_count,
+rotation_count in /api/events + pollEvents() reset, status() comment
+correction, _maybe_rotate() half-rotation docstring.
+
+Deep review found three new Windows-accessible improvements:
+
+### Finding 1 — Server-restart missed-event bug (HIGH)
+
+`_rotation_count` is an in-process counter: it resets to 0 every time the
+server restarts.  `pollEvents()` detects rotation by checking
+`r.rotation_count !== lastRotationCount`.  If no rotation had occurred
+before the restart, `lastRotationCount` is 0 and `r.rotation_count` is also
+0 after restart → the browser sees no change, keeps its old `lastEventIndex`
+(say 1000), and `read(after_index=1000)` returns `[]` for a freshly-started
+empty log.  New events are silently skipped until the file grows past line
+1000, which may never happen.
+
+Fix: add a `server_epoch` field (UUID4 hex, generated at `EventLog.__init__`
+time) to `status()` and include it in `/api/events`.  Browser tracks
+`lastServerEpoch`; any mismatch → `lastEventIndex = 0` + update.
+
+- [ ] **task-50 (HIGH): Add `server_epoch` to `EventLog.status()` and `/api/events`
+  to fix missed-event bug after server restart**
+  In `EventLog.__init__`: `self._server_epoch = uuid.uuid4().hex[:16]`.
+  In `status()`: add `"server_epoch": self._server_epoch`.
+  In `events_api()` (admin_gui_server.py): include `server_epoch` from
+  `status()` in the response dict.
+  In `app.js` `pollEvents()`: add `let lastServerEpoch = null;` and reset
+  `lastEventIndex = 0` + update `lastServerEpoch` when `r.server_epoch !==
+  lastServerEpoch`.
+  Tests: `test_eventlog_server_epoch.py` (epoch stable within process,
+  different across instances, present in status() dict, triggers reset in
+  pollEvents simulation).
+
+### Finding 2 — Dead `hasattr` guard in `events_api()` (LOW)
+
+`events_api()` (task-47 branch) uses `if hasattr(self.event_log, "status"):
+try: rotation_count = int(self.event_log.status()...)` as a defensive
+fallback.  Since `EventLog` always has `status()`, this guard is dead code
+that adds visual noise and an extra try/except nesting level.
+
+- [ ] **task-51 (LOW): Remove dead `hasattr(self.event_log, "status")` guard
+  in `events_api()`**
+  Replace the three-level defensive block with a direct call:
+  `rotation_count = int(self.event_log.status().get("rotation_count", 0))`.
+  Wrap the whole body in one `except Exception` for consistency with the
+  existing error path.
+  Tests: update `test_events_api_rotation_count.py` to assert no `hasattr`
+  call is made (source inspection); verify the simplified path in unit test.
+
+### Finding 3 — Threshold constants not exported from `event_log` (LOW)
+
+`__all__` in `event_log.py` includes `EventLog`, `DEFAULT_EVENT_STATE`,
+`_MAX_ARCHIVE_DEPTH` (private) but NOT `MAX_EVENT_LINES` or `MAX_EVENT_BYTES`
+(the public rotation thresholds).  Tests in `test_eventlog_shift_abort.py`
+and `test_eventlog_rotation_count.py` hardcode `10_000` and `10 * 1024 *
+1024` instead of importing the constants, making them brittle if thresholds
+change.
+
+- [ ] **task-52 (LOW): Add `MAX_EVENT_LINES` and `MAX_EVENT_BYTES` to
+  `event_log.__all__` and update tests to import them**
+  One-line change to `__all__` in `event_log.py`.
+  Update affected test files to `from event_log import MAX_EVENT_LINES,
+  MAX_EVENT_BYTES` instead of hardcoding values.
+  Tests: verify `from event_log import MAX_EVENT_LINES, MAX_EVENT_BYTES`
+  works in a stub-installed environment (add to test_rotate_interrupt_doc or
+  a new focused file).
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
