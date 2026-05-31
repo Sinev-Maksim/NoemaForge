@@ -916,12 +916,64 @@ The canonical version is in `orchestration_state.py` (covers NaN/Inf,
 tested at 42 assertions). The others lack NaN/Inf coverage.
 Risk: LOW — none are on the same hot path. Windows-doable refactor.
 
-- [ ] **task-80 (LOW): Deduplicate _safe_int — import from orchestration_state**
+- [x] **task-80 (LOW): Deduplicate _safe_int — import from orchestration_state**
   Remove `_safe_int` from `lsp_facade.py` and `mcp_router.py`; add
   `from orchestration_state import _safe_int` (or promote it to a shared
   `utils.py`). Add import-verification source-guard tests for both files.
   Note: orchestration_state imports must not create a circular dependency;
   verify import graph before applying.
+  Done: no circular dependency (lsp_facade/mcp_router don't import orch_state);
+  13 source-guard + functional tests pass (plugin_runner also deduplicated as part
+  of task-86). Commit 14e7670 / cd827fe.
+
+## 0.32.2 hardening — eighteenth deep analysis cycle (2026-06-01)
+
+High-effort three-angle review of tasks 77-80 (jobs_list lock, job_cancel
+out-of-lock comment, normalize_job_record in jobs_list, _safe_int dedup).
+Eight findings identified; six fixed as tasks 81-86.
+
+- [x] **task-81 (MEDIUM): Fix save_message() double append_message() call**
+  Two calls to session_store.append_message() per message: slim dict at line ~866
+  and full msg dict inside try/except at ~881. Sessions accumulated 2× entries,
+  halving the 500-message cap. Removed the slim-dict call; kept the try/except
+  wrapped full-msg call. 3 source-guard tests; py_compile clean (cd827fe).
+
+- [x] **task-82/85 (MEDIUM): Acquire _jobs_lock in job_get() + apply normalize_job_record()**
+  job_get() read jobs_data() without _jobs_lock, racing with concurrent writes.
+  Also returned raw job dicts, diverging schema from jobs_list(). Fixed: wrapped
+  read inside with self._jobs_lock:; applied normalize_job_record() +
+  enrich_artifact_cards(). 4 source-guard + 2 behavioural tests (cd827fe).
+
+- [x] **task-83 (MEDIUM): Normalize job_cancel() return dicts**
+  Both return paths (FINAL_JOB_STATES early return, success/not-found) returned
+  raw job dicts. Frontend could receive undefined for progress/lock_key/version.
+  Fixed: both paths now call normalize_job_record() + enrich_artifact_cards().
+  2 source-guard + 2 behavioural tests (cd827fe).
+
+- [x] **task-84 (LOW): Guard _write_json in job_cancel() against not-found**
+  _write_json(self.jobs_file(), data) executed unconditionally inside _jobs_lock
+  even when no matching job_id was found (no-op write while holding the lock).
+  Fixed: added 'if target is not None:' guard. 2 source-guard + 1 behavioural
+  (mtime unchanged for not-found) tests pass (cd827fe).
+
+- [x] **task-86 (LOW): plugin_runner._safe_int dedup**
+  plugin_runner.py had the same local _safe_int as lsp_facade/mcp_router
+  (missed in task-80). Removed local def + autodoc header; added import from
+  orchestration_state. 2 new source-guard tests in test_safe_int_dedup.py
+  (13 total); py_compile clean (cd827fe).
+
+### Remaining findings from this cycle (deferred as new tasks):
+
+- **task-87 (LOW)**: _read_json() swallows all exceptions silently including
+  json.JSONDecodeError from corrupt files. Operator gets no log output; next
+  _upsert_job() overwrites jobs.json with empty list. Fix: add sys.stderr.write
+  warning inside the except block to surface corruption without re-raising.
+
+- **task-88 (LOW)**: normalize_job_record() sets progress to {"current":0,"total":0,
+  "label":"queued"} only when progress is not a dict. If progress IS a dict but
+  missing internal keys (e.g. {"current": 5}), normalize_job_record returns it
+  as-is. Frontend code that accesses progress.label receives undefined.
+  Fix: add normalize_job_progress() helper ensuring all three sub-keys exist.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
