@@ -810,6 +810,41 @@ implementations could regress silently.
   _safe_int: 7 tests, normalize_session_record: 14 tests, normalize_job_record:
   8 tests, is_active_job: 5 tests). 39/39 pass (7c1b86d).
 
+## 0.32.2 hardening — sixteenth deep analysis cycle (2026-05-31)
+
+High-effort three-angle review of tasks 67-70 (do_GET safety wrapper, events
+limit clamp, safe int fix, orchestration_state direct tests). Five findings;
+two MEDIUM fixed, three LOW noted below.
+
+- [x] **task-71 (MEDIUM): Fix _safe_int() NaN/Inf fast-path raises**
+  `_safe_int`'s `isinstance(value, (int, float))` branch called `int(value)` bare:
+  `int(float('nan'))` raises ValueError and `int(float('inf'))` raises OverflowError.
+  Both were outside the `try/except` block, breaking the "always return default"
+  contract. Fix: wrapped the isinstance branch in `try/except (ValueError, OverflowError)`.
+  3 new NaN/Inf tests (42 total in test_orchestration_state.py); py_compile clean (aebbc44).
+
+- [x] **task-72 (MEDIUM): Guard do_GET and do_POST safety-net except with inner try/except**
+  If `wfile.write()` already failed (BrokenPipeError on client disconnect mid-stream),
+  the outer safety-net `except Exception` fired and tried `_send_json({"ok": False, ...})`
+  on the same dead socket — raising a second BrokenPipeError that propagated to
+  `process_request_thread()` and logged a spurious unhandled error. Fix: both do_GET
+  and do_POST safety-net blocks now wrap `_send_json(...)` in `try: ... except Exception: pass`.
+  3 new source-guard tests (15 total in test_do_get_safety.py); py_compile clean (aebbc44).
+
+### LOW findings (deferred, not yet fixed):
+
+- **Asymmetric validation (LOW)**: `after_index < 0` returns HTTP 400; `limit <= 0` is
+  silently clamped to 1. Minor API contract inconsistency, no crash risk. Noted.
+
+- **Three duplicate _safe_int implementations (LOW)**: `lsp_facade.py`, `mcp_router.py`,
+  `orchestration_state.py` each define their own `_safe_int` with different default
+  parameter signatures. Not a runtime bug; refactoring would reduce maintenance burden.
+
+- **normalize_job_record dead code (LOW)**: Defined in orchestration_state.py but never
+  imported from any production source. `jobs_list()` returns raw job dicts via `dict(job)`
+  without normalization — jobs created through the normal API path are well-formed, so
+  this is defence-in-depth gap, not a crash. Task-73 would wire it into jobs_list().
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
