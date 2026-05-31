@@ -728,6 +728,88 @@ Coverage scan of admin_gui_server.py found two dead-code bugs:
   test_write_json_atomic.py `TestWriteJsonConsistency`.
   8 write_json_atomic tests + 35 total session-store tests all pass; py_compile clean.
 
+- [x] **task-66 (MEDIUM): Direct unit tests for _session_path(), set_mode(),
+  attach_active_jobs() in SessionStore**
+  20 tests in `test_session_store_sanitization.py` covering path sanitization
+  (_session_path: normal/default/traversal/slash/long/empty/None, plus
+  functional load tests), mode validation (set_mode: normal/fast/full/
+  full_composite accepted; 6 invalid modes fall back to "normal"; composite_top_n
+  persisted/defaults), and active-job filtering (attach_active_jobs: dict items
+  persisted, non-dict filtered out, empty list clears jobs).
+  20/20 pass; py_compile clean (cf083ba).
+
+## 0.32.2 hardening — fifteenth deep analysis cycle (2026-05-31)
+
+Cross-cutting review of tasks 61-66 (events() test coverage, _serve_static()
+tests, dead-code removal, safe_id/resolve_artifact_path tests, _write_atomic
+OSError cleanup, _session_path/set_mode/attach_active_jobs tests).
+Four findings — all Windows-doable and fixed in commit 7c1b86d.
+
+### Finding 1 — do_GET missing outer try/except (MEDIUM)
+
+`do_POST` wraps all handler dispatch in `try/except Exception` → JSON 500.
+`do_GET` had NO such wrapper: any uncaught exception in a GET handler (e.g.
+`self.server.health()` raising) propagated to `BaseHTTPRequestHandler.
+handle_one_request()`, which logged the traceback but closed the connection
+without sending any HTTP response. Clients received a connection reset instead
+of a structured error.
+
+Fix: wrap the entire do_GET dispatch body in `try: ... except Exception as exc:
+self._send_json({"ok": False, "error": repr(exc)}, status=500)` — matching the
+do_POST pattern exactly.
+
+- [x] **task-67 (MEDIUM): Add outer try/except to do_GET matching do_POST pattern**
+  6 source-guard tests in `test_do_get_safety.py` verify: outer try: block
+  present, except Exception block present, 500 status in except, "error" field
+  in 500 response, safety-net comment present, do_POST safety net still present.
+  py_compile clean; 12/12 new tests pass (7c1b86d).
+
+### Finding 2 — /api/events limit unclamped in do_GET (LOW)
+
+`?limit=999999` was parsed and passed unclamped to `events_api()` → `EventLog.
+read()`. File bounded by `MAX_EVENT_LINES=10 000` but a 10 000-row JSON
+response is still ~3 MB per poll. Task-24 clamp existed on a separate unmerged
+branch; current branch never had it.
+
+Fix: `limit = min(max(1, limit), 1000)` after parsing, with comment explaining
+DoS rationale. Clamp also prevents `?limit=0` or negative values from yielding
+zero or unbounded results.
+
+- [x] **task-68 (LOW): Clamp ?limit= in /api/events to [1, 1000]**
+  6 source-guard tests in `test_do_get_safety.py` verify: clamp expression
+  present, applied before events_api() call, upper bound 1000, lower bound 1,
+  comment explaining rationale, limit reassigned. 12/12 new tests pass (7c1b86d).
+
+### Finding 3 — normalize_session_record() raises ValueError on non-numeric fields (MEDIUM)
+
+`int(record.get("selected_composite_top_n") or 0)` raises ValueError when the
+value is a non-numeric string (e.g. "abc"). This is because `"abc" or 0` == `"abc"`
+(truthy), so `int("abc")` raises. `load()` catches this via `except Exception:
+pass` and silently recreates the session from scratch — losing all session
+history. Same issue affected `last_event_index`.
+
+Fix: introduced `_safe_int(value, default=0)` helper in orchestration_state.py
+that returns `default` on any TypeError/ValueError; replaced both `int(... or 0)`
+calls with `_safe_int(...)` in `normalize_session_record()`.
+
+- [x] **task-69 (MEDIUM): Fix normalize_session_record() ValueError on non-numeric
+  selected_composite_top_n / last_event_index**
+  `_safe_int()` introduced; both fields now use it. 7 _safe_int tests + 14
+  normalize_session_record tests in `test_orchestration_state.py` (39 total)
+  include explicit "abc" and None inputs that previously would have caused
+  silent session loss. 39/39 pass; py_compile clean (7c1b86d).
+
+### Finding 4 — orchestration_state functions had zero direct test coverage (LOW)
+
+`nowz()`, `normalize_session_record()`, `normalize_job_record()`, `is_active_job()`
+and `_safe_int()` were covered only via stubs in other test files. The real
+implementations could regress silently.
+
+- [x] **task-70 (LOW): Direct unit tests for all orchestration_state public functions**
+  39 tests in `test_orchestration_state.py` cover all 5 functions (nowz: 5 tests,
+  _safe_int: 7 tests, normalize_session_record: 14 tests, normalize_job_record:
+  8 tests, is_active_job: 5 tests). 39/39 pass (7c1b86d).
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
