@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+import uuid
 from pathlib import Path
 from typing import Any, Dict
 
@@ -70,6 +71,10 @@ class EventLog:
         self._append_count = 0
         # Completed rotations since process start.  Resets to 0 on each restart.
         self._rotation_count = 0
+        # Stable opaque token for this process lifetime.  A new EventLog instance
+        # (i.e. any server restart) generates a fresh epoch so remote pollers can
+        # detect the restart even when rotation_count happens to stay at 0.
+        self._server_epoch = uuid.uuid4().hex
 
     @staticmethod
     def _archive_path(base: Path, generation: int) -> Path:
@@ -162,9 +167,16 @@ class EventLog:
         """Return a best-effort snapshot of the current log state.
 
         Keys:
+          server_epoch (str): opaque hex token generated once at EventLog.__init__.
+            Changes on every process restart (new EventLog instance).  Remote
+            pollers MUST check this field first: if server_epoch differs from the
+            last observed value, the process restarted — reset after_index to 0
+            regardless of rotation_count.  This handles the edge case where no
+            rotation has occurred in either session (rotation_count stays 0) but
+            the live file was cleared by the new process.
           rotation_count (int): completed rotations since process start (resets to 0
             on restart). Protected by self._lock. Compare across calls to detect
-            rotation; reset after_index to 0 when it changes.
+            in-process rotation; reset after_index to 0 when it changes.
           current_size_bytes (int): approximate live file size, sampled outside
             self._lock for performance. May not be consistent with rotation_count.
           path (str): absolute path to the live events file.
@@ -178,6 +190,7 @@ class EventLog:
         with self._lock:
             rotation_count = self._rotation_count
         return {
+            "server_epoch": self._server_epoch,
             "rotation_count": rotation_count,
             "current_size_bytes": size,
             "path": str(self.path),

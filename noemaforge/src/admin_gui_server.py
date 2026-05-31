@@ -747,13 +747,35 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
-        """Return append-only event log entries for GUI polling."""
+        """Return append-only event log entries for GUI polling.
 
+        Includes server_epoch and rotation_count so browser pollers can detect
+        server restarts and in-process rotations and reset lastEventIndex=0.
+        server_epoch: opaque token that changes on every server restart; pollers
+          must reset lastEventIndex when this value changes.
+        rotation_count: increments on each in-process log rotation.
+        """
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
-            return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
+            st = self.event_log.status()
+            return {
+                "ok": True,
+                "version": RUNTIME_VERSION,
+                "events": events,
+                "count": len(events),
+                "server_epoch": st.get("server_epoch", ""),
+                "rotation_count": st.get("rotation_count", 0),
+            }
         except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
+            return {
+                "ok": False,
+                "version": RUNTIME_VERSION,
+                "events": [],
+                "count": 0,
+                "server_epoch": "",
+                "rotation_count": 0,
+                "error": str(exc),
+            }
 
     # --- session state ----------------------------------------------------------------
     def session_current(self) -> Dict[str, Any]:
