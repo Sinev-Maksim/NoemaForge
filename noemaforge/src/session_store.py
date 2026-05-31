@@ -70,7 +70,12 @@ class SessionStore:
             raise
 
     def _append_event(self, event_type: str, session: Dict[str, Any], data: Optional[Dict[str, Any]] = None) -> None:
-        """Append a structured event row to session-events.jsonl.  Caller must hold self._lock."""
+        """Append a structured event row to session-events.jsonl.
+
+        Acquires self._lock internally so callers outside a lock context are
+        also safe.  Since self._lock is an RLock, callers that already hold it
+        (load, update, append_message) re-enter without deadlock.
+        """
         row = {
             "ts": nowz(),
             "type": event_type,
@@ -78,8 +83,9 @@ class SessionStore:
             "version": RUNTIME_VERSION,
             "data": data or {},
         }
-        with self.events_path.open("a", encoding="utf-8") as handle:
-            handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
+        with self._lock:
+            with self.events_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
 
     def load(self, session_id: str = "default") -> Dict[str, Any]:
         """Load or create a session record."""

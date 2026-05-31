@@ -1012,10 +1012,12 @@ _read_json stderr, normalize_job_progress). Five findings; four MEDIUM fixed.
 
 ### Remaining findings from nineteenth cycle (deferred as new tasks):
 
-- **task-93 (LOW)**: _append_event() in session_store.py documents "Caller must
-  hold self._lock" in its docstring but does not enforce this contract. A future
-  developer adding a new call outside the lock would create a JSONL race silently.
-  Fix: rename to _append_event_locked or add an internal assertion.
+- [x] **task-93 (LOW)**: _append_event() in session_store.py documented "Caller must
+  hold self._lock" but did not enforce this contract. A future developer adding a
+  new call outside the lock would create a JSONL race silently.
+  Fix: _append_event() now acquires self._lock internally (RLock, so callers
+  already holding it re-enter without deadlock). No caller changes needed.
+  20/20 session_store_sanitization tests pass; py_compile clean.
 
 ## 0.32.2 Cursor Brief — remaining open items
 
