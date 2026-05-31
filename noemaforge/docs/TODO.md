@@ -845,6 +845,78 @@ two MEDIUM fixed, three LOW noted below.
   without normalization — jobs created through the normal API path are well-formed, so
   this is defence-in-depth gap, not a crash. Task-73 would wire it into jobs_list().
 
+## 0.32.2 hardening — seventeenth deep analysis cycle (2026-06-01)
+
+High-effort review of tasks 73-76 (final-state guard in job_cancel, _jobs_lock,
+session_id clamp, needs_privilege in ACTIVE_JOB_STATES). Commit 5ea49db.
+19/19 tests pass in test_job_state_machine.py; all four session suites green.
+
+Four new findings — all Windows-doable:
+
+### Finding 1 — jobs_list() reads jobs_data() without holding _jobs_lock (MEDIUM)
+
+`jobs_list()` calls `self.jobs_data()` (which reads `jobs.json`) without
+acquiring `self._jobs_lock`. Meanwhile `_upsert_job()`, `_persist_job()` and
+`job_cancel()` all write `jobs.json` inside the lock. A concurrent GET
+`/api/jobs` request can read a partially-overwritten file if a tmp-then-replace
+write races with the JSONL parse. The atomic `_write_json()` (tmp-rename) makes
+a partial-JSON read unlikely, but the read is still outside the lock intent.
+Fix: wrap `jobs_data()` call in `jobs_list()` with `with self._jobs_lock:` to
+make the read-then-copy operation consistent with the write callers.
+
+- [ ] **task-77 (MEDIUM): Acquire _jobs_lock in jobs_list() for consistent read**
+  Wrap the `jobs_data()` call and the subsequent list comprehension in
+  `jobs_list()` inside `with self._jobs_lock:`. Add a source-guard test
+  verifying `_jobs_lock` appears in the `jobs_list` method body.
+
+### Finding 2 — job_cancel() writes cancel marker OUTSIDE _jobs_lock (LOW)
+
+After the `with self._jobs_lock:` block closes, `job_cancel()` calls
+`self._write_json(self.job_file(jid), target)` and
+`marker.write_text(now_iso())` without re-acquiring the lock. A second
+concurrent call to `job_cancel()` on the same job could interleave between
+the status update (inside lock) and the marker write (outside lock). The
+status update is atomic (lock-guarded), but the marker sentinel could be
+written twice, which is idempotent. Risk is LOW (benign double-write), but
+inconsistent with the stated lock semantics.
+No fix required; document the intentional out-of-lock marker write with a
+comment explaining the double-write is safe (sentinel is idempotent).
+
+- [ ] **task-78 (LOW): Document out-of-lock cancel marker write in job_cancel()**
+  Add a one-line comment above the `self.job_file()` / `marker.write_text()`
+  calls explaining they are intentionally outside `_jobs_lock` because the
+  marker write is idempotent and the status is already committed under lock.
+
+### Finding 3 — normalize_job_record() still dead code; jobs_list() returns raw dicts (LOW)
+
+`normalize_job_record()` was added to orchestration_state.py (task-76 cycle) but
+`jobs_list()` still returns `dict(job)` (shallow copy of the raw stored dict).
+If a job was created by an older code path missing a key (e.g. `"artifacts"`,
+`"progress"`), the frontend receives `undefined` fields. Using
+`normalize_job_record(job)` in `jobs_list()` would guarantee all fields are
+present with safe defaults.
+
+- [ ] **task-79 (LOW): Wire normalize_job_record() into jobs_list() return path**
+  In `jobs_list()`, replace `dict(job)` with
+  `normalize_job_record(dict(job))` (import already present from
+  orchestration_state). Add a source-guard test verifying `normalize_job_record`
+  is called inside the `jobs_list` method body.
+
+### Finding 4 — Three duplicate _safe_int implementations (LOW, deferred from cycle 16)
+
+`lsp_facade.py`, `mcp_router.py`, and `orchestration_state.py` each define
+their own `_safe_int` with slightly different default-parameter signatures.
+The canonical version is in `orchestration_state.py` (covers NaN/Inf,
+tested at 42 assertions). The others lack NaN/Inf coverage.
+Risk: LOW — none are on the same hot path. Windows-doable refactor.
+
+- [ ] **task-80 (LOW): Deduplicate _safe_int — import from orchestration_state**
+  Remove `_safe_int` from `lsp_facade.py` and `mcp_router.py`; add
+  `from orchestration_state import _safe_int` (or promote it to a shared
+  `utils.py`). Add import-verification source-guard tests for both files.
+  Note: orchestration_state imports must not create a circular dependency;
+  verify import graph before applying.
+
 ## 0.32.2 Cursor Brief — remaining open items
 
 Items below are DoD requirements from the Cursor Implementation Briefs (Days 1–5) not yet closed.
