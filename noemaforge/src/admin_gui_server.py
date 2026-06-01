@@ -365,6 +365,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/public-showcase/scenario":
                 self._send_json(self.server.public_showcase_scenario())
                 return
+            if path == "/api/code-evolution/status":
+                self._send_json(self.server.code_evolution_status())
+                return
 
             if path == "/api/events":
                 query = parse_qs(urlparse(self.path).query)

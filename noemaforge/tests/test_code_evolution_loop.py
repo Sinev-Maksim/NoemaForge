@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import types
@@ -174,6 +175,36 @@ class TestCodeEvolutionLoop(unittest.TestCase):
         result = loop.commit_changes(proposal)
         self.assertFalse(result, "commit_changes must return False in dry_run")
 
+    def test_commit_refuses_placeholder_patch_file(self) -> None:
+        """commit_changes() must not stage the worktree for placeholder proposals."""
+        loop = self._make_loop(dry_run=False)
+        task = loop.pick_next_task()
+        proposal = loop.propose_patch(task, loop.analyze_task(task))
+        with patch("code_evolution_loop.subprocess.run") as run_mock:
+            result = loop.commit_changes(proposal)
+        self.assertFalse(result)
+        self.assertEqual(run_mock.call_count, 0, "git must not run without explicit files")
+        self.assertEqual(proposal.get("commit_error"), "no_explicit_files_to_stage")
+
+    def test_commit_stages_only_declared_patch_files(self) -> None:
+        """commit_changes() must stage only files named in proposal patches."""
+        loop = self._make_loop(dry_run=False)
+        target = Path(self._tmpdir) / "noemaforge" / "src" / "widget.py"
+        target.write_text("x = 1\n", encoding="utf-8")
+        proposal = {
+            "proposal_id": "prop_task-999_test",
+            "task_id": "task-999",
+            "task_summary": "Update widget",
+            "patches": [{"file": "noemaforge/src/widget.py", "action": "edit"}],
+        }
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with patch("code_evolution_loop.subprocess.run", return_value=completed) as run_mock:
+            result = loop.commit_changes(proposal)
+        self.assertTrue(result)
+        first_call = run_mock.call_args_list[0].args[0]
+        expected_path = str(Path("noemaforge") / "src" / "widget.py")
+        self.assertEqual(first_call, ["git", "add", "--", expected_path])
+
     # --- run_one_cycle -----------------------------------------------------
 
     def test_run_one_cycle_returns_task_and_proposal(self) -> None:
@@ -226,9 +257,16 @@ class TestCodeEvolutionSourceGuards(unittest.TestCase):
                       "admin_gui_server must handle /api/code-evolution/propose")
 
     def test_code_evolution_status_endpoint_wired(self) -> None:
-        """/api/code-evolution/status must be handled in do_POST."""
+        """/api/code-evolution/status must be handled in HTTP dispatch."""
         self.assertIn('"/api/code-evolution/status"', self._ADMIN_SRC,
                       "admin_gui_server must handle /api/code-evolution/status")
+
+    def test_code_evolution_status_endpoint_is_gettable(self) -> None:
+        """/api/code-evolution/status must be available through do_GET."""
+        do_get_start = self._ADMIN_SRC.index("def do_GET")
+        do_post_start = self._ADMIN_SRC.index("def do_POST")
+        do_get_src = self._ADMIN_SRC[do_get_start:do_post_start]
+        self.assertIn('"/api/code-evolution/status"', do_get_src)
 
     def test_code_evolution_propose_method_defined(self) -> None:
         """AdminGuiServer must define code_evolution_propose()."""

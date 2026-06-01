@@ -386,6 +386,27 @@ class CodeEvolutionLoop:
 
     # ---- step 7: commit ---------------------------------------------------
 
+    def _proposal_stage_files(self, proposal: Dict[str, Any]) -> List[str]:
+        """Return repo-relative files explicitly declared by the proposal.
+
+        The loop must never stage the whole worktree.  Only concrete files
+        listed in proposal["patches"][].file are eligible, and each path must
+        resolve inside project_root.
+        """
+        root = self.project_root.resolve()
+        files: List[str] = []
+        for patch in proposal.get("patches") or []:
+            if not isinstance(patch, dict):
+                continue
+            raw = str(patch.get("file") or "").strip()
+            if not raw or raw.startswith("<") or raw.endswith(">"):
+                continue
+            candidate = (root / raw).resolve()
+            if candidate == root or root not in candidate.parents:
+                continue
+            files.append(str(candidate.relative_to(root)))
+        return sorted(set(files))
+
     def commit_changes(self, proposal: Dict[str, Any], message: Optional[str] = None) -> bool:
         """Run git commit. Only called when apply=True AND commit=True.
 
@@ -401,12 +422,18 @@ class CodeEvolutionLoop:
             f"Proposal: {proposal['proposal_id']}\n\n"
             f"Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>"
         )
+        stage_files = self._proposal_stage_files(proposal)
+        if not stage_files:
+            proposal["commit_error"] = "no_explicit_files_to_stage"
+            return False
+
         result = subprocess.run(
-            ["git", "add", "-u"],
+            ["git", "add", "--", *stage_files],
             cwd=str(self.project_root),
             capture_output=True, text=True,
         )
         if result.returncode != 0:
+            proposal["commit_error"] = result.stderr or result.stdout or "git add failed"
             return False
 
         result = subprocess.run(
@@ -417,6 +444,7 @@ class CodeEvolutionLoop:
         if result.returncode == 0:
             proposal["committed"] = True
             return True
+        proposal["commit_error"] = result.stderr or result.stdout or "git commit failed"
         return False
 
     # ---- high-level entry points -----------------------------------------
@@ -526,7 +554,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--root", default=None, help="Project root (default: auto-detect)")
     p.add_argument("--apply", action="store_true",
-                   help="Apply the proposed patch (writes files). Off by default.")
+                   help="Reserved for controlled callers with a patch provider; CLI stays plan-only.")
     p.add_argument("--commit", action="store_true",
                    help="Commit changes after tests pass (requires --apply).")
     p.add_argument("--status", action="store_true",

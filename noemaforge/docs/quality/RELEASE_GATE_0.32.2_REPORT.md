@@ -46,7 +46,7 @@ See full matrix: `noemaforge/docs/quality/DOC_COMPLETENESS_0.32.2.md`
 - `noemaforge/configs/docs-hygiene-policy.json` — allowed_root_markdown, approved prefixes, i18n allowlist, version bump
 
 ### Documentation changes
-- `CLAUDE.md` — removed forbidden text references (BigBro-BOS neutralized)
+- `CLAUDE.md` — removed forbidden legacy host-name references
 - `context.md` — created operational handoff context
 - `noemaforge/docs/wiki/strict-markdown-placement-0.31.21.alpha.md` — expanded from stub to 43-line article
 - `noemaforge/docs/wiki/WIKI.md` — added Deep Research Integration Policy section
