@@ -453,7 +453,7 @@ duplicate-init removal, cleanup-tmp comment). Three surviving findings.
 High-effort three-angle review of tasks 44–46 (regex fix, abort-on-shift-failure,
 rotation_count/status). Three confirmed findings.
 
-- [ ] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
+- [x] **task-47 (HIGH): Include `rotation_count` in `/api/events` response + reset in `pollEvents()`**
   `events_api()` returns `{ok, events, count}` but does NOT include
   `EventLog.status()["rotation_count"]`. The browser's `pollEvents()` advances
   `lastEventIndex` but has no way to detect when the live file was truncated to 0.
@@ -462,8 +462,10 @@ rotation_count/status). Three confirmed findings.
   re-grows past line N. Fix: add `"rotation_count": self.event_log.status()["rotation_count"]`
   to `events_api()` return dict; add `let lastRotationCount = 0` tracking in app.js
   `pollEvents()` and reset `lastEventIndex = 0` when `rotation_count` changes.
+  Done: implemented on claude/task-47-events-rotation-count (8fc4bf2) and
+  superseded by task-50 which adds both rotation_count AND server_epoch.
 
-- [ ] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
+- [x] **task-48 (LOW): Fix misleading lock-consistency comment in `EventLog.status()`**
   The comment in `status()` says "to ensure consistency between the two counters"
   but `current_size_bytes` is captured OUTSIDE `self._lock` while only
   `_rotation_count` is captured inside. A caller can receive `rotation_count=1`
@@ -471,8 +473,10 @@ rotation_count/status). Three confirmed findings.
   update the comment to state the lock only protects `_rotation_count`; update the
   docstring to explicitly note `current_size_bytes` is a best-effort sample and may
   not be consistent with `rotation_count` in a single call.
+  Done: fixed on claude/task-48-status-comment (7154b45); status() docstring now
+  explicitly states "May not be consistent with rotation_count."
 
-- [ ] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
+- [x] **task-49 (LOW): Document non-OSError half-rotation risk in `_maybe_rotate()` docstring**
   `_maybe_rotate()` uses `except OSError: pass`. A `KeyboardInterrupt` or
   `SystemExit` raised between `archive.write_bytes(content)` (archive written) and
   `fh.truncate(0)` (live file not yet cleared) leaves both the live file and the
@@ -485,6 +489,561 @@ rotation_count/status). Three confirmed findings.
   separate try/except blocks, using `BaseException` for the outer guard or
   adding a plain comment explaining why `KeyboardInterrupt` is an accepted risk
   in this path.
+  Done: expanded `_maybe_rotate()` docstring to document KeyboardInterrupt/SystemExit
+  risk, intentional narrowness of `except OSError`, and accepted duplicate-archive
+  scenario. 11 tests in `test_rotate_interrupt_doc.py` pass (bea0aca,
+  claude/task-49-rotate-interrupt-doc).
+
+## 0.32.2 hardening — eighth deep analysis cycle (2026-05-31)
+
+Tasks 44-49 completed (sixth and seventh cycles): stale-tmp regex,
+_shift_archives() abort-on-failure, EventLog.status()/rotation_count,
+rotation_count in /api/events + pollEvents() reset, status() comment
+correction, _maybe_rotate() half-rotation docstring.
+
+Deep review found three new Windows-accessible improvements:
+
+### Finding 1 — Server-restart missed-event bug (HIGH)
+
+`_rotation_count` is an in-process counter: it resets to 0 every time the
+server restarts.  `pollEvents()` detects rotation by checking
+`r.rotation_count !== lastRotationCount`.  If no rotation had occurred
+before the restart, `lastRotationCount` is 0 and `r.rotation_count` is also
+0 after restart → the browser sees no change, keeps its old `lastEventIndex`
+(say 1000), and `read(after_index=1000)` returns `[]` for a freshly-started
+empty log.  New events are silently skipped until the file grows past line
+1000, which may never happen.
+
+Fix: add a `server_epoch` field (UUID4 hex, generated at `EventLog.__init__`
+time) to `status()` and include it in `/api/events`.  Browser tracks
+`lastServerEpoch`; any mismatch → `lastEventIndex = 0` + update.
+
+- [x] **task-50 (HIGH): Add `server_epoch` to `EventLog.status()` and `/api/events`
+  to fix missed-event bug after server restart**
+  In `EventLog.__init__`: `self._server_epoch = uuid.uuid4().hex[:16]`.
+  In `status()`: add `"server_epoch": self._server_epoch`.
+  In `events_api()` (admin_gui_server.py): include `server_epoch` from
+  `status()` in the response dict.
+  In `app.js` `pollEvents()`: add `let lastServerEpoch = null;` and reset
+  `lastEventIndex = 0` + update `lastServerEpoch` when `r.server_epoch !==
+  lastServerEpoch`.
+  Tests: `test_eventlog_server_epoch.py` (epoch stable within process,
+  different across instances, present in status() dict, triggers reset in
+  pollEvents simulation).
+  Done: 13 tests pass; events_api() returns server_epoch + rotation_count;
+  app.js resets lastEventIndex on epoch or rotation_count change (620f5db,
+  claude/task-50-server-epoch).
+
+### Finding 2 — Dead `hasattr` guard in `events_api()` (LOW)
+
+`events_api()` (task-47 branch) uses `if hasattr(self.event_log, "status"):
+try: rotation_count = int(self.event_log.status()...)` as a defensive
+fallback.  Since `EventLog` always has `status()`, this guard is dead code
+that adds visual noise and an extra try/except nesting level.
+
+- [x] **task-51 (LOW): Remove dead `hasattr(self.event_log, "status")` guard
+  in `events_api()`**
+  Replace the three-level defensive block with a direct call:
+  `rotation_count = int(self.event_log.status().get("rotation_count", 0))`.
+  Wrap the whole body in one `except Exception` for consistency with the
+  existing error path.
+  Tests: update `test_events_api_rotation_count.py` to assert no `hasattr`
+  call is made (source inspection); verify the simplified path in unit test.
+  Done: absorbed into task-50 — events_api() on claude/task-50-server-epoch
+  was written without hasattr guard from the start; direct st = self.event_log.status()
+  call used throughout. No separate commit needed.
+
+### Finding 3 — Threshold constants not exported from `event_log` (LOW)
+
+`__all__` in `event_log.py` includes `EventLog`, `DEFAULT_EVENT_STATE`,
+`_MAX_ARCHIVE_DEPTH` (private) but NOT `MAX_EVENT_LINES` or `MAX_EVENT_BYTES`
+(the public rotation thresholds).  Tests in `test_eventlog_shift_abort.py`
+and `test_eventlog_rotation_count.py` hardcode `10_000` and `10 * 1024 *
+1024` instead of importing the constants, making them brittle if thresholds
+change.
+
+- [x] **task-52 (LOW): Add `MAX_EVENT_LINES` and `MAX_EVENT_BYTES` to
+  `event_log.__all__` and update tests to import them**
+  One-line change to `__all__` in `event_log.py`.
+  Update affected test files to `from event_log import MAX_EVENT_LINES,
+  MAX_EVENT_BYTES` instead of hardcoding values.
+  Tests: verify `from event_log import MAX_EVENT_LINES, MAX_EVENT_BYTES`
+  works in a stub-installed environment (add to test_rotate_interrupt_doc or
+  a new focused file).
+  Done: __all__ updated to include MAX_EVENT_LINES and MAX_EVENT_BYTES;
+  import verified in stub environment (claude/task-50-server-epoch).
+
+## 0.32.2 hardening — ninth deep analysis cycle (2026-05-31)
+
+High-effort review of tasks 50-52 (server_epoch, hasattr cleanup, __all__ exports).
+Six candidate findings; three confirmed/plausible and fixed.
+
+- [x] **task-53 (MEDIUM): Remove duplicate EventLog/SessionStore init in AdminGuiServer.__init__**
+  Second init at lines 631-632 used `data_root/sessions` (wrong path, differs from
+  DEFAULT_SESSION_STATE=`.../gui/sessions`) and created a fresh EventLog with a new
+  server_epoch mid-init. Removed duplicate assignments; kept correct first init
+  (lines 620-621) using `gui_state_dir/sessions`.
+  Done: 4 source-guard tests pass; py_compile OK (cb668ec).
+
+- [x] **task-54 (MEDIUM): Fix pollEvents() stale-events processing after rotation/restart**
+  After resetting `lastEventIndex=0` on epoch/rotation change, the function
+  continued processing `r.events` from the stale poll (fetched with the OLD
+  after_index). If the new log already had >N lines when rotation was detected,
+  events 0..N-1 would be permanently skipped.
+  Fix: added `return` immediately after the reset in both branches.
+  Done: 3 source-guard tests pass; node --check OK (cb668ec).
+
+- [x] **task-55 (LOW): Guard status() call in events_api() to preserve events on failure**
+  Previously one try block covered both read() and status(); a status() failure
+  discarded already-fetched events and returned ok=false with empty events.
+  Fix: two separate try blocks — read() failure returns ok=false; status()
+  failure returns ok=true with fetched events and safe defaults.
+  Done: 3 tests pass (source inspection + behavioural) (cb668ec).
+
+## 0.32.2 hardening — tenth deep analysis cycle (2026-05-31)
+
+Review of ninth-cycle fixes (double-init, stale-events return, events_api split).
+Five candidate findings; three confirmed and fixed.
+
+- [x] **task-56 (LOW): Add server_epoch/rotation_count shape assertions to events_api tests**
+  Test stubs for events_api() only checked `{ok, events, count}`; removing
+  server_epoch or rotation_count from the real method would pass silently.
+  Done: 4 source-guard tests in test_session_store_thread_safety.py verify
+  both fields appear in ok AND error return paths (72597f4).
+
+- [x] **task-57 (MEDIUM): Fix empty-string server_epoch trap in app.js pollEvents()**
+  First-poll assignment `lastServerEpoch = r.server_epoch || null` coerced ""
+  (returned by events_api error path) to null, keeping lastServerEpoch=null
+  permanently and making restart-detection always false.
+  Fix: `if(lastServerEpoch === null && r.server_epoch) lastServerEpoch = r.server_epoch`
+  — only adopts truthy (non-empty) epoch values. 3 source-guard tests pass (72597f4).
+
+- [x] **task-58 (HIGH): Add threading.RLock() to SessionStore**
+  ThreadingHTTPServer dispatches concurrent request threads; concurrent
+  append_message()/update() calls shared _append_event() which used bare
+  open("a") without any lock, risking interleaved JSONL writes.
+  Fix: self._lock = threading.RLock(); acquired at top of load(), save(),
+  update(), append_message(). Reentrant so update→load→save chain does not
+  deadlock. 6 tests including concurrent-write JSONL validation all pass (72597f4).
+
+## 0.32.2 hardening — eleventh deep analysis cycle (2026-05-31)
+
+Review of tenth-cycle fixes (SessionStore RLock, empty-epoch guard, test shape).
+Four candidate findings; one real improvement actioned.
+
+- [x] **task-59 (LOW): Add session-count assertion to concurrent-write test**
+  test_concurrent_append_message_no_corruption() only checked JSONL format;
+  a lost-update regression would pass silently. Added final session load +
+  len(messages) == 80 assertion (955fe5e).
+
+## 0.32.2 hardening — twelfth deep analysis cycle (2026-05-31)
+
+Broad review of admin_gui_server.py beyond event_log/session_store.
+Five findings; one confirmed and fixed, others refuted or low-priority.
+
+- Path traversal via fallback-avatar path: REFUTED — safe_id().strip("-._")
+  converts ".." → "" → default "item"; no literal separator survives.
+- /api/shutdown without auth: accepted design — local-only 127.0.0.1 service.
+- _append_jsonl() race: low risk — concurrent admin GUI calls are rare.
+- _serve_static() without per-handler try/except: outer do_GET catch-all covers it.
+
+- [x] **task-60 (MEDIUM): Make _write_json() atomic via tmp-then-replace**
+  `path.write_text(json_dumps(obj))` writes directly — a concurrent reader
+  could see a half-written file (partial JSON). Fix: write to `.tmp` then
+  `tmp.replace(path)`, matching SessionStore._write_atomic() pattern.
+  Added OSError cleanup (tmp.unlink) on failure to prevent tmp-file leaks.
+  7 tests in test_write_json_atomic.py pass (consistency with SessionStore
+  and event_log patterns verified) (see current commit).
+
+## 0.32.2 hardening — thirteenth deep analysis cycle (2026-05-31)
+
+Broad coverage scan: identified zero-coverage paths in SessionStore and
+admin_gui_server. Two gaps found: SessionStore.events() had no tests, and
+_serve_static() parent-dir boundary had no tests.
+
+- [x] **task-61 (MEDIUM): Add test coverage for SessionStore.events() read-back path**
+  `SessionStore.events()` — the JSONL read-back method feeding `/api/events`
+  polling and SSE — had zero test coverage. Any regression (missing index field,
+  broken after_index filter, malformed-line crash) would pass silently.
+  14 tests in `test_session_store_events.py` cover: empty file returns [],
+  index field injection, after_index pagination (0/N/9999), limit truncation,
+  malformed JSON skipped without crash, empty lines skipped, and event-type
+  verification (session.created / session.updated / session.message).
+  14/14 pass; ResourceWarning (unclosed file) fixed before commit (954df64).
+
+- [x] **task-62 (MEDIUM): Add test coverage for AdminGuiHandler._serve_static()**
+  `_serve_static()` — the static asset dispatch path — had zero test coverage.
+  Key behaviors now verified: api/ prefix returns 404 JSON without filesystem
+  access; ui/ path traversal (../../etc/passwd) is blocked by parent-containment
+  guard and returns 404; ui/ non-existent and directory paths return 404; valid
+  ui/ file served with correct bytes; general path traversal falls back to
+  index.html (SPA safe default, no data exposure); URL-encoded traversal
+  (%2e%2e) also falls back; empty/root path serves index.html; content-type
+  detection for CSS and PNG verified.
+  14 tests in `test_serve_static.py`; 14/14 pass (1df64a1).
+
+## 0.32.2 hardening — fourteenth deep analysis cycle (2026-05-31)
+
+Coverage scan of admin_gui_server.py found two dead-code bugs:
+1. `session_current()` defined twice — second definition (line ~1105) silently
+   overrides the first (line ~802); first had no try/except and hardcoded "default"
+   with no session_id param.
+2. `POST /api/session/mode` handled twice in `do_POST` — the second handler
+   (after /api/vault/reinventory) was unreachable because the first already
+   `return`s; dead handler also lacked composite_top_n validation.
+
+- [x] **task-63 (HIGH): Remove dead session_current() overload and duplicate
+  POST /api/session/mode handler from admin_gui_server.py**
+  Removed 4-line dead `session_current(self)` method (no session_id, no
+  try/except) that was always shadowed by the 6-line version at line ~1105.
+  Removed 6-line unreachable second `POST /api/session/mode` handler in
+  do_POST (called session_set_mode() without composite_top_n validation).
+  Updated `test_session_current_api.py`: changed stale zero-arg check
+  `session_current()` to `session_current(session_id)` (the real call).
+  Added 7 source-guard tests in `test_dead_code_removal.py`.
+  All directly-related tests pass; test_session_mode_history.py has 3 pre-
+  existing failures unrelated to this change (double-append regression in
+  the unmerged branch state). py_compile clean (580ec78).
+
+- [x] **task-64 (MEDIUM): Unit tests for safe_id() and resolve_artifact_path()**
+  `safe_id()` is used for ALL path construction (job files, avatar paths,
+  artifact names). A regression allowing '..' or '/' would re-introduce
+  path traversal in every caller. 13 safe_id tests cover: normal input
+  unchanged, slashes replaced, '..' → "item" (default), traversal seq
+  sanitized, empty/whitespace → default, all-special → default, 96-char
+  truncation, custom default parameter.
+  `resolve_artifact_path()` enforces containment in allowed roots (security
+  critical). 9 tests cover: empty rejected, tilde rejected, relative rejected,
+  outside-roots rejected, traversal via '..' rejected, nonexistent rejected,
+  valid file accepted with size, valid directory accepted with is_dir=True.
+  22/22 pass; py_compile clean (15aa488).
+
+- [x] **task-65 (MEDIUM): Add OSError cleanup to SessionStore._write_atomic()**
+  `_write_atomic()` used no try/except — if `tmp.replace(path)` failed, the
+  `.tmp` file was left behind (disk full, permissions, Windows lock). Multiple
+  failed writes would accumulate orphaned `.tmp` files.
+  Fix: wrap the write+replace in try/except OSError; unlink the tmp file on
+  failure (matching the pattern already enforced in AdminGuiServer._write_json()
+  since task-60). Added `test_session_store_cleans_up_tmp_on_error` guard to
+  test_write_json_atomic.py `TestWriteJsonConsistency`.
+  8 write_json_atomic tests + 35 total session-store tests all pass; py_compile clean.
+
+- [x] **task-66 (MEDIUM): Direct unit tests for _session_path(), set_mode(),
+  attach_active_jobs() in SessionStore**
+  20 tests in `test_session_store_sanitization.py` covering path sanitization
+  (_session_path: normal/default/traversal/slash/long/empty/None, plus
+  functional load tests), mode validation (set_mode: normal/fast/full/
+  full_composite accepted; 6 invalid modes fall back to "normal"; composite_top_n
+  persisted/defaults), and active-job filtering (attach_active_jobs: dict items
+  persisted, non-dict filtered out, empty list clears jobs).
+  20/20 pass; py_compile clean (cf083ba).
+
+## 0.32.2 hardening — fifteenth deep analysis cycle (2026-05-31)
+
+Cross-cutting review of tasks 61-66 (events() test coverage, _serve_static()
+tests, dead-code removal, safe_id/resolve_artifact_path tests, _write_atomic
+OSError cleanup, _session_path/set_mode/attach_active_jobs tests).
+Four findings — all Windows-doable and fixed in commit 7c1b86d.
+
+### Finding 1 — do_GET missing outer try/except (MEDIUM)
+
+`do_POST` wraps all handler dispatch in `try/except Exception` → JSON 500.
+`do_GET` had NO such wrapper: any uncaught exception in a GET handler (e.g.
+`self.server.health()` raising) propagated to `BaseHTTPRequestHandler.
+handle_one_request()`, which logged the traceback but closed the connection
+without sending any HTTP response. Clients received a connection reset instead
+of a structured error.
+
+Fix: wrap the entire do_GET dispatch body in `try: ... except Exception as exc:
+self._send_json({"ok": False, "error": repr(exc)}, status=500)` — matching the
+do_POST pattern exactly.
+
+- [x] **task-67 (MEDIUM): Add outer try/except to do_GET matching do_POST pattern**
+  6 source-guard tests in `test_do_get_safety.py` verify: outer try: block
+  present, except Exception block present, 500 status in except, "error" field
+  in 500 response, safety-net comment present, do_POST safety net still present.
+  py_compile clean; 12/12 new tests pass (7c1b86d).
+
+### Finding 2 — /api/events limit unclamped in do_GET (LOW)
+
+`?limit=999999` was parsed and passed unclamped to `events_api()` → `EventLog.
+read()`. File bounded by `MAX_EVENT_LINES=10 000` but a 10 000-row JSON
+response is still ~3 MB per poll. Task-24 clamp existed on a separate unmerged
+branch; current branch never had it.
+
+Fix: `limit = min(max(1, limit), 1000)` after parsing, with comment explaining
+DoS rationale. Clamp also prevents `?limit=0` or negative values from yielding
+zero or unbounded results.
+
+- [x] **task-68 (LOW): Clamp ?limit= in /api/events to [1, 1000]**
+  6 source-guard tests in `test_do_get_safety.py` verify: clamp expression
+  present, applied before events_api() call, upper bound 1000, lower bound 1,
+  comment explaining rationale, limit reassigned. 12/12 new tests pass (7c1b86d).
+
+### Finding 3 — normalize_session_record() raises ValueError on non-numeric fields (MEDIUM)
+
+`int(record.get("selected_composite_top_n") or 0)` raises ValueError when the
+value is a non-numeric string (e.g. "abc"). This is because `"abc" or 0` == `"abc"`
+(truthy), so `int("abc")` raises. `load()` catches this via `except Exception:
+pass` and silently recreates the session from scratch — losing all session
+history. Same issue affected `last_event_index`.
+
+Fix: introduced `_safe_int(value, default=0)` helper in orchestration_state.py
+that returns `default` on any TypeError/ValueError; replaced both `int(... or 0)`
+calls with `_safe_int(...)` in `normalize_session_record()`.
+
+- [x] **task-69 (MEDIUM): Fix normalize_session_record() ValueError on non-numeric
+  selected_composite_top_n / last_event_index**
+  `_safe_int()` introduced; both fields now use it. 7 _safe_int tests + 14
+  normalize_session_record tests in `test_orchestration_state.py` (39 total)
+  include explicit "abc" and None inputs that previously would have caused
+  silent session loss. 39/39 pass; py_compile clean (7c1b86d).
+
+### Finding 4 — orchestration_state functions had zero direct test coverage (LOW)
+
+`nowz()`, `normalize_session_record()`, `normalize_job_record()`, `is_active_job()`
+and `_safe_int()` were covered only via stubs in other test files. The real
+implementations could regress silently.
+
+- [x] **task-70 (LOW): Direct unit tests for all orchestration_state public functions**
+  39 tests in `test_orchestration_state.py` cover all 5 functions (nowz: 5 tests,
+  _safe_int: 7 tests, normalize_session_record: 14 tests, normalize_job_record:
+  8 tests, is_active_job: 5 tests). 39/39 pass (7c1b86d).
+
+## 0.32.2 hardening — sixteenth deep analysis cycle (2026-05-31)
+
+High-effort three-angle review of tasks 67-70 (do_GET safety wrapper, events
+limit clamp, safe int fix, orchestration_state direct tests). Five findings;
+two MEDIUM fixed, three LOW noted below.
+
+- [x] **task-71 (MEDIUM): Fix _safe_int() NaN/Inf fast-path raises**
+  `_safe_int`'s `isinstance(value, (int, float))` branch called `int(value)` bare:
+  `int(float('nan'))` raises ValueError and `int(float('inf'))` raises OverflowError.
+  Both were outside the `try/except` block, breaking the "always return default"
+  contract. Fix: wrapped the isinstance branch in `try/except (ValueError, OverflowError)`.
+  3 new NaN/Inf tests (42 total in test_orchestration_state.py); py_compile clean (aebbc44).
+
+- [x] **task-72 (MEDIUM): Guard do_GET and do_POST safety-net except with inner try/except**
+  If `wfile.write()` already failed (BrokenPipeError on client disconnect mid-stream),
+  the outer safety-net `except Exception` fired and tried `_send_json({"ok": False, ...})`
+  on the same dead socket — raising a second BrokenPipeError that propagated to
+  `process_request_thread()` and logged a spurious unhandled error. Fix: both do_GET
+  and do_POST safety-net blocks now wrap `_send_json(...)` in `try: ... except Exception: pass`.
+  3 new source-guard tests (15 total in test_do_get_safety.py); py_compile clean (aebbc44).
+
+### LOW findings (deferred, not yet fixed):
+
+- **Asymmetric validation (LOW)**: `after_index < 0` returns HTTP 400; `limit <= 0` is
+  silently clamped to 1. Minor API contract inconsistency, no crash risk. Noted.
+
+- **Three duplicate _safe_int implementations (LOW)**: `lsp_facade.py`, `mcp_router.py`,
+  `orchestration_state.py` each define their own `_safe_int` with different default
+  parameter signatures. Not a runtime bug; refactoring would reduce maintenance burden.
+
+- **normalize_job_record dead code (LOW)**: Defined in orchestration_state.py but never
+  imported from any production source. `jobs_list()` returns raw job dicts via `dict(job)`
+  without normalization — jobs created through the normal API path are well-formed, so
+  this is defence-in-depth gap, not a crash. Task-73 would wire it into jobs_list().
+
+## 0.32.2 hardening — seventeenth deep analysis cycle (2026-06-01)
+
+High-effort review of tasks 73-76 (final-state guard in job_cancel, _jobs_lock,
+session_id clamp, needs_privilege in ACTIVE_JOB_STATES). Commit 5ea49db.
+19/19 tests pass in test_job_state_machine.py; all four session suites green.
+
+Four new findings — all Windows-doable:
+
+### Finding 1 — jobs_list() reads jobs_data() without holding _jobs_lock (MEDIUM)
+
+`jobs_list()` calls `self.jobs_data()` (which reads `jobs.json`) without
+acquiring `self._jobs_lock`. Meanwhile `_upsert_job()`, `_persist_job()` and
+`job_cancel()` all write `jobs.json` inside the lock. A concurrent GET
+`/api/jobs` request can read a partially-overwritten file if a tmp-then-replace
+write races with the JSONL parse. The atomic `_write_json()` (tmp-rename) makes
+a partial-JSON read unlikely, but the read is still outside the lock intent.
+Fix: wrap `jobs_data()` call in `jobs_list()` with `with self._jobs_lock:` to
+make the read-then-copy operation consistent with the write callers.
+
+- [x] **task-77 (MEDIUM): Acquire _jobs_lock in jobs_list() for consistent read**
+  Wrap the `jobs_data()` call and the subsequent list comprehension in
+  `jobs_list()` inside `with self._jobs_lock:`. Add a source-guard test
+  verifying `_jobs_lock` appears in the `jobs_list` method body.
+  Done: 4 lock source-guard tests + session_store-sync-outside comment guard;
+  15/15 in test_jobs_list_lock_normalize.py (8566a81).
+
+### Finding 2 — job_cancel() writes cancel marker OUTSIDE _jobs_lock (LOW)
+
+After the `with self._jobs_lock:` block closes, `job_cancel()` calls
+`self._write_json(self.job_file(jid), target)` and
+`marker.write_text(now_iso())` without re-acquiring the lock. A second
+concurrent call to `job_cancel()` on the same job could interleave between
+the status update (inside lock) and the marker write (outside lock). The
+status update is atomic (lock-guarded), but the marker sentinel could be
+written twice, which is idempotent. Risk is LOW (benign double-write), but
+inconsistent with the stated lock semantics.
+No fix required; document the intentional out-of-lock marker write with a
+comment explaining the double-write is safe (sentinel is idempotent).
+
+- [x] **task-78 (LOW): Document out-of-lock cancel marker write in job_cancel()**
+  Add a one-line comment above the `self.job_file()` / `marker.write_text()`
+  calls explaining they are intentionally outside `_jobs_lock` because the
+  marker write is idempotent and the status is already committed under lock.
+  Done: multi-line comment added explaining idempotency + atomic tmp-replace;
+  3 source-guard tests pass (8566a81).
+
+### Finding 3 — normalize_job_record() still dead code; jobs_list() returns raw dicts (LOW)
+
+`normalize_job_record()` was added to orchestration_state.py (task-76 cycle) but
+`jobs_list()` still returns `dict(job)` (shallow copy of the raw stored dict).
+If a job was created by an older code path missing a key (e.g. `"artifacts"`,
+`"progress"`), the frontend receives `undefined` fields. Using
+`normalize_job_record(job)` in `jobs_list()` would guarantee all fields are
+present with safe defaults.
+
+- [x] **task-79 (LOW): Wire normalize_job_record() into jobs_list() return path**
+  In `jobs_list()`, replace `dict(job)` with
+  `normalize_job_record(dict(job))` (import already present from
+  orchestration_state). Add a source-guard test verifying `normalize_job_record`
+  is called inside the `jobs_list` method body.
+  Done: 3 source-guard tests + 5 behavioural tests (minimal job gets all schema
+  fields, progress defaults to dict, full job preserved); 15/15 (8566a81).
+
+### Finding 4 — Three duplicate _safe_int implementations (LOW, deferred from cycle 16)
+
+`lsp_facade.py`, `mcp_router.py`, and `orchestration_state.py` each define
+their own `_safe_int` with slightly different default-parameter signatures.
+The canonical version is in `orchestration_state.py` (covers NaN/Inf,
+tested at 42 assertions). The others lack NaN/Inf coverage.
+Risk: LOW — none are on the same hot path. Windows-doable refactor.
+
+- [x] **task-80 (LOW): Deduplicate _safe_int — import from orchestration_state**
+  Remove `_safe_int` from `lsp_facade.py` and `mcp_router.py`; add
+  `from orchestration_state import _safe_int` (or promote it to a shared
+  `utils.py`). Add import-verification source-guard tests for both files.
+  Note: orchestration_state imports must not create a circular dependency;
+  verify import graph before applying.
+  Done: no circular dependency (lsp_facade/mcp_router don't import orch_state);
+  13 source-guard + functional tests pass (plugin_runner also deduplicated as part
+  of task-86). Commit 14e7670 / cd827fe.
+
+## 0.32.2 hardening — eighteenth deep analysis cycle (2026-06-01)
+
+High-effort three-angle review of tasks 77-80 (jobs_list lock, job_cancel
+out-of-lock comment, normalize_job_record in jobs_list, _safe_int dedup).
+Eight findings identified; six fixed as tasks 81-86.
+
+- [x] **task-81 (MEDIUM): Fix save_message() double append_message() call**
+  Two calls to session_store.append_message() per message: slim dict at line ~866
+  and full msg dict inside try/except at ~881. Sessions accumulated 2× entries,
+  halving the 500-message cap. Removed the slim-dict call; kept the try/except
+  wrapped full-msg call. 3 source-guard tests; py_compile clean (cd827fe).
+
+- [x] **task-82/85 (MEDIUM): Acquire _jobs_lock in job_get() + apply normalize_job_record()**
+  job_get() read jobs_data() without _jobs_lock, racing with concurrent writes.
+  Also returned raw job dicts, diverging schema from jobs_list(). Fixed: wrapped
+  read inside with self._jobs_lock:; applied normalize_job_record() +
+  enrich_artifact_cards(). 4 source-guard + 2 behavioural tests (cd827fe).
+
+- [x] **task-83 (MEDIUM): Normalize job_cancel() return dicts**
+  Both return paths (FINAL_JOB_STATES early return, success/not-found) returned
+  raw job dicts. Frontend could receive undefined for progress/lock_key/version.
+  Fixed: both paths now call normalize_job_record() + enrich_artifact_cards().
+  2 source-guard + 2 behavioural tests (cd827fe).
+
+- [x] **task-84 (LOW): Guard _write_json in job_cancel() against not-found**
+  _write_json(self.jobs_file(), data) executed unconditionally inside _jobs_lock
+  even when no matching job_id was found (no-op write while holding the lock).
+  Fixed: added 'if target is not None:' guard. 2 source-guard + 1 behavioural
+  (mtime unchanged for not-found) tests pass (cd827fe).
+
+- [x] **task-86 (LOW): plugin_runner._safe_int dedup**
+  plugin_runner.py had the same local _safe_int as lsp_facade/mcp_router
+  (missed in task-80). Removed local def + autodoc header; added import from
+  orchestration_state. 2 new source-guard tests in test_safe_int_dedup.py
+  (13 total); py_compile clean (cd827fe).
+
+### Remaining findings from this cycle (deferred as new tasks):
+
+- [x] **task-87 (LOW)**: _read_json() swallows all exceptions silently including
+  json.JSONDecodeError from corrupt files. Operator gets no log output; next
+  _upsert_job() overwrites jobs.json with empty list. Fix: add sys.stderr.write
+  warning inside the except block to surface corruption without re-raising.
+  Done: 3 source-guard + 3 behavioural tests; py_compile clean (2106cd9).
+
+- [x] **task-88 (LOW)**: normalize_job_record() sets progress to {"current":0,"total":0,
+  "label":"queued"} only when progress is not a dict. If progress IS a dict but
+  missing internal keys (e.g. {"current": 5}), normalize_job_record returns it
+  as-is. Frontend code that accesses progress.label receives undefined.
+  Fix: add normalize_job_progress() helper ensuring all three sub-keys exist.
+  Done: normalize_job_progress() in orchestration_state.py; normalize_job_record()
+  delegates to it; 8 functional + 2 source-guard tests pass (2106cd9).
+
+## 0.32.2 hardening — nineteenth deep analysis cycle (2026-06-01)
+
+Targeted review of remaining gaps after tasks 77-88 (jobs_list lock, per-job
+normalize, job_cancel normalize/write-guard, save_message dedup, job_get lock,
+_read_json stderr, normalize_job_progress). Five findings; four MEDIUM fixed.
+
+- [x] **task-89 (MEDIUM): Remove double session.saved event from session_store.save()**
+  save() emitted 'session.saved' then each caller (update/append_message) emitted
+  its own semantic event — every GUI action wrote 2 events to session-events.jsonl,
+  doubling the log size and making after_index polling unreliable.
+  Fixed: save() is now a pure persistence helper; callers retain their events.
+  4 source-guard tests + 157 total tests green (5306b2b).
+
+- [x] **task-90 (MEDIUM): _upsert_job() and _persist_job() write normalized per-job files**
+  Per-job .json files were written with raw job dicts — missing fields like
+  lock_key, finished_at, version that normalize_job_record() would add.
+  Fixed: both methods now call normalize_job_record(dict(job)) for the per-job
+  file write so job_get() always reads a schema-complete record.
+  3 source-guard tests; all regression suites green (5306b2b).
+
+- [x] **task-91 (MEDIUM): Add _tasks_lock to task_create() and task_update()**
+  Both methods did tasks_data() + _write_json() without a lock — concurrent
+  POST /api/tasks requests could silently overwrite each other's tasks.
+  Fixed: self._tasks_lock = threading.Lock() in __init__; both methods acquire it.
+  6 source-guard tests (5306b2b).
+
+- [x] **task-92 (LOW): Initialize norm_target before 'if target:' in job_cancel()**
+  norm_target was only defined inside 'if target:' but used in the ternary on the
+  return line. Runtime-safe due to ternary short-circuit, but fragile under refactor.
+  Fixed: norm_target: Dict[str, Any] = {} initialized before the if block.
+  2 source-guard tests (5306b2b).
+
+### Remaining findings from nineteenth cycle (deferred as new tasks):
+
+- [x] **task-93 (LOW)**: _append_event() in session_store.py documented "Caller must
+  hold self._lock" but did not enforce this contract. A future developer adding a
+  new call outside the lock would create a JSONL race silently.
+  Fix: _append_event() now acquires self._lock internally (RLock, so callers
+  already holding it re-enter without deadlock). No caller changes needed.
+  20/20 session_store_sanitization tests pass; py_compile clean.
+
+## 0.32.2 hardening — twentieth deep analysis cycle (2026-06-01)
+
+Final Windows-accessible hardening scan. Two concurrency gaps found in paths
+not yet locked. Both fixed.
+
+- [x] **task-94 (MEDIUM): tasks_list() acquires _tasks_lock for consistent reads**
+  tasks_list() called tasks_data() without _tasks_lock, racing with concurrent
+  task_create()/task_update() writes. Fixed: wrapped in 'with self._tasks_lock:'
+  (same pattern as jobs_list/_jobs_lock from task-77).
+  3 source-guard tests; py_compile clean (5b57adb).
+
+- [x] **task-95 (MEDIUM): save_message() acquires _conv_lock for conversation R-M-W**
+  Two concurrent request threads calling save_message() could both read
+  conversation-current.json, both append a message, and the last writer would
+  overwrite the other's entry. Fixed: self._conv_lock = threading.Lock() added
+  to __init__; save_message() acquires it around _conversation() + _save_conversation().
+  Lock order documented: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+  first, then calls save_message — never reversed, no deadlock).
+  8 source-guard tests; all regression suites green (5b57adb).
+
+### Windows-accessible tasks status: ALL CLOSED (tasks 1-95)
+All remaining open items require the target host (SHA256SUMS, smoke tests,
+shell validation) or are blocked on other branches merging (prune_terminal,
+preflight exception). No new Windows-doable hardening tasks identified after
+twentieth analysis cycle.
 
 ## 0.32.2 Cursor Brief — remaining open items
 

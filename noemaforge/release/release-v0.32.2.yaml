@@ -130,9 +130,9 @@ completed_items:
 known_open_items_before_final_merge:
   - "Regenerate SHA256SUMS after all branches merged to release/0.32.2-hardening."
   - "Create noemaforge_0.32.2_release.tar.gz clean release archive."
-  - "Run bash -n validation on all .sh helpers (requires Linux/WSL or BigBro-BOS)."
-  - "Run noemaforge-version-audit.sh --strict-all --expected 0.32.2 on BigBro-BOS."
-  - "Target-machine smoke gates (Admin GUI, first-start dry-run) on BigBro-BOS."
+  - "Run bash -n validation on all .sh helpers (requires Linux/WSL or target host)."
+  - "Run noemaforge-version-audit.sh --strict-all --expected 0.32.2 on the target host."
+  - "Target-machine smoke gates (Admin GUI, first-start dry-run) on the target host."
 
 validation_commands:
   local_static:

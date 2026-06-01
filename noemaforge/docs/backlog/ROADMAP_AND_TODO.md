@@ -2969,6 +2969,8 @@ The authoritative current operational TODO for the Trixie recovery / launcher / 
 
 This in-tree `noemaforge/TODO.md` remains the historical B-track implementation backlog and should not be treated as the only current release TODO.
 
+Docs hygiene now includes forbidden-active-text enforcement for the 0.32.2 hardening line. The active docs, release metadata and prelaunch evidence use neutral target-host wording, and `docs-hygiene-prelaunch` fails if legacy host-specific names or retired public-docs path strings reappear outside project trash.
+
 ### NoemaForge ASAP TODO
 
 Status legend:

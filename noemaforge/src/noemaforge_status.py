@@ -30,8 +30,9 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+DEFAULT_ROOT = _pp.root
 DEFAULT_SHARE = Path(os.environ.get("NOEMAFORGE_SHARE", "/mnt/noemaforge-share"))
 DEFAULT_DATASET = Path(os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", "/opt/noemaforge/datasets/role_eval_cases"))
 SOCKETS = {

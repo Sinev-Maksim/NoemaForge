@@ -58,9 +58,11 @@ except ImportError:  # pragma: no cover - exercised on Windows hosts.
 
     resource = _ResourceFallback()  # type: ignore[assignment]
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
+
+DEFAULT_ROOT = _pp.root
+DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
 POLICY_REL = Path("configs/selftest-telemetry-policy.json")
 

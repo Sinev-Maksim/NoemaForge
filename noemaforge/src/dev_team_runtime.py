@@ -34,9 +34,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from noemaforge_version import RUNTIME_VERSION
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/lib/noemaforge/dev-team"))
-DEFAULT_PIPELINE_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_ROOT           = _pp.root
+DEFAULT_STATE          = _pp.dev_team_state_dir
+DEFAULT_PIPELINE_STATE = _pp.pipelines_dir
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 OPEN_BACKLOG_STATUSES = {"new", "open", "todo", "pending", "in_progress", "blocked"}
 LOOP_TERMINAL_STATUSES = {"completed", "stopped", "budget_exhausted"}

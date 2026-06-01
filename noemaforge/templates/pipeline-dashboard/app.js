@@ -25,6 +25,11 @@ let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
 let lastEventIndex = 0;
+// server_epoch detects server restarts even when rotation_count stays 0.
+// rotation_count detects in-process log rotations.
+// Both trigger a lastEventIndex reset to avoid missing or duplicating events.
+let lastServerEpoch = null;
+let lastRotationCount = 0;
 let restoredSelectionMode = {mode:'full_composite', composite_top_n:4};
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
@@ -280,8 +285,27 @@ async function refreshInactivity(){ try{ const st = await api('/api/inactivity/s
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
 async function pollEvents(){
   // Poll /api/events with deduplication by index — only fetch rows after lastEventIndex.
+  // Reset lastEventIndex=0 when server restarts (server_epoch changes) or when the
+  // log file is rotated in-process (rotation_count changes).
   try{
     const r = await api(`/api/events?after_index=${lastEventIndex}`);
+    // Only adopt a non-empty server_epoch; empty string ("") from error paths is ignored.
+    if(lastServerEpoch === null && r.server_epoch) lastServerEpoch = r.server_epoch;
+    if(r.server_epoch && r.server_epoch !== lastServerEpoch){
+      // Server restarted — reset cursor and adopt new epoch.
+      // Return immediately: current r.events was fetched with a stale after_index;
+      // processing it would advance lastEventIndex past events 0..N that we must
+      // still fetch. The next poll will start clean from after_index=0.
+      lastEventIndex = 0;
+      lastServerEpoch = r.server_epoch;
+      lastRotationCount = r.rotation_count || 0;
+      return;
+    } else if(typeof r.rotation_count === 'number' && r.rotation_count !== lastRotationCount){
+      // In-process rotation — log was truncated. Same reasoning: return early.
+      lastEventIndex = 0;
+      lastRotationCount = r.rotation_count;
+      return;
+    }
     const events = r.events || [];
     if(!events.length) return;
     const target = el('internal-chat');

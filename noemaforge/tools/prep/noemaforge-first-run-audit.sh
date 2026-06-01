@@ -2,9 +2,9 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-first-run-audit.sh
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.32.2
 # Created: 2026-05-14
-# Modified: 2026-05-14
+# Modified: 2026-05-27
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 # Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 # Outputs: Structured command output, files, service state or UI state as documented by the caller.

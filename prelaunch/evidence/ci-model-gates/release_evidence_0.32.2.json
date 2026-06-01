@@ -5,7 +5,7 @@
   "created_at": "2026-05-27T00:00:00Z",
   "version": "0.32.2",
   "gate_id": "p0-blocker-admin-gui-wiring",
-  "generated_on": "Windows/Python 3.14 (dev machine); full smoke on BigBro-BOS required",
+  "generated_on": "Windows/Python 3.14 (dev machine); full smoke on target host required",
   "pull_requests": [
     {"pr": 3, "branch": "claude/task-1-session-current", "title": "feat(admin-gui): wire GET /api/session/current via session_store [TDD]"},
     {"pr": 4, "branch": "claude/task-2-events-api",      "title": "feat(admin-gui): wire GET /api/events via event_log [TDD]"},
@@ -80,5 +80,5 @@
     "noemaforge_0.32.2_release.tar.gz build"
   ],
   "checksum_script": "noemaforge/bootstrap/regenerate-checksums.py",
-  "checksum_instructions": "After merging all PRs on BigBro-BOS: cd /opt && python3 noemaforge/bootstrap/regenerate-checksums.py noemaforge/ && git add noemaforge/checksums/SHA256SUMS && git commit -m 'chore(release): regenerate SHA256SUMS for 0.32.2'"
+  "checksum_instructions": "After merging all PRs on the target host: cd /opt && python3 noemaforge/bootstrap/regenerate-checksums.py noemaforge/ && git add noemaforge/checksums/SHA256SUMS && git commit -m 'chore(release): regenerate SHA256SUMS for 0.32.2'"
 }

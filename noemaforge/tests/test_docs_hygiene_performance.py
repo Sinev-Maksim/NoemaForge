@@ -20,13 +20,14 @@ import copy
 import os
 import shutil
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
 
 ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = ROOT.parent
-TMP_ROOT = ROOT / "tests" / "_tmp_docs_hygiene_perf"
+TMP_ROOT = Path(tempfile.gettempdir()) / "noemaforge_tmp_docs_hygiene_perf"
 sys.path.insert(0, str(ROOT / "src"))
 
 import docs_hygiene_runtime as dhr

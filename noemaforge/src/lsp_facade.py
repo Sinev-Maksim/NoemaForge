@@ -62,6 +62,8 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tupl
 
 import yaml
 
+from orchestration_state import _safe_int  # canonical NaN/Inf-safe implementation
+
 DEFAULT_ROOTS = [
     "/workspace",
     "/opt/noemaforge/src",
@@ -70,25 +72,6 @@ DEFAULT_ROOTS = [
 ]
 DEFAULT_EXTENSIONS = [".py", ".json", ".yaml", ".yml", ".md", ".txt", ".sh", ".ps1"]
 _MAX_FILE_BYTES = 512 * 1024
-
-
-# === NoemaForge Autodoc Function Header ===
-# Function: _safe_int(value: Any, default: int)
-# Purpose: Coerce arbitrary values to a bounded integer.
-# Inputs:
-#   - value: Any
-#   - default: int
-# Called by:
-#   - diagnostics
-#   - symbols
-#   - references
-# Returns / emits: int
-# === End NoemaForge Autodoc Function Header ===
-def _safe_int(value: Any, default: int) -> int:
-    try:
-        return int(value)
-    except Exception:
-        return int(default)
 
 
 # === NoemaForge Autodoc Function Header ===
