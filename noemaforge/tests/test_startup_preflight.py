@@ -31,6 +31,7 @@ from startup_preflight import (  # noqa: E402
     JournaldCheck,
     PreflightSuite,
     StorageCheck,
+    _default_first_start_storage_paths,
 )
 
 
@@ -276,6 +277,25 @@ class TestPreflightSuite(unittest.TestCase):
         suite = PreflightSuite.for_first_start()
         self.assertIsNotNone(suite)
         self.assertGreater(len(suite.checks), 0)
+
+    def test_default_storage_paths_keep_linux_share_gate(self) -> None:
+        with patch("startup_preflight._platform_paths") as paths:
+            paths.platform = "linux"
+            paths.share_dir = Path("/custom/noemaforge-share")
+            result = _default_first_start_storage_paths()
+        self.assertEqual(result, ["/", "/custom/noemaforge-share"])
+
+    def test_default_storage_paths_do_not_use_linux_share_on_non_linux(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            with patch("startup_preflight._platform_paths") as paths:
+                paths.platform = "windows"
+                paths.data_root = root / "missing" / "data"
+                paths.share_dir = Path("/mnt/noemaforge-share")
+                result = _default_first_start_storage_paths()
+        self.assertEqual(result, [str(root)])
+        self.assertNotIn("/mnt/noemaforge-share", result)
 
     def test_suite_empty_is_ok(self) -> None:
         suite = PreflightSuite(checks=[])

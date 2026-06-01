@@ -136,6 +136,9 @@ class CodeEvolutionLoop:
     python_exe :
         Python executable to use for test runs. Defaults to sys.executable
         so the same interpreter that runs this module is used.
+    pycache_prefix :
+        Directory used for Python bytecode during self-tests. Defaults to the
+        code-evolution state dir so source trees stay cache-free.
     dry_run :
         When True, apply_patch() is a no-op (logs what would change).
     """
@@ -145,6 +148,7 @@ class CodeEvolutionLoop:
         project_root: Optional[Path] = None,
         paths: Optional[NoemaForgePaths] = None,
         python_exe: Optional[str] = None,
+        pycache_prefix: Optional[Path] = None,
         dry_run: bool = True,
     ) -> None:
         self.project_root = Path(project_root or os.environ.get("NOEMAFORGE_ROOT", Path(__file__).resolve().parents[2]))
@@ -152,6 +156,8 @@ class CodeEvolutionLoop:
         self.python_exe = python_exe or sys.executable
         self.dry_run = dry_run
         self._state_dir = self.paths.code_evolution_state_dir
+        env_pycache = os.environ.get("NOEMAFORGE_PYCACHE_PREFIX")
+        self.pycache_prefix = Path(pycache_prefix or env_pycache) if (pycache_prefix or env_pycache) else self._state_dir / "pycache"
         self._todo_path = self.project_root / "noemaforge" / "docs" / "TODO.md"
         self._changelog_path = self.project_root / "noemaforge" / "docs" / "history" / "CHANGELOG.md"
         self._state: Dict[str, Any] = self._load_state()
@@ -298,12 +304,13 @@ class CodeEvolutionLoop:
 
         # --- py_compile pass ---
         compile_failures: List[str] = []
+        self.pycache_prefix.mkdir(parents=True, exist_ok=True)
         if src_dir.exists():
             for py_file in sorted(src_dir.rglob("*.py")):
                 if "__pycache__" in str(py_file):
                     continue
                 result = subprocess.run(
-                    [self.python_exe, "-m", "py_compile", str(py_file)],
+                    [self.python_exe, "-X", f"pycache_prefix={self.pycache_prefix}", "-m", "py_compile", str(py_file)],
                     capture_output=True, text=True, timeout=30,
                 )
                 if result.returncode != 0:

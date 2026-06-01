@@ -13,7 +13,7 @@ Purpose: Serve the localhost Admin GUI and JSON APIs for conversation memory,
 Inputs:
   - HTTP GET/POST localhost requests from the packaged GUI.
   - NoemaForge catalogs/configs under ROOT/configs.
-  - Runtime/bootstrap state under /var/lib/noemaforge.
+  - Runtime/bootstrap state resolved through platform_paths.py.
   - Optional system telemetry commands such as sensors, nvidia-smi, upower.
 Outputs:
   - JSON API responses.
@@ -70,6 +70,11 @@ DEFAULT_EVOLUTION_STATE = _platform_paths.model_evolution_state_dir
 DEFAULT_MODEL_SELECTION_STATE = _platform_paths.model_selection_state_dir
 DEFAULT_DEV_TEAM_STATE = _platform_paths.dev_team_state_dir
 DEFAULT_DATA_ROOT = _platform_paths.data_root
+DEFAULT_BOOTSTRAP_DIR = _platform_paths.bootstrap_dir
+DEFAULT_MODELSTORE_DIR = _platform_paths.modelstore_dir
+DEFAULT_LLM_GATEWAY_SOCKET = _platform_paths.llm_gateway_socket
+DEFAULT_LLM_MAIN_BACKEND_SOCKET = _platform_paths.llm_main_backend_socket
+DEFAULT_LEGACY_LLM_GATEWAY_SOCKET = _platform_paths.legacy_brainos_gateway_socket
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
@@ -123,21 +128,38 @@ def _service_state(result: Dict[str, Any]) -> str:
     return "inactive"
 
 
+def _path_key(path: Path) -> str:
+    return str(path)
+
+
+def _socket_present(sockets: Dict[str, Any], path: Path, *fallbacks: Optional[Path]) -> bool:
+    keys = {_path_key(path), _path_key(path).replace("\\", "/")}
+    for fallback in fallbacks:
+        if fallback is not None:
+            keys.add(_path_key(fallback))
+            keys.add(_path_key(fallback).replace("\\", "/"))
+    return any(bool(sockets.get(key)) for key in keys)
+
+
 def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]]:
     sockets = runtime.get("sockets") if isinstance(runtime.get("sockets"), dict) else {}
     gateway_state = _service_state(runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {})
     backend_state = _service_state(runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {})
-    gateway_socket = bool(sockets.get("/run/noemaforge/llm/gateway.sock") or sockets.get("/run/brainos/llm/gateway.sock"))
-    backend_socket = bool(sockets.get("/run/noemaforge/llm/backends/main.sock"))
+    gateway_socket = _socket_present(
+        sockets,
+        DEFAULT_LLM_GATEWAY_SOCKET,
+        DEFAULT_LEGACY_LLM_GATEWAY_SOCKET,
+    )
+    backend_socket = _socket_present(sockets, DEFAULT_LLM_MAIN_BACKEND_SOCKET)
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
     device_policy = str(policy.get("policy") or policy or "auto")
     return [
         {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
-        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": "/run/noemaforge/llm/gateway.sock"},
+        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_GATEWAY_SOCKET)},
         {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": "ok" if backend_state == "active" else "warn", "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llama@main.service"},
-        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": "/run/noemaforge/llm/backends/main.sock"},
+        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_MAIN_BACKEND_SOCKET)},
         {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
         {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
     ]
@@ -663,6 +685,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         # then calls save_message which acquires _conv_lock — never reversed).
         self._conv_lock = threading.Lock()
         self.runtime_dir = self.data_root / "runtime"
+        self.bootstrap_dir = DEFAULT_BOOTSTRAP_DIR
+        self.modelstore_dir = DEFAULT_MODELSTORE_DIR
+        self.llm_gateway_socket = DEFAULT_LLM_GATEWAY_SOCKET
+        self.llm_main_backend_socket = DEFAULT_LLM_MAIN_BACKEND_SOCKET
+        self.legacy_llm_gateway_socket = DEFAULT_LEGACY_LLM_GATEWAY_SOCKET
         self.ui_dir = self.root / "templates" / "pipeline-dashboard"
         if not self.ui_dir.exists():
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
@@ -678,6 +705,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         env["NOEMAFORGE_MODEL_EVOLUTION_STATE"] = str(self.evolution_state)
         env["NOEMAFORGE_MODEL_SELECTION_STATE"] = str(self.model_selection_state)
         env["NOEMAFORGE_DEV_TEAM_STATE"] = str(self.dev_team_state)
+        env["NOEMAFORGE_BOOTSTRAP_DIR"] = str(self.bootstrap_dir)
+        env["NOEMAFORGE_MODELSTORE_DIR"] = str(self.modelstore_dir)
+        env["NOEMAFORGE_GATEWAY_SOCKET"] = str(self.llm_gateway_socket)
+        env["NOEMAFORGE_MAIN_BACKEND_SOCKET"] = str(self.llm_main_backend_socket)
         if locale:
             env["NOEMAFORGE_LANG"] = locale
         return env
@@ -1395,11 +1426,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "idle_seconds": idle_sec, "idle_human": f"{idle_sec//3600:02d}:{(idle_sec//60)%60:02d}:{idle_sec%60:02d}", "policy": policy, "status": "paused" if policy.get("mode") == "manual_only" else "active"}
 
     def runtime_status(self) -> Dict[str, Any]:
-        sockets = ["/run/noemaforge/llm/gateway.sock", "/run/noemaforge/llm/backends/main.sock", "/run/brainos/llm/gateway.sock"]
-        sock_status = {s: Path(s).exists() for s in sockets}
+        sockets = [self.llm_gateway_socket, self.llm_main_backend_socket]
+        if self.legacy_llm_gateway_socket is not None:
+            sockets.append(self.legacy_llm_gateway_socket)
+        sock_status = {_path_key(s): s.exists() for s in sockets}
         svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
         main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
-        main_manifest = self._read_json(Path("/var/lib/modelstore/models/main/noemaforge-model.json"), {}) or self._read_json(Path("/var/lib/modelstore/models/main/brainos-model.json"), {})
+        main_model_dir = self.modelstore_dir / "models" / "main"
+        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
         doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "device_policy": self.device_policy().get("policy")}
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
@@ -1441,8 +1475,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         sensors = self._command_output(["sensors"], timeout=8)
         upower = self._command_output(["upower", "-d"], timeout=8)
         runtime = self.runtime_status()
-        staff = self._read_json(Path("/var/lib/noemaforge/bootstrap/firstboot-staffing-summary.json"), {})
-        decision = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-selection-decision.json"), {})
+        staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
+        decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
         hardware = {"memory": {"MemTotal": meminfo.get("MemTotal"), "MemAvailable": meminfo.get("MemAvailable"), "SwapTotal": meminfo.get("SwapTotal"), "SwapFree": meminfo.get("SwapFree")}, "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
         creative_media = {
             "quality_evaluation_state": "not_measured_without_explicit_evaluator",
@@ -1457,9 +1491,11 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     # --- epoch/model-selection -------------------------------------------------------
     def model_selection_progress(self) -> Dict[str, Any]:
-        inventory = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-inventory.json"), {})
-        health = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-health-registry.json"), {})
-        records = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-run-records.json"), [])
+        inventory = self._read_json(self.bootstrap_dir / "model-inventory.json", {})
+        health_path = self.bootstrap_dir / "model-health-registry.json"
+        records_path = self.bootstrap_dir / "model-run-records.json"
+        health = self._read_json(health_path, {})
+        records = self._read_json(records_path, [])
         total = (inventory.get("summary") or {}).get("logical_models_total") or len(inventory.get("models", [])) or 0
         tested = len(records) if isinstance(records, list) else 0
         failed_models: List[str] = []
@@ -1467,16 +1503,17 @@ class AdminGuiServer(ThreadingHTTPServer):
             models = health.get("models") or {}
             if isinstance(models, dict):
                 failed_models = [m for m, rec in models.items() if rec.get("exclude_from_selection") or rec.get("health_state", "").startswith("failed")]
-        return {"total_models": total, "tested_models": tested, "failed_models": len(failed_models), "failed_model_ids": failed_models[:100], "remaining_models": max(0, int(total or 0) - int(tested or 0)), "records_path": "/var/lib/noemaforge/bootstrap/model-run-records.json", "health_registry": "/var/lib/noemaforge/bootstrap/model-health-registry.json"}
+        return {"total_models": total, "tested_models": tested, "failed_models": len(failed_models), "failed_model_ids": failed_models[:100], "remaining_models": max(0, int(total or 0) - int(tested or 0)), "records_path": str(records_path), "health_registry": str(health_path)}
 
     def epoch_status(self) -> Dict[str, Any]:
-        main_manifest = self._read_json(Path("/var/lib/modelstore/models/main/noemaforge-model.json"), {}) or self._read_json(Path("/var/lib/modelstore/models/main/brainos-model.json"), {})
-        model_link = Path("/var/lib/modelstore/models/main/model.gguf")
+        main_model_dir = self.modelstore_dir / "models" / "main"
+        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
+        model_link = main_model_dir / "model.gguf"
         model_realpath = str(model_link.resolve()) if model_link.exists() else ""
-        status = self._read_json(Path("/var/lib/noemaforge/bootstrap/firstboot-status.json"), {})
-        staff = self._read_json(Path("/var/lib/noemaforge/bootstrap/firstboot-staffing-summary.json"), {})
-        decision = self._read_json(Path("/var/lib/noemaforge/bootstrap/model-selection-decision.json"), {})
-        candidate_plan = self._read_json(Path("/var/lib/noemaforge/bootstrap/candidate-selection-plan.json"), {})
+        status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
+        staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
+        decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
+        candidate_plan = self._read_json(self.bootstrap_dir / "candidate-selection-plan.json", {})
         latest_msel = None
         for p in sorted(self.model_selection_state.glob("runs/msel_*"), reverse=True):
             if p.is_dir():
@@ -1853,7 +1890,10 @@ class AdminGuiServer(ThreadingHTTPServer):
     def try_llm_admin_reply(self, text: str, locale: str) -> str:
         if os.environ.get("NOEMAFORGE_GUI_DISABLE_LLM_CHAT") == "1":
             return ""
-        if not (Path("/run/noemaforge/llm/gateway.sock").exists() or Path("/run/noemaforge/llm/backends/main.sock").exists()):
+        sockets = [self.llm_gateway_socket, self.llm_main_backend_socket]
+        if self.legacy_llm_gateway_socket is not None:
+            sockets.append(self.legacy_llm_gateway_socket)
+        if not any(sock.exists() for sock in sockets):
             return ""
         prompt = text if locale != "ru" else "Ответь по-русски как локальный Admin NoemaForge, коротко и полезно. Запрос: " + text
         cmd = [str(self.root / "bin" / "noemaforge"), "chat", "--role", "admin", "--once", prompt]

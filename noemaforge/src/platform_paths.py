@@ -147,6 +147,24 @@ def _default_log_dir(platform: str, data_root: Path) -> Path:
     return Path("/var/log/noemaforge")
 
 
+def _default_runtime_dir(platform: str, data_root: Path) -> Path:
+    if platform == PLATFORM_LINUX:
+        return Path("/run/noemaforge")
+    return data_root / "run"
+
+
+def _default_share_dir(platform: str, data_root: Path) -> Path:
+    if platform == PLATFORM_LINUX:
+        return Path("/mnt/noemaforge-share")
+    return data_root / "share"
+
+
+def _default_modelstore_dir(platform: str, data_root: Path) -> Path:
+    if platform == PLATFORM_LINUX:
+        return Path("/var/lib/modelstore")
+    return data_root / "modelstore"
+
+
 # ---------------------------------------------------------------------------
 # Config file discovery + parsing
 # ---------------------------------------------------------------------------
@@ -237,6 +255,7 @@ def write_config(
     """
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
+    plat = current_platform()
 
     # Derive sub-paths from data_root
     derived = {
@@ -249,12 +268,15 @@ def write_config(
         "model_evolution_state_dir": str(data_root / "model-evolution"),
         "dev_team_state_dir":        str(data_root / "dev-team"),
         "code_evolution_state_dir":  str(data_root / "code-evolution"),
+        "runtime_dir":               str(_default_runtime_dir(plat, data_root)),
+        "bootstrap_dir":             str(data_root / "bootstrap"),
+        "share_dir":                 str(_default_share_dir(plat, data_root)),
+        "modelstore_dir":            str(_default_modelstore_dir(plat, data_root)),
         "vault_dir":                 str(data_root / "vault"),
         "epoch_dir":                 str(data_root / "epochs"),
         "persona_state_dir":         str(data_root / "personas"),
     }
     # Linux log dir lives outside data_root
-    plat = current_platform()
     derived["log_dir"] = str(_default_log_dir(plat, data_root))
 
     if extra_paths:
@@ -443,6 +465,56 @@ class NoemaForgePaths:
                              self._data_root / "code-evolution")
 
     @property
+    def runtime_dir(self) -> Path:
+        return self._resolve("NOEMAFORGE_RUNTIME_DIR", "paths", "runtime_dir",
+                             _default_runtime_dir(self._platform, self._data_root))
+
+    @property
+    def bootstrap_dir(self) -> Path:
+        return self._resolve("NOEMAFORGE_BOOTSTRAP_DIR", "paths", "bootstrap_dir",
+                             self._data_root / "bootstrap")
+
+    @property
+    def share_dir(self) -> Path:
+        return self._resolve("NOEMAFORGE_SHARE_DIR", "paths", "share_dir",
+                             _default_share_dir(self._platform, self._data_root))
+
+    @property
+    def modelstore_dir(self) -> Path:
+        return self._resolve("NOEMAFORGE_MODELSTORE_DIR", "paths", "modelstore_dir",
+                             _default_modelstore_dir(self._platform, self._data_root))
+
+    @property
+    def llm_gateway_socket(self) -> Path:
+        return self._resolve("NOEMAFORGE_GATEWAY_SOCKET", "paths", "llm_gateway_socket",
+                             self.runtime_dir / "llm" / "gateway.sock")
+
+    @property
+    def llm_main_backend_socket(self) -> Path:
+        return self._resolve("NOEMAFORGE_MAIN_BACKEND_SOCKET", "paths",
+                             "llm_main_backend_socket",
+                             self.runtime_dir / "llm" / "backends" / "main.sock")
+
+    @property
+    def llm_backends_dir(self) -> Path:
+        return self._resolve("NOEMAFORGE_LLM_BACKENDS_DIR", "paths",
+                             "llm_backends_dir",
+                             self.runtime_dir / "llm" / "backends")
+
+    @property
+    def toolproxy_socket(self) -> Path:
+        return self._resolve("NOEMAFORGE_TOOLPROXY_SOCKET", "paths", "toolproxy_socket",
+                             self.runtime_dir / "toolproxy.sock")
+
+    @property
+    def legacy_brainos_gateway_socket(self) -> Optional[Path]:
+        if self._platform != PLATFORM_LINUX:
+            return None
+        return self._resolve("NOEMAFORGE_LEGACY_BRAINOS_GATEWAY_SOCKET", "paths",
+                             "legacy_brainos_gateway_socket",
+                             Path("/run/brainos/llm/gateway.sock"))
+
+    @property
     def epoch_dir(self) -> Path:
         return self._resolve("NOEMAFORGE_EPOCH_STATE", "paths", "epoch_dir",
                              self._data_root / "epochs")
@@ -495,6 +567,15 @@ class NoemaForgePaths:
             "model_evolution_state_dir":  str(self.model_evolution_state_dir),
             "dev_team_state_dir":         str(self.dev_team_state_dir),
             "code_evolution_state_dir":   str(self.code_evolution_state_dir),
+            "runtime_dir":                str(self.runtime_dir),
+            "bootstrap_dir":              str(self.bootstrap_dir),
+            "share_dir":                  str(self.share_dir),
+            "modelstore_dir":             str(self.modelstore_dir),
+            "llm_gateway_socket":         str(self.llm_gateway_socket),
+            "llm_main_backend_socket":    str(self.llm_main_backend_socket),
+            "llm_backends_dir":           str(self.llm_backends_dir),
+            "toolproxy_socket":           str(self.toolproxy_socket),
+            "legacy_brainos_gateway_socket": str(self.legacy_brainos_gateway_socket) if self.legacy_brainos_gateway_socket else None,
             "epoch_dir":                  str(self.epoch_dir),
             "vault_dir":                  str(self.vault_dir),
             "persona_state_dir":          str(self.persona_state_dir),
@@ -536,6 +617,12 @@ def get_pipelines_dir()           -> Path: return DEFAULT_PATHS.pipelines_dir
 def get_model_evolution_state_dir() -> Path: return DEFAULT_PATHS.model_evolution_state_dir
 def get_dev_team_state_dir()      -> Path: return DEFAULT_PATHS.dev_team_state_dir
 def get_code_evolution_state_dir() -> Path: return DEFAULT_PATHS.code_evolution_state_dir
+def get_runtime_dir()             -> Path: return DEFAULT_PATHS.runtime_dir
+def get_bootstrap_dir()           -> Path: return DEFAULT_PATHS.bootstrap_dir
+def get_share_dir()               -> Path: return DEFAULT_PATHS.share_dir
+def get_modelstore_dir()          -> Path: return DEFAULT_PATHS.modelstore_dir
+def get_llm_gateway_socket()      -> Path: return DEFAULT_PATHS.llm_gateway_socket
+def get_llm_main_backend_socket() -> Path: return DEFAULT_PATHS.llm_main_backend_socket
 
 
 # ---------------------------------------------------------------------------
