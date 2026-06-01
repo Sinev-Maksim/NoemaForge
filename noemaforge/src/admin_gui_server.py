@@ -56,15 +56,19 @@ from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
 from session_store import SessionStore
 from orchestration_state import is_active_job, FINAL_JOB_STATES, normalize_job_record
+# Platform-aware path resolution — replaces hardcoded /opt/noemaforge defaults.
+# All DEFAULT_* constants below now delegate to platform_paths so the server
+# starts correctly on Linux, Windows, and macOS without any env-var pre-setting.
+from platform_paths import DEFAULT_PATHS as _platform_paths
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
-DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
-DEFAULT_EVOLUTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))
-DEFAULT_MODEL_SELECTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
-DEFAULT_DEV_TEAM_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/lib/noemaforge/dev-team"))
-DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaforge"))
+DEFAULT_ROOT = _platform_paths.root
+DEFAULT_STATE = _platform_paths.pipelines_dir
+DEFAULT_PERSONA_STATE = _platform_paths.persona_state_dir
+DEFAULT_EVOLUTION_STATE = _platform_paths.model_evolution_state_dir
+DEFAULT_MODEL_SELECTION_STATE = _platform_paths.model_selection_state_dir
+DEFAULT_DEV_TEAM_STATE = _platform_paths.dev_team_state_dir
+DEFAULT_DATA_ROOT = _platform_paths.data_root
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
@@ -543,6 +547,13 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/model-evolution/run":
                 self._send_json(self.server.model_evolution(str(body.get("request") or "GUI model evolution"), target_role=str(body.get("target_role") or "dev.work/dev"), apply=bool(body.get("apply", False))))
+                return
+            # --- Code-evolution (autonomous self-improvement loop) ----------
+            if path == "/api/code-evolution/propose":
+                self._send_json(self.server.code_evolution_propose())
+                return
+            if path == "/api/code-evolution/status":
+                self._send_json(self.server.code_evolution_status())
                 return
             if path in {"/api/model-selection/plan", "/api/model-selection/apply"}:
                 self._send_json(self.server.model_selection(
@@ -1874,6 +1885,40 @@ class AdminGuiServer(ThreadingHTTPServer):
             self.save_message("model", reply, persona="Model Evolution", intent="model_evolution", artifacts=artifacts, raw=stdout)
             return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "artifacts": artifacts, "raw": stdout, "api": {"inside_gui_supported": True, "endpoint": "/api/model-evolution/run", "cmd": cmd}}
         return result
+
+    # --- Code-evolution (autonomous self-improvement loop) ------------------
+
+    def code_evolution_propose(self) -> Dict[str, Any]:
+        """POST /api/code-evolution/propose — pick next TODO task and propose a patch.
+
+        Never writes source files (dry_run=True always for propose endpoint).
+        Returns the proposal dict so the GUI can display it for operator review.
+        """
+        try:
+            from code_evolution_loop import CodeEvolutionLoop
+            loop = CodeEvolutionLoop(project_root=self.root, dry_run=True)
+            result = loop.run_one_cycle(apply=False)
+            if result.get("task"):
+                self.save_message(
+                    "model",
+                    f"Code-evolution proposal ready for task {result['task']['task_id']}: "
+                    f"{result['task']['summary']}",
+                    persona="Code Evolution",
+                    intent="code_evolution",
+                    raw=result,
+                )
+            return {"ok": True, "version": RUNTIME_VERSION, **result}
+        except Exception as exc:  # pragma: no cover
+            return {"ok": False, "version": RUNTIME_VERSION, "error": repr(exc)}
+
+    def code_evolution_status(self) -> Dict[str, Any]:
+        """GET /api/code-evolution/status — return the last loop run summary."""
+        try:
+            from code_evolution_loop import CodeEvolutionLoop
+            loop = CodeEvolutionLoop(project_root=self.root, dry_run=True)
+            return {"ok": True, "version": RUNTIME_VERSION, **loop.last_run_summary()}
+        except Exception as exc:  # pragma: no cover
+            return {"ok": False, "version": RUNTIME_VERSION, "error": repr(exc)}
 
     def workflow_stop(self, reason: str) -> Dict[str, Any]:
         marker = self.data_root / "control" / "stop-request.json"
