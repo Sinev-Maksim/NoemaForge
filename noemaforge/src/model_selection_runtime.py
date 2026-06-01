@@ -33,8 +33,9 @@ from typing import Any, Dict, Optional
 
 import production_ai_contracts
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
 
 

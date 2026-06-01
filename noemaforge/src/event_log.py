@@ -26,7 +26,8 @@ from typing import Any, Dict
 from noemaforge_version import RUNTIME_VERSION
 from orchestration_state import nowz
 
-DEFAULT_EVENT_STATE = Path(os.environ.get("NOEMAFORGE_EVENT_STATE", "/var/lib/noemaforge/events"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_EVENT_STATE = _pp.event_log_dir
 
 # Rotation thresholds: rotate when the live file hits EITHER limit.
 MAX_EVENT_LINES = 10_000

@@ -25,7 +25,8 @@ from typing import Any, Dict, Iterable, Optional
 from noemaforge_version import RUNTIME_VERSION
 from orchestration_state import nowz, normalize_session_record
 
-DEFAULT_SESSION_STATE = Path(os.environ.get("NOEMAFORGE_SESSION_STATE", "/var/lib/noemaforge/gui/sessions"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_SESSION_STATE = _pp.session_state_dir
 
 
 class SessionStore:

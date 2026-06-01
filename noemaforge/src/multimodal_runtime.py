@@ -34,9 +34,10 @@ except Exception:  # pragma: no cover - installed path fallback
 
 try:
     from noemaforge_version import RUNTIME_VERSION as VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 except Exception:
     VERSION = "0.32.2"
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MULTIMODAL_STATE", "/var/lib/noemaforge/multimodal"))
 DEFAULT_VAULT = Path(os.environ.get("NOEMAFORGE_VAULT", "/mnt/noemaforge-share/noemaforge-lab/data/Vault"))
 MODEL_EXTENSIONS = {".gguf", ".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".onnx", ".ggml", ".tflite", ".pb", ".engine"}

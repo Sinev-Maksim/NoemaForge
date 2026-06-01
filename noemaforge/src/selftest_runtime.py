@@ -58,7 +58,7 @@ except ImportError:  # pragma: no cover - exercised on Windows hosts.
 
     resource = _ResourceFallback()  # type: ignore[assignment]
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
 from noemaforge_version import RUNTIME_VERSION
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
@@ -632,6 +632,7 @@ def run_internal_media_adapter_telemetry(root: Path, adapter: str, case_type: st
     exit_code = 0
     try:
         import media_adapter_telemetry_runtime as matr
+from platform_paths import DEFAULT_PATHS as _pp
 
         policy = matr.load_policy(root / "configs" / "media-adapter-telemetry-policy.json")
         result = matr.evaluate_adapter_selftest_case(adapter, case_type, policy)

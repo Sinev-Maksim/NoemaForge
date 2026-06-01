@@ -25,7 +25,8 @@ from typing import Any, Dict, List, Optional
 import admin_runtime
 import production_ai_contracts
 from noemaforge_version import RUNTIME_VERSION
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_ROOT = _pp.root
 DEFAULT_PACK = DEFAULT_ROOT / "configs" / "intent-router-eval-pack.json"
 
 

@@ -16,7 +16,9 @@ Notes: Code comments are English-only.
 from __future__ import annotations
 
 import os
+import shutil
 import sys
+import tempfile
 import types
 import unittest
 from pathlib import Path
@@ -223,6 +225,95 @@ class TestAsDictAndDetect(unittest.TestCase):
         self.assertIn("is_linux", info)
         self.assertIn("is_windows", info)
         self.assertIn("is_macos", info)
+
+
+class TestConfigFileSupport(unittest.TestCase):
+    """Config file (noemaforge.conf) is read and takes precedence over defaults."""
+
+    def setUp(self) -> None:
+        self._tmpdir = tempfile.mkdtemp()
+
+    def tearDown(self) -> None:
+        import shutil; shutil.rmtree(self._tmpdir, ignore_errors=True)
+
+    def _write_conf(self, content: str) -> Path:
+        p = Path(self._tmpdir) / "noemaforge.conf"
+        p.write_text(content, encoding="utf-8")
+        return p
+
+    def test_config_file_root_overrides_platform_default(self) -> None:
+        conf = self._write_conf(
+            "[noemaforge]\ninstall_root = /custom/install\ndata_root = /custom/data\n"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            p = NoemaForgePaths(platform=PLATFORM_LINUX, config_file=conf)
+        self.assertEqual(p.root, Path("/custom/install"))
+        self.assertEqual(p.data_root, Path("/custom/data"))
+
+    def test_config_file_gui_address(self) -> None:
+        conf = self._write_conf(
+            "[noemaforge]\ninstall_root = /x\ndata_root = /y\n"
+            "[gui]\nhost = 0.0.0.0\nport = 9999\n"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            p = NoemaForgePaths(config_file=conf)
+        host, port = p.gui_listen_address
+        self.assertEqual(host, "0.0.0.0")
+        self.assertEqual(port, 9999)
+
+    def test_config_file_paths_section(self) -> None:
+        conf = self._write_conf(
+            "[noemaforge]\ninstall_root = /x\ndata_root = /y\n"
+            "[paths]\njobs_dir = /custom/jobs\n"
+        )
+        with patch.dict(os.environ, {}, clear=True):
+            p = NoemaForgePaths(config_file=conf)
+        self.assertEqual(p.jobs_dir, Path("/custom/jobs"))
+
+    def test_env_var_overrides_config_file(self) -> None:
+        conf = self._write_conf("[noemaforge]\ninstall_root = /config/root\ndata_root = /y\n")
+        with patch.dict(os.environ, {"NOEMAFORGE_ROOT": "/env/root"}, clear=False):
+            p = NoemaForgePaths(config_file=conf)
+        self.assertEqual(p.root, Path("/env/root"))
+
+    def test_config_file_used_property(self) -> None:
+        conf = self._write_conf("[noemaforge]\ninstall_root = /x\ndata_root = /y\n")
+        with patch.dict(os.environ, {}, clear=True):
+            p = NoemaForgePaths(config_file=conf)
+        self.assertEqual(p.config_file_used, conf)
+
+    def test_no_config_file_config_file_used_is_none(self) -> None:
+        with patch.dict(os.environ, {"NOEMAFORGE_CONFIG_FILE": "/does/not/exist.conf"}, clear=False):
+            p = NoemaForgePaths(platform=PLATFORM_LINUX)
+        # config file not found → None
+        self.assertIsNone(p.config_file_used)
+
+    def test_write_config_creates_valid_ini(self) -> None:
+        from platform_paths import write_config
+        import configparser
+        dest = Path(self._tmpdir) / "noemaforge.conf"
+        inst = Path(self._tmpdir) / "inst"
+        data = Path(self._tmpdir) / "data"
+        write_config(dest, inst, data)
+        cfg = configparser.ConfigParser(interpolation=None)
+        cfg.read(dest, encoding="utf-8")
+        # Compare as Path objects so forward/backslash differences don't matter
+        self.assertEqual(Path(cfg.get("noemaforge", "install_root")), inst)
+        self.assertEqual(Path(cfg.get("noemaforge", "data_root")),    data)
+        self.assertIn("jobs_dir", cfg.options("paths"))
+        self.assertIn("sessions_dir", cfg.options("paths"))
+
+    def test_written_config_is_read_back_by_noemaforge_paths(self) -> None:
+        from platform_paths import write_config
+        dest = Path(self._tmpdir) / "noemaforge.conf"
+        inst = Path(self._tmpdir) / "written_root"
+        data = Path(self._tmpdir) / "written_data"
+        write_config(dest, inst, data)
+        with patch.dict(os.environ, {}, clear=True):
+            p = NoemaForgePaths(config_file=dest)
+        self.assertEqual(p.root,      inst)
+        self.assertEqual(p.data_root, data)
+        self.assertEqual(p.jobs_dir,  data / "gui" / "jobs")
 
 
 class TestBackwardCompatShims(unittest.TestCase):

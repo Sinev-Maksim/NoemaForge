@@ -35,9 +35,10 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 from noemaforge_version import RUNTIME_VERSION
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))
-DEFAULT_PIPELINE_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_ROOT           = _pp.root
+DEFAULT_STATE          = _pp.model_evolution_state_dir
+DEFAULT_PIPELINE_STATE = _pp.pipelines_dir
 
 
 def nowz() -> str:
