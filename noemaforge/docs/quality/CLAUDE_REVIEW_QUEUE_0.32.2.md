@@ -29,7 +29,7 @@ Questions for Claude:
    own this contract after PR #8/#9 are reconciled?
 2. Should cancel marker polling treat sanitized job IDs as the only supported
    filesystem representation?
-3. Are there any target BigBro-BOS compatibility concerns with this helper-only
+3. Are there any target-host compatibility concerns with this helper-only
    refactor?
 
 Validation already run:
@@ -60,7 +60,7 @@ unsafe first-start or target-machine actions.
 
 Risk areas:
 - First-start and target-machine safety gating.
-- Storage/display/journald probe semantics on BigBro-BOS.
+- Storage/display/journald probe semantics on the target host.
 - CI workflow changes are present in this safety branch and need scope review
   before this PR can be considered clean.
 - GitHub `codex-review` is FAIL, but the failure text references `/api/events`,
@@ -68,7 +68,7 @@ Risk areas:
 
 Questions for Claude:
 1. Are the startup preflight gates sufficient and conservative enough for
-   target BigBro-BOS safety?
+   target-host safety?
 2. Should CI workflow changes be removed from this branch or split into a
    dedicated workflow PR?
 3. Should Codex be re-run after branch cleanup because the current Codex FAIL
@@ -119,7 +119,7 @@ Risk areas:
 
 Questions for Claude:
 1. Are the heartbeat/staleness thresholds and ProcessGroupRunner contracts
-   correct for target BigBro-BOS orchestration?
+   correct for target-host orchestration?
 2. Should CI workflow changes be removed from this branch or split into a
    dedicated workflow PR?
 3. Should Codex be re-run after branch cleanup because the current Codex FAIL

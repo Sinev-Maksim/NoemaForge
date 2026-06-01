@@ -21,12 +21,13 @@ import json
 import os
 import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
 ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = ROOT.parent
-TMP_ROOT = ROOT / "tests" / "_tmp_docs_hygiene"
+TMP_ROOT = Path(tempfile.gettempdir()) / "noemaforge_tmp_docs_hygiene"
 sys.path.insert(0, str(ROOT / "src"))
 
 import docs_hygiene_runtime as dhr
@@ -51,11 +52,13 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertEqual(0, report["metrics"]["missing_required_canonical_files"])
         self.assertEqual(0, report["metrics"]["outside_policy_markdown_files"])
         self.assertEqual(0, report["metrics"]["forbidden_markdown_files"])
+        self.assertEqual(0, report["metrics"]["forbidden_active_text_hits"])
         self.assertEqual(0, report["metrics"]["parallel_changelog_files"])
         self.assertEqual(0, report["metrics"]["active_file_readability_failures"])
         self.assertEqual(16, report["metrics"]["todo_items_checked"])
         self.assertEqual(0, report["metrics"]["legacy_root_markdown_files"])
         self.assertEqual("passed", report["checks"][0]["status"])
+        self.assertEqual("passed", report["checks"][1]["status"])
 
         gate = pac.evaluate_gate(
             {"change_id": "docs-hygiene-policy", "domain": "pipeline"},
@@ -101,6 +104,44 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertIn("parallel_changelog_file:docs/RELEASE_NOTES.md", report["failures"])
         self.assertIn(
             "todo_item_not_checked:noemaforge/docs/TODO.md:Add Unified Registry for model, prompt, retriever, reranker, tool-policy, pipeline, persona, task, epoch and eval-pack versions.",
+            report["failures"],
+        )
+
+    def test_policy_blocks_forbidden_active_text(self) -> None:
+        policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
+        payload = copy.deepcopy(dhr.load_policy(policy_path))
+        project = TMP_ROOT / "project"
+        package = project / "noemaforge"
+        package_docs = package / "docs"
+        for folder in [
+            package_docs / "history",
+            package_docs / "reference",
+            package_docs / "wiki",
+        ]:
+            folder.mkdir(parents=True, exist_ok=True)
+
+        label = payload["policy"]["required_checked_todo_items"][0]["label"]
+        payload["policy"]["required_checked_todo_items"] = [{"file": "noemaforge/docs/TODO.md", "label": label}]
+        payload["refs"] = list(payload["policy"]["required_canonical_files"])
+        for ref in payload["policy"]["required_canonical_files"]:
+            path = project / ref
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# canonical\n", encoding="utf-8")
+        (package_docs / "TODO.md").write_text(f"- [x] {label}\n", encoding="utf-8")
+        token = "BigBro" + "-BOS"
+        (package_docs / "wiki" / "forbidden-host.md").write_text(f"# target\n\n{token}\n", encoding="utf-8")
+
+        report = dhr.validate_docs_hygiene_policy(
+            payload,
+            project_root=project,
+            package_root=package,
+            policy_path=policy_path,
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual(1, report["metrics"]["forbidden_active_text_hits"])
+        self.assertIn(
+            f"forbidden_active_text:noemaforge/docs/wiki/forbidden-host.md:3:{token}",
             report["failures"],
         )
 

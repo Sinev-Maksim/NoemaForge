@@ -54,7 +54,7 @@ Triggered by `workflow_dispatch` (manual) or `workflow_call` (from batch-counter
 ## `autonomous-pipeline.yml` — NEEDS OPERATOR ACTION
 
 ### Description
-Triggers on `push` to `claude/**` and `codex/**` branches. Stage 1: lint/compile on `ubuntu-latest`. Stage 2: Codex CLI review on `self-hosted, Windows` runner (the operator's own BigBro-BOS or dev machine). Stage 3: batch-counter that auto-triggers `qa-version-bump.yml`.
+Triggers on `push` to `claude/**` and `codex/**` branches. Stage 1: lint/compile on `ubuntu-latest`. Stage 2: Codex CLI review on `self-hosted, Windows` runner (the operator's own target workstation or dev machine). Stage 3: batch-counter that auto-triggers `qa-version-bump.yml`.
 
 ### Risks
 
@@ -77,13 +77,13 @@ Triggers on `push` to `claude/**` and `codex/**` branches. Stage 1: lint/compile
 ## `autonomous-pipeline-v2.yml` — NEEDS OPERATOR ACTION
 
 ### Description
-Triggers on `push` to `claude/**` branches. Runs on `self-hosted, linux, codex` runner (BigBro-BOS). Stage 2 runs `codex exec --approval-mode auto-edit` which allows Codex to modify files on the runner.
+Triggers on `push` to `claude/**` branches. Runs on `self-hosted, linux, codex` runner (target workstation). Stage 2 runs `codex exec --approval-mode auto-edit` which allows Codex to modify files on the runner.
 
 ### Risks
 
 | ID | Severity | Finding |
 |---|---|---|
-| APV2-1 | **CRITICAL** | `codex exec --approval-mode auto-edit` allows Codex to edit files on the self-hosted Linux runner without human review. A malicious prompt or injected content in the diff could cause Codex to modify arbitrary files on BigBro-BOS. |
+| APV2-1 | **CRITICAL** | `codex exec --approval-mode auto-edit` allows Codex to edit files on the self-hosted Linux runner without human review. A malicious prompt or injected content in the diff could cause Codex to modify arbitrary files on the target workstation. |
 | APV2-2 | **HIGH** | Same batch-counter → `qa-version-bump.yml` auto-trigger chain as `autonomous-pipeline.yml`. |
 | APV2-3 | **HIGH** | No permissions block — inherits write access. |
 | APV2-4 | **MEDIUM** | Review output written to `/tmp/codex_review.md` and `/tmp/codex_run.log` — tmp files not cleaned up between runs. On a shared self-hosted runner this could leak review content across runs. |
