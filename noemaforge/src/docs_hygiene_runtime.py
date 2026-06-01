@@ -41,6 +41,8 @@ REPORT_KIND = "DocsHygieneReport"
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,160}$")
 TODO_CHECK_RE_TEMPLATE = r"^\s*-\s*\[[xX]\]\s+{label}\s*$"
 SKIPPED_DIR_NAMES = {
+    ".codex",
+    ".cursor",
     ".git",
     ".hg",
     ".mypy_cache",
@@ -52,6 +54,8 @@ SKIPPED_DIR_NAMES = {
     "build",
     "dist",
     "node_modules",
+    "pytest",
+    "PyYAML",
     "trash",
 }
 
@@ -95,7 +99,10 @@ def _is_relative_to(path: Path, root: Path) -> bool:
 
 
 def _project_relative(path: Path, project_root: Path) -> str:
-    return _display_path(path.resolve().relative_to(project_root.resolve()))
+    try:
+        return _display_path(path.relative_to(project_root))
+    except ValueError:
+        return _display_path(path.resolve().relative_to(project_root.resolve()))
 
 
 def _starts_with_any(path: str, prefixes: Iterable[str]) -> bool:
@@ -393,6 +400,39 @@ def _validate_active_file_readability(active_files: Sequence[Path], *, project_r
     }
 
 
+def _validate_forbidden_active_text(
+    active_files: Sequence[Path],
+    *,
+    project_root: Path,
+    forbidden_tokens: Sequence[str],
+) -> Dict[str, Any]:
+    failures: List[str] = []
+    hits: List[Dict[str, Any]] = []
+    tokens = [token for token in _as_string_list(list(forbidden_tokens)) if token]
+    if not tokens:
+        return {"failures": failures, "hits": hits, "tokens": []}
+
+    for path in active_files:
+        rel = _project_relative(path, project_root)
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not any(token in text for token in tokens):
+            continue
+        for line_no, line in enumerate(text.splitlines(), start=1):
+            for token in tokens:
+                if token in line:
+                    hits.append({"path": rel, "line": line_no, "token": token})
+                    failures.append(f"forbidden_active_text:{rel}:{line_no}:{token}")
+
+    return {
+        "failures": failures,
+        "hits": sorted(hits, key=lambda item: (item["path"], item["line"], item["token"])),
+        "tokens": sorted(tokens),
+    }
+
+
 def _todo_item_checked(todo_text: str, label: str) -> bool:
     pattern = TODO_CHECK_RE_TEMPLATE.format(label=re.escape(label.strip()))
     return re.search(pattern, todo_text, flags=re.MULTILINE) is not None
@@ -457,6 +497,13 @@ def validate_docs_hygiene_policy(
     readability_result = _validate_active_file_readability(active_files, project_root=project)
     failures.extend(readability_result["failures"])
 
+    forbidden_text_result = _validate_forbidden_active_text(
+        active_files,
+        project_root=project,
+        forbidden_tokens=_as_string_list(policy.get("forbidden_active_text")),
+    )
+    failures.extend(forbidden_text_result["failures"])
+
     required_result = _validate_required_files(_as_string_list(policy.get("required_canonical_files")), project_root=project)
     failures.extend(required_result["failures"])
 
@@ -495,6 +542,7 @@ def validate_docs_hygiene_policy(
     metrics = {
         "active_files": len(active_files),
         "active_file_readability_failures": len(readability_result["unreadable"]),
+        "forbidden_active_text_hits": len(forbidden_text_result["hits"]),
         "markdown_files": len(markdown_files),
         "approved_markdown_files": len(layout_result["approved"]),
         "allowed_root_markdown_files": len(layout_result["root_allowed"]),
@@ -519,6 +567,7 @@ def validate_docs_hygiene_policy(
 
     checks = [
         {"id": "active_file_readability", "status": "passed" if not readability_result["unreadable"] else "failed"},
+        {"id": "forbidden_active_text", "status": "passed" if not forbidden_text_result["hits"] else "failed"},
         {"id": "required_canonical_files", "status": "passed" if not required_result["missing"] else "failed"},
         {"id": "markdown_layout", "status": "passed" if not layout_result["outside_policy"] and not layout_result["forbidden"] else "failed"},
         {"id": "canonical_changelog", "status": "passed" if not changelog_result["parallel"] else "failed"},
@@ -540,6 +589,7 @@ def validate_docs_hygiene_policy(
         "metrics": metrics,
         "checks": checks,
         "active_file_readability": readability_result,
+        "forbidden_active_text": forbidden_text_result,
         "required_files": required_result,
         "markdown_layout": layout_result,
         "changelog_layout": changelog_result,
