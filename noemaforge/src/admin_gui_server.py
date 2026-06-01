@@ -54,6 +54,7 @@ import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
+from job_manager import JobManager
 from session_store import SessionStore
 from orchestration_state import is_active_job, FINAL_JOB_STATES, normalize_job_record
 # Platform-aware path resolution — replaces hardcoded /opt/noemaforge defaults.
@@ -645,6 +646,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.event_log = EventLog(self.data_root / "events")
         self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
+        self.job_manager = JobManager(self.jobs_dir)
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
         # Protect job read-modify-write cycles from concurrent request threads.
@@ -1105,6 +1107,9 @@ class AdminGuiServer(ThreadingHTTPServer):
         return self.jobs_dir / f"{safe_id(str(job_id))}.cancel"
 
     def jobs_data(self) -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._read_index()
         data = self._read_json(self.jobs_file(), {"jobs": []})
         if not isinstance(data, dict):
             data = {"jobs": []}
@@ -1112,6 +1117,9 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._save(dict(job))
         with self._jobs_lock:
             data = self.jobs_data()
             if idempotency_key:
@@ -1127,11 +1135,24 @@ class AdminGuiServer(ThreadingHTTPServer):
             return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
+        if hasattr(self, "job_manager"):
+            return self.job_manager.create(
+                kind,
+                status=status,
+                progress=progress or {},
+                command=command,
+                artifacts=enrich_artifact_cards(artifacts),
+                idempotency_key=idempotency_key,
+                trace_id=trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"),
+            )
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
         job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
         return self._upsert_job(job, idempotency_key=idempotency_key)
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._save(dict(job))
         with self._jobs_lock:
             data = self.jobs_data()
             jobs = data.setdefault("jobs", [])
@@ -1149,6 +1170,20 @@ class AdminGuiServer(ThreadingHTTPServer):
             return job
 
     def jobs_list(self) -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            jobs = []
+            for job in manager.list_all():
+                item = normalize_job_record(dict(job))
+                item.update({key: value for key, value in job.items() if key not in item})
+                item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+                jobs.append(item)
+            try:
+                active = [j for j in jobs if is_active_job(j)]
+                self.session_store.attach_active_jobs("default", active)
+            except Exception:
+                pass
+            return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
         # Acquire _jobs_lock so the read-then-copy cycle is consistent with
         # _upsert_job()/_persist_job()/job_cancel() which all write inside the
         # same lock.  The lock is released before the session_store sync to
@@ -1217,6 +1252,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            job = manager.get(job_id)
+            if isinstance(job, dict):
+                norm = normalize_job_record(dict(job))
+                norm.update({key: value for key, value in job.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                job = norm
+            return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
         # Acquire _jobs_lock so reads are consistent with concurrent
         # _upsert_job()/_persist_job()/job_cancel() writes.
         with self._jobs_lock:
@@ -1234,6 +1278,25 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
+        if hasattr(self, "job_manager"):
+            existing = self.job_manager.get(job_id)
+            if existing and existing.get("status") in FINAL_JOB_STATES:
+                norm = normalize_job_record(dict(existing))
+                norm.update({key: value for key, value in existing.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                return {"ok": False, "version": RUNTIME_VERSION, "job": norm, "reply": f"Job already in terminal state: {existing['status']}"}
+            target = self.job_manager.cancel(job_id)
+            if target:
+                marker = self.job_cancel_marker_file(str(target["job_id"]))
+                try:
+                    marker.write_text(now_iso() + "\n", encoding="utf-8")
+                except OSError:
+                    pass
+                norm = normalize_job_record(dict(target))
+                norm.update({key: value for key, value in target.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                return {"ok": True, "version": RUNTIME_VERSION, "job": norm, "reply": "Cancel requested"}
+            return {"ok": False, "version": RUNTIME_VERSION, "job": {}, "reply": "Job not found"}
         with self._jobs_lock:
             data = self.jobs_data()
             target = None
@@ -1643,6 +1706,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        gui_action = self._detect_gui_action(text)
+        if gui_action:
+            result = self._route_gui_action(gui_action, text, locale)
+            if result is not None:
+                return result
         if self._explicit_control_request(low):
             pipeline_id = self._detect_pipeline_id(text)
             if pipeline_id:
@@ -1710,6 +1778,41 @@ class AdminGuiServer(ThreadingHTTPServer):
                 body["notes"] = text
             return self.task_update(body)
         return {"ok": True, "version": RUNTIME_VERSION, "reply": "Task command recognized; specify add/edit/prioritize/block/complete plus task_id.", "tasks": self.tasks_list()}
+
+    def _detect_gui_action(self, text: str) -> Optional[str]:
+        """Detect direct GUI actions that should not fall through to admin_runtime."""
+        low = str(text or "").lower().strip()
+        if not low or self._task_intent(low):
+            return None
+        model_words = ("model selection", "выбор модели", "подбор модели", "подбор моделей", "отбор модели", "отбор моделей")
+        continue_words = ("continue", "resume", "продолж", "возобнов")
+        if any(word in low for word in model_words) and any(word in low for word in continue_words):
+            return "model_selection_continue"
+        if ("selection" in low and "model" in low and any(word in low for word in continue_words)):
+            return "model_selection_continue"
+        vault_words = ("vault", "хранилищ", "модел", "models")
+        inventory_words = ("reinventory", "re-inventory", "inventory", "scan", "инвентаризац", "скан")
+        if any(word in low for word in vault_words) and any(word in low for word in inventory_words):
+            return "vault_reinventory"
+        return None
+
+    def _route_gui_action(self, action: str, text: str, locale: str) -> Optional[Dict[str, Any]]:
+        """Route detected GUI action keys to local plan/job methods."""
+        if action == "model_selection_continue":
+            result = self.model_selection_continue({"request": text})
+        elif action == "vault_reinventory":
+            result = self.vault_reinventory()
+        else:
+            return None
+        if not isinstance(result, dict):
+            return None
+        doc = dict(result)
+        doc.setdefault("ok", True)
+        doc.setdefault("version", RUNTIME_VERSION)
+        doc["mode"] = action
+        doc["locale"] = locale
+        doc.setdefault("route", {"id": action, "intent": action, "label": action.replace("_", " ")})
+        return doc
 
     def _extract_task_id(self, text: str) -> str:
         match = re.search(r"\btask_[A-Za-z0-9_.:-]+\b", str(text or ""))
