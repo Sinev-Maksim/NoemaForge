@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", "/var/lib/noemaforge/wiki_patches"))
@@ -307,7 +308,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def normalize_global_argv(argv: Optional[List[str]]) -> List[str]:
     import sys
-from platform_paths import DEFAULT_PATHS as _pp
+
     items = list(sys.argv[1:] if argv is None else argv)
     global_opts: List[str] = []
     rest: List[str] = []

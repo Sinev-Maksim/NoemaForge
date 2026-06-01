@@ -58,13 +58,13 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import production_ai_contracts
+from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = _pp.pipelines_dir
 DEFAULT_PERSONA_STATE = _pp.persona_state_dir
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
-from noemaforge_version import RUNTIME_VERSION
-from platform_paths import DEFAULT_PATHS as _pp
 FINISHED_STATUSES = {"done", "completed", "cancelled", "failed", "archived"}
 PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}

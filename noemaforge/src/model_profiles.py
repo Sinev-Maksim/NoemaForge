@@ -25,6 +25,8 @@ import os
 from pathlib import Path
 from typing import Any
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 DEFAULT_ROOT = _pp.root
 API_VERSION = "noemaforge.model-profile/v1"
 REQUIRED_PROFILE_NAMES = ["minimal", "balanced", "writer", "research", "gpu-heavy"]
@@ -55,7 +57,7 @@ def detect_vram_gib() -> float:
     # Avoid hard dependency on nvidia-smi; public setup must work on CPU-only machines.
     try:
         import subprocess
-from platform_paths import DEFAULT_PATHS as _pp
+
         out = subprocess.check_output([
             "bash", "-lc", "nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | head -1"
         ], text=True, timeout=3).strip()
