@@ -76,7 +76,7 @@ class StorageCheck:
                 errors.append(f"{path}: error — {exc}")
         details = "; ".join(details_parts + errors)
         if errors or low:
-            msg = "; ".join(errors + [f"low space: {l}" for l in low])
+            msg = "; ".join(errors + [f"low space: {low_item}" for low_item in low])
             return CheckResult(name="storage", passed=False, details=msg)
         return CheckResult(name="storage", passed=True, details=details or "ok")
 
@@ -150,7 +150,7 @@ class JournaldCheck:
                 ["journalctl", "--since", self.since, "-p", "err", "--no-pager", "-q", "--output=cat"],
                 capture_output=True, text=True, timeout=15,
             )
-            lines = [l for l in result.stdout.splitlines() if l.strip()]
+            lines = [line for line in result.stdout.splitlines() if line.strip()]
             count = len(lines)
             if count <= self.max_errors:
                 return CheckResult(

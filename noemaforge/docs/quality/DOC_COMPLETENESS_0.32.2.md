@@ -2,7 +2,7 @@
 Generated: 2026-06-01
 
 ## Summary
-Overall status: 9 covered / 9 partial / 0 missing
+Overall status: 11 covered / 8 partial / 0 missing
 
 ## Required Theme Coverage Matrix
 

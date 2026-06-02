@@ -20,7 +20,7 @@ _Canonical project context: noemaforge/docs/reference/PROJECT_CONTEXT.md_
 
 ## Last 10 Commits (most recent first)
 
-```
+```text
 cd135bf docs(todo): twentieth analysis cycle — tasks 94-95 done, all Windows tasks closed
 5b57adb fix(server): tasks_list lock + save_message conv lock (tasks 94-95)
 1fcf971 fix(session-store): _append_event acquires _lock internally (task-93)
@@ -68,7 +68,7 @@ All Windows-accessible hardening tasks complete (183 tests, all green). Key area
 - Concurrency: _tasks_lock, _conv_lock, _jobs_lock across all R-M-W paths
 - Schema: normalize_job_record + normalize_job_progress throughout all endpoints
 - Session: no double-event, _append_event self-locking
-- Utils: _safe_int deduplicated (orchestration_state is canonical), _read_json stderr
+- Utils: `_safe_int` deduplicated (orchestration_state is canonical), `_read_json` stderr
 
 ## Known Blockers
 

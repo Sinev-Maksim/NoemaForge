@@ -232,7 +232,7 @@ class TestConfigFileSupport(unittest.TestCase):
         self._tmpdir = tempfile.mkdtemp()
 
     def tearDown(self) -> None:
-        import shutil; shutil.rmtree(self._tmpdir, ignore_errors=True)
+        shutil.rmtree(self._tmpdir, ignore_errors=True)
 
     def _write_conf(self, content: str) -> Path:
         p = Path(self._tmpdir) / "noemaforge.conf"

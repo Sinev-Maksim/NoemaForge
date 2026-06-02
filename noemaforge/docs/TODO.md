@@ -620,10 +620,10 @@ Five candidate findings; three confirmed and fixed.
 
 - [x] **task-58 (HIGH): Add threading.RLock() to SessionStore**
   ThreadingHTTPServer dispatches concurrent request threads; concurrent
-  append_message()/update() calls shared _append_event() which used bare
+  `append_message()`/`update()` calls shared `_append_event()` which used bare
   open("a") without any lock, risking interleaved JSONL writes.
   Fix: self._lock = threading.RLock(); acquired at top of load(), save(),
-  update(), append_message(). Reentrant so update→load→save chain does not
+  `update()`, `append_message()`. Reentrant so update→load→save chain does not
   deadlock. 6 tests including concurrent-write JSONL validation all pass (72597f4).
 
 ## 0.32.2 hardening — eleventh deep analysis cycle (2026-05-31)
@@ -1012,10 +1012,10 @@ _read_json stderr, normalize_job_progress). Five findings; four MEDIUM fixed.
 
 ### Remaining findings from nineteenth cycle (deferred as new tasks):
 
-- [x] **task-93 (LOW)**: _append_event() in session_store.py documented "Caller must
+- [x] **task-93 (LOW)**: `_append_event()` in session_store.py documented "Caller must
   hold self._lock" but did not enforce this contract. A future developer adding a
   new call outside the lock would create a JSONL race silently.
-  Fix: _append_event() now acquires self._lock internally (RLock, so callers
+  Fix: `_append_event()` now acquires self._lock internally (RLock, so callers
   already holding it re-enter without deadlock). No caller changes needed.
   20/20 session_store_sanitization tests pass; py_compile clean.
 

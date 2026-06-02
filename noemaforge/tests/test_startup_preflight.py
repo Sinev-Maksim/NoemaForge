@@ -111,8 +111,10 @@ class TestStorageCheck(unittest.TestCase):
 
     def test_check_multiple_paths_fails_when_one_low(self) -> None:
         check = StorageCheck(min_free_gb=10, paths=["/", "/mnt/data"])
-        enough = MagicMock(); enough.free = 100 * 1024 ** 3
-        low = MagicMock(); low.free = 2 * 1024 ** 3
+        enough = MagicMock()
+        enough.free = 100 * 1024 ** 3
+        low = MagicMock()
+        low.free = 2 * 1024 ** 3
         with patch("shutil.disk_usage", side_effect=[enough, low]):
             result = check.run()
         self.assertFalse(result.passed)
@@ -243,7 +245,8 @@ class TestPreflightSuite(unittest.TestCase):
         suite = PreflightSuite(checks=[
             StorageCheck(min_free_gb=1, paths=["/"]),
         ])
-        mock_usage = MagicMock(); mock_usage.free = 100 * 1024 ** 3
+        mock_usage = MagicMock()
+        mock_usage.free = 100 * 1024 ** 3
         with patch("shutil.disk_usage", return_value=mock_usage):
             report = suite.run()
         self.assertTrue(report["ok"])
@@ -252,14 +255,16 @@ class TestPreflightSuite(unittest.TestCase):
         suite = PreflightSuite(checks=[
             StorageCheck(min_free_gb=100, paths=["/"]),
         ])
-        mock_usage = MagicMock(); mock_usage.free = 1 * 1024 ** 3
+        mock_usage = MagicMock()
+        mock_usage.free = 1 * 1024 ** 3
         with patch("shutil.disk_usage", return_value=mock_usage):
             report = suite.run()
         self.assertFalse(report["ok"])
 
     def test_suite_report_has_checks_list(self) -> None:
         suite = PreflightSuite(checks=[StorageCheck(min_free_gb=1, paths=["/"])])
-        mock_usage = MagicMock(); mock_usage.free = 50 * 1024 ** 3
+        mock_usage = MagicMock()
+        mock_usage.free = 50 * 1024 ** 3
         with patch("shutil.disk_usage", return_value=mock_usage):
             report = suite.run()
         self.assertIn("checks", report)

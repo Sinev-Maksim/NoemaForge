@@ -141,7 +141,7 @@ All Windows-accessible release gates PASS:
 
 ## Release Readiness
 
-```
+```yaml
 release-ready: false
 ```
 
