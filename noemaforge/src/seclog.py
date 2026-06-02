@@ -81,7 +81,6 @@ Env knobs:
 
 
 import datetime as _dt
-import fcntl
 import hashlib
 import json
 import os
@@ -90,8 +89,33 @@ import sys
 import uuid
 from typing import Any, Dict, Optional
 
+try:
+    import fcntl  # POSIX advisory file locking; absent on Windows/macOS dev hosts
+except ImportError:  # pragma: no cover - non-POSIX hosts
+    fcntl = None  # type: ignore[assignment]
 
-SEL_DIR = os.environ.get("NOEMAFORGE_SEL_DIR", "/var/lib/noemaforge/sel/segments")
+from platform_paths import DEFAULT_PATHS as _pp
+
+
+def _flock_exclusive(fh) -> None:
+    """Best-effort exclusive lock on an open file handle.
+
+    POSIX advisory locking (fcntl.flock) on Unix; a no-op on hosts without
+    fcntl (Windows/macOS dev). The security log's concurrent-writer guarantee
+    is a property of the Linux production target; integrity is still protected
+    by the per-record hash chain on every platform.
+    """
+    if fcntl is not None:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_EX)
+
+
+def _flock_unlock(fh) -> None:
+    """Release a lock taken by _flock_exclusive (no-op without fcntl)."""
+    if fcntl is not None:
+        fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+
+
+SEL_DIR = os.environ.get("NOEMAFORGE_SEL_DIR", str(_pp.data_root / "sel/segments"))
 SEL_ROOT = os.path.dirname(SEL_DIR.rstrip("/"))
 ANCHORS_CHAIN = os.path.join(SEL_ROOT, "anchors.chain")
 
@@ -348,11 +372,11 @@ def append(event: Dict[str, Any]) -> Dict[str, Any]:
 
     # Lock segment file for consistent chain
     with open(seg_path, "a+", encoding="utf-8") as segf:
-        fcntl.flock(segf.fileno(), fcntl.LOCK_EX)
+        _flock_exclusive(segf)
 
         # Lock chain too
         with open(chain_path, "a+", encoding="utf-8") as chf:
-            fcntl.flock(chf.fileno(), fcntl.LOCK_EX)
+            _flock_exclusive(chf)
 
             last_hash = _read_last_hash(chain_path)
 
@@ -369,8 +393,8 @@ def append(event: Dict[str, Any]) -> Dict[str, Any]:
             chf.flush()
             os.fsync(chf.fileno())
 
-            fcntl.flock(chf.fileno(), fcntl.LOCK_UN)
-        fcntl.flock(segf.fileno(), fcntl.LOCK_UN)
+            _flock_unlock(chf)
+        _flock_unlock(segf)
 
     # Best-effort WORM hardening: make files append-only.
     try:
