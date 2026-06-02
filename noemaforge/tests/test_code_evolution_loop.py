@@ -21,7 +21,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -30,10 +29,10 @@ _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-# Stubs
-stub_ver = types.ModuleType("noemaforge_version")
-stub_ver.RUNTIME_VERSION = "0.32.2"
-sys.modules.setdefault("noemaforge_version", stub_ver)
+# Use the real version module so tests do not redefine RUNTIME_VERSION.
+import noemaforge_version as _real_version  # noqa: E402
+
+sys.modules.setdefault("noemaforge_version", _real_version)
 
 
 class TestCodeEvolutionLoop(unittest.TestCase):

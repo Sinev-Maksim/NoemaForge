@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/multimodal_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -35,11 +35,22 @@ except Exception:  # pragma: no cover - installed path fallback
 try:
     from noemaforge_version import RUNTIME_VERSION as VERSION
 except Exception:
-    VERSION = "0.32.2"
+    def _read_runtime_version_fallback() -> str:
+        here = Path(__file__).resolve()
+        for candidate in (here.parents[1] / "VERSION", here.parents[2] / "VERSION"):
+            try:
+                value = candidate.read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+            if value:
+                return value
+        return "unknown"
+
+    VERSION = _read_runtime_version_fallback()
 from platform_paths import DEFAULT_PATHS as _pp
 DEFAULT_ROOT = _pp.root
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MULTIMODAL_STATE", "/var/lib/noemaforge/multimodal"))
-DEFAULT_VAULT = Path(os.environ.get("NOEMAFORGE_VAULT", "/mnt/noemaforge-share/noemaforge-lab/data/Vault"))
+DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MULTIMODAL_STATE", str(_pp.data_root / "multimodal")))
+DEFAULT_VAULT = Path(os.environ.get("NOEMAFORGE_VAULT", str(_pp.vault_dir)))
 MODEL_EXTENSIONS = {".gguf", ".safetensors", ".ckpt", ".pt", ".pth", ".bin", ".onnx", ".ggml", ".tflite", ".pb", ".engine"}
 MEDIA_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".heic", ".tif", ".tiff", ".gif", ".mp4", ".mov", ".mkv", ".webm", ".avi", ".wav", ".mp3", ".flac", ".ogg", ".m4a", ".aac"}
 CAP_KEYWORDS = {

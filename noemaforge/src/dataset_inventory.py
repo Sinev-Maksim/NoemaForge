@@ -17,6 +17,9 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
+from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
+
 try:
     import yaml  # type: ignore
 except Exception:  # pragma: no cover
@@ -25,13 +28,17 @@ except Exception:  # pragma: no cover
 try:
     import vault_inventory
 except Exception:  # pragma: no cover
-    sys.path.insert(0, "/opt/noemaforge/src")
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
     import vault_inventory  # type: ignore
 
-DEFAULT_STATE = "/var/lib/noemaforge/bootstrap/dataset-inventory.json"
-DEFAULT_PACK_ROOT = "/var/lib/noemaforge/eval-packs/first-start-light"
-DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
-DEFAULT_ROLE_EVAL_DATASET_ROOT = os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", "/opt/noemaforge/datasets/role_eval_cases")
+DEFAULT_STATE = str(_pp.data_root / "bootstrap" / "dataset-inventory.json")
+DEFAULT_PACK_ROOT = str(_pp.data_root / "eval-packs" / "first-start-light")
+DEFAULT_ROLE_CATALOG = str(_pp.root / "configs" / "role-catalog.yaml")
+DEFAULT_ROLE_EVAL_DATASET_ROOT = os.environ.get(
+    "NOEMAFORGE_ROLE_EVAL_DATASET",
+    str(_pp.root / "datasets" / "role_eval_cases"),
+)
+DEFAULT_SHARE_ROOT = str(_pp.vault_dir.parent)
 PACKAGE_ROLE_EVAL_DATASET_ROOT = str(Path(__file__).resolve().parents[1] / "datasets" / "role_eval_cases")
 REQUIRED_ROLE_EVAL_FILES = [
     "administrator_smoke.jsonl",
@@ -57,7 +64,7 @@ def load_yaml(path: str) -> Dict[str, Any]:
     return obj if isinstance(obj, dict) else {}
 
 
-def scan_datasets(share_root: str = "/mnt/noemaforge-share", vault_root: str = "") -> Dict[str, Any]:
+def scan_datasets(share_root: str = DEFAULT_SHARE_ROOT, vault_root: str = "") -> Dict[str, Any]:
     vault = vault_inventory.choose_vault_root(share_root, vault_root)
     datasets = vault_inventory.discover_datasets(vault)
     by_cap: Dict[str, int] = {}
@@ -232,7 +239,11 @@ BASE_TASKS: Dict[str, List[Dict[str, Any]]] = {
         {"id": "write-07", "prompt": "Produce a neutral warning that first-start may close GNOME but does not uninstall it.", "contains_any": ["GNOME", "not uninstall"]},
         {"id": "write-08", "prompt": "Summarize a dataset inventory in two bullets.", "contains_any": ["dataset"]},
         {"id": "write-09", "prompt": "Explain top-8-per-role in plain Russian in one paragraph.", "contains_any": ["роль"]},
-        {"id": "write-10", "prompt": "Write a tiny changelog entry for version 0.32.2.", "contains_any": ["0.32.2"]},
+        {
+            "id": "write-10",
+            "prompt": f"Write a tiny changelog entry for version {RUNTIME_VERSION}.",
+            "contains_any": [RUNTIME_VERSION],
+        },
     ],
     "factcheck_light_10": [
         {"id": "fact-01", "prompt": "A user claims 74 GGUF files means 74 models. Explain why this may be false.", "contains_any": ["shard", "duplicate"]},
@@ -342,7 +353,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     ap = argparse.ArgumentParser(description="NoemaForge dataset inventory and first-start light eval-pack builder")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("scan")
-    p.add_argument("--share-root", default="/mnt/noemaforge-share")
+    p.add_argument("--share-root", default=DEFAULT_SHARE_ROOT)
     p.add_argument("--vault-root", default="")
     p.add_argument("--json-out", default=DEFAULT_STATE)
     p = sub.add_parser("build-packs")

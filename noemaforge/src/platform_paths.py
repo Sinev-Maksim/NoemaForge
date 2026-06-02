@@ -93,6 +93,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
+from noemaforge_version import RUNTIME_VERSION
+
 # ---------------------------------------------------------------------------
 # Platform tokens
 # ---------------------------------------------------------------------------
@@ -107,9 +109,12 @@ CONF_FILENAME = "noemaforge.conf"
 
 def current_platform() -> str:
     p = sys.platform
-    if p.startswith("linux"):   return PLATFORM_LINUX
-    if p in ("win32", "cygwin"): return PLATFORM_WINDOWS
-    if p == "darwin":           return PLATFORM_MACOS
+    if p.startswith("linux"):
+        return PLATFORM_LINUX
+    if p in ("win32", "cygwin"):
+        return PLATFORM_WINDOWS
+    if p == "darwin":
+        return PLATFORM_MACOS
     return PLATFORM_OTHER
 
 
@@ -264,7 +269,7 @@ def write_config(
     cfg["noemaforge"] = {
         "install_root": str(install_root),
         "data_root":    str(data_root),
-        "version":      "0.32.2",
+        "version":      RUNTIME_VERSION,
     }
     cfg["paths"] = derived
     cfg["gui"] = {

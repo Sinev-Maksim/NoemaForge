@@ -30,11 +30,14 @@ import types
 import unittest
 from pathlib import Path
 
+_SRC = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
 
 def _install_stubs() -> None:
-    stub_ver = types.ModuleType("noemaforge_version")
-    stub_ver.RUNTIME_VERSION = "0.32.2"
-    sys.modules.setdefault("noemaforge_version", stub_ver)
+    import noemaforge_version as real_version
+    sys.modules.setdefault("noemaforge_version", real_version)
 
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-05-31T00:00:00Z"
@@ -51,10 +54,6 @@ def _install_stubs() -> None:
 
 
 _install_stubs()
-
-_SRC = Path(__file__).resolve().parent.parent / "src"
-if str(_SRC) not in sys.path:
-    sys.path.insert(0, str(_SRC))
 
 from admin_gui_server import safe_id, AdminGuiServer  # noqa: E402
 

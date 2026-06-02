@@ -26,7 +26,6 @@ Notes: Code comments are English-only.
 from __future__ import annotations
 
 import sys
-import types
 import unittest
 from pathlib import Path
 
@@ -35,10 +34,11 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 
+import noemaforge_version as _real_version  # noqa: E402
+
+
 def _install_stubs() -> None:
-    stub_ver = types.ModuleType("noemaforge_version")
-    stub_ver.RUNTIME_VERSION = "0.32.2"
-    sys.modules.setdefault("noemaforge_version", stub_ver)
+    sys.modules.setdefault("noemaforge_version", _real_version)
 
 
 _install_stubs()
@@ -218,7 +218,7 @@ class TestNormalizeSessionRecord(unittest.TestCase):
 
     def test_version_always_set(self) -> None:
         result = self._norm({})
-        self.assertEqual(result["version"], "0.32.2")
+        self.assertEqual(result["version"], _real_version.RUNTIME_VERSION)
 
 
 class TestNormalizeJobRecord(unittest.TestCase):
@@ -266,7 +266,7 @@ class TestNormalizeJobRecord(unittest.TestCase):
 
     def test_version_set(self) -> None:
         result = self._norm({})
-        self.assertEqual(result["version"], "0.32.2")
+        self.assertEqual(result["version"], _real_version.RUNTIME_VERSION)
 
 
 class TestIsActiveJob(unittest.TestCase):

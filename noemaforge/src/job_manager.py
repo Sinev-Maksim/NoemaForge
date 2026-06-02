@@ -118,9 +118,7 @@ class JobManager:
             return {"jobs": []}
 
     def _write_index(self, data: Dict[str, Any]) -> None:
-        self._jobs_file.write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        self._write_json_atomic(self._jobs_file, data)
 
     def _read_job_file(self, job_id: str) -> Optional[Dict[str, Any]]:
         path = self._dir / f"{job_id}.json"
@@ -133,7 +131,20 @@ class JobManager:
 
     def _write_job_file(self, job: Dict[str, Any]) -> None:
         path = self._dir / f"{job['job_id']}.json"
-        path.write_text(json.dumps(job, ensure_ascii=False, indent=2), encoding="utf-8")
+        self._write_json_atomic(path, job)
+
+    @staticmethod
+    def _write_json_atomic(path: Path, data: Dict[str, Any]) -> None:
+        tmp = path.with_name(f".{path.name}.{uuid.uuid4().hex}.tmp")
+        try:
+            tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp.replace(path)
+        except OSError:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     def _save(self, job: Dict[str, Any]) -> Dict[str, Any]:
         """Persist a job record to both the per-job file and the index."""

@@ -139,8 +139,11 @@ def _resolve_ref(ref: str, *, project_root: Path, package_root: Path) -> Dict[st
 def _iter_markdown_files(project_root: Path) -> List[Path]:
     markdown_files: List[Path] = []
     for root, dirs, files in os.walk(project_root):
-        dirs[:] = [item for item in dirs if item not in SKIPPED_DIR_NAMES]
         root_path = Path(root)
+        skip = set(SKIPPED_DIR_NAMES)
+        if root_path == project_root:
+            skip.add("docs")
+        dirs[:] = [item for item in dirs if item not in skip]
         for name in files:
             if name.lower().endswith(".md"):
                 markdown_files.append(root_path / name)
@@ -150,8 +153,11 @@ def _iter_markdown_files(project_root: Path) -> List[Path]:
 def _iter_active_files(project_root: Path) -> List[Path]:
     active_files: List[Path] = []
     for root, dirs, files in os.walk(project_root):
-        dirs[:] = [item for item in dirs if item not in SKIPPED_DIR_NAMES]
         root_path = Path(root)
+        skip = set(SKIPPED_DIR_NAMES)
+        if root_path == project_root:
+            skip.add("docs")
+        dirs[:] = [item for item in dirs if item not in skip]
         for name in files:
             active_files.append(root_path / name)
     return sorted(active_files, key=lambda item: _display_path(item))

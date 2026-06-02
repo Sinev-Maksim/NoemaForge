@@ -19,7 +19,6 @@ import os
 import shutil
 import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -28,10 +27,9 @@ _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
-# Stub noemaforge_version before importing platform_paths
-stub_ver = types.ModuleType("noemaforge_version")
-stub_ver.RUNTIME_VERSION = "0.32.2"
-sys.modules.setdefault("noemaforge_version", stub_ver)
+import noemaforge_version as _real_version  # noqa: E402
+
+sys.modules.setdefault("noemaforge_version", _real_version)
 
 from platform_paths import (
     NoemaForgePaths,
@@ -300,6 +298,7 @@ class TestConfigFileSupport(unittest.TestCase):
         # Compare as Path objects so forward/backslash differences don't matter
         self.assertEqual(Path(cfg.get("noemaforge", "install_root")), inst)
         self.assertEqual(Path(cfg.get("noemaforge", "data_root")),    data)
+        self.assertEqual(cfg.get("noemaforge", "version"), _real_version.RUNTIME_VERSION)
         self.assertIn("jobs_dir", cfg.options("paths"))
         self.assertIn("sessions_dir", cfg.options("paths"))
 

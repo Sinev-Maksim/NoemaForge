@@ -25,7 +25,6 @@ Notes: Code comments are English-only.
 from __future__ import annotations
 
 import sys
-import types
 import unittest
 from pathlib import Path
 
@@ -114,10 +113,8 @@ class TestSafeIntFunctional(unittest.TestCase):
     """Verify orchestration_state._safe_int can be imported cleanly from both modules."""
 
     def setUp(self) -> None:
-        # Install stub for noemaforge_version so orchestration_state can be imported.
-        stub_ver = types.ModuleType("noemaforge_version")
-        stub_ver.RUNTIME_VERSION = "0.32.2"
-        sys.modules.setdefault("noemaforge_version", stub_ver)
+        import noemaforge_version as real_version
+        sys.modules.setdefault("noemaforge_version", real_version)
 
     def test_import_safe_int_from_orchestration_state(self) -> None:
         """orchestration_state._safe_int must be importable in a clean environment."""

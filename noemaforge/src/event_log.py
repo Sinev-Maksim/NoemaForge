@@ -147,10 +147,8 @@ class EventLog:
             if not self.path.exists():
                 return
             size = self.path.stat().st_size
-            if size < _ROTATION_SIZE_FAST_PATH:
-                return
             content = self.path.read_bytes()
-            if size < MAX_EVENT_BYTES:
+            if size < MAX_EVENT_BYTES or size < _ROTATION_SIZE_FAST_PATH:
                 lines = content.decode("utf-8", errors="replace").splitlines()
                 if len(lines) <= MAX_EVENT_LINES:
                     return

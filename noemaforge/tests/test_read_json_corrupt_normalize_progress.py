@@ -40,9 +40,8 @@ if str(_SRC) not in sys.path:
 
 
 def _install_stubs() -> None:
-    stub_ver = types.ModuleType("noemaforge_version")
-    stub_ver.RUNTIME_VERSION = "0.32.2"
-    sys.modules.setdefault("noemaforge_version", stub_ver)
+    import noemaforge_version as real_version
+    sys.modules.setdefault("noemaforge_version", real_version)
 
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-06-01T00:00:00Z"
@@ -184,9 +183,8 @@ class TestNormalizeJobProgress(unittest.TestCase):
     """task-88: normalize_job_progress() must guarantee all sub-fields present."""
 
     def setUp(self) -> None:
-        stub_ver = types.ModuleType("noemaforge_version")
-        stub_ver.RUNTIME_VERSION = "0.32.2"
-        sys.modules["noemaforge_version"] = stub_ver
+        import noemaforge_version as real_version
+        sys.modules["noemaforge_version"] = real_version
 
     def _get_normalize_job_progress(self):
         # Import real orchestration_state (not stub)

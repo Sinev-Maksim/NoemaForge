@@ -25,7 +25,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from noemaforge_version import RUNTIME_VERSION
-from event_log import EventLog
+from event_log import EventLog, MAX_EVENT_LINES
 import admin_gui_server
 from admin_gui_server import AdminGuiServer
 
@@ -70,6 +70,13 @@ class TestEventLogUnit(unittest.TestCase):
         rows = log.read()
         for row in rows:
             self.assertIn("index", row)
+
+    def test_rotate_when_small_file_exceeds_line_limit(self) -> None:
+        log = EventLog(self.tmp_path / "events")
+        log.path.write_text("x\n" * (MAX_EVENT_LINES + 1), encoding="utf-8")
+        log._maybe_rotate()
+        self.assertEqual("", log.path.read_text(encoding="utf-8"))
+        self.assertTrue(EventLog._archive_path(log.path, 1).exists())
 
 
 class TestEventsApiMethod(unittest.TestCase):
@@ -125,8 +132,8 @@ class TestEventsApiRoute(unittest.TestCase):
         responses = []
 
         class ServerStub:
-            def events_api(self, after_index: int = 0):
-                calls.append(after_index)
+            def events_api(self, after_index: int = 0, limit: int = 200):
+                calls.append((after_index, limit))
                 return {"ok": True, "version": RUNTIME_VERSION, "events": [], "count": 0}
 
         handler = object.__new__(admin_gui_server.AdminGuiHandler)
@@ -141,14 +148,14 @@ class TestEventsApiRoute(unittest.TestCase):
     def test_events_route_defaults_after_index_to_zero(self) -> None:
         (status, payload), calls = self._call_route("/api/events")
         self.assertEqual(status, 200)
-        self.assertEqual(calls, [0])
+        self.assertEqual(calls, [(0, 200)])
         self.assertTrue(payload["ok"])
         self.assertIsInstance(payload["events"], list)
 
     def test_events_route_passes_after_index_to_api(self) -> None:
         (status, payload), calls = self._call_route("/api/events?after_index=3")
         self.assertEqual(status, 200)
-        self.assertEqual(calls, [3])
+        self.assertEqual(calls, [(3, 200)])
         self.assertEqual(payload["count"], 0)
 
     def test_events_route_rejects_non_integer_after_index(self) -> None:

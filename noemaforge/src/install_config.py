@@ -262,12 +262,12 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-def main(argv=None) -> None:
+def main(argv=None) -> int:
     args = _build_parser().parse_args(argv)
 
     if args.env_export:
         print(generate_env_export(args.install_root, args.data_root, shell=args.env_export))
-        return
+        return 0
 
     if args.validate:
         result = validate_config_written(args.install_root)
@@ -277,9 +277,7 @@ def main(argv=None) -> None:
             status = result["status"]
             msg    = result["message"]
             print(f"[{status.upper()}] {msg}")
-            if status != "ok":
-                sys.exit(1)
-        return
+        return 0 if result["status"] == "ok" else 1
 
     result = run_install_config(
         install_root=args.install_root,
@@ -300,9 +298,8 @@ def main(argv=None) -> None:
             print(f"    install_root = {result['install_root']}")
             print(f"    data_root    = {result['data_root']}")
             print(f"    config_file  = {result['config_file']}")
-        if status == "error":
-            sys.exit(1)
+    return 1 if result["status"] == "error" else 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

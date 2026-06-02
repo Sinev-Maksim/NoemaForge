@@ -42,9 +42,8 @@ if str(_SRC) not in sys.path:
 
 
 def _install_stubs() -> None:
-    stub_ver = types.ModuleType("noemaforge_version")
-    stub_ver.RUNTIME_VERSION = "0.32.2"
-    sys.modules.setdefault("noemaforge_version", stub_ver)
+    import noemaforge_version as real_version
+    sys.modules.setdefault("noemaforge_version", real_version)
 
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-06-01T00:00:00Z"
@@ -59,7 +58,7 @@ def _install_stubs() -> None:
         "created_at": str(r.get("created_at") or "2026-06-01T00:00:00Z"),
         "updated_at": str(r.get("updated_at") or "2026-06-01T00:00:00Z"),
         "finished_at": str(r.get("finished_at") or ""),
-        "version": str(r.get("version") or "0.32.2"),
+        "version": str(r.get("version") or real_version.RUNTIME_VERSION),
     }
     stub_orch.is_active_job = lambda job: str(job.get("status") or "") in {
         "queued", "running", "needs_privilege", "starting", "cancel_requested"
@@ -211,6 +210,7 @@ class TestJobsListNormalizeBehavioural(unittest.TestCase):
 
     def _make_server(self, extra_jobs=None):
         from admin_gui_server import AdminGuiServer, now_iso
+        from noemaforge_version import RUNTIME_VERSION
         srv = object.__new__(AdminGuiServer)
         tmp = Path(self._tmpdir)
         srv.data_root = tmp
@@ -229,7 +229,7 @@ class TestJobsListNormalizeBehavioural(unittest.TestCase):
                 "progress": {"current": 5, "total": 10, "label": "running"},
                 "lock_key": "lk1", "artifacts": [],
                 "created_at": now_iso(), "updated_at": now_iso(),
-                "finished_at": "", "version": "0.32.2",
+                "finished_at": "", "version": RUNTIME_VERSION,
             },
         ] + (extra_jobs or [])
         jobs_file = srv.jobs_dir / "jobs.json"

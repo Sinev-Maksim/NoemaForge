@@ -19,7 +19,6 @@ from __future__ import annotations
 import copy
 import json
 import os
-import shutil
 import sys
 import tempfile
 import unittest
@@ -27,7 +26,6 @@ from pathlib import Path
 
 ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = ROOT.parent
-TMP_ROOT = Path(tempfile.gettempdir()) / "noemaforge_tmp_docs_hygiene"
 sys.path.insert(0, str(ROOT / "src"))
 
 import docs_hygiene_runtime as dhr
@@ -35,9 +33,12 @@ import production_ai_contracts as pac
 
 
 class DocsHygieneRuntimeTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="noemaforge_docs_hygiene_")
+        self.tmp_root = Path(self._tmp.name)
+
     def tearDown(self) -> None:
-        if TMP_ROOT.exists():
-            shutil.rmtree(TMP_ROOT)
+        self._tmp.cleanup()
 
     def test_workspace_docs_hygiene_policy_validates_with_legacy_warnings(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
@@ -56,7 +57,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertEqual(0, report["metrics"]["parallel_changelog_files"])
         self.assertEqual(0, report["metrics"]["active_file_readability_failures"])
         self.assertEqual(16, report["metrics"]["todo_items_checked"])
-        self.assertEqual(0, report["metrics"]["legacy_root_markdown_files"])
+        self.assertEqual(3, report["metrics"]["legacy_root_markdown_files"])
         self.assertEqual("passed", report["checks"][0]["status"])
         self.assertEqual("passed", report["checks"][1]["status"])
 
@@ -69,7 +70,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
     def test_policy_blocks_new_root_markdown_and_parallel_changelog(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
         payload = copy.deepcopy(dhr.load_policy(policy_path))
-        project = TMP_ROOT / "project"
+        project = self.tmp_root / "project"
         package = project / "noemaforge"
         for folder in [
             package / "docs" / "history",
@@ -85,8 +86,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
             path.write_text(required_text, encoding="utf-8")
         (package / "docs" / "TODO.md").write_text("- [ ] Add Unified Registry for model, prompt, retriever, reranker, tool-policy, pipeline, persona, task, epoch and eval-pack versions.\n", encoding="utf-8")
         (project / "NOTES.md").write_text("# drift\n", encoding="utf-8")
-        (project / "docs").mkdir(parents=True, exist_ok=True)
-        (project / "docs" / "RELEASE_NOTES.md").write_text("# parallel\n", encoding="utf-8")
+        (project / "RELEASE_NOTES.md").write_text("# parallel\n", encoding="utf-8")
         (package / "docs" / "EXTRA.md").write_text("# extra\n", encoding="utf-8")
         (package / "docs" / "source_reports" / "raw.md").write_text("# raw\n", encoding="utf-8")
 
@@ -101,7 +101,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertIn("root_markdown_not_allowed:NOTES.md", report["failures"])
         self.assertIn("docs_root_markdown_not_allowed:noemaforge/docs/EXTRA.md", report["failures"])
         self.assertIn("forbidden_markdown_prefix:noemaforge/docs/source_reports/raw.md", report["failures"])
-        self.assertIn("parallel_changelog_file:docs/RELEASE_NOTES.md", report["failures"])
+        self.assertIn("parallel_changelog_file:RELEASE_NOTES.md", report["failures"])
         self.assertIn(
             "todo_item_not_checked:noemaforge/docs/TODO.md:Add Unified Registry for model, prompt, retriever, reranker, tool-policy, pipeline, persona, task, epoch and eval-pack versions.",
             report["failures"],
@@ -110,7 +110,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
     def test_policy_blocks_forbidden_active_text(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
         payload = copy.deepcopy(dhr.load_policy(policy_path))
-        project = TMP_ROOT / "project"
+        project = self.tmp_root / "project"
         package = project / "noemaforge"
         package_docs = package / "docs"
         for folder in [
@@ -146,7 +146,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         )
 
     def test_active_file_readability_blocks_stale_entries(self) -> None:
-        project = TMP_ROOT / "project"
+        project = self.tmp_root / "project"
         project.mkdir(parents=True, exist_ok=True)
         stale = project / "prelaunch" / "ghost.py"
 

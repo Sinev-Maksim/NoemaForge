@@ -174,6 +174,7 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
         "package_manifest_sha_refs",
         "project_checksum_self_exclusions",
         "package_checksum_self_exclusions",
+        "project_excluded_file_refs",
         "required_runtime_scripts",
         "required_docs",
     ]
@@ -184,14 +185,31 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
     return failures
 
 
-def _active_files(base: Path, excluded_names: Iterable[str]) -> List[Path]:
+def _active_files(
+    base: Path,
+    excluded_names: Iterable[str],
+    *,
+    root_only_excluded_dir_names: Iterable[str] = (),
+    excluded_file_refs: Iterable[str] = (),
+) -> List[Path]:
     excluded = set(excluded_names) or set(DEFAULT_EXCLUDED_DIR_NAMES)
+    root_only_excluded = set(root_only_excluded_dir_names)
+    excluded_files = {_normalize_ref(item) for item in excluded_file_refs}
     files: List[Path] = []
     for root, dirs, names in os.walk(base):
-        dirs[:] = [item for item in dirs if item not in excluded]
         root_path = Path(root)
+        skip_dirs = set(excluded)
+        if root_path == base:
+            skip_dirs.update(root_only_excluded)
+        dirs[:] = [item for item in dirs if item not in skip_dirs]
         for name in names:
-            files.append(root_path / name)
+            if name in excluded:
+                continue
+            path = root_path / name
+            rel = _normalize_ref(str(path.resolve().relative_to(base.resolve())))
+            if rel in excluded_files:
+                continue
+            files.append(path)
     return sorted(files, key=lambda item: _display_path(item))
 
 
@@ -200,7 +218,10 @@ def _relative_set(base: Path, paths: Iterable[Path]) -> Set[str]:
 
 
 def _has_excluded_part(rel: str, excluded_names: Iterable[str]) -> bool:
-    parts = PurePosixPath(_normalize_ref(rel).lstrip("./")).parts
+    normalized = _normalize_ref(rel)
+    if normalized.startswith("./"):
+        normalized = normalized[2:]
+    parts = PurePosixPath(normalized).parts
     return any(part in set(excluded_names) for part in parts)
 
 
@@ -223,7 +244,9 @@ def _parse_sha256sums(path: Path) -> Tuple[List[Tuple[str, str]], List[str]]:
             failures.append(f"checksum_line_invalid:{path.name}:{line_number}")
             continue
         digest = parts[0].lower()
-        rel = _normalize_ref(parts[1]).lstrip("./")
+        rel = _normalize_ref(parts[1])
+        if rel.startswith("./"):
+            rel = rel[2:]
         if not re.fullmatch(r"[0-9a-f]{64}", digest):
             failures.append(f"checksum_digest_invalid:{path.name}:{line_number}:{rel}")
             continue
@@ -341,6 +364,8 @@ def validate_manifest_checksum_exclusion_policy(
 ) -> Dict[str, Any]:
     policy = _policy_dict(payload)
     excluded_names = _as_string_list(policy.get("excluded_dir_names")) or sorted(DEFAULT_EXCLUDED_DIR_NAMES)
+    project_only_excluded_names = _as_string_list(policy.get("project_only_excluded_dir_names"))
+    project_excluded_files = _as_string_list(policy.get("project_excluded_file_refs"))
     failures = _policy_failures(payload)
 
     refs = list(_as_string_list(payload.get("refs")))
@@ -366,7 +391,12 @@ def validate_manifest_checksum_exclusion_policy(
         failures.append(f"package_root_invalid:{package_root_ref}")
         resolved_package_root = package_root
 
-    project_active = _active_files(project_root, excluded_names)
+    project_active = _active_files(
+        project_root,
+        excluded_names,
+        root_only_excluded_dir_names=project_only_excluded_names,
+        excluded_file_refs=project_excluded_files,
+    )
     package_active = _active_files(resolved_package_root, excluded_names)
     project_rel = _relative_set(project_root, project_active)
     package_rel = _relative_set(resolved_package_root, package_active)

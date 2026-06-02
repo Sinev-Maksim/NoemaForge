@@ -74,7 +74,7 @@ from platform_paths import NoemaForgePaths, DEFAULT_PATHS
 # Constants
 # ---------------------------------------------------------------------------
 
-LOOP_VERSION = "0.1.0"
+LOOP_VERSION = RUNTIME_VERSION
 STATE_FILENAME = "code_evolution_state.json"
 LOG_FILENAME = "code_evolution_log.jsonl"
 

@@ -118,7 +118,7 @@ def migrate_file(path: Path, dry_run: bool = False) -> List[str]:
 
 def migrate_directory(src_dir: Path, dry_run: bool = False,
                        skip_patterns: Optional[List[str]] = None) -> Dict[str, List[str]]:
-    """Migrate all .py files in src_dir. Returns {filename: [changes]}."""
+    """Migrate all .py files in src_dir. Returns {relative_path: [changes]}."""
     skip = skip_patterns or ["__pycache__", "platform_paths.py", "install_config.py",
                               "migrate_platform_paths.py"]
     results: Dict[str, List[str]] = {}
@@ -127,7 +127,7 @@ def migrate_directory(src_dir: Path, dry_run: bool = False,
             continue
         changes = migrate_file(py_file, dry_run=dry_run)
         if changes:
-            results[py_file.name] = changes
+            results[py_file.relative_to(src_dir).as_posix()] = changes
     return results
 
 
@@ -149,7 +149,8 @@ def main() -> None:
         changes = migrate_file(Path(args.file), dry_run=args.dry_run)
         if changes:
             print(f"\n{args.file}:")
-            for c in changes: print(c)
+            for c in changes:
+                print(c)
         else:
             print("No changes needed.")
         return

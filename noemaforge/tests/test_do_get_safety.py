@@ -36,9 +36,8 @@ if str(_SRC) not in sys.path:
 
 
 def _install_stubs() -> None:
-    stub_ver = types.ModuleType("noemaforge_version")
-    stub_ver.RUNTIME_VERSION = "0.32.2"
-    sys.modules.setdefault("noemaforge_version", stub_ver)
+    import noemaforge_version as real_version
+    sys.modules.setdefault("noemaforge_version", real_version)
 
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-05-31T00:00:00Z"

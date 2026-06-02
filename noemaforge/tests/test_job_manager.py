@@ -102,6 +102,11 @@ class TestJobManagerCreate(unittest.TestCase):
         job_file = Path(self._td.name) / f"{job['job_id']}.json"
         self.assertTrue(job_file.exists())
 
+    def test_create_leaves_no_tmp_files_after_atomic_write(self) -> None:
+        self.jm.create("model-selection")
+        leftovers = list(Path(self._td.name).glob("*.tmp"))
+        self.assertEqual([], leftovers)
+
     def test_create_with_command(self) -> None:
         job = self.jm.create("model-selection", command="noemaforge model-selection run")
         self.assertEqual(job["command"], "noemaforge model-selection run")
