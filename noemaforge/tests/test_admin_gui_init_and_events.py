@@ -196,14 +196,14 @@ class TestEventsApiStatusFailure(unittest.TestCase):
             events = log.read(after_index=0, limit=200)
             self.assertEqual(len(events), 1)
 
-            # Now simulate status() raising
-            try:
-                st = log.status()
-                server_epoch = st.get("server_epoch", "")
-                rotation_count = int(st.get("rotation_count", 0))
-            except Exception:
-                server_epoch = ""
-                rotation_count = 0
+            with patch.object(log, "status", side_effect=RuntimeError("status failed")):
+                try:
+                    st = log.status()
+                    server_epoch = st.get("server_epoch", "")
+                    rotation_count = int(st.get("rotation_count", 0))
+                except Exception:
+                    server_epoch = ""
+                    rotation_count = 0
 
             # Events must still be present
             result = {

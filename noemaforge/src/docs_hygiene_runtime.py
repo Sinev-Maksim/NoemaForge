@@ -155,8 +155,6 @@ def _iter_active_files(project_root: Path) -> List[Path]:
     for root, dirs, files in os.walk(project_root):
         root_path = Path(root)
         skip = set(SKIPPED_DIR_NAMES)
-        if root_path == project_root:
-            skip.add("docs")
         dirs[:] = [item for item in dirs if item not in skip]
         for name in files:
             active_files.append(root_path / name)

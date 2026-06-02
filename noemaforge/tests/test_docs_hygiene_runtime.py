@@ -158,6 +158,23 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         )
         self.assertEqual([{"path": "prelaunch/ghost.py", "error": "FileNotFoundError"}], result["unreadable"])
 
+    def test_root_docs_are_active_for_forbidden_text_gate(self) -> None:
+        project = self.tmp_root / "project"
+        docs = project / "docs"
+        docs.mkdir(parents=True, exist_ok=True)
+        token = "BigBro" + "-BOS"
+        active = docs / "legacy.md"
+        active.write_text(f"# legacy\n\n{token}\n", encoding="utf-8")
+
+        result = dhr._validate_forbidden_active_text(
+            dhr._iter_active_files(project),
+            project_root=project,
+            forbidden_tokens=[token],
+        )
+
+        self.assertEqual(1, len(result["hits"]))
+        self.assertIn(f"forbidden_active_text:docs/legacy.md:3:{token}", result["failures"])
+
     def test_policy_blocks_missing_required_refs(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
         payload = copy.deepcopy(dhr.load_policy(policy_path))

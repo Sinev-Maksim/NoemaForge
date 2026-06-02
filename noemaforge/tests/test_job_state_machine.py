@@ -42,7 +42,7 @@ if str(_SRC) not in sys.path:
 
 def _install_stubs() -> None:
     import noemaforge_version as real_version
-    sys.modules.setdefault("noemaforge_version", real_version)
+    sys.modules["noemaforge_version"] = real_version
 
     stub_orch = types.ModuleType("orchestration_state")
     stub_orch.nowz = lambda: "2026-05-31T00:00:00Z"
@@ -51,15 +51,16 @@ def _install_stubs() -> None:
     stub_orch.is_active_job = lambda job: str(job.get("status") or "") in {"queued", "running", "needs_privilege", "starting", "cancel_requested"}
     stub_orch.ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested", "needs_privilege"}
     stub_orch.FINAL_JOB_STATES = {"done", "failed", "cancelled"}
-    sys.modules.setdefault("orchestration_state", stub_orch)
+    sys.modules["orchestration_state"] = stub_orch
 
     stub_prod = types.ModuleType("production_ai_contracts")
     stub_prod.new_trace_id = lambda kind="": f"trace_{kind}"
-    sys.modules.setdefault("production_ai_contracts", stub_prod)
+    sys.modules["production_ai_contracts"] = stub_prod
 
     stub_priv = types.ModuleType("privileged_gui_job_runner")
     stub_priv.enrich_privileged_job = lambda job, **_kw: job
-    sys.modules.setdefault("privileged_gui_job_runner", stub_priv)
+    sys.modules["privileged_gui_job_runner"] = stub_priv
+    sys.modules.pop("admin_gui_server", None)
 
 
 _install_stubs()

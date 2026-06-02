@@ -151,6 +151,7 @@ def _policy_failures(payload: Dict[str, Any]) -> List[str]:
         "project_manifest_sha_refs",
         "project_checksum_refs",
         "package_manifest_sha_refs",
+        "project_excluded_file_refs",
         "excluded_dir_names",
         "required_runtime_scripts",
         "required_runtime_tokens",
@@ -378,6 +379,7 @@ def validate_manifest_checksum_exclusion_policy(
     refs.extend(_as_string_list(policy.get("project_manifest_sha_refs")))
     refs.extend(_as_string_list(policy.get("project_checksum_refs")))
     refs.extend(_as_string_list(policy.get("package_manifest_sha_refs")))
+    refs.extend(_as_string_list(policy.get("project_excluded_file_refs")))
     ref_report = _resolve_refs(refs, project_root=project_root, package_root=package_root, owner="policy.refs")
     doc_ref_report = _resolve_refs(_as_string_list(policy.get("required_docs")), project_root=project_root, package_root=package_root, owner="policy.required_docs")
     runtime_report = _runtime_script_reports(policy, project_root=project_root, package_root=package_root)

@@ -49,13 +49,15 @@ class TestInstallConfigCli(unittest.TestCase):
         self.assertEqual("error", payload["status"])
 
     def test_env_export_returns_success_code(self) -> None:
-        out = io.StringIO()
-        with contextlib.redirect_stdout(out):
-            rc = install_config.main([
-                "--install-root", "/tmp/noemaforge",
-                "--data-root", "/tmp/noemaforge-data",
-                "--env-export", "sh",
-            ])
+        with tempfile.TemporaryDirectory(prefix="nf_install_config_env_") as tmpdir:
+            tmp_root = Path(tmpdir)
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = install_config.main([
+                    "--install-root", str(tmp_root / "noemaforge"),
+                    "--data-root", str(tmp_root / "noemaforge-data"),
+                    "--env-export", "sh",
+                ])
         self.assertEqual(0, rc)
         self.assertIn("NOEMAFORGE_ROOT", out.getvalue())
 

@@ -33,7 +33,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
-DEFAULT_SHARE = Path(os.environ.get("NOEMAFORGE_SHARE", str(_pp.vault_dir.parent)))
+DEFAULT_SHARE = Path(os.environ.get("NOEMAFORGE_SHARE", str(DEFAULT_ROOT)))
 DEFAULT_DATASET = Path(
     os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", str(DEFAULT_ROOT / "datasets" / "role_eval_cases"))
 )
@@ -164,7 +164,7 @@ def collect(args: argparse.Namespace) -> Dict[str, Any]:
     if not (share.exists() and findmnt(share)):
         next_actions.append(f"Normalize/mount the share to {share}, then run: noemaforge trixie-preflight")
     if not (dataset.exists() and dataset.is_dir()):
-        next_actions.append("Restore /opt/noemaforge/datasets/role_eval_cases or run the dataset assurance step before firstboot.")
+        next_actions.append(f"Restore {dataset} or run the dataset assurance step before firstboot.")
     if not sockets["main_backend"]:
         next_actions.append("For manual local LLM use: sudo noemaforge safe-start --wait && noemaforge smoke")
     if heavy_autostart_enabled:
