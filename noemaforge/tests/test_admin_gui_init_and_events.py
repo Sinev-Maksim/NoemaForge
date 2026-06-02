@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/tests/test_admin_gui_init_and_events.py
 Zone: tests
-Version: 0.32.2
+Version: see noemaforge_version.py
 Created: 2026-05-31
 Modified: 2026-05-31
 Purpose: Verify task-53/54/55 fixes:
@@ -201,7 +201,7 @@ class TestEventsApiStatusFailure(unittest.TestCase):
                     st = log.status()
                     server_epoch = st.get("server_epoch", "")
                     rotation_count = int(st.get("rotation_count", 0))
-                except Exception:
+                except RuntimeError:
                     server_epoch = ""
                     rotation_count = 0
 
