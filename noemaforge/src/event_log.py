@@ -33,9 +33,6 @@ DEFAULT_EVENT_STATE = _pp.event_log_dir
 MAX_EVENT_LINES = 10_000
 MAX_EVENT_BYTES = 10 * 1024 * 1024  # 10 MB
 
-# Fast-path: skip the line-count check below this size.
-_ROTATION_SIZE_FAST_PATH = 1024 * 1024  # 1 MB
-
 # Only check rotation every N appends to reduce stat() calls.
 _ROTATION_CHECK_INTERVAL = 50
 
@@ -147,11 +144,18 @@ class EventLog:
             if not self.path.exists():
                 return
             size = self.path.stat().st_size
+            # Cheap correct fast-path: a file of at most MAX_EVENT_LINES bytes
+            # holds at most MAX_EVENT_LINES newlines (each record is >= 1 byte)
+            # and is far below MAX_EVENT_BYTES, so neither limit can be hit —
+            # skip the read entirely for small logs.
+            if size <= MAX_EVENT_LINES:
+                return
             content = self.path.read_bytes()
-            if size < MAX_EVENT_BYTES or size < _ROTATION_SIZE_FAST_PATH:
-                lines = content.decode("utf-8", errors="replace").splitlines()
-                if len(lines) <= MAX_EVENT_LINES:
-                    return
+            # Rotate when EITHER limit is exceeded. Count newlines at the byte
+            # level (no UTF-8 decode, no line-list allocation); each append writes
+            # exactly one '\n'-terminated record, so this equals the line count.
+            if size < MAX_EVENT_BYTES and content.count(b"\n") <= MAX_EVENT_LINES:
+                return
             if not self._shift_archives():
                 return
             archive = self._archive_path(self.path, 1)
