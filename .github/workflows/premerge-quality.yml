@@ -153,7 +153,11 @@ jobs:
           fi
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
-      # ── 8. Shell syntax check (bash -n) ───────────────────────────────────
+      # ── 8. Release manifest/checksum evidence ────────────────────────────
+      - name: Release manifest/checksum evidence gate
+        run: python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary
+
+      # ── 9. Shell syntax check (bash -n) ───────────────────────────────────
       - name: Shell syntax check (bash -n) on .sh files
         run: |
           errs=0; count=0

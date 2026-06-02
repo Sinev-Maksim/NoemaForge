@@ -42,6 +42,7 @@
       "docs"
     ],
     "project_excluded_file_refs": [
+      "AGENTS.md",
       "CLAUDE.md",
       "README.md",
       "context.md"

@@ -57,7 +57,7 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertEqual(0, report["metrics"]["parallel_changelog_files"])
         self.assertEqual(0, report["metrics"]["active_file_readability_failures"])
         self.assertEqual(16, report["metrics"]["todo_items_checked"])
-        self.assertEqual(3, report["metrics"]["legacy_root_markdown_files"])
+        self.assertEqual(4, report["metrics"]["legacy_root_markdown_files"])
         self.assertEqual("passed", report["checks"][0]["status"])
         self.assertEqual("passed", report["checks"][1]["status"])
 
