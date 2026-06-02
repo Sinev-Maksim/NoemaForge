@@ -70,6 +70,7 @@ from seclog import append as sel_append
 import epoch
 import roadmap
 import nids_lite
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import taskqueue
@@ -94,7 +95,7 @@ except Exception:  # pragma: no cover
     incidents = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SEL_DIR = os.path.join(BASE, "sel", "segments")
 QUAR_DIR = os.path.join(BASE, "quarantine")
 PACKETS_DIR = os.path.join(BASE, "packets", "scary")

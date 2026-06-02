@@ -46,9 +46,10 @@ from typing import Any, Dict, List, Optional
 import yaml
 
 import task_tools
+from platform_paths import DEFAULT_PATHS as _pp
 
 CFG_PATH = os.environ.get("NOEMAFORGE_SKILLS_PATH", "/opt/noemaforge/configs/skills.yaml")
-OUTBOX = "/var/lib/noemaforge/outbox/skills"
+OUTBOX = str(_pp.data_root / "outbox/skills")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -59,6 +59,7 @@ import re
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from orchestration_state import _safe_int  # canonical NaN/Inf-safe implementation
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
@@ -66,7 +67,7 @@ except Exception:
     yaml = None  # type: ignore
 
 
-DEFAULT_CATALOG_PATH = "/opt/noemaforge/configs/mcp-adapters.yaml"
+DEFAULT_CATALOG_PATH = str(_pp.root / "configs/mcp-adapters.yaml")
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,120}$")
 _DEFAULT_SEARCH_EXTS = {".md", ".txt", ".rst", ".py", ".json", ".yaml", ".yml", ".sh", ".ps1"}
 

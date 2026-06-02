@@ -56,8 +56,9 @@ import json
 import math
 import os
 from typing import Any, Dict, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 METRICS_DIR = os.path.join(BASE, "metrics")
 STATS_PATH = os.path.join(METRICS_DIR, "daily_task_stats.json")
 

@@ -66,9 +66,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-CFG_PATH = "/opt/noemaforge/configs/role-runner.yaml"
+CFG_PATH = str(_pp.root / "configs/role-runner.yaml")
 
 try:
     import epoch

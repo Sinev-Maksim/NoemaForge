@@ -58,6 +58,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import runtime_safety
@@ -71,7 +72,7 @@ except Exception:  # pragma: no cover
 
 
 DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
-DEFAULT_POLICY_FALLBACK = "/opt/noemaforge/configs/llm-backends-policy.yaml"
+DEFAULT_POLICY_FALLBACK = str(_pp.root / "configs/llm-backends-policy.yaml")
 DEFAULT_SOCK_DIR = "/run/noemaforge/llm/backends"
 DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
 DEFAULT_RUNTIME_DESIRED_COUNT = int(os.environ.get("NOEMAFORGE_RUNTIME_DESIRED_COUNT", "1"))

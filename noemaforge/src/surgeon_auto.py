@@ -80,8 +80,9 @@ import roadmap
 import team_installer_plan
 import team_scorecards
 import team_search
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 PACKETS_DIR = os.path.join(BASE, "packets", "surgeon")
 REQUESTS_DIR = os.environ.get("NOEMAFORGE_PRESTART_REQUESTS", "/var/lib/noemaforge/requests/prestart")
 MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")

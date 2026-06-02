@@ -75,9 +75,10 @@ import os
 from typing import Any, Dict, Optional, Tuple
 
 import caps
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-INVITES_ROOT = "/var/lib/noemaforge/.sys/invites"
+INVITES_ROOT = str(_pp.data_root / ".sys/invites")
 TOKENS_DIR = os.path.join(INVITES_ROOT, "tokens")
 ACTIVE_DIR = os.path.join(INVITES_ROOT, "active")
 

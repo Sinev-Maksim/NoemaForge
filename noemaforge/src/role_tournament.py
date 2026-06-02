@@ -25,6 +25,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
@@ -49,12 +50,12 @@ try:
 except Exception:  # pragma: no cover
     model_inventory_normalize = None  # type: ignore
 
-DEFAULT_INVENTORY = "/var/lib/noemaforge/bootstrap/model-inventory.json"
-DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
-DEFAULT_PACK_ROOT = "/var/lib/noemaforge/eval-packs/first-start-light"
-DEFAULT_STATE_DIR = "/var/lib/noemaforge/bootstrap"
+DEFAULT_INVENTORY = str(_pp.data_root / "bootstrap/model-inventory.json")
+DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
+DEFAULT_PACK_ROOT = str(_pp.data_root / "eval-packs/first-start-light")
+DEFAULT_STATE_DIR = str(_pp.data_root / "bootstrap")
 DEFAULT_MODELSTORE = "/var/lib/modelstore"
-DEFAULT_SCORECARDS = "/var/lib/noemaforge/model_scorecards"
+DEFAULT_SCORECARDS = str(_pp.data_root / "model_scorecards")
 SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 
 MANDATORY_CORE_ROLES = [

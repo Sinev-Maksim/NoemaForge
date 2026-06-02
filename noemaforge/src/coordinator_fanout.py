@@ -44,8 +44,9 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import task_tools
+from platform_paths import DEFAULT_PATHS as _pp
 
-OUTBOX = "/var/lib/noemaforge/outbox/coordinator"
+OUTBOX = str(_pp.data_root / "outbox/coordinator")
 
 
 # === NoemaForge Autodoc Function Header ===

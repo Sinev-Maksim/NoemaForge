@@ -65,13 +65,14 @@ import yaml
 
 from daily_stats import mean_sigma
 import taskqueue
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-REC_CFG = "/opt/noemaforge/configs/recurring-tasks.yaml"
-AUD_CFG = "/opt/noemaforge/configs/daily-auditor.yaml"
+REC_CFG = str(_pp.root / "configs/recurring-tasks.yaml")
+AUD_CFG = str(_pp.root / "configs/daily-auditor.yaml")
 
-ROUTINES_DIR = "/var/lib/noemaforge/routines"
-LOCKS_DIR = "/var/lib/noemaforge/.sys/locks"
+ROUTINES_DIR = str(_pp.data_root / "routines")
+LOCKS_DIR = str(_pp.data_root / ".sys/locks")
 
 
 # === NoemaForge Autodoc Function Header ===

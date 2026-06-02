@@ -59,8 +59,9 @@ from seclog import append as sel_append
 import epoch
 import roadmap
 from sr_lite import run as sr_lite_run
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 PACKETS_SR = os.path.join(BASE, "packets", "sr")
 PACKETS_SURGEON = os.path.join(BASE, "packets", "surgeon")
 PACKETS_SCARY = os.path.join(BASE, "packets", "scary")

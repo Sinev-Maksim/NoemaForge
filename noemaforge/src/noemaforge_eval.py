@@ -13,6 +13,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml
@@ -22,7 +23,7 @@ except Exception:
 from noemaforge_llm_client import gateway_chat, content_from_chat_response
 from noemaforge_json_tools import loads_llm_json
 
-DEFAULT_PACK = "/opt/noemaforge/configs/role-light-eval-029.yaml"
+DEFAULT_PACK = str(_pp.root / "configs/role-light-eval-029.yaml")
 
 
 def load_pack(path: str) -> dict[str, Any]:

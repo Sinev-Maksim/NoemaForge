@@ -61,8 +61,9 @@ from seclog import append as sel_append
 
 import epoch
 import roadmap
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SEL_DIR = os.path.join(BASE, "sel", "segments")
 QUAR_DIR = os.path.join(BASE, "quarantine")
 PACKETS_SSR = os.path.join(BASE, "packets", "ssr")

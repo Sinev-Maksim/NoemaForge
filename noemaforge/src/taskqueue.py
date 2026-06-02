@@ -88,14 +88,15 @@ import fnmatch
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/taskqueue-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/taskqueue-policy.yaml")
 
 # Cooldown stamps for default background tasks.
 # We keep them outside the DB schema so they survive light DB maintenance and
 # remain trivial to inspect.
-STAMPS_DIR = "/var/lib/noemaforge/taskqueue/stamps"
+STAMPS_DIR = str(_pp.data_root / "taskqueue/stamps")
 
 
 # === NoemaForge Autodoc Function Header ===
