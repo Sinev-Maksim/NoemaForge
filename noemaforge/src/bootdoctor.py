@@ -85,9 +85,10 @@ import yaml
 from seclog import append as sel_append
 from prestart import DEFAULT_CONTRACTS_ROOT
 from epoch import current_epoch_id, current_epoch_dir
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 DEFAULT_POLICY = {
     "apiVersion": "noemaforge.bootdoctor/v1",
     "kind": "BootDoctorPolicy",

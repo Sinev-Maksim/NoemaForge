@@ -60,6 +60,7 @@ import datetime as dt
 import json
 import os
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml
@@ -79,7 +80,7 @@ except Exception:  # pragma: no cover
     incidents = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 PACKETS_SURGEON = os.path.join(BASE, "packets", "surgeon")
 PACKETS_SCARY = os.path.join(BASE, "packets", "scary")
 INCIDENTS_DIR = os.path.join(BASE, "incidents", "daily_audit")

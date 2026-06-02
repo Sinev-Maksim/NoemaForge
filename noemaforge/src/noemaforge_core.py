@@ -15,6 +15,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 === End NoemaForge File Header ===
 """
 from __future__ import annotations
+from platform_paths import DEFAULT_PATHS as _pp
 
 
 # === NoemaForge Autodoc File Header ===
@@ -149,11 +150,11 @@ except Exception:  # pragma: no cover
     audit_apply_on_missing_actions = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 PROJECTS_DIR = os.path.join(BASE, "projects")
 ROUTINES_DIR = os.path.join(BASE, "routines")
 SYS_DIR = os.path.join(BASE, ".sys")
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 
 # Streams catalog (v0.9.0)
 STREAMS_CFG = os.path.join(CONFIG_DIR, "streams.yaml")
@@ -216,7 +217,7 @@ def _project_default_stream(project_id: str) -> str:
     except Exception:
         return _default_stream_id()
 
-TEMPLATES_DIR = "/opt/noemaforge/templates"
+TEMPLATES_DIR = str(_pp.root / "templates")
 
 PRIORITY_ORDER = ["critical", "urgent", "daily_sla", "high", "normal", "background"]
 PRIO_INDEX = {p: i for i, p in enumerate(PRIORITY_ORDER)}

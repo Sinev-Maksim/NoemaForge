@@ -56,8 +56,9 @@ import subprocess
 from typing import Any, Dict, List, Optional
 
 import epoch
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 ROLE_WORKDIR = os.path.join(BASE, "roles", "work")
 TOKENS_DIR = os.path.join(BASE, "tokens")
 

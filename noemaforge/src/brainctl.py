@@ -124,8 +124,9 @@ import production_ai_contracts
 
 # Incidents
 import incidents
+from platform_paths import DEFAULT_PATHS as _pp
 
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 SYSTEMD_DIR = "/etc/systemd/system"
 
 

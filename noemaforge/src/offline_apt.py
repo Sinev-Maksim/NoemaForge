@@ -83,10 +83,11 @@ import yaml
 from hwscan import collect_inventory
 from installer_plan import build_plan, load_policy as load_installer_policy
 from toolvault import sha256_file
+from platform_paths import DEFAULT_PATHS as _pp
 
 
 DEFAULT_OUTBOX_DIR = "/workspace/outbox/offline-apt"
-DEFAULT_PLANS_DIR = "/var/lib/noemaforge/offline-apt/plans"
+DEFAULT_PLANS_DIR = str(_pp.data_root / "offline-apt/plans")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -75,6 +75,7 @@ import os
 import time
 import uuid
 from typing import Any, Dict, List, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
@@ -112,8 +113,8 @@ except Exception:  # pragma: no cover
     sel_append = None  # type: ignore
 
 
-DEFAULT_MARKER = "/var/lib/noemaforge/.sys/firstboot-model-eval.done"
-DEFAULT_REQUESTS_DIR = "/var/lib/noemaforge/requests/prestart"
+DEFAULT_MARKER = str(_pp.data_root / ".sys/firstboot-model-eval.done")
+DEFAULT_REQUESTS_DIR = str(_pp.data_root / "requests/prestart")
 DEFAULT_OUTBOX_DIR = "/workspace/outbox/installer-plan"
 DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
 DEFAULT_ROLE_DATASETS = os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASETS", "/opt/noemaforge/configs/role-eval-datasets.yaml")

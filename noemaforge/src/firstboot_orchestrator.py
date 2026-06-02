@@ -35,13 +35,14 @@ import runtime_safety
 import model_inventory_normalize
 import model_profiles
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 
-NOEMAFORGE_ROOT = "/opt/noemaforge"
-DEFAULT_POLICY = "/opt/noemaforge/configs/firstboot-policy.yaml"
-DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
-DEFAULT_STATUS = "/var/lib/noemaforge/bootstrap/firstboot-status.json"
-DEFAULT_EVENTS = "/var/lib/noemaforge/bootstrap/firstboot-events.jsonl"
-STATE_DIR = "/var/lib/noemaforge/bootstrap"
+NOEMAFORGE_ROOT = str(_pp.root)
+DEFAULT_POLICY = str(_pp.root / "configs/firstboot-policy.yaml")
+DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
+DEFAULT_STATUS = str(_pp.data_root / "bootstrap/firstboot-status.json")
+DEFAULT_EVENTS = str(_pp.data_root / "bootstrap/firstboot-events.jsonl")
+STATE_DIR = str(_pp.data_root / "bootstrap")
 
 
 def _load_yaml(path: str) -> Dict[str, Any]:

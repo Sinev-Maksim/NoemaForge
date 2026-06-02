@@ -82,6 +82,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from toolvault import bundle_paths, prepare_plugin_bundle
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from seclog import append as sel_append
@@ -90,10 +91,10 @@ except Exception:  # pragma: no cover
 
 
 DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
-DEFAULT_REQUESTS_DIR = "/var/lib/noemaforge/requests/prestart"
-DEFAULT_POLICY_LOCK = "/var/lib/noemaforge/.sys/policy-lock.state"
+DEFAULT_REQUESTS_DIR = str(_pp.data_root / "requests/prestart")
+DEFAULT_POLICY_LOCK = str(_pp.data_root / ".sys/policy-lock.state")
 DEFAULT_MODE_FILE = "/run/noemaforge/mode"  # runtime typically writes 'runtime' here
-DEFAULT_NOTIFICATIONS_DIR = "/var/lib/noemaforge/notifications"
+DEFAULT_NOTIFICATIONS_DIR = str(_pp.data_root / "notifications")
 
 
 EPOCH_FILES = [
