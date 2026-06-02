@@ -58,12 +58,13 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import production_ai_contracts
-
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
-DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
-SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
+
+DEFAULT_ROOT = _pp.root
+DEFAULT_STATE = _pp.pipelines_dir
+DEFAULT_PERSONA_STATE = _pp.persona_state_dir
+SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 FINISHED_STATUSES = {"done", "completed", "cancelled", "failed", "archived"}
 PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}

@@ -45,9 +45,10 @@ except Exception:  # pragma: no cover
 
 import production_ai_contracts
 from noemaforge_version import RUNTIME_VERSION
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
-DEFAULT_EVOLUTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_ROOT = _pp.root
+DEFAULT_STATE = _pp.pipelines_dir
+DEFAULT_EVOLUTION_STATE = _pp.model_evolution_state_dir
 DEFAULT_MODEL_SELECTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 

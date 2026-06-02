@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/noemaforge_status.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Provide NoemaForge release functionality for the packaged local runtime.
@@ -30,10 +30,13 @@ import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_SHARE = Path(os.environ.get("NOEMAFORGE_SHARE", "/mnt/noemaforge-share"))
-DEFAULT_DATASET = Path(os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", "/opt/noemaforge/datasets/role_eval_cases"))
+DEFAULT_ROOT = _pp.root
+DEFAULT_SHARE = Path(os.environ.get("NOEMAFORGE_SHARE", str(DEFAULT_ROOT)))
+DEFAULT_DATASET = Path(
+    os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", str(DEFAULT_ROOT / "datasets" / "role_eval_cases"))
+)
 SOCKETS = {
     "gateway": Path("/run/noemaforge/llm/gateway.sock"),
     "main_backend": Path("/run/noemaforge/llm/backends/main.sock"),
@@ -94,7 +97,12 @@ def read_text(path: Path) -> Optional[str]:
 
 
 def degraded_readonly_state() -> Dict[str, Any]:
-    path = Path(os.environ.get("NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY", "/var/lib/noemaforge/bootstrap/firstboot-staffing-summary.json"))
+    path = Path(
+        os.environ.get(
+            "NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY",
+            str(_pp.data_root / "bootstrap" / "firstboot-staffing-summary.json"),
+        )
+    )
     obj = read_json(path) or {}
     state = str(obj.get("staffing_state") or obj.get("state") or "unknown") if isinstance(obj, dict) else "unknown"
     active = state in {"degraded_selected", "unstaffed", "malformed"}
@@ -116,9 +124,10 @@ def collect(args: argparse.Namespace) -> Dict[str, Any]:
         if rc == 0 and out:
             failed_units = [line.split()[0] for line in out.splitlines() if line.strip()]
 
-    modelstore_validation = read_json(Path("/var/lib/noemaforge/bootstrap/modelstore-validation.safe.json"))
-    firstboot = read_json(Path("/var/lib/noemaforge/bootstrap/firstboot-status.json"))
-    inventory = read_json(Path("/var/lib/noemaforge/bootstrap/model-inventory.json"))
+    bootstrap_dir = _pp.data_root / "bootstrap"
+    modelstore_validation = read_json(bootstrap_dir / "modelstore-validation.safe.json")
+    firstboot = read_json(bootstrap_dir / "firstboot-status.json")
+    inventory = read_json(bootstrap_dir / "model-inventory.json")
 
     heavy_autostart_enabled = [unit for unit, state in timers.items() if state in {"enabled", "static"}]
         # Gateway/ToolProxy are not LLM backends.  The runtime invariant is about backend sockets.
@@ -153,9 +162,9 @@ def collect(args: argparse.Namespace) -> Dict[str, Any]:
     if failed_units:
         next_actions.append("Run: systemctl --failed --no-pager")
     if not (share.exists() and findmnt(share)):
-        next_actions.append("Normalize/mount the share to /mnt/noemaforge-share, then run: noemaforge trixie-preflight")
+        next_actions.append(f"Normalize/mount the share to {share}, then run: noemaforge trixie-preflight")
     if not (dataset.exists() and dataset.is_dir()):
-        next_actions.append("Restore /opt/noemaforge/datasets/role_eval_cases or run the dataset assurance step before firstboot.")
+        next_actions.append(f"Restore {dataset} or run the dataset assurance step before firstboot.")
     if not sockets["main_backend"]:
         next_actions.append("For manual local LLM use: sudo noemaforge safe-start --wait && noemaforge smoke")
     if heavy_autostart_enabled:

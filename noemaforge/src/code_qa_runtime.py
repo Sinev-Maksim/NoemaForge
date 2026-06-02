@@ -37,7 +37,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from noemaforge_version import RUNTIME_VERSION
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
+from platform_paths import DEFAULT_PATHS as _pp
+DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_QA_STATE", "/var/lib/noemaforge/code-qa"))
 CONFIG_REL = Path("configs/code-qa-team.json")
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")

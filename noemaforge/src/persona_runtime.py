@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/persona_runtime.py
 Zone: release/package
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-14
 Modified: 2026-05-14
 Purpose: Manage NoemaForge personas, portraits and activation state.
@@ -37,9 +37,10 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
+DEFAULT_ROOT = _pp.root
+DEFAULT_STATE = _pp.persona_state_dir
 SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
 
 

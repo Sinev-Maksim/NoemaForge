@@ -24,7 +24,20 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = "0.32.2"
+
+def _read_version() -> str:
+    here = Path(__file__).resolve()
+    for candidate in (here.parents[3] / "VERSION", here.parents[2] / "VERSION"):
+        try:
+            value = candidate.read_text(encoding="utf-8").strip()
+        except OSError:
+            continue
+        if value:
+            return value
+    raise RuntimeError("Cannot read canonical VERSION file")
+
+
+VERSION = _read_version()
 MODIFIED = "2026-05-25"
 
 TARGETS = [

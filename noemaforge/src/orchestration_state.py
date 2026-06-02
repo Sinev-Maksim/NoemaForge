@@ -21,12 +21,29 @@ from typing import Any, Dict
 
 from noemaforge_version import RUNTIME_VERSION
 
-ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested"}
+ACTIVE_JOB_STATES = {"queued", "starting", "running", "cancel_requested", "needs_privilege"}
 FINAL_JOB_STATES = {"done", "failed", "cancelled"}
 
 
 def nowz() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def normalize_job_progress(progress: Any) -> Dict[str, Any]:
+    """Return a progress dict with all required sub-fields filled in.
+
+    Guarantees that ``current``, ``total``, and ``label`` are always present
+    so frontend code can safely access ``progress.label`` without undefined
+    errors even when the stored progress dict was created by an older code path
+    that omitted some keys.
+    """
+    if not isinstance(progress, dict):
+        return {"current": 0, "total": 0, "label": "queued"}
+    return {
+        "current": _safe_int(progress.get("current"), 0),
+        "total": _safe_int(progress.get("total"), 0),
+        "label": str(progress.get("label") or "queued"),
+    }
 
 
 def normalize_job_record(record: Dict[str, Any]) -> Dict[str, Any]:
@@ -35,7 +52,7 @@ def normalize_job_record(record: Dict[str, Any]) -> Dict[str, Any]:
         "kind": str(record.get("kind") or "unknown"),
         "status": str(record.get("status") or "queued"),
         "lock_key": str(record.get("lock_key") or ""),
-        "progress": record.get("progress") if isinstance(record.get("progress"), dict) else {"current": 0, "total": 0, "label": "queued"},
+        "progress": normalize_job_progress(record.get("progress")),
         "artifacts": list(record.get("artifacts") or []),
         "created_at": str(record.get("created_at") or nowz()),
         "updated_at": str(record.get("updated_at") or nowz()),
@@ -48,16 +65,38 @@ def is_active_job(record: Dict[str, Any]) -> bool:
     return str(record.get("status") or "") in ACTIVE_JOB_STATES
 
 
+def _safe_int(value: Any, default: int = 0) -> int:
+    """Convert value to int safely; return default if conversion fails.
+
+    Needed because session files may be manually edited or migrated and could
+    contain string values where integers are expected.  Using ``int(x or 0)``
+    raises ValueError when x is a non-numeric string like "abc".
+
+    The isinstance fast-path for int/float is also guarded: int(float('nan'))
+    raises ValueError and int(float('inf')) raises OverflowError — both caught
+    and returned as default so callers always get a valid int.
+    """
+    if isinstance(value, (int, float)):
+        try:
+            return int(value)
+        except (ValueError, OverflowError):
+            return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def normalize_session_record(record: Dict[str, Any]) -> Dict[str, Any]:
     return {
         "session_id": str(record.get("session_id") or "default"),
         "active_persona": str(record.get("active_persona") or "operator.admin/administrator"),
         "selected_mode": str(record.get("selected_mode") or "normal"),
-        "selected_composite_top_n": int(record.get("selected_composite_top_n") or 0),
+        "selected_composite_top_n": _safe_int(record.get("selected_composite_top_n"), 0),
         "messages": list(record.get("messages") or []),
         "active_jobs": list(record.get("active_jobs") or []),
         "last_route": record.get("last_route") if isinstance(record.get("last_route"), dict) else {},
-        "last_event_index": int(record.get("last_event_index") or 0),
+        "last_event_index": _safe_int(record.get("last_event_index"), 0),
         "updated_at": nowz(),
         "version": RUNTIME_VERSION,
     }

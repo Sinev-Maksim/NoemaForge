@@ -18,29 +18,31 @@ from __future__ import annotations
 
 import copy
 import os
-import shutil
 import sys
+import tempfile
 import time
 import unittest
 from pathlib import Path
 
 ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = ROOT.parent
-TMP_ROOT = ROOT / "tests" / "_tmp_docs_hygiene_perf"
 sys.path.insert(0, str(ROOT / "src"))
 
 import docs_hygiene_runtime as dhr
 
 
 class DocsHygienePerformanceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory(prefix="noemaforge_docs_hygiene_perf_")
+        self.tmp_root = Path(self._tmp.name)
+
     def tearDown(self) -> None:
-        if TMP_ROOT.exists():
-            shutil.rmtree(TMP_ROOT)
+        self._tmp.cleanup()
 
     def test_synthetic_markdown_tree_validates_under_budget(self) -> None:
         source_policy = dhr.load_policy(ROOT / "configs" / "docs-hygiene-policy.json")
         payload = copy.deepcopy(source_policy)
-        project = TMP_ROOT / "project"
+        project = self.tmp_root / "project"
         package = project / "noemaforge"
         docs_wiki = package / "docs" / "wiki" / "generated"
         docs_wiki.mkdir(parents=True, exist_ok=True)

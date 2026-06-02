@@ -34,6 +34,19 @@ This wiki consolidates the attached research, current TODO/roadmap state, recove
 The wiki is not a replacement for raw research. During release-gate preparation, raw research packs are converted into standalone prose pages (like policy, governance, and operational guides) and any source dumps are quarantined into project `trash/` so they are not treated as active release evidence. The wiki pages are normalized summaries intended for GitHub navigation, issue creation, and release planning.
 
 
+## Deep Research Integration Policy
+
+NoemaForge releases include wiki articles as part of the signed release evidence. This means raw research reports — LLM-generated summaries, web-scraped content, draft analysis dumps, or unedited API responses — must never be added directly as active wiki files. The following rules govern how research material enters the canonical documentation tree.
+
+**Raw reports must not become active files.** A research report that arrives as a raw file should be treated as a staging artifact. It belongs in `trash/` or a dedicated staging area that is excluded from the release archive. The hygiene gate will flag any file in `docs/source_reports/` or `research/` paths as a violation precisely because these locations are associated with raw research inputs.
+
+**Research material must be converted to prose.** Before any research finding can appear in the wiki, it must be rewritten as standalone prose with a clear scope, a concrete finding or recommendation, and enough context that a reader unfamiliar with the original research can understand it without following external links. Copy-pasted LLM output does not qualify. The prose must be written in the voice of the project, not the voice of a research assistant summarizing search results.
+
+**Link-only stubs are not acceptable wiki content.** A wiki article that consists solely of a heading and a list of links to other documents provides no standalone value and cannot be trusted as release evidence. Every wiki article must have at least 150 words of original prose. Articles that do not meet this threshold are classified as stubs and must be expanded before the release gate closes. The documentation completeness matrix (`noemaforge/docs/quality/DOC_COMPLETENESS_0.32.2.md`) tracks stub articles that require expansion.
+
+**Integration workflow.** When a research pack arrives, the operator must: (1) read the raw material and identify the findings that are genuinely new to the canonical documentation; (2) write a wiki article or expand an existing article with those findings in project prose; (3) move the original raw file to `trash/`; (4) record the integration in the changelog. The release gate may not be closed while raw research files remain in active documentation paths.
+
+
 #### 0.29.14 additions
 
 This wiki now includes the second merge pass: public launch/marketing package, tool gap analysis, metrics and evaluation research, and an updated prelaunch tooling inventory.

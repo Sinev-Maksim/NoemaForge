@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 211,
+  "file_count": 213,
   "files": [
     "AUDIT_CHECKER_REPORT_0.26.3.json",
     "AUDIT_CHECKER_REPORT_0.27.10.json",
@@ -9,10 +9,12 @@
     "AUDIT_CHECKER_REPORT_2026_04_09.json",
     "EXAMPLE-PRESTART-REQUEST.yaml",
     "MANIFEST.json",
+    "MANIFEST.json.sha256",
     "Manifest.md",
     "ONE_LINER.txt",
     "README-FIRSTBOOT.txt",
     "README.md",
+    "ROADMAP.md",
     "TODO.md",
     "VERSION",
     "WINDOWS_ONE_LINERS.txt",

@@ -2,7 +2,7 @@ Project identity
 
 
 
-Product: NoemaForge — local-first AI OS, privacy-first, runs on Linux host BigBro-BOS
+Product: NoemaForge — local-first AI OS, privacy-first, runs on the production target host
 
 Repo: https://github.com/Sinev-Maksim/NoemaForge
 
@@ -146,7 +146,7 @@ Never hardcode version strings in Python source outside version module
 
 
 
-Display safety — host: BigBro-BOS (Debian Trixie, GNOME/GDM, RTX 3080 Ti)
+Display safety — host: the production target host (Debian Trixie, GNOME/GDM, RTX 3080 Ti)
 
 CRITICAL: Every command that starts model selection or heavy GPU work MUST include
 
@@ -172,15 +172,11 @@ Docs root noemaforge/docs/ allows only: README.md, Manifest.md, TODO.md
 
 Forbidden strings in active files
 
-These must never appear outside historical context:
+These must never appear outside historical context (see docs-hygiene-policy.json → forbidden_active_text for the exact list):
 
-
-
-BigBro-BOS (use env var or config instead)
-
-docs/public or noemaforge/docs/public
-
-OUTDATED
+- The legacy production host name (see docs-hygiene-policy.json → forbidden_active_text)
+- Legacy public-docs path strings (see docs-hygiene-policy.json → forbidden_active_text)
+- The stale-content marker string (see docs-hygiene-policy.json → forbidden_active_text)
 
 
 

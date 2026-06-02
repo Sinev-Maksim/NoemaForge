@@ -2,7 +2,7 @@
   "apiVersion": "noemaforge.docs-hygiene/v1",
   "kind": "DocsHygienePolicy",
   "id": "prelaunch-docs-hygiene",
-  "version": "0.32.1",
+  "version": "0.32.2",
   "status": "stable",
   "policy": {
     "approved_markdown_prefixes": [
@@ -17,11 +17,11 @@
       "noemaforge/docs/TODO.md"
     ],
     "allowed_package_root_markdown": [],
-    "legacy_root_markdown_patterns": [],
+    "legacy_root_markdown_patterns": ["CLAUDE.md", "README.md", "context.md"],
     "canonical_changelog_refs": [
       "noemaforge/docs/history/CHANGELOG.md"
     ],
-    "allowed_parallel_changelog_prefixes": [],
+    "allowed_parallel_changelog_prefixes": ["noemaforge/docs/i18n/"],
     "forbidden_markdown_prefixes": [
       "noemaforge/docs/source_reports/",
       "noemaforge/docs/research_sources/",
@@ -30,6 +30,12 @@
       "noemaforge/docs/patches/",
       "noemaforge/docs/pub\u006cic/",
       "noemaforge/docs/wiki/pub\u006cic/"
+    ],
+    "forbidden_active_text": [
+      "BigBro\u002dBOS",
+      "docs/pub\u006cic",
+      "noemaforge/docs/pub\u006cic",
+      "OUT\u0044ATED"
     ],
     "required_canonical_files": [
       "noemaforge/docs/README.md",
@@ -121,7 +127,7 @@
     "noemaforge/docs/history/CHANGELOG.md",
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
     "noemaforge/docs/wiki/WIKI.md",
-    "noemaforge/docs/wiki/strict-markdown-placement-0.32.1.md"
+    "noemaforge/docs/wiki/strict-markdown-placement-0.31.21.alpha.md"
   ]
 }
 

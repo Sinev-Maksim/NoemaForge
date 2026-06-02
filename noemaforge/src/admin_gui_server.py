@@ -54,17 +54,22 @@ import production_ai_contracts
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
+from job_manager import JobManager
 from session_store import SessionStore
-from orchestration_state import is_active_job
+from orchestration_state import is_active_job, FINAL_JOB_STATES, normalize_job_record
+# Platform-aware path resolution — replaces hardcoded /opt/noemaforge defaults.
+# All DEFAULT_* constants below now delegate to platform_paths so the server
+# starts correctly on Linux, Windows, and macOS without any env-var pre-setting.
+from platform_paths import DEFAULT_PATHS as _platform_paths
 
 PRIVILEGED_GUI_POLKIT_ACTION = "org.noemaforge.privileged-jobs.run"
-DEFAULT_ROOT = Path(os.environ.get("NOEMAFORGE_ROOT", "/opt/noemaforge"))
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_PIPELINE_STATE", "/var/lib/noemaforge/pipelines"))
-DEFAULT_PERSONA_STATE = Path(os.environ.get("NOEMAFORGE_PERSONA_STATE", "/var/lib/noemaforge/personas"))
-DEFAULT_EVOLUTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-evolution"))
-DEFAULT_MODEL_SELECTION_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
-DEFAULT_DEV_TEAM_STATE = Path(os.environ.get("NOEMAFORGE_DEV_TEAM_STATE", "/var/lib/noemaforge/dev-team"))
-DEFAULT_DATA_ROOT = Path(os.environ.get("NOEMAFORGE_DATA_ROOT", "/var/lib/noemaforge"))
+DEFAULT_ROOT = _platform_paths.root
+DEFAULT_STATE = _platform_paths.pipelines_dir
+DEFAULT_PERSONA_STATE = _platform_paths.persona_state_dir
+DEFAULT_EVOLUTION_STATE = _platform_paths.model_evolution_state_dir
+DEFAULT_MODEL_SELECTION_STATE = _platform_paths.model_selection_state_dir
+DEFAULT_DEV_TEAM_STATE = _platform_paths.dev_team_state_dir
+DEFAULT_DATA_ROOT = _platform_paths.data_root
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
@@ -327,133 +332,150 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
-        if path == "/api/health":
-            self._send_json(self.server.health())
-            return
-        if path in {"/api/state", "/api/gui/state"}:
-            self._send_json(self.server.gui_state())
-            return
-        if path in {"/api/dashboard", "/api/dashboard/state"}:
-            self._send_json(self.server.dashboard_api())
-            return
-        if path == "/api/locales":
-            self._send_json(self.server.locales())
-            return
-        if path == "/api/epoch/status":
-            self._send_json(self.server.epoch_status())
-            return
-        if path == "/api/runtime/status":
-            self._send_json(self.server.runtime_status())
-            return
-        if path == "/api/runtime/observer-cards":
-            self._send_json(self.server.runtime_observer_cards())
-            return
-        if path == "/api/runtime/device-policy":
-            self._send_json(self.server.device_policy())
-            return
-        if path == "/api/telemetry/status":
-            self._send_json(self.server.telemetry_status())
-            return
-        if path == "/api/usecases":
-            self._send_json(self.server.usecases())
-            return
-        if path == "/api/public-showcase/scenario":
-            self._send_json(self.server.public_showcase_scenario())
-            return
+        try:
+            if path == "/api/health":
+                self._send_json(self.server.health())
+                return
+            if path in {"/api/state", "/api/gui/state"}:
+                self._send_json(self.server.gui_state())
+                return
+            if path in {"/api/dashboard", "/api/dashboard/state"}:
+                self._send_json(self.server.dashboard_api())
+                return
+            if path == "/api/locales":
+                self._send_json(self.server.locales())
+                return
+            if path == "/api/epoch/status":
+                self._send_json(self.server.epoch_status())
+                return
+            if path == "/api/runtime/status":
+                self._send_json(self.server.runtime_status())
+                return
+            if path == "/api/runtime/observer-cards":
+                self._send_json(self.server.runtime_observer_cards())
+                return
+            if path == "/api/runtime/device-policy":
+                self._send_json(self.server.device_policy())
+                return
+            if path == "/api/telemetry/status":
+                self._send_json(self.server.telemetry_status())
+                return
+            if path == "/api/usecases":
+                self._send_json(self.server.usecases())
+                return
+            if path == "/api/public-showcase/scenario":
+                self._send_json(self.server.public_showcase_scenario())
+                return
+            if path == "/api/code-evolution/status":
+                self._send_json(self.server.code_evolution_status())
+                return
 
-        if path == "/api/events":
-            query = parse_qs(urlparse(self.path).query)
-            try:
-                after = int((query.get("after_index") or ["0"])[0])
-            except (TypeError, ValueError):
-                self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
-                return
-            if after < 0:
-                self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
-                return
-            try:
-                limit = int((query.get("limit") or ["200"])[0])
-            except (TypeError, ValueError):
-                limit = 200
-            self._send_json(self.server.events_api(after_index=after, limit=limit))
-            return
-        if path == "/api/session/current":
-            query = parse_qs(urlparse(self.path).query)
-            session_id = str((query.get("session_id") or ["default"])[0])
-            self._send_json(self.server.session_current(session_id))
-            return
-        if path == "/api/conversation/current":
-            self._send_json(self.server.conversation_current())
-            return
-        if path == "/api/conversation/history":
-            self._send_json(self.server.conversation_history())
-            return
-        if path == "/api/artifacts/open":
-            query = parse_qs(urlparse(self.path).query)
-            self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
-            return
-        if path == "/api/artifacts/download":
-            query = parse_qs(urlparse(self.path).query)
-            payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
-            if not payload.get("ok"):
-                self._send_json(payload, status=404 if payload.get("error") == "artifact not found" else 403)
-                return
-            data = payload.get("data") if isinstance(payload.get("data"), bytes) else b""
-            self.send_response(200)
-            self.send_header("Content-Type", str(payload.get("content_type") or "application/octet-stream"))
-            self.send_header("Content-Length", str(len(data)))
-            self.send_header("Content-Disposition", f"attachment; filename=\"{safe_id(str(payload.get('filename') or 'artifact'), 'artifact')}\"")
-            self.send_header("Cache-Control", "no-store")
-            self.end_headers()
-            self.wfile.write(data)
-            return
-        if path == "/api/tasks":
-            self._send_json(self.server.tasks_list())
-            return
-        if path == "/api/inactivity/status":
-            self._send_json(self.server.inactivity_status())
-            return
-        if path == "/api/jobs":
-            self._send_json(self.server.jobs_list())
-            return
-        if path == "/api/jobs/stream":
-            self._send_sse(self.server.job_stream_events())
-            return
-        if path == "/api/persona/current":
-            self._send_json(self.server.persona_current())
-            return
-        if path == "/api/persona/catalog":
-            self._send_json(self.server.persona_catalog_api())
-            return
-        if path.startswith("/api/persona/fallback-avatar/"):
-            name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
-            candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
-            if candidate.exists():
-                self._send_bytes(candidate.read_bytes(), "image/svg+xml")
-            else:
-                self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
-            return
-        if path == "/api/pipelines/catalog":
-            self._send_json(self.server.pipeline_catalog_api())
-            return
-        if path.startswith("/api/pipelines/"):
-            parts = path.split("/")
-            if len(parts) >= 5:
-                pipeline_id = unquote(parts[3])
-                action = parts[4]
-                if action == "diagram":
-                    self._send_json(self.server.pipeline_diagram(pipeline_id))
+            if path == "/api/events":
+                query = parse_qs(urlparse(self.path).query)
+                try:
+                    after = int((query.get("after_index") or ["0"])[0])
+                except (TypeError, ValueError):
+                    self._send_json({"ok": False, "error": "after_index must be an integer"}, status=400)
                     return
-                if action == "stats":
-                    self._send_json(self.server.pipeline_stats(pipeline_id))
+                if after < 0:
+                    self._send_json({"ok": False, "error": "after_index must be >= 0"}, status=400)
                     return
-            self._send_json({"ok": False, "error": "unknown pipeline API path"}, status=404)
-            return
-        if path.startswith("/api/jobs/"):
-            job_id = unquote(path.rsplit("/", 1)[-1])
-            self._send_json(self.server.job_get(job_id))
-            return
-        self._serve_static(path)
+                try:
+                    limit = int((query.get("limit") or ["200"])[0])
+                except (TypeError, ValueError):
+                    limit = 200
+                # Clamp limit: prevent DoS via huge values; file bounded by MAX_EVENT_LINES
+                # but response serialisation of 10 000 rows is still ~3 MB per request.
+                limit = min(max(1, limit), 1000)
+                self._send_json(self.server.events_api(after_index=after, limit=limit))
+                return
+            if path == "/api/session/current":
+                query = parse_qs(urlparse(self.path).query)
+                # Clamp session_id to 128 chars to prevent unbounded JSON growth in
+                # the stored session record (matches POST /api/session/mode clamping).
+                session_id = str((query.get("session_id") or ["default"])[0])[:128]
+                self._send_json(self.server.session_current(session_id))
+                return
+            if path == "/api/conversation/current":
+                self._send_json(self.server.conversation_current())
+                return
+            if path == "/api/conversation/history":
+                self._send_json(self.server.conversation_history())
+                return
+            if path == "/api/artifacts/open":
+                query = parse_qs(urlparse(self.path).query)
+                self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
+                return
+            if path == "/api/artifacts/download":
+                query = parse_qs(urlparse(self.path).query)
+                payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
+                if not payload.get("ok"):
+                    self._send_json(payload, status=404 if payload.get("error") == "artifact not found" else 403)
+                    return
+                data = payload.get("data") if isinstance(payload.get("data"), bytes) else b""
+                self.send_response(200)
+                self.send_header("Content-Type", str(payload.get("content_type") or "application/octet-stream"))
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("Content-Disposition", f"attachment; filename=\"{safe_id(str(payload.get('filename') or 'artifact'), 'artifact')}\"")
+                self.send_header("Cache-Control", "no-store")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            if path == "/api/tasks":
+                self._send_json(self.server.tasks_list())
+                return
+            if path == "/api/inactivity/status":
+                self._send_json(self.server.inactivity_status())
+                return
+            if path == "/api/jobs":
+                self._send_json(self.server.jobs_list())
+                return
+            if path == "/api/jobs/stream":
+                self._send_sse(self.server.job_stream_events())
+                return
+            if path == "/api/persona/current":
+                self._send_json(self.server.persona_current())
+                return
+            if path == "/api/persona/catalog":
+                self._send_json(self.server.persona_catalog_api())
+                return
+            if path.startswith("/api/persona/fallback-avatar/"):
+                name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
+                candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
+                if candidate.exists():
+                    self._send_bytes(candidate.read_bytes(), "image/svg+xml")
+                else:
+                    self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
+                return
+            if path == "/api/pipelines/catalog":
+                self._send_json(self.server.pipeline_catalog_api())
+                return
+            if path.startswith("/api/pipelines/"):
+                parts = path.split("/")
+                if len(parts) >= 5:
+                    pipeline_id = unquote(parts[3])
+                    action = parts[4]
+                    if action == "diagram":
+                        self._send_json(self.server.pipeline_diagram(pipeline_id))
+                        return
+                    if action == "stats":
+                        self._send_json(self.server.pipeline_stats(pipeline_id))
+                        return
+                self._send_json({"ok": False, "error": "unknown pipeline API path"}, status=404)
+                return
+            if path.startswith("/api/jobs/"):
+                job_id = unquote(path.rsplit("/", 1)[-1])
+                self._send_json(self.server.job_get(job_id))
+                return
+            self._serve_static(path)
+        except Exception as exc:  # pragma: no cover - server safety net
+            # Guard against double-response: if wfile.write() already failed (e.g.
+            # BrokenPipeError on client disconnect mid-stream), the second _send_json
+            # call would also raise — suppress it to avoid propagating to the server.
+            try:
+                self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            except Exception:
+                pass
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
@@ -530,6 +552,13 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path == "/api/model-evolution/run":
                 self._send_json(self.server.model_evolution(str(body.get("request") or "GUI model evolution"), target_role=str(body.get("target_role") or "dev.work/dev"), apply=bool(body.get("apply", False))))
                 return
+            # --- Code-evolution (autonomous self-improvement loop) ----------
+            if path == "/api/code-evolution/propose":
+                self._send_json(self.server.code_evolution_propose())
+                return
+            if path == "/api/code-evolution/status":
+                self._send_json(self.server.code_evolution_status())
+                return
             if path in {"/api/model-selection/plan", "/api/model-selection/apply"}:
                 self._send_json(self.server.model_selection(
                     str(body.get("request") or body.get("message") or "GUI model selection"),
@@ -547,12 +576,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             if path == "/api/vault/reinventory":
                 self._send_json(self.server.vault_reinventory())
-                return
-            if path == "/api/session/mode":
-                session_id = str(body.get("session_id") or "default")
-                mode = str(body.get("mode") or "normal")
-                composite_top_n = int(body.get("composite_top_n") or 0)
-                self._send_json(self.server.session_set_mode(session_id, mode, composite_top_n))
                 return
             if path == "/api/workflow/stop":
                 self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
@@ -586,7 +609,10 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 return
             self._send_json({"ok": False, "error": f"unknown API endpoint: {path}"}, status=404)
         except Exception as exc:  # pragma: no cover - server safety net
-            self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            try:
+                self._send_json({"ok": False, "error": repr(exc)}, status=500)
+            except Exception:
+                pass
 
     def _serve_static(self, path: str, *, head_only: bool = False) -> None:
         rel = unquote(path).lstrip("/") or "index.html"
@@ -620,16 +646,28 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.event_log = EventLog(self.data_root / "events")
         self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
+        self.job_manager = JobManager(self.jobs_dir)
         self.tasks_dir = self.data_root / "tasks"
         self.review_dir = self.data_root / "review"
+        # Protect job read-modify-write cycles from concurrent request threads.
+        # ThreadingHTTPServer dispatches each request on its own thread;
+        # _upsert_job(), _persist_job(), and job_cancel() all do jobs_data()
+        # + _write_json() without atomicity — the last writer wins otherwise.
+        self._jobs_lock = threading.Lock()
+        # Protect task read-modify-write cycles from concurrent request threads
+        # (same pattern as _jobs_lock above — task_create and task_update both
+        # do tasks_data() + _write_json() without a lock otherwise).
+        self._tasks_lock = threading.Lock()
+        # Protect conversation read-modify-write cycles (save_message).
+        # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+        # then calls save_message which acquires _conv_lock — never reversed).
+        self._conv_lock = threading.Lock()
         self.runtime_dir = self.data_root / "runtime"
         self.ui_dir = self.root / "templates" / "pipeline-dashboard"
         if not self.ui_dir.exists():
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
-        self.session_store = SessionStore(self.data_root / "sessions")
-        self.event_log = EventLog(self.data_root / "events")
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -648,13 +686,32 @@ class AdminGuiServer(ThreadingHTTPServer):
         try:
             if path.exists():
                 return json.loads(path.read_text(encoding="utf-8"))
-        except Exception:
+        except Exception as exc:  # noqa: BLE001 - fallback is intentional
+            # Surface file corruption to the operator log without disrupting
+            # availability.  Callers receive the safe default and continue.
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _read_json: corrupt or unreadable {path}: {exc}\n")
             return default
         return default
 
     def _write_json(self, path: Path, obj: Any) -> None:
+        """Write obj as pretty JSON to path atomically via a tmp-then-replace.
+
+        The tmp-then-replace pattern prevents partial reads of a half-written file
+        (consistent with SessionStore._write_atomic() and EventLog copy-then-truncate).
+        On Windows, os.replace() can replace a file that is open for reading.
+        """
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json_dumps(obj), encoding="utf-8")
+        tmp = path.with_suffix(path.suffix + ".tmp")
+        try:
+            tmp.write_text(json_dumps(obj), encoding="utf-8")
+            tmp.replace(path)
+        except OSError:
+            try:
+                tmp.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise
 
     def _append_jsonl(self, path: Path, obj: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -747,20 +804,45 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     # --- event log -----------------------------------------------------------------
     def events_api(self, after_index: int = 0, limit: int = 200) -> Dict[str, Any]:
-        """Return append-only event log entries for GUI polling."""
+        """Return append-only event log entries for GUI polling.
 
+        Includes server_epoch and rotation_count so browser pollers can detect
+        server restarts and in-process rotations and reset lastEventIndex=0.
+        server_epoch: opaque token that changes on every server restart; pollers
+          must reset lastEventIndex when this value changes.
+        rotation_count: increments on each in-process log rotation.
+        """
         try:
             events = self.event_log.read(after_index=int(after_index or 0), limit=int(limit or 200))
-            return {"ok": True, "version": RUNTIME_VERSION, "events": events, "count": len(events)}
         except Exception as exc:
-            return {"ok": False, "version": RUNTIME_VERSION, "events": [], "count": 0, "error": str(exc)}
+            return {
+                "ok": False,
+                "version": RUNTIME_VERSION,
+                "events": [],
+                "count": 0,
+                "server_epoch": "",
+                "rotation_count": 0,
+                "error": str(exc),
+            }
+        # status() is best-effort: if it fails, still return the events we already
+        # fetched rather than discarding them.
+        try:
+            st = self.event_log.status()
+            server_epoch = st.get("server_epoch", "")
+            rotation_count = int(st.get("rotation_count", 0))
+        except Exception:
+            server_epoch = ""
+            rotation_count = 0
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "events": events,
+            "count": len(events),
+            "server_epoch": server_epoch,
+            "rotation_count": rotation_count,
+        }
 
     # --- session state ----------------------------------------------------------------
-    def session_current(self) -> Dict[str, Any]:
-        """Return the current GUI session record (default session)."""
-        session = self.session_store.load("default")
-        return {"ok": True, "version": RUNTIME_VERSION, "session": session}
-
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
         session = self.session_store.set_mode("default", mode, composite_top_n)
@@ -782,34 +864,37 @@ class AdminGuiServer(ThreadingHTTPServer):
         self._write_json(self.conversation_file(), conv)
 
     def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
-        conv = self._conversation()
-        idx = len(conv.get("messages", [])) + 1
-        raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
-        tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
-        affordance_artifacts = enrich_artifact_cards(artifacts)
-        msg = {
-            "message_id": f"msg_{int(time.time())}_{idx}",
-            "trace_id": tid,
-            "conversation_id": conv["conversation_id"],
-            "ts": now_iso(),
-            "role": role,
-            "persona": persona,
-            "locale": locale or conv.get("locale", "ru"),
-            "intent": intent,
-            "text": text,
-            "artifacts": affordance_artifacts,
-            "system_event": bool(system_event),
-        }
-        conv.setdefault("messages", []).append(msg)
-        if affordance_artifacts:
-            conv.setdefault("artifacts", []).extend(affordance_artifacts)
-        if locale:
-            conv["locale"] = locale
-        if persona:
-            conv["active_persona"] = persona
-        self._save_conversation(conv)
-        # Sync message into session store so browser refresh can restore history.
-        self.session_store.append_message("default", {"role": role, "persona": persona, "text": text, "intent": intent, "ts": msg["ts"]})
+        # Acquire _conv_lock to serialise concurrent save_message() calls on
+        # the conversation R-M-W cycle (_conversation + _save_conversation).
+        # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
+        # first, then calls save_message — never the other way around).
+        with self._conv_lock:
+            conv = self._conversation()
+            idx = len(conv.get("messages", [])) + 1
+            raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
+            tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
+            affordance_artifacts = enrich_artifact_cards(artifacts)
+            msg = {
+                "message_id": f"msg_{int(time.time())}_{idx}",
+                "trace_id": tid,
+                "conversation_id": conv["conversation_id"],
+                "ts": now_iso(),
+                "role": role,
+                "persona": persona,
+                "locale": locale or conv.get("locale", "ru"),
+                "intent": intent,
+                "text": text,
+                "artifacts": affordance_artifacts,
+                "system_event": bool(system_event),
+            }
+            conv.setdefault("messages", []).append(msg)
+            if affordance_artifacts:
+                conv.setdefault("artifacts", []).extend(affordance_artifacts)
+            if locale:
+                conv["locale"] = locale
+            if persona:
+                conv["active_persona"] = persona
+            self._save_conversation(conv)
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
         review = dict(msg)
         review["raw_ref"] = None
@@ -934,49 +1019,54 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def tasks_list(self) -> Dict[str, Any]:
-        data = self.tasks_data()
-        tasks = data.get("tasks", [])
-        categories = {}
-        for t in tasks:
-            categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
+        # Acquire _tasks_lock so reads are consistent with concurrent
+        # task_create()/task_update() writes (same pattern as jobs_list/_jobs_lock).
+        with self._tasks_lock:
+            data = self.tasks_data()
+            tasks = data.get("tasks", [])
+            categories = {}
+            for t in tasks:
+                categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
         return {"ok": True, "version": RUNTIME_VERSION, "tasks": tasks, "summary": {"total": len(tasks), "by_category": categories, "pending": sum(1 for t in tasks if t.get("status") == "pending"), "blocked": sum(1 for t in tasks if t.get("status") == "blocked")}}
 
     def task_create(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.tasks_data()
-        title = str(body.get("title") or body.get("task") or body.get("request") or "Untitled task")
-        task = {
-            "task_id": "task_" + safe_id(str(int(time.time())) + "_" + title, "task"),
-            "title": title,
-            "category": str(body.get("category") or "general"),
-            "priority": int(body.get("priority") or 50),
-            "status": str(body.get("status") or "pending"),
-            "assignee": str(body.get("assignee") or "Admin"),
-            "created_by": str(body.get("created_by") or "Admin"),
-            "created_at": now_iso(),
-            "updated_at": now_iso(),
-            "requires_approval": bool(body.get("requires_approval", True)),
-            "artifacts": [],
-        }
-        data.setdefault("tasks", []).append(task)
-        self._write_json(self.task_store_file(), data)
+        with self._tasks_lock:
+            data = self.tasks_data()
+            title = str(body.get("title") or body.get("task") or body.get("request") or "Untitled task")
+            task = {
+                "task_id": "task_" + safe_id(str(int(time.time())) + "_" + title, "task"),
+                "title": title,
+                "category": str(body.get("category") or "general"),
+                "priority": int(body.get("priority") or 50),
+                "status": str(body.get("status") or "pending"),
+                "assignee": str(body.get("assignee") or "Admin"),
+                "created_by": str(body.get("created_by") or "Admin"),
+                "created_at": now_iso(),
+                "updated_at": now_iso(),
+                "requires_approval": bool(body.get("requires_approval", True)),
+                "artifacts": [],
+            }
+            data.setdefault("tasks", []).append(task)
+            self._write_json(self.task_store_file(), data)
         self.save_message("system", f"Task created: {task['title']}", persona="Task Manager", intent="task_create", raw=task)
         return {"ok": True, "version": RUNTIME_VERSION, "task": task, "reply": f"Task created: {task['title']}"}
 
     def task_update(self, body: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.tasks_data()
         task_id = str(body.get("task_id") or body.get("id") or "")
-        found = None
-        for t in data.get("tasks", []):
-            if t.get("task_id") == task_id:
-                found = t
-                break
-        if not found:
-            return {"ok": False, "version": RUNTIME_VERSION, "error": "task not found", "task_id": task_id}
-        for key in ["title", "category", "priority", "status", "assignee", "deadline", "notes"]:
-            if key in body:
-                found[key] = body[key]
-        found["updated_at"] = now_iso()
-        self._write_json(self.task_store_file(), data)
+        with self._tasks_lock:
+            data = self.tasks_data()
+            found = None
+            for t in data.get("tasks", []):
+                if t.get("task_id") == task_id:
+                    found = t
+                    break
+            if not found:
+                return {"ok": False, "version": RUNTIME_VERSION, "error": "task not found", "task_id": task_id}
+            for key in ["title", "category", "priority", "status", "assignee", "deadline", "notes"]:
+                if key in body:
+                    found[key] = body[key]
+            found["updated_at"] = now_iso()
+            self._write_json(self.task_store_file(), data)
         self.save_message("system", f"Task updated: {task_id}", persona="Task Manager", intent="task_update", raw=found)
         return {"ok": True, "version": RUNTIME_VERSION, "task": found, "reply": f"Task updated: {task_id}"}
 
@@ -1017,6 +1107,9 @@ class AdminGuiServer(ThreadingHTTPServer):
         return self.jobs_dir / f"{safe_id(str(job_id))}.cancel"
 
     def jobs_data(self) -> Dict[str, Any]:
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._read_index()
         data = self._read_json(self.jobs_file(), {"jobs": []})
         if not isinstance(data, dict):
             data = {"jobs": []}
@@ -1024,45 +1117,91 @@ class AdminGuiServer(ThreadingHTTPServer):
         return data
 
     def _upsert_job(self, job: Dict[str, Any], *, idempotency_key: str = "") -> Dict[str, Any]:
-        data = self.jobs_data()
-        if idempotency_key:
-            for existing in data.get("jobs", []):
-                if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "running", "needs_privilege"}:
-                    return existing
-        data.setdefault("jobs", []).append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._save(dict(job))
+        with self._jobs_lock:
+            data = self.jobs_data()
+            if idempotency_key:
+                for existing in data.get("jobs", []):
+                    if existing.get("idempotency_key") == idempotency_key and existing.get("status") in {"queued", "starting", "running", "needs_privilege", "cancel_requested"}:
+                        return existing
+            data.setdefault("jobs", []).append(job)
+            self._write_json(self.jobs_file(), data)
+            # Write the normalized schema to the per-job file so job_get()
+            # always reads a schema-complete record regardless of which code
+            # path created the job.
+            self._write_json(self.job_file(str(job["job_id"])), normalize_job_record(dict(job)))
+            return job
 
     def create_job(self, kind: str, *, status: str = "queued", progress: Optional[Dict[str, Any]] = None, command: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, idempotency_key: str = "", trace_id: str = "") -> Dict[str, Any]:
+        if hasattr(self, "job_manager"):
+            return self.job_manager.create(
+                kind,
+                status=status,
+                progress=progress or {},
+                command=command,
+                artifacts=enrich_artifact_cards(artifacts),
+                idempotency_key=idempotency_key,
+                trace_id=trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"),
+            )
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
         job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
         return self._upsert_job(job, idempotency_key=idempotency_key)
 
     def _persist_job(self, job: Dict[str, Any]) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = data.setdefault("jobs", [])
-        replaced = False
-        for index, existing in enumerate(jobs):
-            if existing.get("job_id") == job.get("job_id"):
-                jobs[index] = job
-                replaced = True
-                break
-        if not replaced:
-            jobs.append(job)
-        self._write_json(self.jobs_file(), data)
-        self._write_json(self.job_file(str(job["job_id"])), job)
-        return job
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            return manager._save(dict(job))
+        with self._jobs_lock:
+            data = self.jobs_data()
+            jobs = data.setdefault("jobs", [])
+            replaced = False
+            for index, existing in enumerate(jobs):
+                if existing.get("job_id") == job.get("job_id"):
+                    jobs[index] = job
+                    replaced = True
+                    break
+            if not replaced:
+                jobs.append(job)
+            self._write_json(self.jobs_file(), data)
+            # Write normalized schema for schema-consistency with job_get().
+            self._write_json(self.job_file(str(job["job_id"])), normalize_job_record(dict(job)))
+            return job
 
     def jobs_list(self) -> Dict[str, Any]:
-        data = self.jobs_data()
-        jobs = []
-        for job in data.get("jobs", []):
-            if isinstance(job, dict):
-                item = dict(job)
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            jobs = []
+            for job in manager.list_all():
+                item = normalize_job_record(dict(job))
+                item.update({key: value for key, value in job.items() if key not in item})
                 item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
                 jobs.append(item)
+            try:
+                active = [j for j in jobs if is_active_job(j)]
+                self.session_store.attach_active_jobs("default", active)
+            except Exception:
+                pass
+            return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
+        # Acquire _jobs_lock so the read-then-copy cycle is consistent with
+        # _upsert_job()/_persist_job()/job_cancel() which all write inside the
+        # same lock.  The lock is released before the session_store sync to
+        # avoid holding it during the (potentially slow) JSONL write.
+        with self._jobs_lock:
+            data = self.jobs_data()
+            jobs = []
+            for job in data.get("jobs", []):
+                if isinstance(job, dict):
+                    # normalize_job_record() guarantees all schema fields are
+                    # present with safe defaults, then enrich_artifact_cards()
+                    # adds GUI-specific display metadata on top.
+                    item = normalize_job_record(dict(job))
+                    item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
+                    jobs.append(item)
         # Sync active jobs into session store for browser-refresh restore.
+        # This is intentionally outside _jobs_lock to avoid holding the lock
+        # during the session_store JSONL write.
         try:
             active = [j for j in jobs if is_active_job(j)]
             self.session_store.attach_active_jobs("default", active)
@@ -1113,31 +1252,86 @@ class AdminGuiServer(ThreadingHTTPServer):
         return events
 
     def job_get(self, job_id: str) -> Dict[str, Any]:
-        job = self._read_json(self.job_file(job_id), None)
-        if not job:
-            for j in self.jobs_data().get("jobs", []):
-                if j.get("job_id") == job_id:
-                    job = j
-                    break
+        manager = getattr(self, "job_manager", None)
+        if manager is not None:
+            job = manager.get(job_id)
+            if isinstance(job, dict):
+                norm = normalize_job_record(dict(job))
+                norm.update({key: value for key, value in job.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                job = norm
+            return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
+        # Acquire _jobs_lock so reads are consistent with concurrent
+        # _upsert_job()/_persist_job()/job_cancel() writes.
+        with self._jobs_lock:
+            job = self._read_json(self.job_file(job_id), None)
+            if not job:
+                for j in self.jobs_data().get("jobs", []):
+                    if j.get("job_id") == job_id:
+                        job = j
+                        break
         if isinstance(job, dict):
-            job = dict(job)
+            # normalize_job_record() guarantees all schema fields have safe
+            # defaults; enrich_artifact_cards() adds GUI display metadata.
+            job = normalize_job_record(dict(job))
             job["artifacts"] = enrich_artifact_cards(job.get("artifacts") if isinstance(job.get("artifacts"), list) else [])
         return {"ok": bool(job), "version": RUNTIME_VERSION, "job": job or {}, "error": "job not found" if not job else ""}
 
     def job_cancel(self, job_id: str) -> Dict[str, Any]:
-        data = self.jobs_data()
-        target = None
-        for j in data.get("jobs", []):
-            if j.get("job_id") == job_id:
-                # Use cancel_requested so running subprocesses can detect the
-                # request before the orchestrator confirms the final cancelled state.
-                j["status"] = "cancel_requested"
-                j["updated_at"] = now_iso()
-                target = j
-        self._write_json(self.jobs_file(), data)
+        if hasattr(self, "job_manager"):
+            existing = self.job_manager.get(job_id)
+            if existing and existing.get("status") in FINAL_JOB_STATES:
+                norm = normalize_job_record(dict(existing))
+                norm.update({key: value for key, value in existing.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                return {"ok": False, "version": RUNTIME_VERSION, "job": norm, "reply": f"Job already in terminal state: {existing['status']}"}
+            target = self.job_manager.cancel(job_id)
+            if target:
+                marker = self.job_cancel_marker_file(str(target["job_id"]))
+                try:
+                    marker.write_text(now_iso() + "\n", encoding="utf-8")
+                except OSError:
+                    pass
+                norm = normalize_job_record(dict(target))
+                norm.update({key: value for key, value in target.items() if key not in norm})
+                norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                return {"ok": True, "version": RUNTIME_VERSION, "job": norm, "reply": "Cancel requested"}
+            return {"ok": False, "version": RUNTIME_VERSION, "job": {}, "reply": "Job not found"}
+        with self._jobs_lock:
+            data = self.jobs_data()
+            target = None
+            for j in data.get("jobs", []):
+                if j.get("job_id") == job_id:
+                    if j.get("status") in FINAL_JOB_STATES:
+                        # Job is already done/failed/cancelled — do not revert it.
+                        # Return the normalized record so the UI can refresh its state.
+                        norm = normalize_job_record(dict(j))
+                        norm["artifacts"] = enrich_artifact_cards(norm.get("artifacts") if isinstance(norm.get("artifacts"), list) else [])
+                        return {"ok": False, "version": RUNTIME_VERSION, "job": norm, "reply": f"Job already in terminal state: {j['status']}"}
+                    # Use cancel_requested so running subprocesses can detect the
+                    # request before the orchestrator confirms the final cancelled state.
+                    j["status"] = "cancel_requested"
+                    j["updated_at"] = now_iso()
+                    target = j
+            # Only write jobs.json when a job was actually mutated (task-84).
+            # Skipping the write for not-found avoids a no-op disk round-trip
+            # while holding _jobs_lock under concurrency.
+            if target is not None:
+                self._write_json(self.jobs_file(), data)
+        # Initialize norm_target before the conditional so the ternary on the
+        # final return line is always defined regardless of branch taken.
+        norm_target: Dict[str, Any] = {}
         if target:
             jid = target["job_id"]
-            self._write_json(self.job_file(str(jid)), target)
+            # Intentionally outside _jobs_lock: the status update is already
+            # committed to jobs.json under the lock above; these two writes are
+            # supplementary (per-job JSON + cancel sentinel).  Both writes are
+            # idempotent, so a concurrent duplicate call produces the same bytes.
+            # _write_json() uses tmp-then-replace atomicity, so readers always
+            # see a complete file even without the lock.
+            norm_target = normalize_job_record(dict(target))
+            norm_target["artifacts"] = enrich_artifact_cards(norm_target.get("artifacts") if isinstance(norm_target.get("artifacts"), list) else [])
+            self._write_json(self.job_file(str(jid)), norm_target)
             # Write a sentinel file that long-running subprocesses can poll
             # without parsing JSON (lightweight cancel-marker check).
             marker = self.job_cancel_marker_file(str(jid))
@@ -1145,7 +1339,8 @@ class AdminGuiServer(ThreadingHTTPServer):
                 marker.write_text(now_iso() + "\n", encoding="utf-8")
             except OSError:
                 pass
-        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": target or {}, "reply": "Cancel requested" if target else "Job not found"}
+        result_job = norm_target if target else {}
+        return {"ok": bool(target), "version": RUNTIME_VERSION, "job": result_job, "reply": "Cancel requested" if target else "Job not found"}
 
     # --- status/state ----------------------------------------------------------------
     def dashboard_state(self) -> Dict[str, Any]:
@@ -1511,6 +1706,11 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        gui_action = self._detect_gui_action(text)
+        if gui_action:
+            result = self._route_gui_action(gui_action, text, locale)
+            if result is not None:
+                return result
         if self._explicit_control_request(low):
             pipeline_id = self._detect_pipeline_id(text)
             if pipeline_id:
@@ -1578,6 +1778,41 @@ class AdminGuiServer(ThreadingHTTPServer):
                 body["notes"] = text
             return self.task_update(body)
         return {"ok": True, "version": RUNTIME_VERSION, "reply": "Task command recognized; specify add/edit/prioritize/block/complete plus task_id.", "tasks": self.tasks_list()}
+
+    def _detect_gui_action(self, text: str) -> Optional[str]:
+        """Detect direct GUI actions that should not fall through to admin_runtime."""
+        low = str(text or "").lower().strip()
+        if not low or self._task_intent(low):
+            return None
+        model_words = ("model selection", "выбор модели", "подбор модели", "подбор моделей", "отбор модели", "отбор моделей")
+        continue_words = ("continue", "resume", "продолж", "возобнов")
+        if any(word in low for word in model_words) and any(word in low for word in continue_words):
+            return "model_selection_continue"
+        if ("selection" in low and "model" in low and any(word in low for word in continue_words)):
+            return "model_selection_continue"
+        vault_words = ("vault", "хранилищ", "модел", "models")
+        inventory_words = ("reinventory", "re-inventory", "inventory", "scan", "инвентаризац", "скан")
+        if any(word in low for word in vault_words) and any(word in low for word in inventory_words):
+            return "vault_reinventory"
+        return None
+
+    def _route_gui_action(self, action: str, text: str, locale: str) -> Optional[Dict[str, Any]]:
+        """Route detected GUI action keys to local plan/job methods."""
+        if action == "model_selection_continue":
+            result = self.model_selection_continue({"request": text})
+        elif action == "vault_reinventory":
+            result = self.vault_reinventory()
+        else:
+            return None
+        if not isinstance(result, dict):
+            return None
+        doc = dict(result)
+        doc.setdefault("ok", True)
+        doc.setdefault("version", RUNTIME_VERSION)
+        doc["mode"] = action
+        doc["locale"] = locale
+        doc.setdefault("route", {"id": action, "intent": action, "label": action.replace("_", " ")})
+        return doc
 
     def _extract_task_id(self, text: str) -> str:
         match = re.search(r"\btask_[A-Za-z0-9_.:-]+\b", str(text or ""))
@@ -1756,6 +1991,40 @@ class AdminGuiServer(ThreadingHTTPServer):
             self.save_message("model", reply, persona="Model Evolution", intent="model_evolution", artifacts=artifacts, raw=stdout)
             return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "artifacts": artifacts, "raw": stdout, "api": {"inside_gui_supported": True, "endpoint": "/api/model-evolution/run", "cmd": cmd}}
         return result
+
+    # --- Code-evolution (autonomous self-improvement loop) ------------------
+
+    def code_evolution_propose(self) -> Dict[str, Any]:
+        """POST /api/code-evolution/propose — pick next TODO task and propose a patch.
+
+        Never writes source files (dry_run=True always for propose endpoint).
+        Returns the proposal dict so the GUI can display it for operator review.
+        """
+        try:
+            from code_evolution_loop import CodeEvolutionLoop
+            loop = CodeEvolutionLoop(project_root=self.root, dry_run=True)
+            result = loop.run_one_cycle(apply=False)
+            if result.get("task"):
+                self.save_message(
+                    "model",
+                    f"Code-evolution proposal ready for task {result['task']['task_id']}: "
+                    f"{result['task']['summary']}",
+                    persona="Code Evolution",
+                    intent="code_evolution",
+                    raw=result,
+                )
+            return {"ok": True, "version": RUNTIME_VERSION, **result}
+        except Exception as exc:  # pragma: no cover
+            return {"ok": False, "version": RUNTIME_VERSION, "error": repr(exc)}
+
+    def code_evolution_status(self) -> Dict[str, Any]:
+        """GET /api/code-evolution/status — return the last loop run summary."""
+        try:
+            from code_evolution_loop import CodeEvolutionLoop
+            loop = CodeEvolutionLoop(project_root=self.root, dry_run=True)
+            return {"ok": True, "version": RUNTIME_VERSION, **loop.last_run_summary()}
+        except Exception as exc:  # pragma: no cover
+            return {"ok": False, "version": RUNTIME_VERSION, "error": repr(exc)}
 
     def workflow_stop(self, reason: str) -> Dict[str, Any]:
         marker = self.data_root / "control" / "stop-request.json"

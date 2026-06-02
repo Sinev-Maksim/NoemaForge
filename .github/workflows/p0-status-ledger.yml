@@ -132,7 +132,7 @@ jobs:
             - [ ] Version/release metadata is audited as 0.32.2.
             - [ ] Admin GUI session/events/jobs are wired and smoke-tested.
             - [ ] Duplicate-safe model-selection and Vault re-inventory are demonstrated.
-            - [ ] BigBro-BOS target validation passes with keep-display behavior.
+            - [ ] The production target host validation passes with keep-display behavior.
             - [ ] Checksums and release archive are regenerated after final file freeze.
 
             _This comment is intentionally machine-updated. Manual notes should be added as separate comments._
