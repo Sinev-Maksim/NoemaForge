@@ -17,7 +17,7 @@
       "noemaforge/docs/TODO.md"
     ],
     "allowed_package_root_markdown": [],
-    "legacy_root_markdown_patterns": ["CLAUDE.md", "README.md", "context.md"],
+    "legacy_root_markdown_patterns": ["AGENTS.md", "CLAUDE.md", "README.md", "context.md"],
     "canonical_changelog_refs": [
       "noemaforge/docs/history/CHANGELOG.md"
     ],
