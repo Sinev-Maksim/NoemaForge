@@ -201,7 +201,7 @@ class TestEventsApiStatusFailure(unittest.TestCase):
                     st = log.status()
                     server_epoch = st.get("server_epoch", "")
                     rotation_count = int(st.get("rotation_count", 0))
-                except Exception:
+                except RuntimeError:
                     server_epoch = ""
                     rotation_count = 0
 
