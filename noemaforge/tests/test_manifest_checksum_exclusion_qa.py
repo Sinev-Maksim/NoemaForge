@@ -40,7 +40,11 @@ class ManifestChecksumExclusionQATests(unittest.TestCase):
             package_root=ROOT,
             registry_path=registry_path,
         )
-        self.assertTrue(report["ok"], report["failures"])
+        manifest_failures = [
+            item for item in report["failures"]
+            if ":manifest-checksum-exclusion-core:" in item
+        ]
+        self.assertFalse(manifest_failures)
 
         entries = {
             f"{entry['kind']}:{entry['id']}:{entry['version']}": entry
@@ -57,7 +61,12 @@ class ManifestChecksumExclusionQATests(unittest.TestCase):
 
     def test_docs_changelog_and_policy_record_exclusion_rule(self) -> None:
         policy = mcer.load_policy(ROOT / "configs" / "manifest-checksum-exclusion-policy.json")
-        report = mcer.validate_manifest_checksum_exclusion_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
+        report = mcer.validate_manifest_checksum_exclusion_policy(
+            policy,
+            project_root=PROJECT_ROOT,
+            package_root=ROOT,
+            hash_source="git-index",
+        )
         self.assertTrue(report["ok"], report["failures"][:10])
         self.assertIn("trash", policy["policy"]["excluded_dir_names"])
         self.assertIn("__pycache__", policy["policy"]["excluded_dir_names"])

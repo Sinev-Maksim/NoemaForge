@@ -32,7 +32,12 @@ import production_ai_contracts as pac
 class ManifestChecksumExclusionRuntimeTests(unittest.TestCase):
     def test_workspace_manifests_and_checksums_validate(self) -> None:
         policy = mcer.load_policy(ROOT / "configs" / "manifest-checksum-exclusion-policy.json")
-        report = mcer.validate_manifest_checksum_exclusion_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
+        report = mcer.validate_manifest_checksum_exclusion_policy(
+            policy,
+            project_root=PROJECT_ROOT,
+            package_root=ROOT,
+            hash_source="git-index",
+        )
 
         self.assertTrue(report["ok"], report["failures"][:10])
         self.assertEqual(0, report["metrics"]["excluded_path_hits"])

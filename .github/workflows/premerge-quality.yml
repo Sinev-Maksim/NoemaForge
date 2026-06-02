@@ -155,7 +155,7 @@ jobs:
 
       # ── 8. Release manifest/checksum evidence ────────────────────────────
       - name: Release manifest/checksum evidence gate
-        run: python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary
+        run: python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index
 
       # ── 9. Shell syntax check (bash -n) ───────────────────────────────────
       - name: Shell syntax check (bash -n) on .sh files
