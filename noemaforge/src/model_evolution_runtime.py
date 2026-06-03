@@ -273,7 +273,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             f"noemaforge model-evolution show {run_id}",
             "review candidate_profile.json and rollback_plan.json",
             "for runtime model optimization use: noemaforge model-selection plan --mode normal --json",
-            "after candidate review run: sudo noemaforge first-start --normal --dry-run --show-candidates",
+            "after candidate review run: sudo noemaforge first-start --normal --keep-display --dry-run --show-candidates",
         ],
         "pipeline_artifacts": pipeline_artifacts,
     }

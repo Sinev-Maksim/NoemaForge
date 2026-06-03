@@ -19,7 +19,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = "/usr/bin/python3"
+PYTHON = sys.executable
 
 
 def run_json(args):
@@ -37,6 +37,7 @@ def test_model_evolution_writes_measured_artifacts(tmp_path):
     assert data["status"] == "conducted_candidate_ready"
     names = {Path(path).name for path in data["artifacts"].values()}
     assert {"baseline_snapshot.json", "mutation_plan.json", "scorecard.json", "rollback_plan.json", "candidate_profile.json"} <= names
+    assert any("--keep-display" in step for step in data["next"])
 
 
 def test_dev_team_replace_can_apply_direct_patch(tmp_path):

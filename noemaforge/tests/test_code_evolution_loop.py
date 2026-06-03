@@ -204,6 +204,22 @@ class TestCodeEvolutionLoop(unittest.TestCase):
         expected_path = str(Path("noemaforge") / "src" / "widget.py")
         self.assertEqual(first_call, ["git", "add", "--", expected_path])
 
+    def test_run_tests_uses_state_pycache_prefix(self) -> None:
+        """Code-evolution checks must not write __pycache__ under source files."""
+        target = Path(self._tmpdir) / "noemaforge" / "src" / "widget.py"
+        target.write_text("x = 1\n", encoding="utf-8")
+        loop = self._make_loop()
+        completed = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with patch("code_evolution_loop.subprocess.run", return_value=completed) as run_mock:
+            result = loop.run_tests()
+        self.assertTrue(result["ok"])
+        compile_cmd = run_mock.call_args_list[0].args[0]
+        self.assertEqual(compile_cmd[0], sys.executable)
+        self.assertEqual(compile_cmd[1], "-X")
+        self.assertTrue(compile_cmd[2].startswith("pycache_prefix="), compile_cmd)
+        self.assertIn(str(self._state_dir / "pycache"), compile_cmd[2])
+        self.assertEqual(compile_cmd[3:5], ["-m", "py_compile"])
+
     # --- run_one_cycle -----------------------------------------------------
 
     def test_run_one_cycle_returns_task_and_proposal(self) -> None:
