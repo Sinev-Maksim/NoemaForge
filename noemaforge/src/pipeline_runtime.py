@@ -546,7 +546,7 @@ def runtime_snapshot() -> Dict[str, Any]:
 
 
 def firstboot_staffing_summary_path() -> Path:
-    return Path(os.environ.get("NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY", "/var/lib/noemaforge/bootstrap/firstboot-staffing-summary.json"))
+    return Path(os.environ.get("NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY", str(_pp.data_root / "bootstrap/firstboot-staffing-summary.json")))
 
 
 def degraded_readonly_state() -> Dict[str, Any]:

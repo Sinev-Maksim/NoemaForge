@@ -25,6 +25,8 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Sequence
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 
 SRC_DIR = Path(__file__).resolve().parent
 if str(SRC_DIR) not in sys.path:
@@ -549,7 +551,7 @@ def build_summary(report: Dict[str, Any]) -> Dict[str, Any]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render or validate NoemaForge firstboot progress")
-    parser.add_argument("--bootstrap", default=os.environ.get("NOEMAFORGE_BOOTSTRAP", "/var/lib/noemaforge/bootstrap"))
+    parser.add_argument("--bootstrap", default=os.environ.get("NOEMAFORGE_BOOTSTRAP", str(_pp.data_root / "bootstrap")))
     parser.add_argument("--policy", default=str(SRC_DIR.parent / "configs" / "firstboot-progress-view-policy.json"))
     parser.add_argument("--project-root", default=str(SRC_DIR.parent.parent))
     parser.add_argument("--package-root", default=str(SRC_DIR.parent))
