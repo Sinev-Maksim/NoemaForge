@@ -423,10 +423,16 @@ jobs:
             '```'
           ) -join [Environment]::NewLine
 
-          & $codex exec `
+          # Pass the prompt via stdin (-): the instructions+diff prompt exceeds the
+          # Windows command-line length limit (~32 KB) when passed as an argv, so the
+          # process never launched (exit stayed 0 from the prior command, no output).
+          # --skip-git-repo-check is required because the worktree is an extracted
+          # archive, not a git repository.
+          $prompt | & $codex exec `
             -s read-only `
+            --skip-git-repo-check `
             --output-last-message $reviewPath `
-            $prompt 2>&1 | Tee-Object -FilePath $logPath
+            - 2>&1 | Tee-Object -FilePath $logPath
           $execExit = $LASTEXITCODE
           Write-Host ("DIAG3 codex_exec_exit=" + $execExit + " review_written=" + (Test-Path -LiteralPath $reviewPath) + " log_written=" + (Test-Path -LiteralPath $logPath))
 
