@@ -286,6 +286,12 @@ jobs:
           $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
           $codex = $null
 
+          # GITHUB_WORKSPACE/RUNNER_TEMP are not reliably cleaned between jobs on the
+          # self-hosted runner. Remove any stale review/log from a previous run so a
+          # prior SKIP's codex_review.md is never re-read and re-posted as this result.
+          Remove-Item -LiteralPath $reviewPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+
           # Write-SkipReview: infra issues (binary/auth missing) → Verdict: SKIP, exit 0.
           # Only Verdict: FAIL (code issues caught by Codex) causes the job to fail.
           function Write-SkipReview([string] $reason) {
@@ -421,14 +427,20 @@ jobs:
             -s read-only `
             --output-last-message $reviewPath `
             $prompt 2>&1 | Tee-Object -FilePath $logPath
+          $execExit = $LASTEXITCODE
+          Write-Host ("DIAG3 codex_exec_exit=" + $execExit + " review_written=" + (Test-Path -LiteralPath $reviewPath) + " log_written=" + (Test-Path -LiteralPath $logPath))
 
-          if ($LASTEXITCODE -ne 0) {
+          if ($execExit -ne 0) {
             # Codex exec itself failed — treat as infra skip (not a code FAIL).
-            Write-Warning "Codex CLI exited with code $LASTEXITCODE."
-            if (-not (Test-Path -LiteralPath $reviewPath)) {
-              Write-SkipReview "Codex CLI exited with code $LASTEXITCODE before producing a review."
-            }
+            Write-Warning "Codex CLI exited with code $execExit."
+            Write-SkipReview "Codex CLI exited with code $execExit before producing a review."
             exit 0   # Not a code quality failure — skip rather than block the pipeline.
+          }
+
+          if (-not (Test-Path -LiteralPath $reviewPath)) {
+            # exit 0 but nothing written — truthful skip instead of reusing stale output.
+            Write-SkipReview "Codex exec exited 0 but wrote no review (no --output-last-message output). Check the Codex CLI 'exec' invocation and auth on the runner."
+            exit 0
           }
 
           $reviewText = Get-Content -LiteralPath $reviewPath -Raw
