@@ -54,7 +54,7 @@ DEFAULT_INVENTORY = str(_pp.data_root / "bootstrap/model-inventory.json")
 DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
 DEFAULT_PACK_ROOT = str(_pp.data_root / "eval-packs/first-start-light")
 DEFAULT_STATE_DIR = str(_pp.data_root / "bootstrap")
-DEFAULT_MODELSTORE = "/var/lib/modelstore"
+DEFAULT_MODELSTORE = str(_pp.modelstore_dir)
 DEFAULT_SCORECARDS = str(_pp.data_root / "model_scorecards")
 SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 

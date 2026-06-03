@@ -223,7 +223,7 @@ def _save_md(path: str, text: str) -> None:
 # === End NoemaForge Autodoc Function Header ===
 def _epoch_paths() -> Tuple[str, str, str, str]:
     """Return (epoch_dir, role_model_policy_path, llm_backends_policy_path, team_model_policy_path)."""
-    e_dir = epoch.current_epoch_dir() or "/opt/noemaforge/configs"
+    e_dir = epoch.current_epoch_dir() or str(_pp.root / "configs")
     rmp = os.path.join(e_dir, "role-model-policy.yaml")
     lbp = os.path.join(e_dir, "llm-backends-policy.yaml")
     tmp = os.path.join(e_dir, "team-model-policy.yaml")

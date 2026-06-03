@@ -435,7 +435,7 @@ def _init_schema(con: sqlite3.Connection) -> None:
 # === End NoemaForge Autodoc Function Header ===
 def _db_path(policy: Dict[str, Any]) -> str:
     q = policy.get("queue") or {}
-    return str(q.get("db_path") or "/var/lib/noemaforge/taskqueue/taskqueue.sqlite")
+    return str(q.get("db_path") or str(_pp.data_root / "taskqueue/taskqueue.sqlite"))
 
 
 # === NoemaForge Autodoc Function Header ===

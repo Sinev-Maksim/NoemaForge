@@ -474,9 +474,9 @@ def orchestrate(
     profile_manifest = model_profiles.build_profile_manifest(profile_catalog, model_profile)
     status_path = str(policy.get("status_path") or DEFAULT_STATUS)
     events_path = str(policy.get("events_path") or DEFAULT_EVENTS)
-    modelstore_root = str(policy.get("modelstore_root") or "/var/lib/modelstore")
-    scorecards_dir = str(policy.get("scorecards_dir") or "/var/lib/noemaforge/model_scorecards")
-    requests_dir = str(policy.get("requests_dir") or "/var/lib/noemaforge/requests/prestart")
+    modelstore_root = str(policy.get("modelstore_root") or _pp.modelstore_dir)
+    scorecards_dir = str(policy.get("scorecards_dir") or _pp.data_root / "model_scorecards")
+    requests_dir = str(policy.get("requests_dir") or _pp.data_root / "requests/prestart")
     selection_mode = _normalize_selection_mode(selection_mode)
     top_k_per_role = int(top_k or policy.get("top_k_per_role") or policy.get("top_k") or 8)
     if selection_mode == "fast":
@@ -554,7 +554,7 @@ def orchestrate(
     ds = dataset_inventory.scan_datasets(share_root, vault)
     dataset_path = os.path.join(STATE_DIR, "dataset-inventory.json")
     dataset_inventory.write_dataset_inventory(ds, dataset_path)
-    eval_index = dataset_inventory.build_eval_packs(DEFAULT_ROLE_CATALOG, "/var/lib/noemaforge/eval-packs/first-start-light", dataset_path)
+    eval_index = dataset_inventory.build_eval_packs(DEFAULT_ROLE_CATALOG, str(_pp.data_root / "eval-packs/first-start-light"), dataset_path)
 
     firstboot_status.mark_step(status_path, events_path, step="role_tournament", state="running", message=f"Running role-specific tournaments in {selection_mode} mode; retaining top {top_k_per_role} per role.", extra={"inventory": inventory_path, "top_k_per_role": top_k_per_role, "selection_mode": selection_mode, "composite_top_n": composite_top_n, "per_model_timeout": effective_per_model_timeout, "total_timeout": effective_total_timeout, "include_unverified": bool(include_unverified), "effective_options": os.path.join(STATE_DIR, "effective-first-start-options.json")})
     catalog = _load_yaml(DEFAULT_ROLE_CATALOG)
@@ -567,7 +567,7 @@ def orchestrate(
     tournament_doc = role_tournament.run_tournament(
         inventory,
         catalog,
-        pack_root="/var/lib/noemaforge/eval-packs/first-start-light",
+        pack_root=str(_pp.data_root / "eval-packs/first-start-light"),
         state_dir=STATE_DIR,
         modelstore_root=modelstore_root,
         scorecards_dir=scorecards_dir,
@@ -635,7 +635,7 @@ def orchestrate(
         picked_roles = [("operator.admin", "administrator")]
 
     firstboot_status.mark_step(status_path, events_path, step="prestart_request", state="running", message="Building approved first-epoch request from role candidate map.")
-    epoch_dir = prestart.epoch_path(prestart.ensure_epoch_initialized(config_dir="/opt/noemaforge/configs", contracts_root="/var/lib/noemaforge/contracts"), "/var/lib/noemaforge/contracts")
+    epoch_dir = prestart.epoch_path(prestart.ensure_epoch_initialized(config_dir=str(_pp.root / "configs"), contracts_root=str(_pp.data_root / "contracts")), str(_pp.data_root / "contracts"))
     patches = model_installer_plan.propose_policy_patches(
         role_model_policy_path=os.path.join(epoch_dir, "role-model-policy.yaml"),
         llm_backends_policy_path=os.path.join(epoch_dir, "llm-backends-policy.yaml"),
@@ -665,19 +665,19 @@ def orchestrate(
         firstboot_status.mark_step(status_path, events_path, step="build_epoch", state="running", message="Building candidate epoch from approved role-aware firstboot request.", extra={"request_id": rid})
         reqs = prestart.select_requests_for_build(prestart.load_requests(requests_dir))
         eid = prestart.build_candidate_epoch(
-            desired_epoch_id=prestart.next_epoch_id("/var/lib/noemaforge/contracts"),
-            contracts_root="/var/lib/noemaforge/contracts",
+            desired_epoch_id=prestart.next_epoch_id(str(_pp.data_root / "contracts")),
+            contracts_root=str(_pp.data_root / "contracts"),
             requests=reqs,
             created_by={"actor_type": "system", "channel": "firstboot_orchestrator"},
             description="Role-aware first-boot staffed epoch",
             user_comment="Automatic role-aware first-boot staffing",
         )
-        ep_dir = prestart.epoch_path(eid, "/var/lib/noemaforge/contracts")
+        ep_dir = prestart.epoch_path(eid, str(_pp.data_root / "contracts"))
         report = _read_json(os.path.join(ep_dir, "prestart_build_report.json"))
         if str(report.get("overall_decision") or "").lower() != "pass":
             firstboot_status.mark_finished(status_path, events_path, state="blocked_apply_failed", message="Candidate epoch did not pass build/canary checks.", extra={"epoch_id": eid, "request_id": rid, "tournament": os.path.join(STATE_DIR, "role-tournament-results.json")})
             return {"ok": False, "reason": "build_not_pass", "epoch_id": eid, "request_id": rid}
-        prestart.switch_current_epoch(eid, "/var/lib/noemaforge/contracts")
+        prestart.switch_current_epoch(eid, str(_pp.data_root / "contracts"))
         prestart.mark_requests_applied(prestart.load_requests(requests_dir), applied_epoch_id=eid, only_request_ids=[rid])
         applied_epoch = eid
         if bool(policy.get("auto_reboot_after_apply", True)):

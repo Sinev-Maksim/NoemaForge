@@ -356,7 +356,7 @@ def run(
     os.makedirs(PACKETS_SCARY, exist_ok=True)
 
     eid = epoch.current_epoch_id()
-    e_dir = epoch.current_epoch_dir() or "/opt/noemaforge/configs"
+    e_dir = epoch.current_epoch_dir() or str(_pp.root / "configs")
     epoch_before = {"epoch_id": eid, "epoch_dir": e_dir}
 
     day = _today()
@@ -437,7 +437,7 @@ def run(
             exports[key] = {"ok": False, "error": repr(e)}
 
     # Runtime epoch immutability verification
-    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or "/opt/noemaforge/configs"}
+    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or str(_pp.root / "configs")}
     epoch_immutable_ok = bool(epoch_before == epoch_after)
     paranoia_quality = {
         "signal_count": int(len(emitted)),

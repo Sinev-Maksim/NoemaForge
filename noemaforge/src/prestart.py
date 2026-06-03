@@ -1258,7 +1258,7 @@ def _allowed_patch_authors() -> set[str]:
 # Key locals:
 #   - cur_link, dst, eid, ep, f, man, manifest, mapping, missing, name, src
 # === End NoemaForge Autodoc Function Header ===
-def ensure_epoch_initialized(config_dir: str = "/opt/noemaforge/configs", contracts_root: str = DEFAULT_CONTRACTS_ROOT) -> str:
+def ensure_epoch_initialized(config_dir: str = str(_pp.root / "configs"), contracts_root: str = DEFAULT_CONTRACTS_ROOT) -> str:
     """Create epoch 00001 from /opt/noemaforge/configs if no epochs exist."""
     os.makedirs(epochs_dir(contracts_root), exist_ok=True)
     if list_epochs(contracts_root):

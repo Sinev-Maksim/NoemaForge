@@ -257,7 +257,7 @@ def run(
     os.makedirs(PACKETS_SR, exist_ok=True)
 
     eid = epoch.current_epoch_id()
-    e_dir = epoch.current_epoch_dir() or "/opt/noemaforge/configs"
+    e_dir = epoch.current_epoch_dir() or str(_pp.root / "configs")
     epoch_before = {"epoch_id": eid, "epoch_dir": e_dir}
 
     # 1) SR-lite base scan
@@ -363,7 +363,7 @@ def run(
             exports[key] = {"ok": False, "error": repr(e)}
 
     # 3.5) Runtime epoch immutability verification
-    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or "/opt/noemaforge/configs"}
+    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or str(_pp.root / "configs")}
     epoch_immutable_ok = bool(epoch_before == epoch_after)
 
     rec_count = len(findings.get("recommendations") or []) if isinstance(findings, dict) else 0
