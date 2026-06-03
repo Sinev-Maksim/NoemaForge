@@ -34,12 +34,18 @@ if str(_SRC) not in sys.path:
 # Point the security log at a throwaway directory before importing seclog
 # (SEL_DIR is resolved at import time).
 _TMP = tempfile.mkdtemp(prefix="nf_seclog_test_")
-os.environ["NOEMAFORGE_SEL_DIR"] = str(Path(_TMP) / "sel" / "segments")
+_SEL_OVERRIDE = str(Path(_TMP) / "sel" / "segments")
+_PRIOR_SEL_DIR = os.environ.get("NOEMAFORGE_SEL_DIR")
+os.environ["NOEMAFORGE_SEL_DIR"] = _SEL_OVERRIDE
 
 import seclog  # noqa: E402
 
 
 def tearDownModule() -> None:
+    if _PRIOR_SEL_DIR is None:
+        os.environ.pop("NOEMAFORGE_SEL_DIR", None)
+    else:
+        os.environ["NOEMAFORGE_SEL_DIR"] = _PRIOR_SEL_DIR
     shutil.rmtree(_TMP, ignore_errors=True)
 
 
@@ -49,8 +55,7 @@ class TestSeclogCrossPlatform(unittest.TestCase):
     def test_sel_dir_uses_platform_paths(self) -> None:
         """SEL_DIR is a str honoring the env override (no bare /var/lib default leak)."""
         self.assertIsInstance(seclog.SEL_DIR, str)
-        self.assertIn("sel", seclog.SEL_DIR)
-        self.assertNotEqual(seclog.SEL_DIR, "/var/lib/noemaforge/sel/segments")
+        self.assertEqual(seclog.SEL_DIR, _SEL_OVERRIDE)
 
     def test_flock_helpers_are_noop_without_fcntl(self) -> None:
         """_flock_exclusive/_flock_unlock must not raise when fcntl is absent."""
