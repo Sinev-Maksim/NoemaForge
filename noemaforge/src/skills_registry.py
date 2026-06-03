@@ -48,7 +48,7 @@ import yaml
 import task_tools
 from platform_paths import DEFAULT_PATHS as _pp
 
-CFG_PATH = os.environ.get("NOEMAFORGE_SKILLS_PATH", "/opt/noemaforge/configs/skills.yaml")
+CFG_PATH = os.environ.get("NOEMAFORGE_SKILLS_PATH", str(_pp.root / "configs/skills.yaml"))
 OUTBOX = str(_pp.data_root / "outbox/skills")
 
 

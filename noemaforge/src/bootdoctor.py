@@ -493,7 +493,7 @@ def _sel_tail(max_lines: int = 200) -> str:
     """Return last N lines of today's SEL segment (best-effort)."""
     try:
         day = dt.datetime.utcnow().strftime("%Y-%m-%d")
-        sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", "/var/lib/noemaforge/sel/segments")
+        sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", str(_pp.data_root / "sel/segments"))
         p = os.path.join(sel_dir, f"{day}.jsonl")
         if not os.path.exists(p):
             return ""

@@ -16,7 +16,9 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-TASK_DIR = Path(os.environ.get("NOEMAFORGE_TASK_DIR", "/var/lib/noemaforge/tasks"))
+from platform_paths import DEFAULT_PATHS as _pp
+
+TASK_DIR = Path(os.environ.get("NOEMAFORGE_TASK_DIR", str(_pp.data_root / "tasks")))
 TASKS = TASK_DIR / "tasks.jsonl"
 LOGS = TASK_DIR / "logs"
 

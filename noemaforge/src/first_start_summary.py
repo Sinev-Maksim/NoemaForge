@@ -23,8 +23,9 @@ from pathlib import Path
 from typing import Any
 
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _pp
 
-BOOT = Path(os.environ.get("NOEMAFORGE_BOOTSTRAP", "/var/lib/noemaforge/bootstrap"))
+BOOT = Path(os.environ.get("NOEMAFORGE_BOOTSTRAP", str(_pp.data_root / "bootstrap")))
 
 COLORS = {
     "green":"\033[32m", "red":"\033[31m", "yellow":"\033[33m", "blue":"\033[36m", "bold":"\033[1m", "reset":"\033[0m"

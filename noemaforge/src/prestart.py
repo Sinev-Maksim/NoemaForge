@@ -90,7 +90,7 @@ except Exception:  # pragma: no cover
     sel_append = None  # type: ignore
 
 
-DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
+DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
 DEFAULT_REQUESTS_DIR = str(_pp.data_root / "requests/prestart")
 DEFAULT_POLICY_LOCK = str(_pp.data_root / ".sys/policy-lock.state")
 DEFAULT_MODE_FILE = "/run/noemaforge/mode"  # runtime typically writes 'runtime' here

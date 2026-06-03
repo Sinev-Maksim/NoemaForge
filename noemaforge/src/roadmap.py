@@ -71,7 +71,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_DB_PATH = os.environ.get("NOEMAFORGE_ROADMAP_DB", "/var/lib/noemaforge/roadmaps/roadmap.sqlite")
+DEFAULT_DB_PATH = os.environ.get("NOEMAFORGE_ROADMAP_DB", str(_pp.data_root / "roadmaps/roadmap.sqlite"))
 DEFAULT_EXPORT_DIR = str(_pp.data_root / "roadmaps/exports")
 
 

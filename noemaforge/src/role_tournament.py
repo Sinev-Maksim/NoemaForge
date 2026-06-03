@@ -427,7 +427,7 @@ def runtime_state(model: Dict[str, Any]) -> Dict[str, Any]:
     probe = dict(model.get("runtime_probe") or {})
     fmt = str(model.get("artifact_format") or "")
     if fmt == "gguf":
-        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", "/opt/noemaforge/bin/llama-server")
+        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", str(_pp.root / "bin/llama-server"))
         source = str(model.get("source_path") or model.get("canonical_path") or "")
         safe = True
         reason = "ok"
