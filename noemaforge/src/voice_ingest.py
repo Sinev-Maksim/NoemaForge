@@ -85,6 +85,7 @@ import tempfile
 import uuid
 import wave
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:  # Optional dependency used for policy loading.
     import yaml  # type: ignore
@@ -95,7 +96,7 @@ except Exception:  # pragma: no cover - checker/test environments may omit PyYAM
 DEFAULT_INBOX = "/workspace/inbox/voice"
 DEFAULT_OUTBOX = "/workspace/outbox/voice"
 DEFAULT_SESSION_ROOT = "/workspace/state/voice_sessions"
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/voice-backends-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/voice-backends-policy.yaml")
 
 
 # === NoemaForge Autodoc Function Header ===

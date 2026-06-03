@@ -76,6 +76,7 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 from seclog import append as sel_append
+from platform_paths import DEFAULT_PATHS as _pp
 
 # Optional: emit roadmap signals (offline-first).
 try:  # pragma: no cover
@@ -94,12 +95,12 @@ except Exception:  # pragma: no cover
     current_epoch_dir = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 INC_DIR = os.path.join(BASE, "incidents")
 DB_PATH = os.path.join(INC_DIR, "incidents.db")
 
 # Default policy locations (epoch overrides are preferred).
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/incident-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/incident-policy.yaml")
 
 KIND_RE = re.compile(r"^[a-z0-9_]{1,64}$")
 ID_RE = re.compile(r"^[a-f0-9]{16,64}$")

@@ -38,7 +38,7 @@ from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", "/var/lib/noemaforge/wiki_patches"))
+DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_WIKI_PATCH_STATE", str(_pp.data_root / "wiki_patches")))
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 
 

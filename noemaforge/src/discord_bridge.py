@@ -77,6 +77,7 @@ import subprocess
 import time
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:  # Optional dependency used for policy loading.
     import yaml  # type: ignore
@@ -84,7 +85,7 @@ except Exception:  # pragma: no cover - checker/test environments may omit PyYAM
     yaml = None  # type: ignore
 
 
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/discord-bridge-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/discord-bridge-policy.yaml")
 DEFAULT_SESSIONS_ROOT = "/workspace/state/discord_bridge/sessions"
 DEFAULT_ARTIFACTS_ROOT = "/workspace/outbox/discord_bridge/assets"
 LIVE_PROCS: Dict[int, subprocess.Popen[Any]] = {}

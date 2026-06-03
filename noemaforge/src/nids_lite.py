@@ -75,6 +75,7 @@ from toolvault import load_yaml
 
 from lan_identity import compute_device_uid, norm_mac
 from lan_discovery import parse_ip_neigh, ip_addr_show, ip_route_show, ss_listeners
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from seclog import append_event
@@ -87,7 +88,7 @@ except Exception:  # pragma: no cover
     open_incident = None  # type: ignore
 
 
-DEFAULT_STATE_DIR = "/var/lib/noemaforge/localgw/nids"
+DEFAULT_STATE_DIR = str(_pp.data_root / "localgw/nids")
 DEFAULT_SNAP_DIR = os.path.join(DEFAULT_STATE_DIR, "snapshots")
 DEFAULT_STATE_JSON = os.path.join(DEFAULT_STATE_DIR, "state.json")
 

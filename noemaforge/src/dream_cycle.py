@@ -47,9 +47,10 @@ from typing import Any, Dict, List, Optional
 
 import session_memory_extractor
 import task_tools
+from platform_paths import DEFAULT_PATHS as _pp
 
-OUTBOX_BASE = "/var/lib/noemaforge/outbox/dream"
-LONGTERM_SQLITE = "/var/lib/noemaforge/memory/longterm.sqlite"
+OUTBOX_BASE = str(_pp.data_root / "outbox/dream")
+LONGTERM_SQLITE = str(_pp.data_root / "memory/longterm.sqlite")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -66,13 +66,15 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-
-DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
-DEFAULT_MODEL_REGISTRY = os.environ.get("NOEMAFORGE_MODEL_REGISTRY", "/var/lib/modelstore/model_registry.json")
-DEFAULT_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", "/var/lib/noemaforge/model_scorecards")
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-DEFAULT_TEAM_MODEL_POLICY = os.environ.get("NOEMAFORGE_TEAM_MODEL_POLICY", "/opt/noemaforge/configs/team-model-policy.yaml")
+DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
+DEFAULT_MODEL_REGISTRY = os.environ.get("NOEMAFORGE_MODEL_REGISTRY", str(_pp.data_root.parent / "modelstore/model_registry.json"))
+DEFAULT_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", str(_pp.data_root / "model_scorecards"))
+
+
+DEFAULT_TEAM_MODEL_POLICY = os.environ.get("NOEMAFORGE_TEAM_MODEL_POLICY", str(_pp.root / "configs/team-model-policy.yaml"))
 
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,80}$")

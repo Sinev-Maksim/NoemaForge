@@ -16,6 +16,7 @@ import shutil
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import vault_inventory
@@ -23,9 +24,9 @@ except Exception:  # pragma: no cover
     sys.path.insert(0, "/opt/noemaforge/src")
     import vault_inventory  # type: ignore
 
-DEFAULT_PLAN = "/var/lib/noemaforge/bootstrap/vault-reorg-plan.json"
-DEFAULT_AUDIT = "/var/lib/noemaforge/bootstrap/vault-reorg-audit.json"
-APPLY_REPORT = "/var/lib/noemaforge/bootstrap/vault-reorg-apply-report.json"
+DEFAULT_PLAN = str(_pp.data_root / "bootstrap/vault-reorg-plan.json")
+DEFAULT_AUDIT = str(_pp.data_root / "bootstrap/vault-reorg-audit.json")
+APPLY_REPORT = str(_pp.data_root / "bootstrap/vault-reorg-apply-report.json")
 
 
 def now() -> str:

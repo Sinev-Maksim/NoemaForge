@@ -82,6 +82,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 try:
     from seclog import append as sel_append
 except Exception:  # pragma: no cover
@@ -98,7 +100,7 @@ except Exception:  # pragma: no cover
     runtime_safety = None  # type: ignore
 
 
-DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
+DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
 DEFAULT_MODELS_DIR = os.path.join(DEFAULT_MODELSTORE_ROOT, "models")
 DEFAULT_REGISTRY_PATH = os.environ.get(
     "NOEMAFORGE_MODEL_REGISTRY", os.path.join(DEFAULT_MODELSTORE_ROOT, "model_registry.json")

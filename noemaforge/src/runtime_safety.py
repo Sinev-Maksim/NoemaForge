@@ -20,9 +20,10 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
-MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
-STATE_DIR = "/var/lib/noemaforge/bootstrap"
+MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
+STATE_DIR = str(_pp.data_root / "bootstrap")
 INVENTORY_PATH = os.path.join(STATE_DIR, "model-inventory.json")
 LEGACY_SHARE_ROOT = "/mnt/brainos-share"
 CANONICAL_SHARE_ROOT = "/mnt/noemaforge-share"

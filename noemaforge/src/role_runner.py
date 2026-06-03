@@ -66,9 +66,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-CFG_PATH = "/opt/noemaforge/configs/role-runner.yaml"
+CFG_PATH = str(_pp.root / "configs/role-runner.yaml")
 
 try:
     import epoch
@@ -161,7 +162,7 @@ def _run_host(cfg: Dict[str, Any], spec: RunSpec) -> Tuple[int, str]:
 
     base_cmd = [
         "/usr/bin/python3",
-        "/opt/noemaforge/src/roles/role_entry.py",
+        str(_pp.root / "src/roles/role_entry.py"),
         "--role",
         spec.role,
         "--context",
@@ -231,7 +232,7 @@ def _run_podman(cfg: Dict[str, Any], spec: RunSpec) -> Tuple[int, str]:
         "-v",
         f"{workdir}:/work:Z",
         "-v",
-        "/opt/noemaforge/src/roles:/roles:ro,Z",
+        f"{_pp.root / 'src/roles'}:/roles:ro,Z",
     ]
 
     tool_sock = (cfg.get("paths") or {}).get("toolproxy_socket", "/run/noemaforge/toolproxy.sock")

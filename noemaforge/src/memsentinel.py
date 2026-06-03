@@ -58,10 +58,11 @@ from typing import Dict, Any
 import yaml  # requires python3-yaml
 
 from seclog import append as sel_append
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SYS_DIR = os.path.join(BASE, ".sys")
-CFG = "/opt/noemaforge/configs/memsentinel.yaml"
+CFG = str(_pp.root / "configs/memsentinel.yaml")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -18,7 +18,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-DEFAULT_TOKENS_DIR = os.environ.get("NOEMAFORGE_CAP_TOKENS_DIR", "/var/lib/noemaforge/.sys/cap_tokens")
+from platform_paths import DEFAULT_PATHS as _pp
+
+DEFAULT_TOKENS_DIR = os.environ.get("NOEMAFORGE_CAP_TOKENS_DIR", str(_pp.data_root / ".sys/cap_tokens"))
 
 
 def sh(cmd: list[str], timeout: int = 20) -> str:

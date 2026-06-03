@@ -51,8 +51,9 @@ import json
 import os
 import uuid
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE_DIR = "/var/lib/noemaforge/projects"
+BASE_DIR = str(_pp.data_root / "projects")
 
 
 # === NoemaForge Autodoc Function Header ===

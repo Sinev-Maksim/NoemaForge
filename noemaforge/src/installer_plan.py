@@ -63,9 +63,10 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from hwscan import fingerprint_inventory
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 
 
 # === NoemaForge Autodoc Function Header ===

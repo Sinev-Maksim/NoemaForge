@@ -124,8 +124,9 @@ import production_ai_contracts
 
 # Incidents
 import incidents
+from platform_paths import DEFAULT_PATHS as _pp
 
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 SYSTEMD_DIR = "/etc/systemd/system"
 
 
@@ -4506,7 +4507,7 @@ def cmd_localgw_enroll(args: argparse.Namespace) -> int:
 #   - pol, spath
 # === End NoemaForge Autodoc Function Header ===
 def _load_storage_policy_for_brainctl(contracts_root: str) -> Tuple[str, Dict[str, Any]]:
-    spath = epoch_contract_path(contracts_root, "storage-policy.yaml", "/opt/noemaforge/configs/storage-policy.yaml")
+    spath = epoch_contract_path(contracts_root, "storage-policy.yaml", str(_pp.root / "configs/storage-policy.yaml"))
     try:
         pol = storage_broker.load_storage_policy(spath)
     except Exception:

@@ -41,10 +41,11 @@ import json
 import os
 import re
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
-BUNDLE_OUTBOX = "/var/lib/noemaforge/outbox/team_memory"
-IMPORTS_DIR = "/var/lib/noemaforge/memory/team_imports"
-SESSION_BASE = "/var/lib/noemaforge/memory/session"
+BUNDLE_OUTBOX = str(_pp.data_root / "outbox/team_memory")
+IMPORTS_DIR = str(_pp.data_root / "memory/team_imports")
+SESSION_BASE = str(_pp.data_root / "memory/session")
 
 SECRET_PATTERNS = [
     ("private_key", re.compile(r"BEGIN [A-Z ]*PRIVATE KEY")),

@@ -85,16 +85,17 @@ import yaml
 from seclog import append as sel_append
 from prestart import DEFAULT_CONTRACTS_ROOT
 from epoch import current_epoch_id, current_epoch_dir
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-CONFIG_DIR = "/opt/noemaforge/configs"
+CONFIG_DIR = str(_pp.root / "configs")
 DEFAULT_POLICY = {
     "apiVersion": "noemaforge.bootdoctor/v1",
     "kind": "BootDoctorPolicy",
     "enabled": True,
     "report": {
-        "reports_dir": "/var/lib/noemaforge/boot/reports",
-        "onfailure_dir": "/var/lib/noemaforge/boot/onfailure",
+        "reports_dir": str(_pp.data_root / "boot/reports"),
+        "onfailure_dir": str(_pp.data_root / "boot/onfailure"),
         "outbox_reports_dir": "/workspace/outbox/bootreports",
         "outbox_support_dir": "/workspace/outbox/support",
         "keep_reports": 50,
@@ -116,11 +117,11 @@ DEFAULT_POLICY = {
         "bundle_on_failed_units": True,
         "onfailure_collect_unit_journal_lines": 900,
     },
-    "first_run": {"force_full": True, "state_file": "/var/lib/noemaforge/.sys/bootdoctor-state.json"},
+    "first_run": {"force_full": True, "state_file": str(_pp.data_root / ".sys/bootdoctor-state.json")},
     "hardware": {
         "enabled": True,
         "include_inventory": "auto",  # auto|summary|full
-        "state_file": "/var/lib/noemaforge/.sys/hardware-fingerprint.json",
+        "state_file": str(_pp.data_root / ".sys/hardware-fingerprint.json"),
         "emit_installer_plan": {"on_first_seen": True, "on_hardware_change": True},
     },
     "redaction": {"enabled": True, "patterns": []},
@@ -383,7 +384,7 @@ def _first_run_level(pol: Dict[str, Any]) -> Optional[str]:
     fr = pol.get("first_run") or {}
     if not bool(fr.get("force_full", True)):
         return None
-    state_path = str(fr.get("state_file") or "").strip() or "/var/lib/noemaforge/.sys/bootdoctor-state.json"
+    state_path = str(fr.get("state_file") or "").strip() or str(_pp.data_root / ".sys/bootdoctor-state.json")
     os.makedirs(os.path.dirname(state_path), exist_ok=True)
     if not os.path.exists(state_path):
         # mark state now
@@ -492,7 +493,7 @@ def _sel_tail(max_lines: int = 200) -> str:
     """Return last N lines of today's SEL segment (best-effort)."""
     try:
         day = dt.datetime.utcnow().strftime("%Y-%m-%d")
-        sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", "/var/lib/noemaforge/sel/segments")
+        sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", str(_pp.data_root / "sel/segments"))
         p = os.path.join(sel_dir, f"{day}.jsonl")
         if not os.path.exists(p):
             return ""
@@ -670,12 +671,12 @@ def collect(pol: Dict[str, Any], *, mode: str, unit: str = "", requested_level: 
 
             inv = collect_inventory()
             fp = fingerprint_inventory(inv)
-            prev_fp = load_previous_fingerprint(str(hw_pol.get("state_file") or "/var/lib/noemaforge/.sys/hardware-fingerprint.json"))
+            prev_fp = load_previous_fingerprint(str(hw_pol.get("state_file") or str(_pp.data_root / ".sys/hardware-fingerprint.json")))
             changed = bool(prev_fp) and (prev_fp != fp)
             first_seen = prev_fp is None
 
             # Persist new fingerprint (best-effort)
-            save_fingerprint(fp, str(hw_pol.get("state_file") or "/var/lib/noemaforge/.sys/hardware-fingerprint.json"))
+            save_fingerprint(fp, str(hw_pol.get("state_file") or str(_pp.data_root / ".sys/hardware-fingerprint.json")))
 
             # include inventory level
             inv_mode = str(hw_pol.get("include_inventory") or "auto").lower().strip()
@@ -819,7 +820,7 @@ def write_reports(pol: Dict[str, Any], report: Dict[str, Any]) -> Dict[str, str]
     rid = report.get("boot_id") or "no-boot-id"
     base = f"{ts}-{rid[:8]}"
 
-    reports_dir = str(rep.get("reports_dir") or "/var/lib/noemaforge/boot/reports")
+    reports_dir = str(rep.get("reports_dir") or str(_pp.data_root / "boot/reports"))
     outbox_reports = str(rep.get("outbox_reports_dir") or "/workspace/outbox/bootreports")
 
     os.makedirs(reports_dir, exist_ok=True)
@@ -1046,7 +1047,7 @@ def onfailure(pol: Dict[str, Any], unit: str, requested_level: str = "auto") -> 
     report = collect(pol, mode="onfailure", unit=unit, requested_level=requested_level)
 
     rep = pol.get("report") or {}
-    onf_dir = str(rep.get("onfailure_dir") or "/var/lib/noemaforge/boot/onfailure")
+    onf_dir = str(rep.get("onfailure_dir") or str(_pp.data_root / "boot/onfailure"))
     os.makedirs(onf_dir, exist_ok=True)
 
     ts = _now()

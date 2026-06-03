@@ -85,6 +85,7 @@ import invites
 import localgw_connectors
 from localgw_connectors.base import ConnectorContext
 import localgw_ratelimit
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from nids_lite import snapshot_and_analyze as nids_snapshot_and_analyze
@@ -99,7 +100,7 @@ except Exception:  # pragma: no cover
     append_event = None  # type: ignore
 
 
-DEFAULT_STATE_DIR = "/var/lib/noemaforge/localgw"
+DEFAULT_STATE_DIR = str(_pp.data_root / "localgw")
 DEFAULT_SESSIONS_DIR = os.path.join(DEFAULT_STATE_DIR, "sessions")
 DEFAULT_STATE_JSON = os.path.join(DEFAULT_STATE_DIR, "state.json")
 

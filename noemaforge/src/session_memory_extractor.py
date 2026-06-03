@@ -47,9 +47,10 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 import task_tools
+from platform_paths import DEFAULT_PATHS as _pp
 
-MEMORY_DIR = "/var/lib/noemaforge/memory/session"
-LONGTERM_SQLITE = "/var/lib/noemaforge/memory/longterm.sqlite"
+MEMORY_DIR = str(_pp.data_root / "memory/session")
+LONGTERM_SQLITE = str(_pp.data_root / "memory/longterm.sqlite")
 
 
 # === NoemaForge Autodoc Function Header ===

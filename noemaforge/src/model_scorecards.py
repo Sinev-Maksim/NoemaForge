@@ -87,6 +87,8 @@ except Exception:  # pragma: no cover
 import http.client
 import socket
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 
 class UnixHTTPConnection(http.client.HTTPConnection):
     # === NoemaForge Autodoc Function Header ===
@@ -133,7 +135,7 @@ class UnixHTTPConnection(http.client.HTTPConnection):
         self.sock.connect(self.unix_socket_path)
 
 
-DEFAULT_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", "/var/lib/noemaforge/model_scorecards")
+DEFAULT_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", str(_pp.data_root / "model_scorecards"))
 DEFAULT_GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
 SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 

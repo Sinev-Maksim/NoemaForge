@@ -42,7 +42,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 DEFAULT_ROOT = _pp.root
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MEMBER_STATE", "/var/lib/noemaforge/pipeline-members"))
+DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MEMBER_STATE", str(_pp.data_root / "pipeline-members")))
 DEFAULT_PIPELINE_STATE = _pp.pipelines_dir
 SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 CODE_EXTS = {".py", ".sh", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".yaml", ".yml", ".json"}

@@ -45,8 +45,9 @@ import json
 import os
 import uuid
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge/outbox"
+BASE = str(_pp.data_root / "outbox")
 NOTIFICATIONS = os.path.join(BASE, "notifications.jsonl")
 ACKS = os.path.join(BASE, "notifications.acks.json")
 

@@ -75,6 +75,7 @@ import re
 import shutil
 import sqlite3
 from typing import Any, Dict, Iterable, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml
@@ -87,7 +88,7 @@ except Exception:
     openpyxl = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 FIN_DIR = os.path.join(BASE, "routines", "finance")
 LEDGER_DB = os.path.join(FIN_DIR, "ledger.sqlite")
 RAW_DIR = os.path.join(FIN_DIR, "raw")
@@ -99,8 +100,8 @@ INQ_OPEN = os.path.join(INQUIRIES_DIR, "open")
 INQ_CLOSED = os.path.join(INQUIRIES_DIR, "closed")
 INQ_EXPIRED = os.path.join(INQUIRIES_DIR, "expired")
 
-CFG_CATEGORIES = "/opt/noemaforge/configs/finance-categories.yaml"
-CFG_CLARIFY = "/opt/noemaforge/configs/clarifications.yaml"
+CFG_CATEGORIES = str(_pp.root / "configs/finance-categories.yaml")
+CFG_CLARIFY = str(_pp.root / "configs/clarifications.yaml")
 
 
 # === NoemaForge Autodoc Function Header ===

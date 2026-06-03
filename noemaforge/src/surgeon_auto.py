@@ -80,14 +80,15 @@ import roadmap
 import team_installer_plan
 import team_scorecards
 import team_search
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 PACKETS_DIR = os.path.join(BASE, "packets", "surgeon")
-REQUESTS_DIR = os.environ.get("NOEMAFORGE_PRESTART_REQUESTS", "/var/lib/noemaforge/requests/prestart")
-MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
+REQUESTS_DIR = os.environ.get("NOEMAFORGE_PRESTART_REQUESTS", str(_pp.data_root / "requests/prestart"))
+MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
 REGISTRY_PATH = os.environ.get("NOEMAFORGE_MODEL_REGISTRY", os.path.join(MODELSTORE_ROOT, "model_registry.json"))
-SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", "/var/lib/noemaforge/model_scorecards")
-TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", "/var/lib/noemaforge/team_scorecards")
+SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", str(_pp.data_root / "model_scorecards"))
+TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", str(_pp.data_root / "team_scorecards"))
 GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
 
 BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
@@ -222,7 +223,7 @@ def _save_md(path: str, text: str) -> None:
 # === End NoemaForge Autodoc Function Header ===
 def _epoch_paths() -> Tuple[str, str, str, str]:
     """Return (epoch_dir, role_model_policy_path, llm_backends_policy_path, team_model_policy_path)."""
-    e_dir = epoch.current_epoch_dir() or "/opt/noemaforge/configs"
+    e_dir = epoch.current_epoch_dir() or str(_pp.root / "configs")
     rmp = os.path.join(e_dir, "role-model-policy.yaml")
     lbp = os.path.join(e_dir, "llm-backends-policy.yaml")
     tmp = os.path.join(e_dir, "team-model-policy.yaml")

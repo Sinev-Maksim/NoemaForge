@@ -115,7 +115,7 @@ def collect(args: argparse.Namespace) -> Dict[str, Any]:
     services = {u: systemctl_is_active(u) for u in SERVICES} if has_systemctl else {}
     timers = {u: systemctl_is_enabled(u) for u in TIMERS} if has_systemctl else {}
     autostart_units = {u: systemctl_is_enabled(u) for u in AUTOSTART_UNITS} if has_systemctl else {}
-    boot_mode = read_text(Path(os.environ.get("NOEMAFORGE_BOOT_MODE_FILE", "/etc/noemaforge/boot-mode"))) or "manual"
+    boot_mode = read_text(Path(os.environ.get("NOEMAFORGE_BOOT_MODE_FILE", str(_pp.config_dir / "boot-mode")))) or "manual"
     degraded = degraded_readonly_state()
     sockets = {name: path.exists() and path.is_socket() for name, path in SOCKETS.items()}
     failed_units: List[str] = []
