@@ -331,6 +331,27 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
+          # DIAG2: is the file still present at the start of the review step?
+          Write-Host ("DIAG2 review_start instructions=" + (Test-Path -LiteralPath (Join-Path $env:CODEX_WORKTREE '.codex\instructions.md')))
+
+          # Read review inputs BEFORE invoking the Codex CLI. Running `codex` with
+          # the worktree as the working directory resets the worktree's .codex/
+          # directory (the CLI treats .codex/ as its own project config dir), which
+          # deletes .codex/instructions.md and forced a spurious SKIP even though
+          # prepare had materialized the file correctly.
+          $instructionsPath = Join-Path $env:CODEX_WORKTREE '.codex\instructions.md'
+          $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
+          if (-not (Test-Path -LiteralPath $instructionsPath)) {
+            Write-SkipReview ".codex/instructions.md was not found in the prepared source archive."
+            exit 0
+          }
+          if (-not (Test-Path -LiteralPath $diffPath)) {
+            Write-SkipReview "diff.patch was not found in the prepared source archive."
+            exit 0
+          }
+          $instructions = Get-Content -LiteralPath $instructionsPath -Raw
+          $diffText = Get-Content -LiteralPath $diffPath -Raw
+
           $pathCommand = Get-Command codex -ErrorAction SilentlyContinue
           if ($pathCommand) {
             $codex = $pathCommand.Source
@@ -354,24 +375,13 @@ jobs:
           }
 
           & $codex login status 2>&1 | Out-Null
-          if ($LASTEXITCODE -ne 0) {
+          $loginStatus = $LASTEXITCODE
+          # DIAG2: did invoking the Codex CLI remove the worktree's .codex file?
+          Write-Host ("DIAG2 after_login instructions=" + (Test-Path -LiteralPath $instructionsPath))
+          if ($loginStatus -ne 0) {
             Write-SkipReview "Codex CLI is not logged in. Run: codex login (CODEX_HOME=$env:CODEX_HOME)."
             exit 0
           }
-
-          $instructionsPath = Join-Path $env:CODEX_WORKTREE '.codex\instructions.md'
-          $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
-          if (-not (Test-Path -LiteralPath $instructionsPath)) {
-            Write-SkipReview ".codex/instructions.md was not found in the prepared source archive."
-            exit 0
-          }
-          if (-not (Test-Path -LiteralPath $diffPath)) {
-            Write-SkipReview "diff.patch was not found in the prepared source archive."
-            exit 0
-          }
-
-          $instructions = Get-Content -LiteralPath $instructionsPath -Raw
-          $diffText = Get-Content -LiteralPath $diffPath -Raw
           $maxDiffChars = 120000
           if ($diffText.Length -gt $maxDiffChars) {
             $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
