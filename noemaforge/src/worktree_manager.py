@@ -54,7 +54,7 @@ from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from project_snapshot import freeze_project
-except Exception:
+except ImportError:
     freeze_project = None  # type: ignore
 
 BASE_DIR = str(_pp.data_root / "projects")
