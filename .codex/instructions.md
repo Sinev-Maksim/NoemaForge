@@ -47,7 +47,7 @@ Any command that starts model selection or heavy GPU work MUST pass
 
 ## Commit style
 
-```
+```text
 fix(scope): short description
 
 Types: fix, feat, refactor, test, docs, chore
