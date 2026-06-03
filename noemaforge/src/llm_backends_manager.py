@@ -71,10 +71,10 @@ except Exception:  # pragma: no cover
     sel_append = None  # type: ignore
 
 
-DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
+DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
 DEFAULT_POLICY_FALLBACK = str(_pp.root / "configs/llm-backends-policy.yaml")
 DEFAULT_SOCK_DIR = "/run/noemaforge/llm/backends"
-DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
+DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
 DEFAULT_RUNTIME_DESIRED_COUNT = int(os.environ.get("NOEMAFORGE_RUNTIME_DESIRED_COUNT", "1"))
 
 _SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.-]{1,120}$")

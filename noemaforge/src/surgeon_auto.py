@@ -84,11 +84,11 @@ from platform_paths import DEFAULT_PATHS as _pp
 
 BASE = str(_pp.data_root)
 PACKETS_DIR = os.path.join(BASE, "packets", "surgeon")
-REQUESTS_DIR = os.environ.get("NOEMAFORGE_PRESTART_REQUESTS", "/var/lib/noemaforge/requests/prestart")
-MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
+REQUESTS_DIR = os.environ.get("NOEMAFORGE_PRESTART_REQUESTS", str(_pp.data_root / "requests/prestart"))
+MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
 REGISTRY_PATH = os.environ.get("NOEMAFORGE_MODEL_REGISTRY", os.path.join(MODELSTORE_ROOT, "model_registry.json"))
-SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", "/var/lib/noemaforge/model_scorecards")
-TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", "/var/lib/noemaforge/team_scorecards")
+SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", str(_pp.data_root / "model_scorecards"))
+TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", str(_pp.data_root / "team_scorecards"))
 GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
 
 BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
