@@ -61,7 +61,7 @@ ENV_TO_PROP: Dict[str, str] = {
 
 # Pattern 1: DEFAULT_XYZ = Path(os.environ.get("NOEMAFORGE_...", "/..."))
 _PATTERN = re.compile(
-    r"""^(?P<indent>[ \t]*)(?P<name>[A-Z_]+)\s*=\s*"""
+    r"""^(?P<name>[A-Z_]+)\s*=\s*"""
     r"""Path\(os\.environ\.get\(\s*"(?P<env_key>NOEMAFORGE_[A-Z_]+)"\s*,\s*"""
     r""""[^"]*"\)\)[ \t]*$""",
 )
@@ -122,6 +122,7 @@ def _insert_import(lines: List[str]) -> List[str]:
         if in_docstring:
             if quote in stripped:
                 in_docstring = False
+                insert_at = i + 1
             continue
         if not stripped or stripped.startswith("#"):
             continue
@@ -165,9 +166,8 @@ def _migrate_source(source: str) -> Tuple[str, List[str]]:
         if m:
             prop = ENV_TO_PROP.get(m.group("env_key"))
             if prop:
-                indent = m.group("indent")
                 name = m.group("name")
-                new_lines.append(f"{indent}{name} = _pp.{prop}\n")
+                new_lines.append(f"{name} = _pp.{prop}\n")
                 changes.append(f"  {name}: env {m.group('env_key')} -> _pp.{prop}")
                 needs_import = True
                 continue
