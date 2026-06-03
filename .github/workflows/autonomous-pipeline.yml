@@ -235,15 +235,6 @@ jobs:
           }
           Move-Item -LiteralPath $sourceRoot.FullName -Destination $worktree
 
-          # --- TEMP DIAGNOSTIC: report extracted worktree contents -------------
-          Write-Host "DIAG archive_bytes=$((Get-Item -LiteralPath $archive).Length) sourceRoot=$($sourceRoot.Name)"
-          Write-Host "DIAG worktree=$worktree"
-          Write-Host "DIAG worktree_top_level:"
-          Get-ChildItem -Force -LiteralPath $worktree | ForEach-Object { Write-Host ("DIAG   [" + $_.Mode + "] " + $_.Name) }
-          Write-Host ("DIAG codex_dir_exists=" + (Test-Path -LiteralPath (Join-Path $worktree '.codex')) + " instructions_exists=" + (Test-Path -LiteralPath (Join-Path $worktree '.codex\instructions.md')))
-          Get-ChildItem -Force -LiteralPath (Join-Path $worktree '.codex') -ErrorAction SilentlyContinue | ForEach-Object { Write-Host ("DIAG   .codex/" + $_.Name) }
-          # --- END TEMP DIAGNOSTIC ---------------------------------------------
-
           "CODEX_WORKTREE=$worktree" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Prepared source at $worktree"
 
@@ -337,9 +328,6 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
-          # DIAG2: is the file still present at the start of the review step?
-          Write-Host ("DIAG2 review_start instructions=" + (Test-Path -LiteralPath (Join-Path $env:CODEX_WORKTREE '.codex\instructions.md')))
-
           # Read review inputs BEFORE invoking the Codex CLI. Running `codex` with
           # the worktree as the working directory resets the worktree's .codex/
           # directory (the CLI treats .codex/ as its own project config dir), which
@@ -382,8 +370,6 @@ jobs:
 
           & $codex login status 2>&1 | Out-Null
           $loginStatus = $LASTEXITCODE
-          # DIAG2: did invoking the Codex CLI remove the worktree's .codex file?
-          Write-Host ("DIAG2 after_login instructions=" + (Test-Path -LiteralPath $instructionsPath))
           if ($loginStatus -ne 0) {
             Write-SkipReview "Codex CLI is not logged in. Run: codex login (CODEX_HOME=$env:CODEX_HOME)."
             exit 0
@@ -434,12 +420,15 @@ jobs:
             --output-last-message $reviewPath `
             - 2>&1 | Tee-Object -FilePath $logPath
           $execExit = $LASTEXITCODE
-          Write-Host ("DIAG3 codex_exec_exit=" + $execExit + " review_written=" + (Test-Path -LiteralPath $reviewPath) + " log_written=" + (Test-Path -LiteralPath $logPath))
 
           if ($execExit -ne 0) {
             # Codex exec itself failed — treat as infra skip (not a code FAIL).
             Write-Warning "Codex CLI exited with code $execExit."
-            Write-SkipReview "Codex CLI exited with code $execExit before producing a review."
+            $extra = ""
+            if ((Test-Path -LiteralPath $logPath) -and ((Get-Content -LiteralPath $logPath -Raw) -match 'usage limit')) {
+              $extra = " The Codex/ChatGPT account hit its usage limit — add credits or wait for the quota to reset."
+            }
+            Write-SkipReview "Codex CLI exited with code $execExit before producing a review.$extra"
             exit 0   # Not a code quality failure — skip rather than block the pipeline.
           }
 
