@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1811,
+  "file_count": 1812,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -1564,6 +1564,7 @@
     "tests/test_safe_worktree_evolution_performance.py",
     "tests/test_safe_worktree_evolution_qa.py",
     "tests/test_safe_worktree_evolution_runtime.py",
+    "tests/test_seclog_cross_platform.py",
     "tests/test_self_improvement_03022.py",
     "tests/test_selftest_event_store_performance.py",
     "tests/test_selftest_event_store_qa.py",
