@@ -222,6 +222,17 @@ jobs:
             throw "No source directory found in GitHub archive."
           }
 
+          # Self-hosted RUNNER_TEMP is not reliably emptied between jobs, and
+          # Remove-Item -Recurse can leave a stale codex-source tree behind. If
+          # $worktree still exists, Move-Item NESTS the repo under
+          # $worktree\<owner-repo-sha>\, so .codex\instructions.md is missing from
+          # the worktree root and every Codex review SKIPs. Force a clean rename.
+          if (Test-Path -LiteralPath $worktree) {
+            Remove-Item -LiteralPath $worktree -Recurse -Force -ErrorAction SilentlyContinue
+          }
+          if (Test-Path -LiteralPath $worktree) {
+            $worktree = Join-Path $env:RUNNER_TEMP ("codex-source-" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
+          }
           Move-Item -LiteralPath $sourceRoot.FullName -Destination $worktree
           "CODEX_WORKTREE=$worktree" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Prepared source at $worktree"
