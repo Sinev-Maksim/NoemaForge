@@ -1228,6 +1228,11 @@ class AdminGuiServer(ThreadingHTTPServer):
                     # present with safe defaults, then enrich_artifact_cards()
                     # adds GUI-specific display metadata on top.
                     item = normalize_job_record(dict(job))
+                    # Preserve non-schema fields (idempotency_key, safe_command,
+                    # real_command_requires_operator_terminal, privileged_runner
+                    # metadata, ...) so a browser refresh restores the same enriched
+                    # job the GUI showed — mirrors the job_manager branch above.
+                    item.update({key: value for key, value in job.items() if key not in item})
                     item["artifacts"] = enrich_artifact_cards(item.get("artifacts") if isinstance(item.get("artifacts"), list) else [])
                     jobs.append(item)
         # Sync active jobs into session store for browser-refresh restore.
