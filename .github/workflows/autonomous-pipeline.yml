@@ -234,6 +234,16 @@ jobs:
             $worktree = Join-Path $env:RUNNER_TEMP ("codex-source-" + [Guid]::NewGuid().ToString('N').Substring(0, 8))
           }
           Move-Item -LiteralPath $sourceRoot.FullName -Destination $worktree
+
+          # --- TEMP DIAGNOSTIC: report extracted worktree contents -------------
+          Write-Host "DIAG archive_bytes=$((Get-Item -LiteralPath $archive).Length) sourceRoot=$($sourceRoot.Name)"
+          Write-Host "DIAG worktree=$worktree"
+          Write-Host "DIAG worktree_top_level:"
+          Get-ChildItem -Force -LiteralPath $worktree | ForEach-Object { Write-Host ("DIAG   [" + $_.Mode + "] " + $_.Name) }
+          Write-Host ("DIAG codex_dir_exists=" + (Test-Path -LiteralPath (Join-Path $worktree '.codex')) + " instructions_exists=" + (Test-Path -LiteralPath (Join-Path $worktree '.codex\instructions.md')))
+          Get-ChildItem -Force -LiteralPath (Join-Path $worktree '.codex') -ErrorAction SilentlyContinue | ForEach-Object { Write-Host ("DIAG   .codex/" + $_.Name) }
+          # --- END TEMP DIAGNOSTIC ---------------------------------------------
+
           "CODEX_WORKTREE=$worktree" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Prepared source at $worktree"
 
