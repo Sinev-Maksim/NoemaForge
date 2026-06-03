@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Iterable, List, Sequence, Set, Tuple
@@ -234,6 +235,79 @@ def _sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def _git_args(project_root: Path, *args: str) -> List[str]:
+    return ["git", "-c", f"safe.directory={project_root.as_posix()}", *args]
+
+
+def _git_index_hashes(project_root: Path) -> Dict[str, str]:
+    proc = subprocess.run(
+        _git_args(project_root, "ls-files", "-s", "-z"),
+        cwd=str(project_root),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    entries: List[Tuple[str, str]] = []
+    for record in proc.stdout.split(b"\0"):
+        if not record:
+            continue
+        try:
+            meta, path_bytes = record.split(b"\t", 1)
+            mode, object_id, stage = meta.split()[:3]
+        except ValueError:
+            continue
+        if stage != b"0" or not mode:
+            continue
+        rel = _normalize_ref(path_bytes.decode("utf-8", errors="surrogateescape"))
+        entries.append((object_id.decode("ascii"), rel))
+
+    if not entries:
+        return {}
+
+    batch_input = "".join(f"{object_id}\n" for object_id, _ in entries).encode("ascii")
+    batch = subprocess.run(
+        _git_args(project_root, "cat-file", "--batch"),
+        cwd=str(project_root),
+        input=batch_input,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        check=True,
+    )
+    hashes: Dict[str, str] = {}
+    offset = 0
+    data = batch.stdout
+    for expected_object_id, rel in entries:
+        newline = data.index(b"\n", offset)
+        header = data[offset:newline].split()
+        if len(header) < 3 or header[0].decode("ascii") != expected_object_id:
+            raise RuntimeError(f"git_cat_file_unexpected_header:{rel}")
+        size = int(header[2])
+        offset = newline + 1
+        content = data[offset : offset + size]
+        offset += size
+        if offset < len(data) and data[offset : offset + 1] == b"\n":
+            offset += 1
+        hashes[rel] = hashlib.sha256(content).hexdigest()
+    return hashes
+
+
+def _sha256_path(
+    path: Path,
+    *,
+    project_root: Path,
+    hash_source: str,
+    git_index_hashes: Dict[str, str] | None = None,
+) -> str:
+    if hash_source == "git-index":
+        rel = _normalize_ref(str(path.resolve().relative_to(project_root.resolve())))
+        hashes = git_index_hashes if git_index_hashes is not None else _git_index_hashes(project_root)
+        try:
+            return hashes[rel]
+        except KeyError as exc:
+            raise RuntimeError(f"git_index_hash_missing:{rel}") from exc
+    return _sha256_file(path)
+
+
 def _parse_sha256sums(path: Path) -> Tuple[List[Tuple[str, str]], List[str]]:
     failures: List[str] = []
     entries: List[Tuple[str, str]] = []
@@ -296,10 +370,28 @@ def _manifest_report(ref: str, *, root: Path, active_count: int, excluded_names:
     return {"ref": ref, "ok": not failures, "file_count": payload.get("file_count"), "listed_files": len(files), "failures": failures}
 
 
-def _manifest_sha_reports(refs: Sequence[str], *, manifest_path: Path, root: Path) -> Dict[str, Any]:
+def _manifest_sha_reports(
+    refs: Sequence[str],
+    *,
+    manifest_path: Path,
+    root: Path,
+    project_root: Path,
+    hash_source: str,
+    git_index_hashes: Dict[str, str] | None = None,
+) -> Dict[str, Any]:
     failures: List[str] = []
     reports: List[Dict[str, Any]] = []
-    expected = _sha256_file(manifest_path) + "  MANIFEST.json" if manifest_path.exists() else ""
+    expected = (
+        _sha256_path(
+            manifest_path,
+            project_root=project_root,
+            hash_source=hash_source,
+            git_index_hashes=git_index_hashes,
+        )
+        + "  MANIFEST.json"
+        if manifest_path.exists()
+        else ""
+    )
     for ref in refs:
         path = root / ref
         local_failures: List[str] = []
@@ -316,10 +408,13 @@ def _checksum_report(
     ref: str,
     *,
     root: Path,
+    project_root: Path,
     active_rel_paths: Set[str],
     self_exclusions: Set[str],
     excluded_names: Iterable[str],
     check_hashes: bool = True,
+    hash_source: str = "working-tree",
+    git_index_hashes: Dict[str, str] | None = None,
 ) -> Dict[str, Any]:
     failures: List[str] = []
     path = root / ref
@@ -343,7 +438,12 @@ def _checksum_report(
             if not file_path.exists():
                 failures.append(f"checksum_file_missing:{ref}:{rel}")
                 continue
-            if check_hashes and _sha256_file(file_path) != digest:
+            if check_hashes and _sha256_path(
+                file_path,
+                project_root=project_root,
+                hash_source=hash_source,
+                git_index_hashes=git_index_hashes,
+            ) != digest:
                 hash_mismatches += 1
                 failures.append(f"hash_mismatch:{ref}:{rel}")
     return {
@@ -362,12 +462,14 @@ def validate_manifest_checksum_exclusion_policy(
     project_root: Path,
     package_root: Path,
     check_hashes: bool = True,
+    hash_source: str = "working-tree",
 ) -> Dict[str, Any]:
     policy = _policy_dict(payload)
     excluded_names = _as_string_list(policy.get("excluded_dir_names")) or sorted(DEFAULT_EXCLUDED_DIR_NAMES)
     project_only_excluded_names = _as_string_list(policy.get("project_only_excluded_dir_names"))
     project_excluded_files = _as_string_list(policy.get("project_excluded_file_refs"))
     failures = _policy_failures(payload)
+    git_index_hashes = _git_index_hashes(project_root) if hash_source == "git-index" else None
 
     refs = list(_as_string_list(payload.get("refs")))
     refs.extend([
@@ -410,11 +512,21 @@ def validate_manifest_checksum_exclusion_policy(
     failures.extend(project_manifest["failures"])
     failures.extend(package_manifest["failures"])
 
-    project_manifest_sha = _manifest_sha_reports(_as_string_list(policy.get("project_manifest_sha_refs")), manifest_path=project_root / project_manifest_ref, root=project_root)
+    project_manifest_sha = _manifest_sha_reports(
+        _as_string_list(policy.get("project_manifest_sha_refs")),
+        manifest_path=project_root / project_manifest_ref,
+        root=project_root,
+        project_root=project_root,
+        hash_source=hash_source,
+        git_index_hashes=git_index_hashes,
+    )
     package_manifest_sha = _manifest_sha_reports(
         _as_string_list(policy.get("package_manifest_sha_refs")),
         manifest_path=project_root / package_manifest_ref,
         root=project_root,
+        project_root=project_root,
+        hash_source=hash_source,
+        git_index_hashes=git_index_hashes,
     )
     failures.extend(project_manifest_sha["failures"])
     failures.extend(package_manifest_sha["failures"])
@@ -424,10 +536,13 @@ def validate_manifest_checksum_exclusion_policy(
         report = _checksum_report(
             ref,
             root=project_root,
+            project_root=project_root,
             active_rel_paths=project_rel,
             self_exclusions=set(_as_string_list(policy.get("project_checksum_self_exclusions"))),
             excluded_names=excluded_names,
             check_hashes=check_hashes,
+            hash_source=hash_source,
+            git_index_hashes=git_index_hashes,
         )
         checksum_reports.append(report)
         failures.extend(report["failures"])
@@ -435,10 +550,13 @@ def validate_manifest_checksum_exclusion_policy(
     package_checksum = _checksum_report(
         str(policy.get("package_checksum_ref") or "noemaforge/checksums/SHA256SUMS"),
         root=resolved_package_root,
+        project_root=project_root,
         active_rel_paths=package_rel,
         self_exclusions=set(_as_string_list(policy.get("package_checksum_self_exclusions"))),
         excluded_names=excluded_names,
         check_hashes=check_hashes,
+        hash_source=hash_source,
+        git_index_hashes=git_index_hashes,
     )
     checksum_reports.append(package_checksum)
     failures.extend(package_checksum["failures"])
@@ -478,6 +596,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--package-root", default="noemaforge")
     parser.add_argument("--summary", action="store_true")
     parser.add_argument("--skip-hashes", action="store_true")
+    parser.add_argument(
+        "--hash-source",
+        choices=["working-tree", "git-index"],
+        default="working-tree",
+        help="Hash working-tree bytes or canonical Git index blob bytes.",
+    )
     args = parser.parse_args(argv)
 
     project_root = Path(args.project_root).resolve()
@@ -489,6 +613,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         project_root=project_root,
         package_root=package_root,
         check_hashes=not args.skip_hashes,
+        hash_source=args.hash_source,
     )
     if args.summary:
         report = {

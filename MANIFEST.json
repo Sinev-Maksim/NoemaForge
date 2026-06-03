@@ -2041,7 +2041,7 @@
     "uninstall_noemaforge_0.32.1_mvp.sh",
     "uninstall_noemaforge_0.32.2_mvp.sh"
   ],
-  "generated_at": "2026-06-02T14:26:36Z",
+  "generated_at": "2026-06-02T18:40:40Z",
   "kind": "ReleaseManifest",
   "notes": [
     "0.32.2 hardening package: active package manifests exclude legacy root/top-level Markdown, generated caches and trash; checksums regenerated."
