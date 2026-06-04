@@ -107,8 +107,24 @@ class CompositePairScoringTests(unittest.TestCase):
             report = json.loads(buf.getvalue())
             self.assertEqual("CompositePairRanking", report["kind"])
             self.assertEqual(3, report["candidate_count"])
-            self.assertEqual(2, report["pair_count"])  # limited to top 2
+            self.assertEqual(3, report["total_pair_count"])     # full ranking, before --limit
+            self.assertEqual(2, report["returned_pair_count"])  # limited to top 2
+            self.assertEqual(2, len(report["pairs"]))
             self.assertEqual(["a", "c"], report["pairs"][0]["models"])
+
+    def test_cli_accepts_object_with_candidates_or_models_key(self):
+        # _load_candidates() accepts a bare list or an object with a 'candidates'/'models' list.
+        for key in ("candidates", "models"):
+            with tempfile.TemporaryDirectory() as d:
+                path = Path(d) / "obj.json"
+                path.write_text(json.dumps({key: self._candidates()}), encoding="utf-8")
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    rc = cps.main(["--candidates", str(path)])
+                self.assertEqual(0, rc, key)
+                report = json.loads(buf.getvalue())
+                self.assertEqual(3, report["candidate_count"], key)
+                self.assertEqual(3, report["total_pair_count"], key)
 
 
 if __name__ == "__main__":

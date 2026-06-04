@@ -17,8 +17,8 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 Composite-pair diversity scorer for the full_composite model-selection mode.
 
 `model_selection_runtime.py` plans "role compositions from top N candidates" but
-delegates the actual ranking to `sudo noemaforge first-start`. This module adds a
-small, deterministic, dependency-free primitive that ranks candidate *pairs* by
+delegates the actual ranking to the heavy `first-start` model-selection run. This
+module adds a small, deterministic, dependency-free primitive that ranks candidate *pairs* by
 combined fit score plus a diversity bonus (different model family / runtime /
 role tag), so the planner and operators can preview which compositions are worth
 evaluating before committing to a heavy first-start epoch run.
@@ -123,6 +123,7 @@ def _load_candidates(path: str) -> List[Dict[str, Any]]:
 
 def build_report(candidates: Sequence[Dict[str, Any]], composite_top_n: int = 0, limit: int = 0) -> Dict[str, Any]:
     pairs = rank_composite_pairs(candidates, composite_top_n=composite_top_n)
+    total_pairs = len(pairs)
     if limit and limit > 0:
         pairs = pairs[:limit]
     return {
@@ -130,7 +131,8 @@ def build_report(candidates: Sequence[Dict[str, Any]], composite_top_n: int = 0,
         "kind": "CompositePairRanking",
         "composite_top_n": int(composite_top_n),
         "candidate_count": len(candidates),
-        "pair_count": len(pairs),
+        "total_pair_count": total_pairs,
+        "returned_pair_count": len(pairs),
         "pairs": pairs,
     }
 
