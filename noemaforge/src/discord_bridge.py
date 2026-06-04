@@ -786,7 +786,8 @@ def _terminate_pid(pid: int) -> bool:
                     LIVE_PROCS.pop(int(pid), None)
                 return True
             time.sleep(0.1)
-        os.kill(int(pid), signal.SIGKILL)
+        # signal.SIGKILL is absent on Windows; fall back to SIGTERM (still terminates the process).
+        os.kill(int(pid), getattr(signal, "SIGKILL", signal.SIGTERM))
         if proc is not None:
             try:
                 proc.wait(timeout=0.5)
