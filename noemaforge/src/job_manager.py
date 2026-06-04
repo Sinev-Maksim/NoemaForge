@@ -30,6 +30,19 @@ def _nowz() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _parse_z(value: str) -> Optional[float]:
+    """Parse an ISO-8601 'Z'/offset timestamp to a POSIX timestamp; None if unparseable."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
 def _new_job_id(kind: str) -> str:
     ts = _nowz().replace(":", "").replace("-", "").replace("Z", "")
     slug = kind.replace("-", "_")[:24]
@@ -240,6 +253,39 @@ class JobManager:
     def list_active(self) -> List[Dict[str, Any]]:
         """Return only jobs in active states (queued / starting / running / cancel_requested)."""
         return [j for j in self.list_all() if j["status"] in ACTIVE_JOB_STATES]
+
+    def prune_terminal(self, max_age_seconds: int = 86400) -> List[str]:
+        """Remove terminal jobs (done / failed / cancelled) older than *max_age_seconds*.
+
+        Age is measured from ``finished_at``, falling back to ``updated_at`` then
+        ``created_at``. Active jobs are never pruned, and a terminal job whose
+        timestamps are all missing or unparseable is kept (conservative). Both the
+        index entry and the per-job ``<job_id>.json`` file are removed. Returns the
+        list of pruned job_ids. This bounds unbounded growth of the job index.
+        """
+        if max_age_seconds < 0:
+            return []
+        cutoff = datetime.now(timezone.utc).timestamp() - max_age_seconds
+        data = self._read_index()
+        kept: List[Dict[str, Any]] = []
+        pruned: List[str] = []
+        for job in data.get("jobs", []):
+            status = str(job.get("status") or "")
+            ts = _parse_z(job.get("finished_at") or job.get("updated_at") or job.get("created_at") or "")
+            if status in FINAL_JOB_STATES and ts is not None and ts < cutoff:
+                job_id = str(job.get("job_id") or "")
+                pruned.append(job_id)
+                if job_id:
+                    try:
+                        (self._dir / f"{job_id}.json").unlink(missing_ok=True)
+                    except OSError:
+                        pass
+            else:
+                kept.append(job)
+        if pruned:
+            data["jobs"] = kept
+            self._write_index(data)
+        return pruned
 
     def update_status(
         self,
