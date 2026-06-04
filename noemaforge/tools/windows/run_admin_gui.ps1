@@ -53,6 +53,12 @@ New-Item -ItemType Directory -Force -Path $DataRoot | Out-Null
 # and on PATH by default), then the shared resolver used by the other Windows tools.
 $pyExe = ""
 $pyArgs = @()
+# An explicit -PythonExe that does not exist is an operator error: fail loudly instead of
+# silently falling back to the 'py' launcher / lib_python.ps1 (which would hide the typo).
+if ($PythonExe -and -not (Test-Path $PythonExe)) {
+  Write-Host "FAIL: -PythonExe '$PythonExe' does not exist." -ForegroundColor Red
+  exit 2
+}
 if ($PythonExe -and (Test-Path $PythonExe)) {
   $pyExe = $PythonExe
 } elseif (Get-Command py -ErrorAction SilentlyContinue) {
