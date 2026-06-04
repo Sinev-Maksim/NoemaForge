@@ -22,6 +22,7 @@ import json
 import os
 import re
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
@@ -160,7 +161,15 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server.tasks_dir = data_root / "tasks"
     server.review_dir = data_root / "review"
     server.runtime_dir = data_root / "runtime"
+    server.bootstrap_dir = data_root / "bootstrap"
+    server.modelstore_dir = data_root / "modelstore"
     server.ui_dir = root / "templates" / "pipeline-dashboard"
+    # Parity with AdminGuiServer.__init__: read-modify-write locks. The double
+    # bypasses __init__ via object.__new__, so these must be set explicitly or
+    # job/task/conversation paths raise AttributeError.
+    server._jobs_lock = threading.Lock()
+    server._tasks_lock = threading.Lock()
+    server._conv_lock = threading.Lock()
 
     def read_json(path: Path, default: Any) -> Any:
         text = _display_path(Path(path))
