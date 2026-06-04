@@ -49,6 +49,15 @@ def _field(candidate: Dict[str, Any], name: str, default: Any = "") -> Any:
     return value if value is not None else default
 
 
+def _norm(value: Any) -> str:
+    """Normalize a scalar field (family/runtime) for comparison: stripped, lowercased.
+
+    Matches the normalization applied to tags, so case/whitespace differences such as
+    "Llama" vs "llama" do not count as diversity.
+    """
+    return str(value or "").strip().lower()
+
+
 def _score_of(candidate: Dict[str, Any]) -> float:
     try:
         return float(_field(candidate, "score", 0.0) or 0.0)
@@ -69,10 +78,10 @@ def pair_score(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
 
     reasons: List[str] = []
     diversity = 0.0
-    if _field(left, "family") != _field(right, "family"):
+    if _norm(_field(left, "family")) != _norm(_field(right, "family")):
         diversity += FAMILY_DIVERSITY_BONUS
         reasons.append("family diversity")
-    if _field(left, "runtime") != _field(right, "runtime"):
+    if _norm(_field(left, "runtime")) != _norm(_field(right, "runtime")):
         diversity += RUNTIME_DIVERSITY_BONUS
         reasons.append("runtime diversity")
     left_tags, right_tags = _role_tags(left), _role_tags(right)
@@ -118,7 +127,12 @@ def _load_candidates(path: str) -> List[Dict[str, Any]]:
         data = data.get("candidates") or data.get("models") or []
     if not isinstance(data, list):
         raise ValueError("candidate inventory must be a JSON list or an object with a 'candidates'/'models' list")
-    return [dict(item) for item in data]
+    out: List[Dict[str, Any]] = []
+    for i, item in enumerate(data):
+        if not isinstance(item, dict):
+            raise ValueError(f"candidate at index {i} must be a JSON object, got {type(item).__name__}")
+        out.append(dict(item))
+    return out
 
 
 def build_report(candidates: Sequence[Dict[str, Any]], composite_top_n: int = 0, limit: int = 0) -> Dict[str, Any]:

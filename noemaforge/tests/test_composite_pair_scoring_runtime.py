@@ -126,6 +126,24 @@ class CompositePairScoringTests(unittest.TestCase):
                 self.assertEqual(3, report["candidate_count"], key)
                 self.assertEqual(3, report["total_pair_count"], key)
 
+    def test_family_runtime_case_whitespace_not_counted_as_diversity(self):
+        # "Llama" vs " llama " and "vLLM" vs "vllm" must normalize to equal -> no family/runtime bonus.
+        pairs = cps.rank_composite_pairs([
+            {"id": "x", "family": "Llama", "runtime": "vLLM", "score": 10.0, "tags": ["chat"]},
+            {"id": "y", "family": " llama ", "runtime": "vllm", "score": 9.0, "tags": ["chat"]},
+        ])
+        self.assertEqual(1, len(pairs))
+        self.assertEqual(0.0, pairs[0]["diversity_bonus"])
+        self.assertEqual(["homogeneous pair"], pairs[0]["reasons"])
+
+    def test_loader_rejects_non_object_entry(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = Path(d) / "bad.json"
+            path.write_text(json.dumps([{"id": "a", "score": 1}, "not-an-object"]), encoding="utf-8")
+            with self.assertRaises(ValueError) as ctx:
+                cps._load_candidates(str(path))
+            self.assertIn("index 1", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
