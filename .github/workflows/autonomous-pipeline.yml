@@ -185,7 +185,50 @@ jobs:
     env:
       GITHUB_TOKEN: ${{ github.token }}
     steps:
+      - name: Check usage-limit pause marker
+        id: gate
+        shell: pwsh
+        env:
+          CODEX_HOME: C:\Users\sinev\.codex
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $reviewPath = Join-Path $env:GITHUB_WORKSPACE 'codex_review.md'
+          $marker = Join-Path $env:CODEX_HOME 'runner-pause-until.txt'
+          $paused = $false
+          if (Test-Path -LiteralPath $marker) {
+            $raw = (Get-Content -LiteralPath $marker -Raw).Trim()
+            $until = [DateTimeOffset]::MinValue
+            if ([DateTimeOffset]::TryParse($raw, [ref]$until) -and $until -gt [DateTimeOffset]::UtcNow) {
+              $paused = $true
+              $untilUtc = $until.ToUniversalTime().ToString('u')
+              $body = @(
+                "Verdict: SKIP"
+                ""
+                "## Summary"
+                "Codex review is paused: the Codex/ChatGPT account hit its usage limit."
+                "The runner resumes Codex reviews automatically after the quota window resets."
+                ""
+                "**Paused until:** $untilUtc"
+                ""
+                "Code quality is still gated by CodeQL, py_compile, and the Quality gate."
+              ) -join [Environment]::NewLine
+              [System.IO.File]::WriteAllText($reviewPath, $body, [System.Text.Encoding]::UTF8)
+              # Paused: the "Run Codex CLI review" step (which normally clears stale
+              # logs) is skipped, so remove any stale codex_run.log here — otherwise the
+              # always-run "Post review" step would append a previous run's log tail to
+              # this paused notice.
+              $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+              Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
+              Write-Warning "Codex runner paused until $untilUtc (usage-limit backoff)."
+            } else {
+              Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
+              Write-Host "Stale or expired pause marker cleared."
+            }
+          }
+          "paused=$($paused.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
       - name: Prepare source archive
+        if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 10
         run: |
@@ -239,6 +282,7 @@ jobs:
           Write-Host "Prepared source at $worktree"
 
       - name: Get diff vs release branch
+        if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 5
         run: |
@@ -264,6 +308,7 @@ jobs:
 
       - name: Run Codex CLI review
         id: codex
+        if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 30
         env:
@@ -308,25 +353,29 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
-          function Write-FailureReview([string] $message) {
-            $failureReview = @(
-              "Verdict: ERROR"
-              ""
-              "**Reason:** $reason"
-              ""
-              "Code quality was validated by CodeQL, py_compile, and the Quality gate instead."
-              "Fix the runner setup to enable Codex review: install codex.exe and run ``codex login``."
-            ) -join [Environment]::NewLine
-            [System.IO.File]::WriteAllText($reviewPath, $body, [System.Text.Encoding]::UTF8)
-            Write-Warning "Codex CLI review SKIPPED: $reason"
+          # Parse a usage-limit reset time out of the Codex CLI log so the runner
+          # can pause until then instead of re-failing Codex on every later push.
+          function Get-CodexResetTime([string] $log) {
+            $now = [DateTimeOffset]::UtcNow
+            if ([string]::IsNullOrEmpty($log)) { return $now.AddMinutes(60) }
+            $m = [regex]::Match($log, '(?i)reset[^0-9]{0,24}(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(?::\d{2})?)')
+            if ($m.Success) {
+              $dt = [DateTimeOffset]::MinValue
+              if ([DateTimeOffset]::TryParse($m.Groups[1].Value, [ref]$dt)) { return $dt }
+            }
+            $m = [regex]::Match($log, '(?i)\b(?:in|after|wait)\s+(\d+)\s*h(?:ours?|rs?)?(?:\s*(\d+)\s*m(?:in(?:ute)?s?)?)?')
+            if ($m.Success) {
+              $h = [int]$m.Groups[1].Value
+              $min = 0
+              if ($m.Groups[2].Success -and $m.Groups[2].Value) { $min = [int]$m.Groups[2].Value }
+              return $now.AddHours($h).AddMinutes($min)
+            }
+            $m = [regex]::Match($log, '(?i)\b(?:in|after|wait)\s+(\d+)\s*m(?:in(?:ute)?s?)?\b')
+            if ($m.Success) { return $now.AddMinutes([int]$m.Groups[1].Value) }
+            $m = [regex]::Match($log, '(?i)retry[-\s]?after[:\s]+(\d+)')
+            if ($m.Success) { return $now.AddSeconds([int]$m.Groups[1].Value) }
+            return $now.AddMinutes(60)
           }
-
-          # Verify CODEX_WORKTREE is set and exists before trying to use it.
-          if (-not $env:CODEX_WORKTREE -or -not (Test-Path -LiteralPath $env:CODEX_WORKTREE)) {
-            Write-SkipReview "CODEX_WORKTREE env var is missing or directory does not exist: '$env:CODEX_WORKTREE'."
-            exit 0
-          }
-          Set-Location -LiteralPath $env:CODEX_WORKTREE
 
           # Read review inputs BEFORE invoking the Codex CLI. Running `codex` with
           # the worktree as the working directory resets the worktree's .codex/
@@ -425,8 +474,16 @@ jobs:
             # Codex exec itself failed — treat as infra skip (not a code FAIL).
             Write-Warning "Codex CLI exited with code $execExit."
             $extra = ""
-            if ((Test-Path -LiteralPath $logPath) -and ((Get-Content -LiteralPath $logPath -Raw) -match 'usage limit')) {
-              $extra = " The Codex/ChatGPT account hit its usage limit — add credits or wait for the quota to reset."
+            $logRaw = ""
+            if (Test-Path -LiteralPath $logPath) { $logRaw = Get-Content -LiteralPath $logPath -Raw }
+            if ($logRaw -match '(?i)usage limit|rate limit|quota') {
+              # Out of credits / rate-limited: pause the Codex runner until the
+              # mentioned reset time so later pushes skip instead of re-failing.
+              $until = Get-CodexResetTime $logRaw
+              $untilUtc = $until.ToUniversalTime().ToString('u')
+              $marker = Join-Path $env:CODEX_HOME 'runner-pause-until.txt'
+              [System.IO.File]::WriteAllText($marker, $until.ToUniversalTime().ToString('o'), [System.Text.Encoding]::UTF8)
+              $extra = " The Codex/ChatGPT account hit its usage limit — Codex reviews are paused until $untilUtc."
             }
             Write-SkipReview "Codex CLI exited with code $execExit before producing a review.$extra"
             exit 0   # Not a code quality failure — skip rather than block the pipeline.
@@ -548,12 +605,38 @@ jobs:
               state: 'open'
             });
             if (pulls.data.length > 0) {
-              await github.rest.issues.createComment({
+              const issue_number = pulls.data[0].number;
+              // One Codex comment per branch. Post the new comment FIRST, then delete
+              // any prior Codex review comments (earlier error/SKIP notices included).
+              // Posting before deleting guarantees a transient failure can never leave
+              // the PR with no current Codex review comment.
+              const created = await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: pulls.data[0].number,
+                issue_number,
                 body
               });
+              const prior = await github.paginate(github.rest.issues.listComments, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                per_page: 100
+              });
+              for (const c of prior) {
+                if (c.id === created.data.id) continue;  // keep the comment just posted
+                const isBot = c.user && (c.user.login === 'github-actions[bot]' || c.user.login === 'github-actions');
+                if (isBot && typeof c.body === 'string' && c.body.startsWith('### Codex CLI review')) {
+                  try {
+                    await github.rest.issues.deleteComment({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      comment_id: c.id
+                    });
+                  } catch (e) {
+                    core.warning(`Failed to delete prior Codex comment ${c.id}: ${e.message}`);
+                  }
+                }
+              }
             }
 
   # ─── Stage 3: Batch counter — every 5 Codex pushes → trigger QA bump ─────

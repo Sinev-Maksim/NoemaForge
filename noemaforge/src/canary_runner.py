@@ -50,7 +50,10 @@ Limits are best-effort via RLIMITs; for stronger isolation, run canaries in a mi
 import argparse
 import json
 import os
-import resource
+try:
+    import resource
+except ImportError:  # Unix-only module; absent on Windows (dev host). rlimits no-op there.
+    resource = None
 import sys
 from typing import Any, Dict
 
@@ -100,6 +103,8 @@ def _load_yaml(path: str) -> Dict[str, Any]:
 #   - cpu, fmax_mib, lim, mem_mib, pids
 # === End NoemaForge Autodoc Function Header ===
 def _apply_rlimits(profile: Dict[str, Any]) -> None:
+    if resource is None:  # Non-POSIX (e.g. Windows): POSIX rlimits are unavailable.
+        return
     # CPU time (seconds)
     cpu = int(profile.get("cpu_time_sec") or 0)
     if cpu > 0:
