@@ -213,6 +213,12 @@ jobs:
                 "Code quality is still gated by CodeQL, py_compile, and the Quality gate."
               ) -join [Environment]::NewLine
               [System.IO.File]::WriteAllText($reviewPath, $body, [System.Text.Encoding]::UTF8)
+              # Paused: the "Run Codex CLI review" step (which normally clears stale
+              # logs) is skipped, so remove any stale codex_run.log here — otherwise the
+              # always-run "Post review" step would append a previous run's log tail to
+              # this paused notice.
+              $logPath = Join-Path $env:RUNNER_TEMP 'codex_run.log'
+              Remove-Item -LiteralPath $logPath -Force -ErrorAction SilentlyContinue
               Write-Warning "Codex runner paused until $untilUtc (usage-limit backoff)."
             } else {
               Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
@@ -600,8 +606,16 @@ jobs:
             });
             if (pulls.data.length > 0) {
               const issue_number = pulls.data[0].number;
-              // One Codex comment per branch: delete prior Codex review comments
-              // (including earlier error/SKIP notices) before posting the new one.
+              // One Codex comment per branch. Post the new comment FIRST, then delete
+              // any prior Codex review comments (earlier error/SKIP notices included).
+              // Posting before deleting guarantees a transient failure can never leave
+              // the PR with no current Codex review comment.
+              const created = await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number,
+                body
+              });
               const prior = await github.paginate(github.rest.issues.listComments, {
                 owner: context.repo.owner,
                 repo: context.repo.repo,
@@ -609,6 +623,7 @@ jobs:
                 per_page: 100
               });
               for (const c of prior) {
+                if (c.id === created.data.id) continue;  // keep the comment just posted
                 const isBot = c.user && (c.user.login === 'github-actions[bot]' || c.user.login === 'github-actions');
                 if (isBot && typeof c.body === 'string' && c.body.startsWith('### Codex CLI review')) {
                   try {
@@ -622,12 +637,6 @@ jobs:
                   }
                 }
               }
-              await github.rest.issues.createComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number,
-                body
-              });
             }
 
   # ─── Stage 3: Batch counter — every 5 Codex pushes → trigger QA bump ─────
