@@ -1,5 +1,10 @@
 # TODO
 
+## Optimizations
+
+- [ ] **Update each open PR branch from `release/0.32.2-hardening` before merge.** After PR #30 merged, GitHub compare shows branches diverged (`behind_by: 4`). The premerge Quality gate checks the PR head *merged with base*, so a stale base makes the merged `SHA256SUMS` inconsistent and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge `release/0.32.2-hardening` in (or rebase), regenerate manifests/checksums, then push.
+- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata (non-blocking).** On Windows, `resource`/POSIX rlimits are absent and `sandbox.py` falls back to host execution. The sandbox run metadata should explicitly record that resource limits are NOT enforced on non-POSIX hosts, so operators do not mistake the host fallback for genuinely resource-limited execution.
+
 ## 0.32.2 release-hardening checkpoints
 
 - 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.
