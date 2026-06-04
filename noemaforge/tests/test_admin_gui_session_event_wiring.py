@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -47,6 +48,13 @@ def _make_server(td: Path) -> AdminGuiServer:
     srv.model_selection_state.mkdir(parents=True, exist_ok=True)
     srv.session_store = SessionStore(td / "sessions")
     srv.event_log = EventLog(td / "events")
+    # Parity with AdminGuiServer.__init__: read-modify-write locks + bootstrap_dir.
+    # The stub bypasses __init__ via object.__new__, so these must be set
+    # explicitly or job_cancel/_upsert_job paths raise AttributeError.
+    srv.bootstrap_dir = td / "bootstrap"
+    srv._jobs_lock = threading.Lock()
+    srv._tasks_lock = threading.Lock()
+    srv._conv_lock = threading.Lock()
     return srv
 
 
