@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import sys
 import tempfile
+import threading
 import unittest
 from pathlib import Path
 
@@ -138,6 +139,10 @@ class TestSaveMessageSyncsSession(unittest.TestCase):
         obj.review_dir = self.tmp_path / "review"
         (obj.review_dir / "sr" / "inbox").mkdir(parents=True, exist_ok=True)
         (obj.review_dir / "ssr" / "inbox").mkdir(parents=True, exist_ok=True)
+        # Parity with AdminGuiServer.__init__: save_message() acquires _conv_lock.
+        obj._conv_lock = threading.Lock()
+        obj._jobs_lock = threading.Lock()
+        obj._tasks_lock = threading.Lock()
         return obj
 
     def test_save_message_appends_to_session(self) -> None:
