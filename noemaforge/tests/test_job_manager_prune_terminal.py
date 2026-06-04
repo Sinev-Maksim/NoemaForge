@@ -126,6 +126,22 @@ class PruneTerminalTests(unittest.TestCase):
         self.assertEqual(["two_days"], pruned)
         self.assertEqual({"eleven_h"}, self._index_ids())
 
+    def test_traversal_job_id_does_not_delete_outside_jobs_dir(self) -> None:
+        # A crafted job_id with path separators must NOT delete files outside jobs_dir.
+        sentinel = self.dir.parent / "nf-prune-sentinel.json"
+        sentinel.write_text("keep", encoding="utf-8")
+        try:
+            old = _z(self.now - timedelta(days=2))
+            rec = {"job_id": "../nf-prune-sentinel", "kind": "test", "status": "done",
+                   "created_at": old, "updated_at": old, "finished_at": old}
+            (self.dir / "jobs.json").write_text(json.dumps({"jobs": [rec]}), encoding="utf-8")
+            pruned = self.mgr.prune_terminal(max_age_seconds=86400)
+            self.assertEqual(["../nf-prune-sentinel"], pruned)   # still removed from the index
+            self.assertEqual(set(), self._index_ids())
+            self.assertTrue(sentinel.exists(), "traversal job_id must not delete files outside jobs_dir")
+        finally:
+            sentinel.unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main()

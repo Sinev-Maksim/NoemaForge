@@ -130,6 +130,21 @@ class JobManager:
     # Internal helpers
     # ------------------------------------------------------------------
 
+    def _safe_job_file(self, job_id: str) -> Optional[Path]:
+        """Return ``<jobs_dir>/<job_id>.json`` only if it resolves to a direct child of
+        the jobs dir. Guards deletion/IO against a crafted or corrupt ``job_id`` whose
+        path separators would otherwise let it escape ``jobs_dir``.
+        """
+        if not job_id:
+            return None
+        candidate = self._dir / f"{job_id}.json"
+        try:
+            if candidate.resolve().parent != self._dir.resolve():
+                return None
+        except OSError:
+            return None
+        return candidate
+
     def _read_index(self) -> Dict[str, Any]:
         """Load jobs.json; return {"jobs": [...]} even if file is missing/corrupt."""
         if not self._jobs_file.exists():
@@ -288,9 +303,10 @@ class JobManager:
             if status in FINAL_JOB_STATES and ts is not None and ts < cutoff:
                 job_id = str(job.get("job_id") or "")
                 pruned.append(job_id)
-                if job_id:
+                target = self._safe_job_file(job_id)
+                if target is not None:
                     try:
-                        (self._dir / f"{job_id}.json").unlink(missing_ok=True)
+                        target.unlink(missing_ok=True)
                     except OSError:
                         pass
             else:
