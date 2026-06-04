@@ -66,7 +66,10 @@ import base64
 import json
 import tempfile
 import time
-import resource
+try:
+    import resource
+except ImportError:  # Unix-only module; absent on Windows (dev host). POSIX rlimits no-op there.
+    resource = None
 import contextlib
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -246,6 +249,8 @@ _quota_from_policy = quota_from_policy
 #   - asb, fsz
 # === End NoemaForge Autodoc Function Header ===
 def _apply_rlimits(quota: Quota) -> None:
+    if resource is None:  # Non-POSIX (e.g. Windows): POSIX rlimits are unavailable.
+        return
     # CPU time
     try:
         resource.setrlimit(resource.RLIMIT_CPU, (int(quota.cpu_time_sec), int(quota.cpu_time_sec)))
@@ -418,7 +423,8 @@ def _run_host(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=float(quota.timeout_sec),
-            preexec_fn=_preexec,
+            # preexec_fn is a POSIX-only subprocess feature (raises on Windows).
+            preexec_fn=_preexec if os.name == "posix" else None,
             text=False,
         )
     return p.returncode, p.stdout, p.stderr, meta
@@ -565,7 +571,8 @@ def _run_bwrap(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=float(quota.timeout_sec),
-                preexec_fn=lambda: _apply_rlimits(quota),
+                # preexec_fn is a POSIX-only subprocess feature (raises on Windows).
+                preexec_fn=(lambda: _apply_rlimits(quota)) if os.name == "posix" else None,
                 text=False,
             )
         meta = {"backend": "bwrap", "isolation": "namespace", "unshare_net": bool(unshare_net), "netguard": guard_meta}
