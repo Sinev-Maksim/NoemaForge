@@ -43,6 +43,18 @@ def _parse_z(value: str) -> Optional[float]:
     return parsed.timestamp()
 
 
+def _first_parseable_ts(*values: str) -> Optional[float]:
+    """Return the first value that parses as a timestamp, in argument order.
+
+    A non-empty but corrupt earlier value does not block a valid later one.
+    """
+    for value in values:
+        ts = _parse_z(value or "")
+        if ts is not None:
+            return ts
+    return None
+
+
 def _new_job_id(kind: str) -> str:
     ts = _nowz().replace(":", "").replace("-", "").replace("Z", "")
     slug = kind.replace("-", "_")[:24]
@@ -257,11 +269,12 @@ class JobManager:
     def prune_terminal(self, max_age_seconds: int = 86400) -> List[str]:
         """Remove terminal jobs (done / failed / cancelled) older than *max_age_seconds*.
 
-        Age is measured from ``finished_at``, falling back to ``updated_at`` then
-        ``created_at``. Active jobs are never pruned, and a terminal job whose
-        timestamps are all missing or unparseable is kept (conservative). Both the
-        index entry and the per-job ``<job_id>.json`` file are removed. Returns the
-        list of pruned job_ids. This bounds unbounded growth of the job index.
+        Age is measured from the first parseable of ``finished_at``, ``updated_at``,
+        ``created_at`` (a corrupt earlier field does not block a valid later one).
+        Active jobs are never pruned, and a terminal job whose timestamps are all
+        missing or unparseable is kept (conservative). Both the index entry and the
+        per-job ``<job_id>.json`` file are removed. Returns the list of pruned
+        job_ids. This bounds unbounded growth of the job index.
         """
         if max_age_seconds < 0:
             return []
@@ -271,7 +284,7 @@ class JobManager:
         pruned: List[str] = []
         for job in data.get("jobs", []):
             status = str(job.get("status") or "")
-            ts = _parse_z(job.get("finished_at") or job.get("updated_at") or job.get("created_at") or "")
+            ts = _first_parseable_ts(job.get("finished_at"), job.get("updated_at"), job.get("created_at"))
             if status in FINAL_JOB_STATES and ts is not None and ts < cutoff:
                 job_id = str(job.get("job_id") or "")
                 pruned.append(job_id)

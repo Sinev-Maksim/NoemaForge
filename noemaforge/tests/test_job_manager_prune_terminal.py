@@ -100,6 +100,15 @@ class PruneTerminalTests(unittest.TestCase):
         (self.dir / "jobs.json").write_text(json.dumps({"jobs": [rec]}), encoding="utf-8")
         self.assertEqual(["j"], self.mgr.prune_terminal(max_age_seconds=86400))
 
+    def test_corrupt_finished_at_falls_back_to_valid_created_at(self) -> None:
+        # A non-empty but unparseable finished_at must not block the valid created_at.
+        old = _z(self.now - timedelta(days=2))
+        rec = {"job_id": "j", "kind": "test", "status": "done",
+               "created_at": old, "updated_at": old, "finished_at": "not-a-timestamp"}
+        (self.dir / "j.json").write_text(json.dumps(rec), encoding="utf-8")
+        (self.dir / "jobs.json").write_text(json.dumps({"jobs": [rec]}), encoding="utf-8")
+        self.assertEqual(["j"], self.mgr.prune_terminal(max_age_seconds=86400))
+
     def test_negative_max_age_is_noop(self) -> None:
         self._seed([("old_done", "done", _z(self.now - timedelta(days=2)))])
         self.assertEqual([], self.mgr.prune_terminal(max_age_seconds=-1))
