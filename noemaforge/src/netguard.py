@@ -231,7 +231,8 @@ def egress_guard(
       meta dict with table name and normalized targets.
     """
 
-    if require_root and os.geteuid() != 0:
+    if require_root and (not hasattr(os, "geteuid") or os.geteuid() != 0):
+        # No os.geteuid (e.g. Windows): root cannot be verified, so deny when it is required.
         raise PermissionError("netguard_requires_root")
 
     nft = shutil_which("nft")
