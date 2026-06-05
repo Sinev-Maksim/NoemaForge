@@ -744,7 +744,8 @@ def stop_gguf_backend(modelstore_id: str) -> None:
         time.sleep(3)
     if _pids_for_backend(modelstore_id):
         systemctl("kill", "--signal=KILL", unit)
-        _kill_backend_processes(modelstore_id, signal.SIGKILL)
+        # signal.SIGKILL is absent on Windows; fall back to SIGTERM.
+        _kill_backend_processes(modelstore_id, getattr(signal, "SIGKILL", signal.SIGTERM))
     _ACTIVE_BACKENDS.discard(modelstore_id)
     try:
         os.unlink(f"/run/noemaforge/llm/backends/{modelstore_id}.sock")
