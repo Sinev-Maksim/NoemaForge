@@ -1803,6 +1803,7 @@
     "noemaforge/tools/windows/noemaforge_check.ps1",
     "noemaforge/tools/windows/noemaforge_lab.ps1",
     "noemaforge/tools/windows/prepare_workspace.ps1",
+    "noemaforge/tools/windows/run_admin_gui.ps1",
     "noemaforge/tools/windows/run_all.cmd",
     "noemaforge/tools/windows/run_check.cmd",
     "noemaforge/tools/windows/run_dashboard_lab.cmd",

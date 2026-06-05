@@ -1758,6 +1758,7 @@
     "tools/windows/noemaforge_check.ps1",
     "tools/windows/noemaforge_lab.ps1",
     "tools/windows/prepare_workspace.ps1",
+    "tools/windows/run_admin_gui.ps1",
     "tools/windows/run_all.cmd",
     "tools/windows/run_check.cmd",
     "tools/windows/run_dashboard_lab.cmd",
