@@ -70,6 +70,16 @@ try:
     import resource
 except ImportError:  # Unix-only module; absent on Windows (dev host). POSIX rlimits no-op there.
     resource = None
+
+
+def rlimits_available() -> bool:
+    """True when POSIX resource limits (RLIMIT_*) can be enforced on this host.
+
+    False on non-POSIX hosts (e.g. Windows) where the ``resource`` module is absent and
+    ``_apply_rlimits`` is a no-op. Surfaced in run metadata so a degraded host fallback is
+    not mistaken for genuinely resource-limited execution.
+    """
+    return resource is not None
 import contextlib
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -369,7 +379,7 @@ def _run_host(
     stdin_bytes: Optional[bytes] = None,
     network_guard: Optional[Dict[str, Any]] = None,
 ) -> Tuple[int, bytes, bytes, Dict[str, Any]]:
-    meta: Dict[str, Any] = {"backend": "host", "isolation": "degraded"}
+    meta: Dict[str, Any] = {"backend": "host", "isolation": "degraded", "rlimits_available": rlimits_available()}
 
     guard_ctx: contextlib.AbstractContextManager = contextlib.nullcontext()
     guard_meta: Dict[str, Any] = {"enabled": False}
