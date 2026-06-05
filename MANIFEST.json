@@ -1613,6 +1613,7 @@
     "noemaforge/tests/test_safe_worktree_evolution_performance.py",
     "noemaforge/tests/test_safe_worktree_evolution_qa.py",
     "noemaforge/tests/test_safe_worktree_evolution_runtime.py",
+    "noemaforge/tests/test_sandbox_rlimits_metadata.py",
     "noemaforge/tests/test_seclog_cross_platform.py",
     "noemaforge/tests/test_self_improvement_03022.py",
     "noemaforge/tests/test_selftest_event_store_performance.py",
