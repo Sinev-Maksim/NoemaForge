@@ -24,6 +24,8 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Sequence
 
+from platform_paths import DEFAULT_PATHS as _platform_paths
+
 
 API_VERSION = "noemaforge.runtime-observer-cards/v1"
 POLICY_KIND = "RuntimeObserverCardsPolicy"
@@ -142,12 +144,15 @@ def _token_report(ref: str, tokens: Sequence[str], *, project_root: Path, packag
 
 
 def synthetic_runtime_status(*, gateway_active: bool = True, backend_active: bool = True, sockets_present: bool = True) -> Dict[str, Any]:
+    sockets = {
+        str(_platform_paths.llm_gateway_socket): sockets_present,
+        str(_platform_paths.llm_main_backend_socket): sockets_present and backend_active,
+    }
+    legacy_gateway = _platform_paths.legacy_brainos_gateway_socket
+    if legacy_gateway is not None:
+        sockets[str(legacy_gateway)] = False
     return {
-        "sockets": {
-            "/run/noemaforge/llm/gateway.sock": sockets_present,
-            "/run/noemaforge/llm/backends/main.sock": sockets_present and backend_active,
-            "/run/brainos/llm/gateway.sock": False,
-        },
+        "sockets": sockets,
         "gateway": {"ok": gateway_active, "returncode": 0 if gateway_active else 3, "stdout": "active" if gateway_active else "inactive"},
         "main_backend": {"ok": backend_active, "returncode": 0 if backend_active else 3, "stdout": "active" if backend_active else "inactive"},
         "main_manifest": {"model_id": "main-local-test"},

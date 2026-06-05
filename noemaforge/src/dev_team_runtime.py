@@ -720,8 +720,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     run = sub.add_parser("run")
     run.add_argument("text", nargs="*")
-    run.add_argument("--state")
-    run.add_argument("--pipeline-state")
+    run.add_argument("--state", default=argparse.SUPPRESS)
+    run.add_argument("--pipeline-state", default=argparse.SUPPRESS)
     run.add_argument("--request")
     run.add_argument("--pipeline", default="dev_pipeline_member_cells")
     run.add_argument("--allow-degraded", action="store_true")
@@ -732,7 +732,7 @@ def build_parser() -> argparse.ArgumentParser:
     run.set_defaults(func=cmd_run)
 
     seed = sub.add_parser("seed-self-improvement-plan")
-    seed.add_argument("--state")
+    seed.add_argument("--state", default=argparse.SUPPRESS)
     seed.add_argument("--backlog", default="")
     seed.add_argument("--request", default="")
     seed.add_argument("--max-steps", type=int, default=3)
@@ -741,7 +741,7 @@ def build_parser() -> argparse.ArgumentParser:
     seed.set_defaults(func=cmd_seed_self_improvement_plan)
 
     bounded = sub.add_parser("bounded-loop-plan")
-    bounded.add_argument("--state")
+    bounded.add_argument("--state", default=argparse.SUPPRESS)
     bounded.add_argument("--request", default="")
     bounded.add_argument("--max-steps", type=int, default=3)
     bounded.add_argument("--time-budget-minutes", type=int, default=20)
@@ -759,7 +759,7 @@ def build_parser() -> argparse.ArgumentParser:
     checkpoint.set_defaults(func=cmd_bounded_loop_checkpoint)
 
     rep = sub.add_parser("replace")
-    rep.add_argument("--state")
+    rep.add_argument("--state", default=argparse.SUPPRESS)
     rep.add_argument("--project", required=True)
     rep.add_argument("--path", required=True)
     rep.add_argument("--old", required=True)
@@ -771,6 +771,7 @@ def build_parser() -> argparse.ArgumentParser:
     rep.set_defaults(func=cmd_replace)
 
     wr = sub.add_parser("write-file")
+    wr.add_argument("--state", default=argparse.SUPPRESS)
     wr.add_argument("--project", required=True)
     wr.add_argument("--path", required=True)
     wr.add_argument("--content")
@@ -781,7 +782,7 @@ def build_parser() -> argparse.ArgumentParser:
     wr.set_defaults(func=cmd_write_file)
 
     sv = sub.add_parser("set-version")
-    sv.add_argument("--state")
+    sv.add_argument("--state", default=argparse.SUPPRESS)
     sv.add_argument("--project", required=True)
     sv.add_argument("--version", required=True)
     sv.add_argument("--apply", action="store_true")

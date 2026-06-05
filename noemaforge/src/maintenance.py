@@ -91,13 +91,14 @@ import roadmap
 import taskqueue
 import task_runner
 import daily_scheduler
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SYS_DIR = os.path.join(BASE, ".sys")
 LOCKS_DIR = os.path.join(SYS_DIR, "locks")
 PROJECTS_DIR = os.path.join(BASE, "projects")
 ROUTINES_DIR = os.path.join(BASE, "routines")
-CONFIG_PATH = "/opt/noemaforge/configs/maintenance-policy.yaml"
+CONFIG_PATH = str(_pp.root / "configs/maintenance-policy.yaml")
 
 OUTBOX_AUTO_CYCLE = "/workspace/outbox/system/auto_cycle"
 

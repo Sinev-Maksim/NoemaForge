@@ -60,6 +60,8 @@ This module is intentionally small and dependency-free.
 import os
 from typing import Optional
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 DEFAULT_EPOCH_ID = "00000"
 
 
@@ -75,7 +77,7 @@ DEFAULT_EPOCH_ID = "00000"
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _contracts_root() -> str:
-    return os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
+    return os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -112,6 +112,19 @@ class TestNoemaForgePathsLinux(unittest.TestCase):
         p = self._make()
         self.assertEqual(p.code_evolution_state_dir, Path("/var/lib/noemaforge/code-evolution"))
 
+    def test_linux_runtime_bootstrap_share_modelstore_defaults(self) -> None:
+        p = self._make()
+        self.assertEqual(p.runtime_dir, Path("/run/noemaforge"))
+        self.assertEqual(p.bootstrap_dir, Path("/var/lib/noemaforge/bootstrap"))
+        self.assertEqual(p.share_dir, Path("/mnt/noemaforge-share"))
+        self.assertEqual(p.modelstore_dir, Path("/var/lib/modelstore"))
+
+    def test_linux_socket_defaults(self) -> None:
+        p = self._make()
+        self.assertEqual(p.llm_gateway_socket, Path("/run/noemaforge/llm/gateway.sock"))
+        self.assertEqual(p.llm_main_backend_socket, Path("/run/noemaforge/llm/backends/main.sock"))
+        self.assertEqual(p.toolproxy_socket, Path("/run/noemaforge/toolproxy.sock"))
+
     def test_gui_listen_defaults(self) -> None:
         p = self._make()
         self.assertEqual(p.gui_listen_address, ("127.0.0.1", 8765))
@@ -146,6 +159,19 @@ class TestNoemaForgePathsWindows(unittest.TestCase):
     def test_no_unix_socket_on_windows(self) -> None:
         p = self._make()
         self.assertIsNone(p.gui_unix_socket)
+
+    def test_runtime_paths_are_data_relative_on_windows(self) -> None:
+        p = self._make()
+        self.assertEqual(p.runtime_dir, p.data_root / "run")
+        self.assertEqual(p.bootstrap_dir, p.data_root / "bootstrap")
+        self.assertEqual(p.share_dir, p.data_root / "share")
+        self.assertEqual(p.modelstore_dir, p.data_root / "modelstore")
+        self.assertIsNone(p.legacy_brainos_gateway_socket)
+
+    def test_socket_paths_are_runtime_relative_on_windows(self) -> None:
+        p = self._make()
+        self.assertEqual(p.llm_gateway_socket, p.runtime_dir / "llm" / "gateway.sock")
+        self.assertEqual(p.llm_main_backend_socket, p.runtime_dir / "llm" / "backends" / "main.sock")
 
     def test_root_and_data_root_differ_on_linux(self) -> None:
         """On Linux, root ≠ data_root (different filesystem conventions)."""
@@ -191,6 +217,24 @@ class TestEnvVarOverrides(unittest.TestCase):
             p = NoemaForgePaths(root=Path("/arg/root"))
             self.assertEqual(p.root, Path("/arg/root"))
 
+    def test_runtime_path_env_vars_override_defaults(self) -> None:
+        env = {
+            "NOEMAFORGE_RUNTIME_DIR": "/tmp/nf-run",
+            "NOEMAFORGE_BOOTSTRAP_DIR": "/tmp/nf-bootstrap",
+            "NOEMAFORGE_SHARE_DIR": "/tmp/nf-share",
+            "NOEMAFORGE_MODELSTORE_DIR": "/tmp/nf-modelstore",
+            "NOEMAFORGE_GATEWAY_SOCKET": "/tmp/nf-run/llm/gateway.sock",
+            "NOEMAFORGE_MAIN_BACKEND_SOCKET": "/tmp/nf-run/llm/backends/main.sock",
+        }
+        with patch.dict(os.environ, env, clear=False):
+            p = NoemaForgePaths(platform=PLATFORM_LINUX)
+            self.assertEqual(p.runtime_dir, Path("/tmp/nf-run"))
+            self.assertEqual(p.bootstrap_dir, Path("/tmp/nf-bootstrap"))
+            self.assertEqual(p.share_dir, Path("/tmp/nf-share"))
+            self.assertEqual(p.modelstore_dir, Path("/tmp/nf-modelstore"))
+            self.assertEqual(p.llm_gateway_socket, Path("/tmp/nf-run/llm/gateway.sock"))
+            self.assertEqual(p.llm_main_backend_socket, Path("/tmp/nf-run/llm/backends/main.sock"))
+
 
 class TestAsDictAndDetect(unittest.TestCase):
     """as_dict() and detect_platform() return expected shapes."""
@@ -201,7 +245,9 @@ class TestAsDictAndDetect(unittest.TestCase):
         for key in ("platform", "root", "data_root", "gui_state_dir",
                     "session_state_dir", "jobs_dir", "pipelines_dir",
                     "model_evolution_state_dir", "dev_team_state_dir",
-                    "code_evolution_state_dir", "gui_listen_address"):
+                    "code_evolution_state_dir", "runtime_dir", "bootstrap_dir",
+                    "share_dir", "modelstore_dir", "llm_gateway_socket",
+                    "llm_main_backend_socket", "gui_listen_address"):
             with self.subTest(key=key):
                 self.assertIn(key, d)
 
@@ -262,11 +308,12 @@ class TestConfigFileSupport(unittest.TestCase):
     def test_config_file_paths_section(self) -> None:
         conf = self._write_conf(
             "[noemaforge]\ninstall_root = /x\ndata_root = /y\n"
-            "[paths]\njobs_dir = /custom/jobs\n"
+            "[paths]\njobs_dir = /custom/jobs\nbootstrap_dir = /custom/bootstrap\n"
         )
         with patch.dict(os.environ, {}, clear=True):
             p = NoemaForgePaths(config_file=conf)
         self.assertEqual(p.jobs_dir, Path("/custom/jobs"))
+        self.assertEqual(p.bootstrap_dir, Path("/custom/bootstrap"))
 
     def test_env_var_overrides_config_file(self) -> None:
         conf = self._write_conf("[noemaforge]\ninstall_root = /config/root\ndata_root = /y\n")
@@ -301,6 +348,10 @@ class TestConfigFileSupport(unittest.TestCase):
         self.assertEqual(cfg.get("noemaforge", "version"), _real_version.RUNTIME_VERSION)
         self.assertIn("jobs_dir", cfg.options("paths"))
         self.assertIn("sessions_dir", cfg.options("paths"))
+        self.assertIn("runtime_dir", cfg.options("paths"))
+        self.assertIn("bootstrap_dir", cfg.options("paths"))
+        self.assertIn("share_dir", cfg.options("paths"))
+        self.assertIn("modelstore_dir", cfg.options("paths"))
 
     def test_written_config_is_read_back_by_noemaforge_paths(self) -> None:
         from platform_paths import write_config
@@ -359,6 +410,13 @@ class TestAdminGuiServerImportsPlatformPaths(unittest.TestCase):
                 self.assertIn("_platform_paths", line,
                               f"DEFAULT_ROOT must use _platform_paths, got: {line.strip()}")
                 break
+
+    def test_admin_gui_bootstrap_and_modelstore_use_platform_paths(self) -> None:
+        src = (_SRC / "admin_gui_server.py").read_text(encoding="utf-8")
+        self.assertIn("DEFAULT_BOOTSTRAP_DIR = _platform_paths.bootstrap_dir", src)
+        self.assertIn("DEFAULT_MODELSTORE_DIR = _platform_paths.modelstore_dir", src)
+        self.assertNotIn('Path("/var/lib/noemaforge/bootstrap', src)
+        self.assertNotIn('Path("/var/lib/modelstore', src)
 
 
 if __name__ == "__main__":

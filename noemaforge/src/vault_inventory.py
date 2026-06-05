@@ -17,6 +17,7 @@ import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
@@ -29,7 +30,7 @@ except Exception:  # pragma: no cover
     sys.path.insert(0, "/opt/noemaforge/src")
     import model_capabilities  # type: ignore
 
-DEFAULT_STATE = "/var/lib/noemaforge/bootstrap/model-inventory.json"
+DEFAULT_STATE = str(_pp.data_root / "bootstrap/model-inventory.json")
 DEFAULT_SHARE = "/mnt/noemaforge-share"
 
 SHARD_RE = re.compile(r"^(?P<prefix>.+?)(?:[-_. ]+)(?P<idx>\d{3,6})(?:[-_. ]*of[-_. ]*)(?P<total>\d{3,6})\.gguf$", re.IGNORECASE)

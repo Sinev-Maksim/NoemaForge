@@ -49,8 +49,9 @@ import os
 
 from seclog import verify as sel_verify
 from seclog import append as sel_append
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 OUT_DIR = os.path.join(BASE, "packets", "planned")
 
 

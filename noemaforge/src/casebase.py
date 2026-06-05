@@ -74,9 +74,10 @@ import sqlite3
 import time
 import uuid
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 CASEBASE_DIR = os.path.join(BASE, "casebase")
 DB_PATH = os.path.join(CASEBASE_DIR, "casebase.sqlite")
 

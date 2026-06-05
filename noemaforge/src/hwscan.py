@@ -63,9 +63,10 @@ import re
 import shutil
 import subprocess
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-DEFAULT_STATE_FILE = "/var/lib/noemaforge/.sys/hardware-fingerprint.json"
+DEFAULT_STATE_FILE = str(_pp.data_root / ".sys/hardware-fingerprint.json")
 
 
 # === NoemaForge Autodoc Function Header ===

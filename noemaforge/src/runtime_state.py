@@ -58,8 +58,9 @@ import datetime as dt
 import json
 import os
 from typing import Any, Dict, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SYS_DIR = os.path.join(BASE, ".sys")
 STATE_PATH = os.path.join(SYS_DIR, "runtime_state.json")
 

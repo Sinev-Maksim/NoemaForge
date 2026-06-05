@@ -54,8 +54,9 @@ import os
 from typing import Any, Dict, List, Tuple
 
 from seclog import verify as sel_verify
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SEL_DIR = os.path.join(BASE, "sel", "segments")
 ROUTINES_DIR = os.path.join(BASE, "routines")
 OUT_DIR = os.path.join(BASE, "sr")

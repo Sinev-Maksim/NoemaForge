@@ -110,6 +110,7 @@ import model_router
 from seclog import append as sel_append
 from quarantine import create_incident
 from incidents import open_incident as incident_open
+from platform_paths import DEFAULT_PATHS as _pp
 
 # Optional observability (best-effort; must never break ToolProxy)
 try:  # pragma: no cover
@@ -232,7 +233,7 @@ try:
 except Exception:
     honeykeys = None  # type: ignore
 
-CFG_PATH = "/opt/noemaforge/configs/toolproxy.yaml"
+CFG_PATH = str(_pp.root / "configs/toolproxy.yaml")
 
 
 # === NoemaForge Autodoc Function Header ===

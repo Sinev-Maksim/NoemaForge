@@ -50,13 +50,14 @@ import shutil
 import subprocess
 import uuid
 from typing import Any, Dict, List, Optional
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from project_snapshot import freeze_project
-except Exception:
+except ImportError:
     freeze_project = None  # type: ignore
 
-BASE_DIR = "/var/lib/noemaforge/projects"
+BASE_DIR = str(_pp.data_root / "projects")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -36,7 +36,7 @@ from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_MODEL_SELECTION_STATE", os.environ.get("NOEMAFORGE_MODEL_EVOLUTION_STATE", "/var/lib/noemaforge/model-selection")))
+DEFAULT_STATE = _pp.model_selection_state_dir
 
 
 def nowz() -> str:

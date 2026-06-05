@@ -39,11 +39,17 @@ def _install_stubs() -> None:
     import noemaforge_version as real_version
     sys.modules.setdefault("noemaforge_version", real_version)
 
+    import orchestration_state as _real_orch
     stub_orch = types.ModuleType("orchestration_state")
+    # Mirror the real module so the stub never drifts from its import surface,
+    # then override only the few behaviors this test wants to control.
+    for _name in dir(_real_orch):
+        if not _name.startswith("__"):
+            setattr(stub_orch, _name, getattr(_real_orch, _name))
     stub_orch.nowz = lambda: "2026-05-31T00:00:00Z"
     stub_orch.normalize_session_record = lambda r: r
     stub_orch.is_active_job = lambda job: False
-    sys.modules.setdefault("orchestration_state", stub_orch)
+    sys.modules["orchestration_state"] = stub_orch
 
     stub_prod = types.ModuleType("production_ai_contracts")
     sys.modules.setdefault("production_ai_contracts", stub_prod)

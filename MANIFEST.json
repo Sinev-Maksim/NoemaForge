@@ -1,8 +1,9 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2037,
+  "file_count": 2040,
   "files": [
+    ".codex/instructions.md",
     ".github/workflows/autonomous-pipeline.yml",
     ".github/workflows/p0-status-ledger.yml",
     ".github/workflows/premerge-quality.yml",
@@ -657,6 +658,7 @@
     "noemaforge/docs/quality/CLAUDE_REVIEW_QUEUE_0.32.2.md",
     "noemaforge/docs/quality/DOC_COMPLETENESS_0.32.2.md",
     "noemaforge/docs/quality/RELEASE_GATE_0.32.2_REPORT.md",
+    "noemaforge/docs/quality/UAT_SCENARIOS_0.32.2.md",
     "noemaforge/docs/quality/VERIFICATION_AND_AUDIT.md",
     "noemaforge/docs/reference/KNOWLEDGE_BASE.md",
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
@@ -1408,6 +1410,7 @@
     "noemaforge/tests/test_job_get_cancel_normalize.py",
     "noemaforge/tests/test_job_heartbeat_and_process_runner.py",
     "noemaforge/tests/test_job_manager.py",
+    "noemaforge/tests/test_job_manager_prune_terminal.py",
     "noemaforge/tests/test_job_progress_stream_performance.py",
     "noemaforge/tests/test_job_progress_stream_qa.py",
     "noemaforge/tests/test_job_progress_stream_runtime.py",
@@ -1608,6 +1611,8 @@
     "noemaforge/tests/test_safe_worktree_evolution_performance.py",
     "noemaforge/tests/test_safe_worktree_evolution_qa.py",
     "noemaforge/tests/test_safe_worktree_evolution_runtime.py",
+    "noemaforge/tests/test_sandbox_rlimits_metadata.py",
+    "noemaforge/tests/test_seclog_cross_platform.py",
     "noemaforge/tests/test_self_improvement_03022.py",
     "noemaforge/tests/test_selftest_event_store_performance.py",
     "noemaforge/tests/test_selftest_event_store_qa.py",
@@ -1798,6 +1803,7 @@
     "noemaforge/tools/windows/noemaforge_check.ps1",
     "noemaforge/tools/windows/noemaforge_lab.ps1",
     "noemaforge/tools/windows/prepare_workspace.ps1",
+    "noemaforge/tools/windows/run_admin_gui.ps1",
     "noemaforge/tools/windows/run_all.cmd",
     "noemaforge/tools/windows/run_check.cmd",
     "noemaforge/tools/windows/run_dashboard_lab.cmd",
@@ -2041,7 +2047,7 @@
     "uninstall_noemaforge_0.32.1_mvp.sh",
     "uninstall_noemaforge_0.32.2_mvp.sh"
   ],
-  "generated_at": "2026-06-02T14:26:36Z",
+  "generated_at": "2026-06-02T18:40:40Z",
   "kind": "ReleaseManifest",
   "notes": [
     "0.32.2 hardening package: active package manifests exclude legacy root/top-level Markdown, generated caches and trash; checksums regenerated."

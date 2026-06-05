@@ -58,8 +58,9 @@ This is intentionally simple.
 
 
 import os
+from platform_paths import DEFAULT_PATHS as _pp
 
-SECRETS_DIR = "/var/lib/noemaforge/.sys/localgw_secrets"
+SECRETS_DIR = str(_pp.data_root / ".sys/localgw_secrets")
 
 
 # === NoemaForge Autodoc Function Header ===

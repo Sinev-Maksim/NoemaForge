@@ -20,9 +20,11 @@ import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from noemaforge_version import RUNTIME_VERSION
+from platform_paths import DEFAULT_PATHS as _platform_paths, PLATFORM_LINUX
 
 
 # ---------------------------------------------------------------------------
@@ -31,6 +33,19 @@ from noemaforge_version import RUNTIME_VERSION
 
 def _is_linux() -> bool:
     return sys.platform.startswith("linux")
+
+
+def _existing_probe_path(path: Path) -> Path:
+    probe = Path(path)
+    while not probe.exists() and probe != probe.parent:
+        probe = probe.parent
+    return probe
+
+
+def _default_first_start_storage_paths() -> List[str]:
+    if _platform_paths.platform == PLATFORM_LINUX:
+        return ["/", str(_platform_paths.share_dir).replace("\\", "/")]
+    return [str(_existing_probe_path(_platform_paths.data_root))]
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +220,7 @@ class PreflightSuite:
             checks=[
                 StorageCheck(
                     min_free_gb=min_storage_gb,
-                    paths=storage_paths or ["/", "/mnt/noemaforge-share"],
+                    paths=storage_paths if storage_paths is not None else _default_first_start_storage_paths(),
                 ),
                 DisplayCheck(manager=display_manager),
                 JournaldCheck(max_errors=journald_max_errors),

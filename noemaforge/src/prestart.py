@@ -82,6 +82,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from toolvault import bundle_paths, prepare_plugin_bundle
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from seclog import append as sel_append
@@ -89,11 +90,11 @@ except Exception:  # pragma: no cover
     sel_append = None  # type: ignore
 
 
-DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", "/var/lib/noemaforge/contracts")
-DEFAULT_REQUESTS_DIR = "/var/lib/noemaforge/requests/prestart"
-DEFAULT_POLICY_LOCK = "/var/lib/noemaforge/.sys/policy-lock.state"
+DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
+DEFAULT_REQUESTS_DIR = str(_pp.data_root / "requests/prestart")
+DEFAULT_POLICY_LOCK = str(_pp.data_root / ".sys/policy-lock.state")
 DEFAULT_MODE_FILE = "/run/noemaforge/mode"  # runtime typically writes 'runtime' here
-DEFAULT_NOTIFICATIONS_DIR = "/var/lib/noemaforge/notifications"
+DEFAULT_NOTIFICATIONS_DIR = str(_pp.data_root / "notifications")
 
 
 EPOCH_FILES = [
@@ -1257,7 +1258,7 @@ def _allowed_patch_authors() -> set[str]:
 # Key locals:
 #   - cur_link, dst, eid, ep, f, man, manifest, mapping, missing, name, src
 # === End NoemaForge Autodoc Function Header ===
-def ensure_epoch_initialized(config_dir: str = "/opt/noemaforge/configs", contracts_root: str = DEFAULT_CONTRACTS_ROOT) -> str:
+def ensure_epoch_initialized(config_dir: str = str(_pp.root / "configs"), contracts_root: str = DEFAULT_CONTRACTS_ROOT) -> str:
     """Create epoch 00001 from /opt/noemaforge/configs if no epochs exist."""
     os.makedirs(epochs_dir(contracts_root), exist_ok=True)
     if list_epochs(contracts_root):

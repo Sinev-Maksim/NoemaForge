@@ -25,6 +25,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
@@ -49,12 +50,12 @@ try:
 except Exception:  # pragma: no cover
     model_inventory_normalize = None  # type: ignore
 
-DEFAULT_INVENTORY = "/var/lib/noemaforge/bootstrap/model-inventory.json"
-DEFAULT_ROLE_CATALOG = "/opt/noemaforge/configs/role-catalog.yaml"
-DEFAULT_PACK_ROOT = "/var/lib/noemaforge/eval-packs/first-start-light"
-DEFAULT_STATE_DIR = "/var/lib/noemaforge/bootstrap"
-DEFAULT_MODELSTORE = "/var/lib/modelstore"
-DEFAULT_SCORECARDS = "/var/lib/noemaforge/model_scorecards"
+DEFAULT_INVENTORY = str(_pp.data_root / "bootstrap/model-inventory.json")
+DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
+DEFAULT_PACK_ROOT = str(_pp.data_root / "eval-packs/first-start-light")
+DEFAULT_STATE_DIR = str(_pp.data_root / "bootstrap")
+DEFAULT_MODELSTORE = str(_pp.modelstore_dir)
+DEFAULT_SCORECARDS = str(_pp.data_root / "model_scorecards")
 SCORECARD_DEVICE_ALIASES = {"cuda": "gpu", "nvidia": "gpu", "cpu": "cpu", "gpu": "gpu"}
 
 MANDATORY_CORE_ROLES = [
@@ -426,7 +427,7 @@ def runtime_state(model: Dict[str, Any]) -> Dict[str, Any]:
     probe = dict(model.get("runtime_probe") or {})
     fmt = str(model.get("artifact_format") or "")
     if fmt == "gguf":
-        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", "/opt/noemaforge/bin/llama-server")
+        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", str(_pp.root / "bin/llama-server"))
         source = str(model.get("source_path") or model.get("canonical_path") or "")
         safe = True
         reason = "ok"
@@ -743,7 +744,8 @@ def stop_gguf_backend(modelstore_id: str) -> None:
         time.sleep(3)
     if _pids_for_backend(modelstore_id):
         systemctl("kill", "--signal=KILL", unit)
-        _kill_backend_processes(modelstore_id, signal.SIGKILL)
+        # signal.SIGKILL is absent on Windows; fall back to SIGTERM.
+        _kill_backend_processes(modelstore_id, getattr(signal, "SIGKILL", signal.SIGTERM))
     _ACTIVE_BACKENDS.discard(modelstore_id)
     try:
         os.unlink(f"/run/noemaforge/llm/backends/{modelstore_id}.sock")

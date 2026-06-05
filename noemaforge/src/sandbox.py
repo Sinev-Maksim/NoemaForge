@@ -66,7 +66,20 @@ import base64
 import json
 import tempfile
 import time
-import resource
+try:
+    import resource
+except ImportError:  # Unix-only module; absent on Windows (dev host). POSIX rlimits no-op there.
+    resource = None
+
+
+def rlimits_available() -> bool:
+    """True when POSIX resource limits (RLIMIT_*) can be enforced on this host.
+
+    False on non-POSIX hosts (e.g. Windows) where the ``resource`` module is absent and
+    ``_apply_rlimits`` is a no-op. Surfaced in run metadata so a degraded host fallback is
+    not mistaken for genuinely resource-limited execution.
+    """
+    return resource is not None
 import contextlib
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -246,6 +259,8 @@ _quota_from_policy = quota_from_policy
 #   - asb, fsz
 # === End NoemaForge Autodoc Function Header ===
 def _apply_rlimits(quota: Quota) -> None:
+    if resource is None:  # Non-POSIX (e.g. Windows): POSIX rlimits are unavailable.
+        return
     # CPU time
     try:
         resource.setrlimit(resource.RLIMIT_CPU, (int(quota.cpu_time_sec), int(quota.cpu_time_sec)))
@@ -364,7 +379,7 @@ def _run_host(
     stdin_bytes: Optional[bytes] = None,
     network_guard: Optional[Dict[str, Any]] = None,
 ) -> Tuple[int, bytes, bytes, Dict[str, Any]]:
-    meta: Dict[str, Any] = {"backend": "host", "isolation": "degraded"}
+    meta: Dict[str, Any] = {"backend": "host", "isolation": "degraded", "rlimits_available": rlimits_available()}
 
     guard_ctx: contextlib.AbstractContextManager = contextlib.nullcontext()
     guard_meta: Dict[str, Any] = {"enabled": False}
@@ -418,7 +433,8 @@ def _run_host(
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             timeout=float(quota.timeout_sec),
-            preexec_fn=_preexec,
+            # preexec_fn is a POSIX-only subprocess feature (raises on Windows).
+            preexec_fn=_preexec if os.name == "posix" else None,
             text=False,
         )
     return p.returncode, p.stdout, p.stderr, meta
@@ -565,7 +581,8 @@ def _run_bwrap(
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 timeout=float(quota.timeout_sec),
-                preexec_fn=lambda: _apply_rlimits(quota),
+                # preexec_fn is a POSIX-only subprocess feature (raises on Windows).
+                preexec_fn=(lambda: _apply_rlimits(quota)) if os.name == "posix" else None,
                 text=False,
             )
         meta = {"backend": "bwrap", "isolation": "namespace", "unshare_net": bool(unshare_net), "netguard": guard_meta}

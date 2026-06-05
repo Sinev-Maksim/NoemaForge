@@ -73,13 +73,14 @@ import sys
 from typing import Any, Dict, List, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
-CFG_DIR = "/opt/noemaforge/configs"
+CFG_DIR = str(_pp.root / "configs")
 REG_PATH = os.path.join(CFG_DIR, "tool-registry.yaml")
 POL_PATH = os.path.join(CFG_DIR, "tool-policy.yaml")
 STR_PATH = os.path.join(CFG_DIR, "streams.yaml")
 
-DEFAULT_PROPOSALS_DIR = "/var/lib/noemaforge/tool_proposals"
+DEFAULT_PROPOSALS_DIR = str(_pp.data_root / "tool_proposals")
 
 TOOL_ID_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9_-]+)+$")
 

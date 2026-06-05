@@ -66,9 +66,10 @@ from dataclasses import dataclass
 from typing import Any, Dict, Optional, Tuple
 
 import yaml
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/resource-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/resource-policy.yaml")
 
 
 @dataclass

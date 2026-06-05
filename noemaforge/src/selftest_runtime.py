@@ -62,7 +62,7 @@ from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
 DEFAULT_ROOT = _pp.root
-DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", "/var/lib/noemaforge/selftests"))
+DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", str(_pp.data_root / "selftests")))
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
 POLICY_REL = Path("configs/selftest-telemetry-policy.json")
 

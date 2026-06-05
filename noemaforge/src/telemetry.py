@@ -59,6 +59,7 @@ import json
 import os
 import random
 from typing import Any, Dict, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 
 try:  # pragma: no cover
@@ -72,7 +73,7 @@ except Exception:  # pragma: no cover
     current_epoch_dir = None  # type: ignore
 
 
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/observability-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/observability-policy.yaml")
 
 
 # === NoemaForge Autodoc Function Header ===

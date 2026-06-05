@@ -72,8 +72,10 @@ import yaml
 import http.client
 import socket
 
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", "/var/lib/noemaforge/team_scorecards")
+
+DEFAULT_TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", str(_pp.data_root / "team_scorecards"))
 DEFAULT_GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
 
 

@@ -61,8 +61,9 @@ from seclog import append as sel_append
 
 import epoch
 import roadmap
+from platform_paths import DEFAULT_PATHS as _pp
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 SEL_DIR = os.path.join(BASE, "sel", "segments")
 QUAR_DIR = os.path.join(BASE, "quarantine")
 PACKETS_SSR = os.path.join(BASE, "packets", "ssr")
@@ -355,7 +356,7 @@ def run(
     os.makedirs(PACKETS_SCARY, exist_ok=True)
 
     eid = epoch.current_epoch_id()
-    e_dir = epoch.current_epoch_dir() or "/opt/noemaforge/configs"
+    e_dir = epoch.current_epoch_dir() or str(_pp.root / "configs")
     epoch_before = {"epoch_id": eid, "epoch_dir": e_dir}
 
     day = _today()
@@ -436,7 +437,7 @@ def run(
             exports[key] = {"ok": False, "error": repr(e)}
 
     # Runtime epoch immutability verification
-    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or "/opt/noemaforge/configs"}
+    epoch_after = {"epoch_id": epoch.current_epoch_id(), "epoch_dir": epoch.current_epoch_dir() or str(_pp.root / "configs")}
     epoch_immutable_ok = bool(epoch_before == epoch_after)
     paranoia_quality = {
         "signal_count": int(len(emitted)),

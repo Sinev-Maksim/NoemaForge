@@ -68,6 +68,7 @@ import os
 import re
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:  # pragma: no cover
     import yaml
@@ -75,9 +76,9 @@ except Exception:  # pragma: no cover
     yaml = None  # type: ignore
 
 
-BASE = "/var/lib/noemaforge"
+BASE = str(_pp.data_root)
 
-DEFAULT_POLICY_FALLBACK = "/opt/noemaforge/configs/incident-policy.yaml"
+DEFAULT_POLICY_FALLBACK = str(_pp.root / "configs/incident-policy.yaml")
 
 DEFAULT_REQUESTS_DIR = os.path.join(BASE, "requests", "prestart")
 DEFAULT_OUTBOX_DIR = "/workspace/outbox/scary/fixtures"

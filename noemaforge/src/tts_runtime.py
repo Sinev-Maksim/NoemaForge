@@ -69,13 +69,14 @@ import subprocess
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import yaml  # type: ignore
 except Exception:  # pragma: no cover
     yaml = None  # type: ignore
 
-DEFAULT_POLICY_PATH = "/opt/noemaforge/configs/tts-backends-policy.yaml"
+DEFAULT_POLICY_PATH = str(_pp.root / "configs/tts-backends-policy.yaml")
 DEFAULT_ARTIFACTS_ROOT = "/workspace/outbox/tts"
 DEFAULT_SESSIONS_ROOT = "/workspace/state/tts_sessions"
 LIVE_PROCS: Dict[int, subprocess.Popen[Any]] = {}

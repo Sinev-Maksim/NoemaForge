@@ -14,6 +14,8 @@ import re
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Sequence, Set
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 LLM_NAMES = [
     "qwen", "llama", "mistral", "mixtral", "deepseek", "phi", "falcon", "granite", "olmo",
     "jamba", "openelm", "command-r", "nemotron", "minicpm", "gemma", "yi", "internlm", "starcoder",
@@ -174,7 +176,7 @@ def runtime_probe(runtime_family: str) -> Dict[str, Any]:
     import shutil
     fam = (runtime_family or "").lower()
     if fam == "llama.cpp":
-        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", "/opt/noemaforge/bin/llama-server")
+        path = os.environ.get("NOEMAFORGE_LLAMA_SERVER", str(_pp.root / "bin/llama-server"))
         return {"runtime_family": runtime_family, "available": os.path.exists(path) and os.access(path, os.X_OK), "probe": path}
     if fam == "piper":
         p = shutil.which("piper") or shutil.which("piper-tts")

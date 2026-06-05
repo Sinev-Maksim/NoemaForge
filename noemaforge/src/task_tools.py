@@ -59,8 +59,9 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 import taskqueue
+from platform_paths import DEFAULT_PATHS as _pp
 
-PROJECTS_BASE = "/var/lib/noemaforge/projects"
+PROJECTS_BASE = str(_pp.data_root / "projects")
 
 USER_TO_ENGINE = {
     "queued": "TODO",

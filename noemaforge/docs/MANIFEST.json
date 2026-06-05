@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1811,
+  "file_count": 1813,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -613,6 +613,7 @@
     "docs/quality/CLAUDE_REVIEW_QUEUE_0.32.2.md",
     "docs/quality/DOC_COMPLETENESS_0.32.2.md",
     "docs/quality/RELEASE_GATE_0.32.2_REPORT.md",
+    "docs/quality/UAT_SCENARIOS_0.32.2.md",
     "docs/quality/VERIFICATION_AND_AUDIT.md",
     "docs/reference/KNOWLEDGE_BASE.md",
     "docs/reference/PROJECT_CONTEXT.md",
@@ -1364,6 +1365,7 @@
     "tests/test_job_get_cancel_normalize.py",
     "tests/test_job_heartbeat_and_process_runner.py",
     "tests/test_job_manager.py",
+    "tests/test_job_manager_prune_terminal.py",
     "tests/test_job_progress_stream_performance.py",
     "tests/test_job_progress_stream_qa.py",
     "tests/test_job_progress_stream_runtime.py",
@@ -1564,6 +1566,8 @@
     "tests/test_safe_worktree_evolution_performance.py",
     "tests/test_safe_worktree_evolution_qa.py",
     "tests/test_safe_worktree_evolution_runtime.py",
+    "tests/test_sandbox_rlimits_metadata.py",
+    "tests/test_seclog_cross_platform.py",
     "tests/test_self_improvement_03022.py",
     "tests/test_selftest_event_store_performance.py",
     "tests/test_selftest_event_store_qa.py",
@@ -1754,6 +1758,7 @@
     "tools/windows/noemaforge_check.ps1",
     "tools/windows/noemaforge_lab.ps1",
     "tools/windows/prepare_workspace.ps1",
+    "tools/windows/run_admin_gui.ps1",
     "tools/windows/run_all.cmd",
     "tools/windows/run_check.cmd",
     "tools/windows/run_dashboard_lab.cmd",
@@ -1814,7 +1819,7 @@
     "ui/personas/portraits/writing.story_world_keeper_gen0.svg",
     "ui/personas/portraits/writing.story_writer_gen0.svg"
   ],
-  "generated_at": "2026-06-02T14:26:36Z",
+  "generated_at": "2026-06-02T18:40:40Z",
   "kind": "DocsManifest",
   "version": "0.32.2"
 }

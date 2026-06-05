@@ -63,9 +63,10 @@ import hashlib
 import json
 import os
 from typing import Any, Dict, Optional, Tuple
+from platform_paths import DEFAULT_PATHS as _pp
 
 
-DEFAULT_STORE_DIR = "/var/lib/noemaforge/.sys/fixture_samples/quarantine"
+DEFAULT_STORE_DIR = str(_pp.data_root / ".sys/fixture_samples/quarantine")
 
 
 # === NoemaForge Autodoc Function Header ===
