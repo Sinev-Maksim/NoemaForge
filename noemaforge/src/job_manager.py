@@ -30,6 +30,31 @@ def _nowz() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _parse_z(value: str) -> Optional[float]:
+    """Parse an ISO-8601 'Z'/offset timestamp to a POSIX timestamp; None if unparseable."""
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (ValueError, TypeError):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.timestamp()
+
+
+def _first_parseable_ts(*values: str) -> Optional[float]:
+    """Return the first value that parses as a timestamp, in argument order.
+
+    A non-empty but corrupt earlier value does not block a valid later one.
+    """
+    for value in values:
+        ts = _parse_z(value or "")
+        if ts is not None:
+            return ts
+    return None
+
+
 def _new_job_id(kind: str) -> str:
     ts = _nowz().replace(":", "").replace("-", "").replace("Z", "")
     slug = kind.replace("-", "_")[:24]
@@ -104,6 +129,21 @@ class JobManager:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
+
+    def _safe_job_file(self, job_id: str) -> Optional[Path]:
+        """Return ``<jobs_dir>/<job_id>.json`` only if it resolves to a direct child of
+        the jobs dir. Guards deletion/IO against a crafted or corrupt ``job_id`` whose
+        path separators would otherwise let it escape ``jobs_dir``.
+        """
+        if not job_id:
+            return None
+        candidate = self._dir / f"{job_id}.json"
+        try:
+            if candidate.resolve().parent != self._dir.resolve():
+                return None
+        except OSError:
+            return None
+        return candidate
 
     def _read_index(self) -> Dict[str, Any]:
         """Load jobs.json; return {"jobs": [...]} even if file is missing/corrupt."""
@@ -240,6 +280,41 @@ class JobManager:
     def list_active(self) -> List[Dict[str, Any]]:
         """Return only jobs in active states (queued / starting / running / cancel_requested)."""
         return [j for j in self.list_all() if j["status"] in ACTIVE_JOB_STATES]
+
+    def prune_terminal(self, max_age_seconds: int = 86400) -> List[str]:
+        """Remove terminal jobs (done / failed / cancelled) older than *max_age_seconds*.
+
+        Age is measured from the first parseable of ``finished_at``, ``updated_at``,
+        ``created_at`` (a corrupt earlier field does not block a valid later one).
+        Active jobs are never pruned, and a terminal job whose timestamps are all
+        missing or unparseable is kept (conservative). Both the index entry and the
+        per-job ``<job_id>.json`` file are removed. Returns the list of pruned
+        job_ids. This bounds unbounded growth of the job index.
+        """
+        if max_age_seconds < 0:
+            return []
+        cutoff = datetime.now(timezone.utc).timestamp() - max_age_seconds
+        data = self._read_index()
+        kept: List[Dict[str, Any]] = []
+        pruned: List[str] = []
+        for job in data.get("jobs", []):
+            status = str(job.get("status") or "")
+            ts = _first_parseable_ts(job.get("finished_at"), job.get("updated_at"), job.get("created_at"))
+            if status in FINAL_JOB_STATES and ts is not None and ts < cutoff:
+                job_id = str(job.get("job_id") or "")
+                pruned.append(job_id)
+                target = self._safe_job_file(job_id)
+                if target is not None:
+                    try:
+                        target.unlink(missing_ok=True)
+                    except OSError:
+                        pass
+            else:
+                kept.append(job)
+        if pruned:
+            data["jobs"] = kept
+            self._write_index(data)
+        return pruned
 
     def update_status(
         self,
