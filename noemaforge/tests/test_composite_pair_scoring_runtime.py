@@ -135,6 +135,27 @@ class CompositePairScoringTests(unittest.TestCase):
         self.assertEqual(0.0, pairs[0]["diversity_bonus"])
         self.assertEqual(["homogeneous pair"], pairs[0]["reasons"])
 
+    def test_unknown_vs_known_metadata_earns_no_bonus(self):
+        # If one candidate has an empty/absent family or runtime (missing information),
+        # it must NOT earn the diversity bonus vs a candidate with known metadata.
+        pairs = cps.rank_composite_pairs([
+            {"id": "known", "family": "llama", "runtime": "llama.cpp", "score": 10.0},
+            {"id": "unknown", "family": "", "runtime": "", "score": 9.0},
+        ])
+        self.assertEqual(1, len(pairs))
+        self.assertEqual(0.0, pairs[0]["diversity_bonus"],
+                         "empty family/runtime must not earn a diversity bonus")
+
+    def test_both_known_and_different_earns_bonus(self):
+        # Two candidates with distinct, non-empty family AND runtime both earn the full bonus.
+        pairs = cps.rank_composite_pairs([
+            {"id": "a", "family": "llama", "runtime": "llama.cpp", "score": 10.0},
+            {"id": "b", "family": "qwen", "runtime": "vllm", "score": 9.0},
+        ])
+        self.assertEqual(1, len(pairs))
+        self.assertIn("family diversity", pairs[0]["reasons"])
+        self.assertIn("runtime diversity", pairs[0]["reasons"])
+
     def test_loader_rejects_non_object_entry(self):
         with tempfile.TemporaryDirectory() as d:
             path = Path(d) / "bad.json"

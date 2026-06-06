@@ -77,10 +77,15 @@ def pair_score(left: Dict[str, Any], right: Dict[str, Any]) -> Dict[str, Any]:
 
     reasons: List[str] = []
     diversity = 0.0
-    if _norm(_field(left, "family")) != _norm(_field(right, "family")):
+    # Award family/runtime diversity only when BOTH sides have non-empty metadata AND they
+    # differ. An unknown-vs-known comparison (one side empty) must not receive the bonus,
+    # since an empty field signals missing information rather than a different family/runtime.
+    left_fam, right_fam = _norm(_field(left, "family")), _norm(_field(right, "family"))
+    if left_fam and right_fam and left_fam != right_fam:
         diversity += FAMILY_DIVERSITY_BONUS
         reasons.append("family diversity")
-    if _norm(_field(left, "runtime")) != _norm(_field(right, "runtime")):
+    left_rt, right_rt = _norm(_field(left, "runtime")), _norm(_field(right, "runtime"))
+    if left_rt and right_rt and left_rt != right_rt:
         diversity += RUNTIME_DIVERSITY_BONUS
         reasons.append("runtime diversity")
     left_tags, right_tags = _role_tags(left), _role_tags(right)
