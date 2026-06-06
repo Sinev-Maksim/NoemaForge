@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1813,
+  "file_count": 1817,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -618,6 +618,7 @@
     "docs/reference/KNOWLEDGE_BASE.md",
     "docs/reference/PROJECT_CONTEXT.md",
     "docs/release.json",
+    "docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
     "docs/setup.sh",
     "docs/uninstall_noemaforge_0.31.13.alpha_mvp.sh",
