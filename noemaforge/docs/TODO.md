@@ -26,6 +26,9 @@ and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](refere
 - [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack.
 - [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch.
 - [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial.
+- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A)
+- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
+- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
 
 ## 0.32.2 release-hardening checkpoints
 
