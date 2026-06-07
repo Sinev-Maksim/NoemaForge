@@ -28,10 +28,20 @@ jobs:
         id: info
         run: |
           set -euo pipefail
-          base_branch="release/0.32.2-hardening"
+          # Auto-detect the nearest active release line so 0.32.2 and 0.33.0 branches both
+          # diff against their true base (release/0.33.0-dev descends from 0.32.2-hardening,
+          # so both are ancestors of a 0.33.0 branch — prefer the closest one listed first).
+          base_branch=""
+          for cand in release/0.33.0-dev release/0.32.2-hardening; do
+            git fetch --no-tags --depth=200 origin "$cand" 2>/dev/null || continue
+            if git merge-base --is-ancestor "origin/$cand" HEAD 2>/dev/null; then
+              base_branch="$cand"; break
+            fi
+          done
+          [ -n "$base_branch" ] || base_branch="release/0.32.2-hardening"
+          echo "Resolved base branch: $base_branch"
           changed_file_list="$RUNNER_TEMP/changed_files.txt"
 
-          git fetch --no-tags --depth=1 origin "$base_branch"
           git diff --name-only --diff-filter=ACMR "origin/$base_branch" HEAD > "$changed_file_list"
 
           echo "branch=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
@@ -140,14 +150,22 @@ jobs:
           print("PASS: no forbidden RUNTIME_VERSION assignment in changed files")
           EOF
 
-      - name: VERSION files = 0.32.2
+      - name: VERSION files equal SoT version
         run: |
           python - <<'EOF'
           from pathlib import Path
           import os
           import sys
 
-          expected = '0.32.2'
+          # Derive the expected version from the source of truth (noemaforge_version.RUNTIME_VERSION,
+          # which reads the canonical VERSION file) instead of hardcoding a literal. This keeps the
+          # check version-agnostic across release lines (0.32.2, 0.33.0, ...).
+          sys.path.insert(0, 'noemaforge/src')
+          try:
+              from noemaforge_version import RUNTIME_VERSION as expected
+          except Exception:
+              expected = Path('VERSION').read_text(encoding='utf-8').strip()
+          print(f"Expected version (from SoT): {expected!r}")
           version_files = {Path('VERSION'), Path('noemaforge/VERSION'), Path('docs/VERSION')}
           changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
           changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
