@@ -26,10 +26,19 @@ additionally protects named state that may live inside the install tree.
 from __future__ import annotations
 
 import argparse
+import io
+import json
 import shutil
 import sys
+import tarfile
+import urllib.error
+import urllib.request
+import zipfile
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
+
+# Hard cap on a downloaded release archive (defends against a hostile/oversized response).
+DEFAULT_MAX_ARCHIVE_BYTES = 500 * 1024 * 1024
 
 # Managed extensions: the only files an upgrade is allowed to overwrite in place.
 REPLACE_SUFFIXES = {
@@ -171,6 +180,100 @@ def format_plan(plan: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# ── GitHub-native fetch (resolve + fail-safe archive download + safe extract) ──────────
+#
+# A "Fetcher" is any callable url -> bytes; the default uses urllib. Injecting it keeps the
+# network layer deterministically testable and lets callers add proxies/auth.
+Fetcher = Callable[[str], bytes]
+
+
+def _default_fetcher(url: str, *, max_bytes: int = DEFAULT_MAX_ARCHIVE_BYTES) -> bytes:
+    req = urllib.request.Request(url, headers={"User-Agent": "NoemaForge-upgrade",
+                                               "Accept": "application/vnd.github+json"})
+    with urllib.request.urlopen(req) as resp:  # noqa: S310 - https GitHub URLs only
+        data = resp.read(max_bytes + 1)
+    if len(data) > max_bytes:
+        raise ValueError(f"archive exceeds size cap ({max_bytes} bytes)")
+    return data
+
+
+def resolve_release(repo: str, version: Optional[str] = None, *,
+                    fetcher: Optional[Fetcher] = None) -> Dict[str, str]:
+    """Resolve a GitHub release to a tag + downloadable tarball URL.
+
+    ``version`` None resolves the repo's latest release; otherwise the given tag is used.
+    Network access goes through *fetcher* (injectable for tests). GitHub-native, with the
+    codeload tarball as the fail-safe archive source.
+    """
+    fetch = fetcher or _default_fetcher
+    if "/" not in repo:
+        raise ValueError("repo must be 'owner/name'")
+    if version is None:
+        meta = json.loads(fetch(f"https://api.github.com/repos/{repo}/releases/latest").decode("utf-8"))
+        tag = meta.get("tag_name")
+        if not tag:
+            raise ValueError("latest release has no tag_name")
+        version = str(tag)
+    archive_url = f"https://api.github.com/repos/{repo}/tarball/{version}"
+    return {"version": version, "archive_url": archive_url, "kind": "tar"}
+
+
+def _is_within(base: Path, target: Path) -> bool:
+    try:
+        base_r = base.resolve()
+        target_r = target.resolve()
+    except OSError:
+        return False
+    return base_r == target_r or base_r in target_r.parents
+
+
+def _safe_members_tar(tf: tarfile.TarFile, dest: Path):
+    for m in tf.getmembers():
+        # Reject symlinks/hardlinks/devices and any path escaping dest (zip-slip / tar-slip).
+        if m.issym() or m.islnk() or m.isdev():
+            raise ValueError(f"unsafe archive member type: {m.name}")
+        if m.name.startswith("/") or ".." in Path(m.name).parts:
+            raise ValueError(f"unsafe archive member path: {m.name}")
+        if not _is_within(dest, dest / m.name):
+            raise ValueError(f"archive member escapes destination: {m.name}")
+        yield m
+
+
+def _safe_extract_zip(zf: zipfile.ZipFile, dest: Path):
+    for name in zf.namelist():
+        if name.startswith("/") or ".." in Path(name).parts or not _is_within(dest, dest / name):
+            raise ValueError(f"unsafe archive member path: {name}")
+    zf.extractall(dest)
+
+
+def fetch_and_extract(archive_url: str, dest: Path, *, fetcher: Optional[Fetcher] = None,
+                      max_bytes: int = DEFAULT_MAX_ARCHIVE_BYTES) -> Path:
+    """Download an archive and extract it under *dest*, guarding against path traversal.
+
+    Returns the extracted top-level directory (GitHub archives nest everything under a single
+    ``owner-repo-sha/`` folder). Never writes outside *dest*; never follows archive symlinks.
+    """
+    fetch = fetcher or (lambda u: _default_fetcher(u, max_bytes=max_bytes))
+    dest = Path(dest)
+    dest.mkdir(parents=True, exist_ok=True)
+    blob = fetch(archive_url)
+    if len(blob) > max_bytes:
+        raise ValueError(f"archive exceeds size cap ({max_bytes} bytes)")
+
+    bio = io.BytesIO(blob)
+    if zipfile.is_zipfile(bio):
+        bio.seek(0)
+        with zipfile.ZipFile(bio) as zf:
+            _safe_extract_zip(zf, dest)
+    else:
+        bio.seek(0)
+        with tarfile.open(fileobj=bio, mode="r:*") as tf:
+            tf.extractall(dest, members=list(_safe_members_tar(tf, dest)))
+
+    entries = [p for p in dest.iterdir() if p.is_dir()]
+    return entries[0] if len(entries) == 1 else dest
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="noema upgrade",
@@ -189,8 +292,30 @@ def main(argv: Optional[List[str]] = None) -> int:
             sp.add_argument("--apply", action="store_true",
                             help="actually write changes (default is dry-run)")
 
+    p_fetch = sub.add_parser("fetch", help="download + extract a GitHub release for upgrade")
+    p_fetch.add_argument("--repo", required=True, help="GitHub 'owner/name'")
+    p_fetch.add_argument("--version", default=None, help="tag to fetch (default: latest release)")
+    p_fetch.add_argument("--dest", required=True, help="directory to extract into")
+    p_fetch.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
-    import json
+
+    if args.command == "fetch":
+        try:
+            rel = resolve_release(args.repo, args.version)
+            root = fetch_and_extract(rel["archive_url"], Path(args.dest))
+        except (OSError, ValueError, urllib.error.URLError,
+                tarfile.TarError, zipfile.BadZipFile) as exc:
+            # Corrupt / non-archive responses surface as a clean FAIL, not a traceback.
+            print(f"FAIL: fetch failed: {exc}")
+            return 1
+        if args.json:
+            print(json.dumps({"version": rel["version"], "extracted_root": str(root)},
+                             indent=2, ensure_ascii=False))
+        else:
+            print(f"fetched {args.repo}@{rel['version']} -> {root}")
+        return 0
+
     plan = plan_upgrade(Path(args.current), Path(args.incoming), preserve_globs=args.preserve)
 
     if args.command == "plan":
