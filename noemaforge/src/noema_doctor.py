@@ -201,19 +201,25 @@ def collect_report(package_root: Optional[Path] = None, *, probe_admin: bool = T
         _check(checks, "schemas", LEVEL_WARN, f"schemas present: {sch_present or 'none'}", found=sch_present)
 
     # 9. Admin control-plane reachability (optional probe)
-    if probe_admin and paths is not None:
+    # Always emit exactly one admin_control_plane row so the report shape is stable.
+    if not probe_admin:
+        _check(checks, "admin_control_plane", LEVEL_INFO, "probe skipped")
+    elif paths is None:
+        _check(checks, "admin_control_plane", LEVEL_INFO,
+               "address unavailable (platform_paths missing)")
+    else:
         try:
             addr = paths.gui_listen_address
         except Exception:
             addr = None
-        if addr is not None:
+        if addr is None:
+            _check(checks, "admin_control_plane", LEVEL_INFO, "address unavailable")
+        else:
             info = _probe_admin(addr)
             listening = info.get("listening")
-            level = LEVEL_INFO  # not-listening is normal when the dashboard is stopped
-            _check(checks, "admin_control_plane", level,
+            # not-listening is normal when the dashboard is stopped → informational.
+            _check(checks, "admin_control_plane", LEVEL_INFO,
                    f"admin {info.get('address')} listening={listening}", **info)
-    elif not probe_admin:
-        _check(checks, "admin_control_plane", LEVEL_INFO, "probe skipped")
 
     # 10. Model backends (best-effort which)
     backends = {name: (shutil.which(name) or None) for name in BACKEND_EXECUTABLES}

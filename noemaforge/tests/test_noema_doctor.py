@@ -79,6 +79,15 @@ class NoemaDoctorTests(unittest.TestCase):
         self.assertTrue(admin)
         self.assertIn("skipped", admin[0]["detail"])
 
+    def test_admin_row_always_emitted_even_without_platform_paths(self):
+        # Codex nit: a row must appear even when platform_paths / gui_listen_address is absent.
+        import unittest.mock as mock
+        with mock.patch.object(nd, "_safe_paths", return_value=None):
+            r = nd.collect_report(package_root=PKG, probe_admin=True)
+        admin = [c for c in r["checks"] if c["id"] == "admin_control_plane"]
+        self.assertEqual(len(admin), 1, "exactly one admin_control_plane row expected")
+        self.assertTrue(r["ok"])  # absence of paths is informational, not critical
+
     def test_display_safety_reminder_present(self):
         r = self._report()
         ds = next(c for c in r["checks"] if c["id"] == "display_safety")
