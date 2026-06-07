@@ -6,12 +6,58 @@ short, runnable acceptance check with explicit pass criteria. "Windows" = the de
 RTX 3080 Ti). Display-safety rule: every model-selection / heavy-GPU command on the
 target MUST carry `--keep-display`.
 
+## Before you run — which tree to test (READ FIRST)
+
+Each scenario below is tagged with the PR that delivered it. **"PR #N — merged" means the
+feature lives on `release/0.32.2-hardening`, not necessarily on the branch you have checked
+out.** Running these scenarios on a feature branch or an older branch will produce confusing
+failures that are *environment faults, not product defects*, for example:
+
+- `ModuleNotFoundError: No module named 'resource'` → you are on a tree from **before** PR #33.
+- `AttributeError: 'AdminGuiServer' object has no attribute 'bootstrap_dir'` → before PR #30/#31.
+- `can't open file '...composite_pair_scoring.py'` / `No module named 'test_..._prune_terminal'`
+  / launcher `.ps1` "does not exist" → before PR #44 / #37 / #36.
+
+So **run UAT against the fully integrated release** (or the installed 0.32.2 package):
+
+```powershell
+cd C:\Users\sinev\!Projects\NoemaForge
+git fetch origin
+git checkout release/0.32.2-hardening
+git pull --ff-only            # ensure every merged hardening PR is present
+```
+
 Common setup (Windows), used by several scenarios:
 
 ```powershell
 cd C:\Users\sinev\!Projects\NoemaForge
 $env:PYTHONPYCACHEPREFIX = "$env:TEMP\nfpyc"      # keep .pyc out of the tree
 $env:PYTHONPATH = "noemaforge/src;noemaforge/tests"
+```
+
+### Preflight self-check (fails loudly if your tree is stale)
+
+Run this once before the scenarios. If any line says `MISSING`, your checkout predates a
+hardening PR — update it (above) before continuing; do not file a UAT failure.
+
+```powershell
+$ok = $true
+@(
+  "noemaforge/src/composite_pair_scoring.py",
+  "noemaforge/tests/test_composite_pair_scoring_runtime.py",
+  "noemaforge/tests/test_job_manager_prune_terminal.py",
+  "noemaforge/tests/test_vault_reinventory_job_runtime.py",
+  "noemaforge/tools/windows/run_admin_gui.ps1"
+) | ForEach-Object {
+  if (Test-Path $_) { "OK      $_" }
+  else { $ok = $false; "MISSING $_" }
+}
+# sandbox import must not raise on Windows (PR #33)
+$env:PYTHONPATH = "noemaforge/src;noemaforge/tests"
+py -3 -c "import sandbox, canary_runner" 2>$null
+if ($LASTEXITCODE -ne 0) { $ok = $false; "MISSING sandbox import-safety (pre-#33 tree)" }
+if ($ok) { "PREFLIGHT OK — tree has all 0.32.2 hardening features" }
+else { Write-Error "PREFLIGHT FAILED — update to release/0.32.2-hardening before running UAT" }
 ```
 
 ---
@@ -160,8 +206,17 @@ not POSIX `/var/lib/...`, and no exception is raised.
 
 ## Notes
 
-- The merged features (UAT-1, 2, 8, 9) are already on `release/0.32.2-hardening`; the rest are
-  in open PRs #34–#38 pending merge.
+- **All hardening features (UAT-1 … UAT-9) are now merged into `release/0.32.2-hardening`**
+  (PRs #30, #31, #33–#38, #44). Run every scenario against that branch (see the preflight above).
 - Full end-to-end acceptance (live GPU model selection, GDM display-safety, first-start) is
   **target-host only** and tracked separately in the release validation checklist; those are
   not reproducible on the Windows dev host.
+
+## Verification record
+
+| Date | Tree | Result |
+|---|---|---|
+| 2026-06-07 | `release/0.32.2-hardening` @ `af30b54` (clean worktree) | **All UAT-1…7 unit/static scenarios PASS** on Windows dev host (`py -3`, Python 3.14): idempotency 6/6 + 6/6, sandbox/canary + importers import OK, syscall-guarded imports OK (SIGKILL→SIGTERM fallback), composite scorer CLI + tests OK, JobManager.prune_terminal + job_manager OK, launcher parses with 0 errors. |
+
+A prior tryout that reported failures was traced to running on a **stale branch 83 commits
+behind release** (pre-hardening code); the preflight self-check above now catches that case.
