@@ -15,7 +15,10 @@ Tests: python3 -m unittest test_noema_upgrade
 Notes: Code comments are English-only.
 === End NoemaForge File Header ===
 """
+import io
+import json
 import sys
+import tarfile
 import tempfile
 import unittest
 from pathlib import Path
@@ -25,6 +28,28 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 import noema_upgrade as nu  # noqa: E402
+
+
+def _tar_bytes(files, *, symlink=None, traversal=None):
+    """Build an in-memory .tar (gzip) for fetch tests. files: list of (name, content)."""
+    bio = io.BytesIO()
+    with tarfile.open(fileobj=bio, mode="w:gz") as tf:
+        for name, content in files:
+            data = content.encode("utf-8")
+            ti = tarfile.TarInfo(name)
+            ti.size = len(data)
+            tf.addfile(ti, io.BytesIO(data))
+        if traversal:
+            data = b"evil"
+            ti = tarfile.TarInfo(traversal)
+            ti.size = len(data)
+            tf.addfile(ti, io.BytesIO(data))
+        if symlink:
+            ti = tarfile.TarInfo(symlink)
+            ti.type = tarfile.SYMTYPE
+            ti.linkname = "/etc/passwd"
+            tf.addfile(ti)
+    return bio.getvalue()
 
 
 def _w(root: Path, rel: str, text: str):
@@ -141,6 +166,54 @@ class NoemaUpgradeTests(unittest.TestCase):
             rc_apply = nu.main(["apply", "--current", str(cur), "--incoming", str(inc)])
             self.assertEqual(rc_apply, 0)
             self.assertEqual((cur / "noemaforge/src/app.py").read_text(encoding="utf-8"), "old")
+
+
+class NoemaUpgradeFetchTests(unittest.TestCase):
+    def test_resolve_release_latest_uses_tag_name(self):
+        def fake(url):
+            self.assertIn("/releases/latest", url)
+            return json.dumps({"tag_name": "v0.33.0"}).encode("utf-8")
+        rel = nu.resolve_release("owner/repo", None, fetcher=fake)
+        self.assertEqual(rel["version"], "v0.33.0")
+        self.assertIn("/tarball/v0.33.0", rel["archive_url"])
+
+    def test_resolve_release_explicit_version_no_network(self):
+        def boom(url):
+            raise AssertionError("should not call network for explicit version")
+        rel = nu.resolve_release("owner/repo", "v1.2.3", fetcher=boom)
+        self.assertEqual(rel["version"], "v1.2.3")
+
+    def test_resolve_release_rejects_bad_repo(self):
+        with self.assertRaises(ValueError):
+            nu.resolve_release("not-a-repo", "v1", fetcher=lambda u: b"{}")
+
+    def test_fetch_and_extract_benign_tar(self):
+        blob = _tar_bytes([("repo-abc123/app.py", "print(1)"),
+                           ("repo-abc123/sub/readme.md", "hi")])
+        with tempfile.TemporaryDirectory() as d:
+            root = nu.fetch_and_extract("https://x/archive", Path(d), fetcher=lambda u: blob)
+            self.assertEqual(root.name, "repo-abc123")
+            self.assertEqual((root / "app.py").read_text(encoding="utf-8"), "print(1)")
+            self.assertTrue((root / "sub" / "readme.md").is_file())
+
+    def test_fetch_and_extract_rejects_path_traversal(self):
+        blob = _tar_bytes([("repo/a.py", "ok")], traversal="../escape.txt")
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(ValueError):
+                nu.fetch_and_extract("https://x/archive", Path(d), fetcher=lambda u: blob)
+
+    def test_fetch_and_extract_rejects_symlink_member(self):
+        blob = _tar_bytes([("repo/a.py", "ok")], symlink="repo/link")
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(ValueError):
+                nu.fetch_and_extract("https://x/archive", Path(d), fetcher=lambda u: blob)
+
+    def test_fetch_and_extract_enforces_size_cap(self):
+        blob = _tar_bytes([("repo/a.py", "x" * 100)])
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(ValueError):
+                nu.fetch_and_extract("https://x/archive", Path(d),
+                                     fetcher=lambda u: blob, max_bytes=10)
 
 
 if __name__ == "__main__":
