@@ -307,16 +307,23 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
-          # Auto-detect the nearest active release line so a 0.33.0 branch is reviewed against
-          # release/0.33.0-dev (its true base) rather than release/0.32.2-hardening — otherwise
-          # the whole 0.33.0 foundation delta (version bump, gate changes) would be mis-reviewed
-          # as if targeting 0.32.2. Safe fallback preserves prior behavior for 0.32.2 branches.
-          $baseBranch = $null
-          foreach ($cand in @('release/0.33.0-dev', 'release/0.32.2-hardening')) {
-            git fetch --no-tags --depth=200 origin $cand 2>$null | Out-Null
-            git merge-base --is-ancestor "origin/$cand" HEAD 2>$null
-            if ($LASTEXITCODE -eq 0) { $baseBranch = $cand; break }
+          # Resolve the PR's TRUE base branch from the API (authoritative) so a 0.33.0 branch is
+          # reviewed against release/0.33.0-dev, not the whole 0.32.2 delta. Shallow-clone ancestry
+          # (git merge-base --is-ancestor) is unreliable on the depth=1 runner checkout, so we ask
+          # GitHub for the open PR's base.ref. Fallback preserves prior behavior for 0.32.2 branches.
+          $apiHeaders = @{
+            Accept = 'application/vnd.github+json'
+            'User-Agent' = 'NoemaForge-CI'
+            'X-GitHub-Api-Version' = '2022-11-28'
           }
+          if ($env:GITHUB_TOKEN) { $apiHeaders.Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $owner = $env:GITHUB_REPOSITORY.Split('/')[0]
+          $baseBranch = ''
+          try {
+            $prUrl = "https://api.github.com/repos/$($env:GITHUB_REPOSITORY)/pulls?head=$($owner):$($env:GITHUB_REF_NAME)&state=open"
+            $prs = Invoke-RestMethod -Uri $prUrl -Headers $apiHeaders
+            if ($prs -and @($prs).Count -ge 1 -and @($prs)[0].base.ref) { $baseBranch = @($prs)[0].base.ref }
+          } catch { Write-Host "PR base lookup failed: $($_.Exception.Message)" }
           if (-not $baseBranch) { $baseBranch = 'release/0.32.2-hardening' }
           Write-Host "Resolved Codex review base: $baseBranch"
           "CODEX_BASE_BRANCH=$baseBranch" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
