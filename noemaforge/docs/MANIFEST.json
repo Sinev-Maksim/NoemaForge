@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1820,
+  "file_count": 1818,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -622,6 +622,7 @@
     "docs/reference/KNOWLEDGE_BASE.md",
     "docs/reference/PROJECT_CONTEXT.md",
     "docs/release.json",
+    "docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
     "docs/setup.sh",
     "docs/uninstall_noemaforge_0.31.13.alpha_mvp.sh",
@@ -863,6 +864,7 @@
     "src/code_evolution_loop.py",
     "src/code_qa_runtime.py",
     "src/community_pack_contribution_runtime.py",
+    "src/composite_pair_scoring.py",
     "src/concept_frame_runtime.py",
     "src/coordinator_fanout.py",
     "src/cpu_gpu_scorecard_separation_runtime.py",
@@ -1229,6 +1231,7 @@
     "tests/test_community_pack_contribution_performance.py",
     "tests/test_community_pack_contribution_qa.py",
     "tests/test_community_pack_contribution_runtime.py",
+    "tests/test_composite_pair_scoring_runtime.py",
     "tests/test_concept_frame_performance.py",
     "tests/test_concept_frame_qa.py",
     "tests/test_concept_frame_runtime.py",
