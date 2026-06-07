@@ -12,6 +12,24 @@ _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
 - [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
+## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
+
+_Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
+and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
+
+- [ ] Add Hermes-style SKILL.md parser as quarantine-only import.
+- [ ] Add SkillProposal schema with SSR/QA review status.
+- [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events.
+- [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing.
+- [ ] Add provider-runtime-resolver design doc.
+- [ ] Add profile isolation contract for config/memory/sessions/gateway tokens.
+- [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack.
+- [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch.
+- [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial.
+- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A)
+- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
+- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
+
 ## 0.32.2 release-hardening checkpoints
 
 - 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.

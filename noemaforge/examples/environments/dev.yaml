@@ -1,0 +1,27 @@
+# examples/environments/dev.yaml
+# Development environment profile for NoemaForge.
+# This is a DOCUMENTATION EXAMPLE for 0.32.2.
+# Promotion path: dev -> stage -> stable (requires explicit operator apply at each step).
+
+apiVersion: noemaforge.environments/v1
+kind: Environment
+metadata:
+  name: dev
+  description: Local development / lab environment. Not for production data.
+
+spec:
+  platform:
+    display_policy: keep_display
+    bind_admin_gui: "127.0.0.1:8765"
+
+  model_profile: fast           # fast startup; single candidate accepted
+  auto_start_llm: false         # no implicit LLM auto-start
+  approval_required: false      # dev skips approval gates for speed
+
+  data_roots:
+    # Resolved by platform_paths at runtime; shown here for documentation.
+    sessions: "$LOCALAPPDATA/NoemaForge/dev/sessions"
+    memory: "$LOCALAPPDATA/NoemaForge/dev/memory"
+    artifacts: "$LOCALAPPDATA/NoemaForge/dev/artifacts"
+
+  promote_to: stage             # next environment in the promotion chain

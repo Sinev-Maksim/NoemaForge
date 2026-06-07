@@ -1,0 +1,174 @@
+openapi: "3.1.0"
+info:
+  title: NoemaForge Admin Control-Plane API
+  version: "0.32.2"
+  description: |
+    Localhost-only JSON API served by admin_gui_server.py (default: http://127.0.0.1:8765).
+    All endpoints are control-plane only — they plan, query, and cancel; they do not
+    execute privileged actions directly (those require a separate operator-run `sudo noemaforge …`
+    command produced by the plan endpoint).
+  contact:
+    name: NoemaForge maintainers
+    url: https://github.com/Sinev-Maksim/NoemaForge
+
+servers:
+  - url: http://127.0.0.1:8765
+    description: Local operator control plane (localhost-only by default)
+
+tags:
+  - name: health
+  - name: session
+  - name: events
+  - name: jobs
+  - name: model-selection
+  - name: vault
+  - name: telemetry
+
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      summary: Control-plane health
+      operationId: getHealth
+      responses:
+        "200":
+          description: Health status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  version: { type: string }
+                  mode: { type: string }
+
+  /api/session/current:
+    get:
+      tags: [session]
+      summary: Current session state
+      operationId: getSessionCurrent
+      parameters:
+        - name: session_id
+          in: query
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Session record
+
+  /api/session/mode:
+    post:
+      tags: [session]
+      summary: Set session mode (persists across refresh)
+      operationId: postSessionMode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [mode]
+              properties:
+                mode: { type: string, enum: [fast, normal, full, full_composite] }
+                composite_top_n: { type: integer, minimum: 0 }
+                session_id: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Mode set
+        "400":
+          description: Invalid mode or composite_top_n
+
+  /api/events:
+    get:
+      tags: [events]
+      summary: Append-only event log (supports polling via after_index)
+      operationId: getEvents
+      parameters:
+        - name: after_index
+          in: query
+          schema: { type: integer, minimum: 0 }
+        - name: limit
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 1000, default: 200 }
+      responses:
+        "200":
+          description: Events + pagination metadata (server_epoch, rotation_count)
+        "400":
+          description: Invalid after_index or limit
+
+  /api/jobs:
+    get:
+      tags: [jobs]
+      summary: List all jobs
+      operationId: listJobs
+      responses:
+        "200":
+          description: Job list
+
+  /api/jobs/{job_id}/cancel:
+    post:
+      tags: [jobs]
+      summary: Request job cancellation
+      operationId: cancelJob
+      parameters:
+        - name: job_id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Cancellation accepted
+        "404":
+          description: Job not found
+
+  /api/model-selection/continue:
+    post:
+      tags: [model-selection]
+      summary: |
+        Plan a model-selection-continue job (idempotent: duplicate calls return the same job).
+        The response includes the operator-run command; the privileged step is NOT executed here.
+      operationId: modelSelectionContinue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                mode: { type: string, enum: [fast, normal, full, full_composite] }
+                composite_top_n: { type: integer, minimum: 0 }
+                request: { type: string }
+      responses:
+        "200":
+          description: Job plan (includes suggested_command carrying --keep-display)
+
+  /api/vault/reinventory:
+    post:
+      tags: [vault]
+      summary: |
+        Plan a vault re-inventory job (idempotent: double-click yields one job).
+        Returns a plan-only privileged job or a clear fallback command.
+      operationId: vaultReinventory
+      responses:
+        "200":
+          description: Job plan (privilege_required indicates operator-run step)
+
+  /api/telemetry/status:
+    get:
+      tags: [telemetry]
+      summary: Runtime telemetry status
+      operationId: getTelemetryStatus
+      responses:
+        "200":
+          description: Telemetry status record
+
+  /api/conversation/history:
+    get:
+      tags: [session]
+      summary: Conversation message history (survives page refresh)
+      operationId: getConversationHistory
+      parameters:
+        - name: session_id
+          in: query
+          schema: { type: string, maxLength: 128 }
+      responses:
+        "200":
+          description: Message list (capped at MAX_CONVERSATION_MESSAGES)
