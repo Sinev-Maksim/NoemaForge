@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2078,
+  "file_count": 2080,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/autonomous-pipeline.yml",
@@ -1074,6 +1074,7 @@
     "noemaforge/src/multios_runtime_contract.py",
     "noemaforge/src/netguard.py",
     "noemaforge/src/nids_lite.py",
+    "noemaforge/src/noema_cli.py",
     "noemaforge/src/noema_doctor.py",
     "noemaforge/src/noema_release.py",
     "noemaforge/src/noema_upgrade.py",
@@ -1515,6 +1516,7 @@
     "noemaforge/tests/test_multios_runtime_contract.py",
     "noemaforge/tests/test_multios_runtime_performance.py",
     "noemaforge/tests/test_multios_runtime_qa.py",
+    "noemaforge/tests/test_noema_cli.py",
     "noemaforge/tests/test_noema_doctor.py",
     "noemaforge/tests/test_noema_release.py",
     "noemaforge/tests/test_noema_upgrade.py",
