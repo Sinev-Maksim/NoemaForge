@@ -1,5 +1,5 @@
 aa81824822827a12c61ae9c9c6d79a2f0dd7164882551e3fcf3a47400689c956  .codex/instructions.md
-c60620ec37828e89fb01195720823b95ee219515f8edd9a3c832d2f69a3fc121  .github/workflows/autonomous-pipeline.yml
+54e76fe1535e2d68471f641c80f1b91f6a8df10491b5fe3759c486a19e35d0b3  .github/workflows/autonomous-pipeline.yml
 9783ea868f33d2cc17748ae56f85e5607607942e4f935384909ced6f0ddc62e3  .github/workflows/p0-status-ledger.yml
 2af881ad7c85eeec5867850cb539a6fee49cf34f8d782e72bbe02a51e682c6b9  .github/workflows/premerge-quality.yml
 6714f412f0b27fe51f9c26f4445b7c9536708c0a9cf4eab1aedf4687451fb640  .github/workflows/qa-version-bump.yml
