@@ -42,6 +42,10 @@ FAMILY_DIVERSITY_BONUS = 4.0
 RUNTIME_DIVERSITY_BONUS = 2.0
 ROLE_DIVERSITY_BONUS = 2.0
 
+# API version for the CompositePairRanking output schema.
+# This is a schema identifier, not the product/runtime version.
+_API_VERSION = "noemaforge.composite-pair-scoring/v1"
+
 
 def _field(candidate: Dict[str, Any], name: str, default: Any = "") -> Any:
     value = candidate.get(name, default)
@@ -151,7 +155,7 @@ def build_report(candidates: Sequence[Dict[str, Any]], composite_top_n: int = 0,
     if limit and limit > 0:
         pairs = pairs[:limit]
     return {
-        "apiVersion": "noemaforge.composite-pair-scoring/v1",
+        "apiVersion": _API_VERSION,
         "kind": "CompositePairRanking",
         "composite_top_n": int(composite_top_n),
         "candidate_count": len(candidates),
