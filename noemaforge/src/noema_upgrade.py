@@ -304,7 +304,9 @@ def main(argv: Optional[List[str]] = None) -> int:
         try:
             rel = resolve_release(args.repo, args.version)
             root = fetch_and_extract(rel["archive_url"], Path(args.dest))
-        except (OSError, ValueError, urllib.error.URLError) as exc:
+        except (OSError, ValueError, urllib.error.URLError,
+                tarfile.TarError, zipfile.BadZipFile) as exc:
+            # Corrupt / non-archive responses surface as a clean FAIL, not a traceback.
             print(f"FAIL: fetch failed: {exc}")
             return 1
         if args.json:

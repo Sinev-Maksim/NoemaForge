@@ -21,6 +21,7 @@ import sys
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
 
 SRC = Path(__file__).resolve().parents[1] / "src"
@@ -49,6 +50,17 @@ def _tar_bytes(files, *, symlink=None, traversal=None):
             ti.type = tarfile.SYMTYPE
             ti.linkname = "/etc/passwd"
             tf.addfile(ti)
+    return bio.getvalue()
+
+
+def _zip_bytes(files, *, traversal=None):
+    """Build an in-memory .zip for fetch tests. files: list of (name, content)."""
+    bio = io.BytesIO()
+    with zipfile.ZipFile(bio, "w") as zf:
+        for name, content in files:
+            zf.writestr(name, content)
+        if traversal:
+            zf.writestr(traversal, "evil")
     return bio.getvalue()
 
 
@@ -214,6 +226,37 @@ class NoemaUpgradeFetchTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 nu.fetch_and_extract("https://x/archive", Path(d),
                                      fetcher=lambda u: blob, max_bytes=10)
+
+    def test_fetch_and_extract_benign_zip(self):
+        blob = _zip_bytes([("repo-z/app.py", "print(2)"), ("repo-z/d/note.md", "hi")])
+        with tempfile.TemporaryDirectory() as d:
+            root = nu.fetch_and_extract("https://x/archive.zip", Path(d), fetcher=lambda u: blob)
+            self.assertEqual((root / "app.py").read_text(encoding="utf-8"), "print(2)")
+
+    def test_fetch_and_extract_rejects_zip_traversal(self):
+        blob = _zip_bytes([("repo/a.py", "ok")], traversal="../zescape.txt")
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(ValueError):
+                nu.fetch_and_extract("https://x/archive.zip", Path(d), fetcher=lambda u: blob)
+
+    def test_fetch_and_extract_raises_on_garbage(self):
+        with tempfile.TemporaryDirectory() as d:
+            with self.assertRaises(tarfile.TarError):
+                nu.fetch_and_extract("https://x/archive", Path(d),
+                                     fetcher=lambda u: b"not-an-archive")
+
+    def test_cli_fetch_handles_corrupt_archive_cleanly(self):
+        import unittest.mock as mock
+        with tempfile.TemporaryDirectory() as d, \
+                mock.patch.object(nu, "resolve_release",
+                                  return_value={"version": "v1", "archive_url": "u", "kind": "tar"}), \
+                mock.patch.object(nu, "fetch_and_extract", side_effect=tarfile.ReadError("bad")):
+            buf = io.StringIO()
+            import contextlib
+            with contextlib.redirect_stdout(buf):
+                rc = nu.main(["fetch", "--repo", "o/r", "--dest", d])
+            self.assertEqual(rc, 1)
+            self.assertIn("FAIL: fetch failed", buf.getvalue())
 
 
 if __name__ == "__main__":
