@@ -5,21 +5,25 @@ Read this file before starting any review.
 
 ## Repository context
 
-- Integration branch: `release/0.32.2-hardening`
-- Version target: `0.32.2`
+- Integration branch: the PR's base branch — the active release line (e.g.
+  `release/0.32.2-hardening` or `release/0.33.0-dev`). The review workflow supplies it; do
+  not assume a fixed branch.
+- Version target: the value in the version source of truth on the branch under review —
+  `noemaforge/src/noemaforge_version.py` (`RUNTIME_VERSION`, which reads the canonical
+  `VERSION` file). Do NOT assume a fixed version literal such as `0.32.2`.
 - Version source of truth: `noemaforge/src/noemaforge_version.py`
 - `RUNTIME_VERSION` assignment is only allowed in that file — never elsewhere
 
 ## Your role in this pipeline
 
 You receive branches pushed by Claude Code (prefixed `claude/...`).
-Your job: review the diff against `release/0.32.2-hardening`, flag issues, and
-suggest optimizations. Use read-only inspection only — do not modify files or
+Your job: review the diff against the PR's base branch (the active release line), flag
+issues, and suggest optimizations. Use read-only inspection only — do not modify files or
 push commits during the review workflow run.
 
 Workflow:
-1. Fetch the base: `git fetch origin release/0.32.2-hardening`
-2. Review the diff: `git diff origin/release/0.32.2-hardening...HEAD`
+1. Fetch the base: `git fetch origin <base-branch>` (the workflow provides the base branch)
+2. Review the diff: `git diff origin/<base-branch>...HEAD`
 3. Report issues found (see gates below)
 4. Suggest optimizations as inline comments or proposed code changes
 
@@ -37,7 +41,11 @@ Workflow:
   (root tooling files are allowlisted by the docs-hygiene policy)
 - JSON parse error in any `.json` file
 - YAML parse error in any `.yaml`/`.yml` file
-- `VERSION` files not equal to `0.32.2`
+- Any of the three canonical `VERSION` files (`VERSION`, `noemaforge/VERSION`,
+  `docs/VERSION`) not equal to the version source of truth
+  (`noemaforge_version.RUNTIME_VERSION`). Check against the SoT value on the branch under
+  review — NOT against a fixed literal such as `0.32.2`. A version that legitimately
+  advanced with the release line (e.g. `0.33.0` on `release/0.33.0-dev`) is correct.
 
 ## Display safety rule
 
