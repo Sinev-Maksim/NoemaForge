@@ -1,0 +1,43 @@
+# examples/flows/model-evolution.yaml
+# Example declarative flow: model-evolution (self-improvement) pipeline.
+# This is a DOCUMENTATION EXAMPLE for 0.32.2; "noema flow validate/apply" (0.33.0).
+# IMPORTANT: --keep-display must always accompany any first-start / GPU step.
+
+apiVersion: noemaforge.flows/v1
+kind: Flow
+metadata:
+  name: model-evolution
+  description: Evaluate new model candidates and propose an epoch switch.
+  version: "0.32.2"
+
+spec:
+  mode: full_composite
+  composite_top_n: 3            # pair the top 3 candidates
+  display_policy: keep_display  # required for any GPU / model-selection step
+
+  stages:
+    - id: select_candidates
+      role: model_selector
+      action: model.selection.plan
+      inputs:
+        mode: full_composite
+        composite_top_n: "{{spec.composite_top_n}}"
+      timeout_sec: 300
+      require_operator_approval: true   # show plan before proceeding
+
+    - id: propose_epoch
+      role: model_selector
+      action: epoch.propose
+      inputs:
+        selection_plan: "{{select_candidates.output}}"
+      timeout_sec: 60
+      require_operator_approval: true   # epoch switch needs explicit approval
+
+  approval_required: true   # both stages require approval; epoch is never applied implicitly
+  rollback_on_failure: true
+
+  capability_requirements:
+    - tool: model.selection.plan
+      scope: pipeline.model_evolution
+    - tool: epoch.propose
+      scope: pipeline.model_evolution

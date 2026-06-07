@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/schemas/capability-token.schema.json",
+  "title": "NoemaForge ToolProxy Capability Token",
+  "description": "A scoped, time-bound, epoch-pinned authorization for a single tool invocation through ToolProxy. Deny-by-default: a tool call is rejected unless a valid token authorizes exactly this tool and scope, for the active contract epoch, before expiry.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["tool", "scope", "contract_epoch", "issued_at", "expires_at", "reason"],
+  "properties": {
+    "token_id": {
+      "type": "string",
+      "description": "Opaque unique id for this token (for audit/revocation)."
+    },
+    "tool": {
+      "type": "string",
+      "description": "Exact tool name this token authorizes. Must equal the request's tool."
+    },
+    "scope": {
+      "type": "string",
+      "description": "Scope/namespace the token is valid for (e.g. a project, role, or resource). Must equal the request's scope."
+    },
+    "contract_epoch": {
+      "type": "string",
+      "description": "Contract epoch this token is pinned to. A token does not authorize calls under any other epoch."
+    },
+    "issued_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC issuance time."
+    },
+    "expires_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC expiry; ToolProxy denies after this instant."
+    },
+    "reason": {
+      "type": "string",
+      "description": "Human-readable audit reason recorded with every authorized or denied call."
+    },
+    "subject": {
+      "type": "string",
+      "description": "Optional issuing role/agent identity for the audit trail."
+    },
+    "revoked": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, ToolProxy must deny regardless of expiry."
+    },
+    "signature": {
+      "type": "string",
+      "description": "Optional detached signature/validity marker verified by ToolProxy at call time."
+    }
+  }
+}

@@ -1,0 +1,51 @@
+# examples/flows/research.yaml
+# Example declarative flow: a deep-research pipeline.
+# This is a DOCUMENTATION EXAMPLE for 0.32.2; "noema flow validate/apply" (0.33.0).
+#
+# Lifecycle: validate -> simulate -> apply (with required approval gate) -> rollback if needed.
+
+apiVersion: noemaforge.flows/v1
+kind: Flow
+metadata:
+  name: research
+  description: Deep-research pipeline — retrieve, reason, summarize.
+  version: "0.32.2"
+
+spec:
+  mode: normal                 # fast | normal | full | full_composite
+  display_policy: keep_display # always keep graphical desktop; no headless mode
+
+  stages:
+    - id: retrieve
+      role: researcher
+      action: knowledge.retrieve
+      inputs:
+        query: "{{request.query}}"
+        top_k: 10
+      timeout_sec: 30
+
+    - id: reason
+      role: developer_qA       # QA != Developer; separation is enforced by the epoch
+      action: knowledge.reason
+      inputs:
+        passages: "{{retrieve.output.passages}}"
+        query: "{{request.query}}"
+      timeout_sec: 60
+
+    - id: summarize
+      role: researcher
+      action: knowledge.summarize
+      inputs:
+        reasoning: "{{reason.output}}"
+      timeout_sec: 30
+
+  approval_required: false     # set true to require operator confirmation before apply
+  rollback_on_failure: true
+
+  capability_requirements:
+    - tool: knowledge.retrieve
+      scope: pipeline.research
+    - tool: knowledge.reason
+      scope: pipeline.research
+    - tool: knowledge.summarize
+      scope: pipeline.research
