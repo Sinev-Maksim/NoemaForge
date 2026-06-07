@@ -3,14 +3,14 @@
 === NoemaForge File Header ===
 File: noemaforge/src/noemaforge_version.py
 Zone: release/runtime
-Version: 0.32.2
+Version: 0.33.0
 Created: 2026-05-25
-Modified: 2026-05-25
+Modified: 2026-06-07
 Purpose: Provide the single source-of-truth runtime version for NoemaForge Python modules.
 Inputs: The canonical VERSION file at $NOEMAFORGE_ROOT/VERSION or a repository-relative VERSION file.
 Outputs: RUNTIME_VERSION constant used by runtime modules and audit tooling.
 Side effects: Emits a warning to stderr only when VERSION cannot be read.
-Tests: Import smoke, version-audit --strict-all --expected 0.32.2, Python syntax validation.
+Tests: Import smoke, version-audit --strict-all --expected 0.33.0, Python syntax validation.
 Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 === End NoemaForge File Header ===
 
@@ -26,7 +26,7 @@ import os
 import sys
 from pathlib import Path
 
-EMBEDDED_DEFAULT_VERSION = "0.32.2"
+EMBEDDED_DEFAULT_VERSION = "0.33.0"
 
 
 def _candidate_version_files() -> list[Path]:

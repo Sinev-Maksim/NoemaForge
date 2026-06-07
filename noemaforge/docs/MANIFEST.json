@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1818,
+  "file_count": 1843,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -624,10 +624,12 @@
     "docs/quality/UAT_SCENARIOS_0.32.2.md",
     "docs/quality/VERIFICATION_AND_AUDIT.md",
     "docs/reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md",
+    "docs/reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md",
     "docs/reference/KNOWLEDGE_BASE.md",
     "docs/reference/PROJECT_CONTEXT.md",
     "docs/reference/control-plane.openapi.yaml",
     "docs/release.json",
+    "docs/release/RELEASE_0.33.0_DEV.md",
     "docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
     "docs/security/capability-tokens.md",
