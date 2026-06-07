@@ -72,7 +72,11 @@ def build_start_plan(*, root: Optional[Path] = None, host: Optional[str] = None,
             if d:
                 data_dirs.append(str(d))
 
-    launch_argv = [sys.executable, str(server), "--host", str(host), "--port", str(port)]
+    # Pass --root explicitly so the server finds its dashboard templates under THIS checkout,
+    # not platform_paths' DEFAULT_ROOT (e.g. /opt/noemaforge on Linux) — otherwise a fresh-checkout
+    # start would launch a GUI that can't locate its UI tree.
+    launch_argv = [sys.executable, str(server), "--root", str(root),
+                   "--host", str(host), "--port", str(port)]
     return {
         "host": host,
         "port": port,
@@ -115,6 +119,14 @@ def _port_open(host: str, port: int, timeout: float = 0.5) -> bool:
         return False
 
 
+def is_loopback(host: str) -> bool:
+    """True if host is a loopback address — the only safe bind for the Admin control plane."""
+    h = (host or "").strip().lower()
+    if h in {"localhost", "::1", "::ffff:127.0.0.1"}:
+        return True
+    return h.startswith("127.")
+
+
 def launch(plan: Dict[str, Any], *, open_browser: bool = True, wait: bool = True,
            startup_timeout: float = 20.0) -> int:
     """Launch the Admin GUI (or attach to an already-running one) and open the browser.
@@ -136,13 +148,21 @@ def launch(plan: Dict[str, Any], *, open_browser: bool = True, wait: bool = True
     proc = spawn(plan["launch_argv"])
 
     deadline = time.time() + startup_timeout
+    listening = False
     while time.time() < deadline:
         if getattr(proc, "poll", lambda: None)() is not None:
             print("FAIL: Admin GUI process exited during startup.", file=sys.stderr)
             return 1
         if _port_open(host, port):
+            listening = True
             break
         time.sleep(0.3)
+
+    if not listening:
+        # Do not advertise a URL or open a browser for a server that never came up.
+        print(f"FAIL: Admin GUI did not start listening on {host}:{port} within "
+              f"{startup_timeout:.0f}s.", file=sys.stderr)
+        return 1
 
     print(f"NoemaForge Admin GUI: {url}", flush=True)
     if open_browser:
@@ -193,10 +213,20 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser.add_argument("--background", action="store_true", help="do not wait on the server")
     parser.add_argument("--force", action="store_true",
                         help="launch even if readiness reports critical issues")
+    parser.add_argument("--allow-nonlocal-host", action="store_true",
+                        help="permit binding the Admin GUI to a non-loopback address (UNSAFE: "
+                             "exposes the control plane off localhost)")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
 
     plan = build_start_plan(root=args.root, host=args.host, port=args.port)
+
+    # The Admin control plane is localhost-only by design. Refuse a non-loopback bind unless the
+    # operator explicitly opts in, so a stray --host does not silently expose it to the network.
+    if not is_loopback(plan["host"]) and not args.allow_nonlocal_host:
+        print(f"FAIL: refusing to bind the Admin GUI to non-loopback host {plan['host']!r}. "
+              f"Pass --allow-nonlocal-host to override (UNSAFE).", file=sys.stderr)
+        return 2
     rep = {"ok": True, "summary": {"critical": 0}} if args.no_doctor else readiness(Path(plan["root"]))
     critical = int(rep.get("summary", {}).get("critical", 0))
 

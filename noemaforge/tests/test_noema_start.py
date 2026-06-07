@@ -60,12 +60,16 @@ class NoemaStartTests(unittest.TestCase):
     def test_build_start_plan_uses_paths(self):
         with tempfile.TemporaryDirectory() as t:
             plan = ns.build_start_plan(root=Path(t), paths=FakePaths(Path(t)))
+            root_str = str(Path(t))
         self.assertEqual(plan["host"], "127.0.0.1")
         self.assertEqual(plan["port"], 8799)
         self.assertEqual(plan["url"], "http://127.0.0.1:8799/")
         self.assertIn("admin_gui_server.py", plan["server"])
         self.assertIn("--port", plan["launch_argv"])
         self.assertIn("8799", plan["launch_argv"])
+        # --root must be passed so the server finds its dashboard templates under this checkout.
+        self.assertIn("--root", plan["launch_argv"])
+        self.assertIn(root_str, plan["launch_argv"])
         self.assertTrue(any(p.endswith("sessions") for p in plan["data_dirs"]))
 
     def test_build_start_plan_defaults_when_paths_unavailable(self):
@@ -133,6 +137,32 @@ class NoemaStartTests(unittest.TestCase):
             rc = ns.launch(plan, open_browser=True, wait=True)
         self.assertEqual(rc, 0)
         self.assertEqual(opened, [plan["url"]])
+
+    def test_launch_timeout_returns_error_without_browser(self):
+        # Process stays alive but the port never opens before the (tiny) timeout: must fail
+        # with no URL advertised and no browser opened.
+        plan = ns.build_start_plan(host="127.0.0.1", port=8765, paths=None)
+        opened = []
+        with mock.patch.object(ns, "_spawn", return_value=FakeProc()), \
+                mock.patch.object(ns, "_open_browser", lambda u: opened.append(u)), \
+                mock.patch.object(ns, "_port_open", lambda h, p, timeout=0.5: False), \
+                mock.patch.object(ns.time, "sleep", lambda *_: None):
+            rc = ns.launch(plan, open_browser=True, wait=True, startup_timeout=0.0)
+        self.assertEqual(rc, 1)
+        self.assertEqual(opened, [])
+
+    def test_is_loopback(self):
+        for h in ("127.0.0.1", "127.5.5.5", "localhost", "::1", "LOCALHOST"):
+            self.assertTrue(ns.is_loopback(h), h)
+        for h in ("0.0.0.0", "10.0.0.5", "192.168.1.2", "example.com", ""):
+            self.assertFalse(ns.is_loopback(h), h)
+
+    def test_main_refuses_nonlocal_host_without_optin(self):
+        with mock.patch.object(ns, "_spawn", side_effect=AssertionError("must not spawn")):
+            buf = io.StringIO()
+            with redirect_stdout(io.StringIO()):
+                rc = ns.main(["--no-doctor", "--host", "0.0.0.0", "--check-only"])
+        self.assertEqual(rc, 2)
 
     def test_critical_readiness_blocks_without_force(self):
         with tempfile.TemporaryDirectory() as t:
