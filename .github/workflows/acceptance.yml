@@ -41,8 +41,8 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install pytest
-        run: pip install pytest --quiet
+      - name: Install test deps
+        run: pip install pytest pyyaml --quiet
 
       - name: Run acceptance harness
         run: bash ci/run_acceptance.sh results

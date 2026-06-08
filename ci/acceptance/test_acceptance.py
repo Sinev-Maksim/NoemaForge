@@ -114,6 +114,20 @@ def test_capability_tokens_lifecycle(tmp_path: pathlib.Path) -> None:
     assert caps.verify_token(tokens_dir, fresh.split(".", 1)[0] + ".forged")[0] is False  # tampered
 
 
+def test_toolproxy_isolation_posture() -> None:
+    """The shipped ToolProxy config must be unix-socket only (no remote egress) with a
+    bounded exec allowlist."""
+    import yaml
+
+    cfg = yaml.safe_load((REPO / "noemaforge" / "configs" / "toolproxy.yaml").read_text(encoding="utf-8"))
+    gw = cfg.get("llm_gateway", {})
+    assert gw.get("unix_socket"), "gateway must use a unix socket"
+    for ep in (gw.get("chat_endpoint", ""), gw.get("embed_endpoint", "")):
+        assert "localhost" in ep or "127.0.0.1" in ep, f"remote endpoint exposed: {ep}"
+    allow = cfg.get("exec", {}).get("allow_bins") or []
+    assert allow and "*" not in allow, "exec must be a bounded allowlist (deny-by-default)"
+
+
 def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     out = tmp_path / "results"
     proc = subprocess.run(
@@ -131,6 +145,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     assert cases.get("checksum_validation") == "pass", cases
     assert cases.get("telemetry_privacy") == "pass", cases
     assert cases.get("capability_tokens") == "pass", cases
+    assert cases.get("toolproxy_isolation") == "pass", cases
     # the bundle must be self-describing.
     assert (out / "manifest.sha256").exists()
     assert (out / "junit.xml").exists()

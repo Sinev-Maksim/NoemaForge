@@ -47,7 +47,7 @@ diffing against it proves the published evidence was not altered after the run.
 | `no_hidden_autostart` | 30-safety | no unexpected LLM/media processes after boot | pending |
 | `model_warmup_modes` | 30-safety | default startup stays safe/manual; heavy path only on explicit action | pending |
 | `capability_tokens` | 40-toolproxy | minted token verifies; revoked / expired / tampered rejected (shipped `caps` store) | **yes** |
-| `toolproxy_isolation` | 40-toolproxy | remote HTTP off by default; no host-command execution | pending |
+| `toolproxy_isolation` | 40-toolproxy | gateway is unix-socket only (no remote egress); `exec` is a bounded allowlist; enforcement on | **yes** |
 | `contract_epoch_immutability` | 50-epochs | canonical artifact hash stable without an explicit revision | pending |
 | `telemetry_privacy` | 60-telemetry | no raw secret/PII markers in stored artifacts (via the shipped `sense_privacy_runtime` filter) | **yes** |
 | `signed_manifest_verification` | 70-release | signature valid; subject hash matches manifest | pending |

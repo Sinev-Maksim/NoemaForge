@@ -61,7 +61,6 @@ TIERS = [
 PENDING_CASES = [
     ("no_hidden_autostart", "30-safety"),
     ("model_warmup_modes", "30-safety"),
-    ("toolproxy_isolation", "40-toolproxy"),
     ("contract_epoch_immutability", "50-epochs"),
     ("signed_manifest_verification", "70-release"),
 ]
@@ -311,6 +310,49 @@ def case_capability_tokens(results: Path) -> Dict[str, Any]:
             "tier": "40-toolproxy", "detail": detail}
 
 
+# ── case: toolproxy_isolation (local isolation posture) ──────────────────────
+def case_toolproxy_isolation(results: Path) -> Dict[str, Any]:
+    """Prove the shipped ToolProxy config is locally isolated and deny-by-default:
+    the LLM gateway is reached over a UNIX socket (no remote host:port egress),
+    executable access is a bounded allowlist (not open), and capability enforcement
+    is on. A regression that opens remote HTTP or an unbounded exec surface fails here."""
+    tier = results / "40-toolproxy"
+    cfg_path = REPO / "noemaforge" / "configs" / "toolproxy.yaml"
+    detail: Dict[str, Any] = {}
+    ok = True
+    try:
+        import yaml  # noqa: E402
+
+        cfg = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+        gw = cfg.get("llm_gateway", {}) or {}
+        execp = cfg.get("exec", {}) or {}
+        enf = cfg.get("enforcement", {}) or {}
+
+        endpoints = [str(gw.get("chat_endpoint", "")), str(gw.get("embed_endpoint", ""))]
+        remote_endpoints = [e for e in endpoints if e and "localhost" not in e and "127.0.0.1" not in e]
+        allow_bins = execp.get("allow_bins") or []
+        gateway_unix = bool(gw.get("unix_socket"))
+        exec_allowlisted = isinstance(allow_bins, list) and len(allow_bins) > 0 and "*" not in allow_bins
+        enforcement_on = bool(enf.get("require_stream_id")) and bool(enf.get("enforce_issued_to_match_meta"))
+
+        detail = {
+            "gateway_unix_socket": gateway_unix,
+            "remote_http_endpoints": remote_endpoints,
+            "exec_allowlist": allow_bins,
+            "exec_allowlisted_not_open": exec_allowlisted,
+            "enforcement_on": enforcement_on,
+            "log_denies": bool((cfg.get("logging") or {}).get("log_denies")),
+        }
+        ok = gateway_unix and not remote_endpoints and exec_allowlisted and enforcement_on
+        _write_json(tier / "isolation.json", {"status": "pass" if ok else "fail", "detail": detail})
+    except Exception as exc:  # noqa: BLE001
+        detail["error"] = str(exc)
+        ok = False
+        _write_json(tier / "isolation.json", {"status": "fail", "detail": detail})
+    return {"name": "toolproxy_isolation", "status": "pass" if ok else "fail",
+            "tier": "40-toolproxy", "detail": detail}
+
+
 def _junit(cases: List[Dict[str, Any]], results: Path) -> None:
     suite = ET.Element("testsuite", name="noemaforge-acceptance",
                        tests=str(len(cases)),
@@ -337,6 +379,7 @@ def main(argv: List[str] | None = None) -> int:
         case_checksum_validation(results),
         case_install_dry_run(results),
         case_capability_tokens(results),
+        case_toolproxy_isolation(results),
         case_telemetry_privacy(results),
     ]
     for name, tier in PENDING_CASES:
