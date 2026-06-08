@@ -36,12 +36,14 @@ from typing import Callable, Dict, List, Optional
 def _subcommands() -> Dict[str, Callable[[Optional[List[str]]], int]]:
     """Import the owning modules lazily so a failure in one does not block the others."""
     import noema_doctor
+    import noema_policy
     import noema_release
     import noema_upgrade
     return {
         "doctor": noema_doctor.main,
         "release": noema_release.main,
         "upgrade": noema_upgrade.main,
+        "policy": noema_policy.main,
     }
 
 
@@ -52,6 +54,7 @@ _USAGE = (
     "  doctor    read-only readiness report\n"
     "  release   build (pack) / verify release manifests\n"
     "  upgrade   plan / apply an in-place upgrade (preserves user state)\n"
+    "  policy    test policies against the deny-by-default contract\n"
     "\n"
     "  noema --version    print the runtime version\n"
     "  noema --help       show this help\n"
