@@ -142,6 +142,23 @@ def test_signed_provenance_policy_mandates_signing() -> None:
     assert sc.get("allowed_signature_schemes")
 
 
+def test_contract_epoch_canonical_hash_is_stable() -> None:
+    """The canonical (sorted-key) hash is stable under non-semantic key reordering, yet
+    an explicit content revision changes it."""
+
+    def canon(obj: object) -> str:
+        return hashlib.sha256(
+            json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+    a = {"epoch_id": "e1", "state": "draft", "materials": {"m": "x", "c": "y"}}
+    b = {"materials": {"c": "y", "m": "x"}, "state": "draft", "epoch_id": "e1"}
+    assert canon(a) == canon(b), "canonical hash must be stable under key reordering"
+    revised = dict(a)
+    revised["state"] = "sealed"
+    assert canon(a) != canon(revised), "an explicit revision must change the hash"
+
+
 def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     out = tmp_path / "results"
     proc = subprocess.run(
@@ -161,6 +178,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     assert cases.get("capability_tokens") == "pass", cases
     assert cases.get("toolproxy_isolation") == "pass", cases
     assert cases.get("signed_manifest_verification") == "pass", cases
+    assert cases.get("contract_epoch_immutability") == "pass", cases
     # the bundle must be self-describing.
     assert (out / "manifest.sha256").exists()
     assert (out / "junit.xml").exists()

@@ -61,7 +61,6 @@ TIERS = [
 PENDING_CASES = [
     ("no_hidden_autostart", "30-safety"),
     ("model_warmup_modes", "30-safety"),
-    ("contract_epoch_immutability", "50-epochs"),
 ]
 
 
@@ -411,6 +410,64 @@ def case_signed_manifest_verification(results: Path) -> Dict[str, Any]:
             "tier": "70-release", "detail": detail}
 
 
+# ── case: contract_epoch_immutability (canonical hash stability) ──────────────
+def case_contract_epoch_immutability(results: Path) -> Dict[str, Any]:
+    """Prove a contract/epoch artifact's canonical hash is immutable: hashing the
+    canonical (sorted-key) form is stable under non-semantic changes (key reordering),
+    yet an explicit content revision DOES change the hash — so the binding is real, not
+    a constant. Anchored to the live epoch id; hashes in-memory canonical bytes."""
+    tier = results / "50-epochs"
+    detail: Dict[str, Any] = {}
+    ok = True
+
+    def canon_hash(obj: Any) -> str:
+        return hashlib.sha256(
+            json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+
+    try:
+        sys.path.insert(0, str(REPO / "noemaforge" / "src"))
+        import epoch  # noqa: E402
+
+        epoch_id = epoch.current_epoch_id()
+        artifact = {
+            "epoch_id": epoch_id,
+            "kind": "epoch_draft",
+            "state": "draft",
+            "materials": {"manifest": "MANIFEST.json", "checksums": "SHA256SUMS"},
+        }
+        h1 = canon_hash(artifact)
+        # same content, keys/structure reordered (non-semantic) → canonical hash stable.
+        reordered = {
+            "materials": {"checksums": "SHA256SUMS", "manifest": "MANIFEST.json"},
+            "state": "draft",
+            "kind": "epoch_draft",
+            "epoch_id": epoch_id,
+        }
+        h2 = canon_hash(reordered)
+        # explicit revision (a real content change) → hash must change.
+        revised = dict(artifact)
+        revised["state"] = "sealed"
+        h3 = canon_hash(revised)
+
+        stable_under_reorder = h1 == h2
+        revision_changes_hash = h1 != h3
+        detail = {
+            "epoch_id": epoch_id,
+            "canonical_hash": h1,
+            "stable_under_reorder": stable_under_reorder,
+            "revision_changes_hash": revision_changes_hash,
+        }
+        ok = stable_under_reorder and revision_changes_hash
+        _write_json(tier / "epoch-hashes.json", {"status": "pass" if ok else "fail", "detail": detail})
+    except Exception as exc:  # noqa: BLE001
+        detail["error"] = str(exc)
+        ok = False
+        _write_json(tier / "epoch-hashes.json", {"status": "fail", "detail": detail})
+    return {"name": "contract_epoch_immutability", "status": "pass" if ok else "fail",
+            "tier": "50-epochs", "detail": detail}
+
+
 def _junit(cases: List[Dict[str, Any]], results: Path) -> None:
     suite = ET.Element("testsuite", name="noemaforge-acceptance",
                        tests=str(len(cases)),
@@ -439,6 +496,7 @@ def main(argv: List[str] | None = None) -> int:
         case_capability_tokens(results),
         case_toolproxy_isolation(results),
         case_signed_manifest_verification(results),
+        case_contract_epoch_immutability(results),
         case_telemetry_privacy(results),
     ]
     for name, tier in PENDING_CASES:
