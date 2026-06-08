@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1851,
+  "file_count": 1853,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -547,6 +547,7 @@
     "docs/architecture/control-plane.md",
     "docs/architecture/toolproxy-capabilities.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
+    "docs/ci/PIPELINE.md",
     "docs/developer/DEVELOPER_NOTES.md",
     "docs/history/CHANGELOG.md",
     "docs/history/noemaforge_0.24.1_checked_seed.json",
@@ -632,6 +633,7 @@
     "docs/release/RELEASE_0.33.0_DEV.md",
     "docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
+    "docs/release/RELEASING.md",
     "docs/security/capability-tokens.md",
     "docs/security/local-only-admin.md",
     "docs/security/signed-manifests.md",

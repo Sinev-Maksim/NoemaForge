@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2080,
+  "file_count": 2082,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/autonomous-pipeline.yml",
@@ -594,6 +594,7 @@
     "noemaforge/docs/architecture/control-plane.md",
     "noemaforge/docs/architecture/toolproxy-capabilities.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
+    "noemaforge/docs/ci/PIPELINE.md",
     "noemaforge/docs/developer/DEVELOPER_NOTES.md",
     "noemaforge/docs/history/CHANGELOG.md",
     "noemaforge/docs/history/noemaforge_0.24.1_checked_seed.json",
@@ -679,6 +680,7 @@
     "noemaforge/docs/release/RELEASE_0.33.0_DEV.md",
     "noemaforge/docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
+    "noemaforge/docs/release/RELEASING.md",
     "noemaforge/docs/security/capability-tokens.md",
     "noemaforge/docs/security/local-only-admin.md",
     "noemaforge/docs/security/signed-manifests.md",
