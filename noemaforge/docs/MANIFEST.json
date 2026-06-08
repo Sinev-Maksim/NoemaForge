@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1853,
+  "file_count": 1854,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -634,6 +634,7 @@
     "docs/release/RELEASE_FINALIZATION_0.32.2.md",
     "docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md",
     "docs/release/RELEASING.md",
+    "docs/security/TRUST_BOUNDARIES.md",
     "docs/security/capability-tokens.md",
     "docs/security/local-only-admin.md",
     "docs/security/signed-manifests.md",
