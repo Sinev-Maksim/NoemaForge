@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2071,
+  "file_count": 2075,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/autonomous-pipeline.yml",
@@ -1231,8 +1231,12 @@
     "noemaforge/systemd/noemaforge-autostart-gui.timer",
     "noemaforge/systemd/noemaforge-autostart-wogui.service",
     "noemaforge/systemd/noemaforge-llama@.service",
+    "noemaforge/systemd/noemaforge-llm-backends-manager.service",
+    "noemaforge/systemd/noemaforge-llm-backends-manager.timer",
     "noemaforge/systemd/noemaforge-llm-gateway.service",
     "noemaforge/systemd/noemaforge-memsentinel.service",
+    "noemaforge/systemd/noemaforge-modelscan.service",
+    "noemaforge/systemd/noemaforge-modelscan.timer",
     "noemaforge/systemd/noemaforge-shutdown-stop.service",
     "noemaforge/systemd/noemaforge-toolproxy.service",
     "noemaforge/templates/pipeline-dashboard/app.js",
