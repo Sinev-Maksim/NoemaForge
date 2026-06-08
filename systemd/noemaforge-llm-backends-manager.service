@@ -1,0 +1,28 @@
+# === NoemaForge File Header ===
+# File: systemd/noemaforge-llm-backends-manager.service
+# Zone: release/package
+# Version: 0.32.2
+# Created: 2026-06-08
+# Modified: 2026-06-08
+# Purpose: Reconcile the single-active-model llama backend set (start/stop noemaforge-llama@*.service
+#   to match the runtime desired count). Triggered by noemaforge-llm-backends-manager.timer; mirrors
+#   the documented invocation `noemaforge manager reconcile`.
+# Inputs: llm-backends-policy.yaml; runtime state under /var/lib/noemaforge.
+# Outputs: YAML summary; reconciled llama backend services (max_active_llms=1 invariant).
+# Side effects: starts/stops noemaforge-llama@*.service via systemctl.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+[Unit]
+Description=NoemaForge LLM Backends Manager (single-active reconcile)
+After=local-fs.target noemaforge-llm-gateway.service
+ConditionPathExists=/var/lib/noemaforge/.sys/setup.done
+
+[Service]
+Type=oneshot
+User=noemaforge
+Group=noemaforge
+Slice=noemaforge-core.slice
+Environment=NOEMAFORGE_ROOT=/opt/noemaforge
+Environment=NOEMAFORGE_STATE=/var/lib/noemaforge
+ExecStart=/usr/bin/python3 /opt/noemaforge/src/llm_backends_manager.py --reconcile
