@@ -90,6 +90,30 @@ def test_telemetry_privacy_redacts() -> None:
     assert "/home/u/.ssh/id_rsa" not in blob
 
 
+def test_capability_tokens_lifecycle(tmp_path: pathlib.Path) -> None:
+    """A minted token verifies; a revoked (record removed), expired (zero-TTL), or
+    tampered (forged secret) token is rejected."""
+    sys.path.insert(0, str(REPO / "noemaforge" / "src"))
+    import caps
+
+    tokens_dir = str(tmp_path / "tokens")
+    issued_to = {"role": "agent", "run_id": "aat", "project_id": "noemaforge"}
+    capset = [{"action": "llm.chat"}]
+
+    token = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=600)
+    assert caps.verify_token(tokens_dir, token)[0] is True
+
+    token_id = token.split(".", 1)[0]
+    (tmp_path / "tokens" / f"{token_id}.json").unlink()
+    assert caps.verify_token(tokens_dir, token)[0] is False  # revoked
+
+    expired = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=0)
+    assert caps.verify_token(tokens_dir, expired)[0] is False  # expired
+
+    fresh = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=600)
+    assert caps.verify_token(tokens_dir, fresh.split(".", 1)[0] + ".forged")[0] is False  # tampered
+
+
 def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     out = tmp_path / "results"
     proc = subprocess.run(
@@ -106,6 +130,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     cases = {c["name"]: c["status"] for c in summary["cases"]}
     assert cases.get("checksum_validation") == "pass", cases
     assert cases.get("telemetry_privacy") == "pass", cases
+    assert cases.get("capability_tokens") == "pass", cases
     # the bundle must be self-describing.
     assert (out / "manifest.sha256").exists()
     assert (out / "junit.xml").exists()

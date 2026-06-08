@@ -32,9 +32,12 @@ from __future__ import annotations
 import datetime
 import hashlib
 import json
+import os
 import platform
+import shutil
 import subprocess
 import sys
+import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List
@@ -58,7 +61,6 @@ TIERS = [
 PENDING_CASES = [
     ("no_hidden_autostart", "30-safety"),
     ("model_warmup_modes", "30-safety"),
-    ("capability_tokens", "40-toolproxy"),
     ("toolproxy_isolation", "40-toolproxy"),
     ("contract_epoch_immutability", "50-epochs"),
     ("signed_manifest_verification", "70-release"),
@@ -261,6 +263,54 @@ def case_telemetry_privacy(results: Path) -> Dict[str, Any]:
             "tier": "60-telemetry", "detail": detail}
 
 
+# ── case: capability_tokens (binding + revocation) ───────────────────────────
+def case_capability_tokens(results: Path) -> Dict[str, Any]:
+    """Prove capability tokens bind and revoke: a freshly minted token verifies, but
+    a revoked (record removed), expired (zero-TTL), or tampered (wrong secret) token is
+    rejected. Exercises the shipped ``caps`` token store in an isolated temp dir."""
+    tier = results / "40-toolproxy"
+    detail: Dict[str, Any] = {}
+    ok = True
+    tokens_dir = tempfile.mkdtemp(prefix="aat-caps-")
+    try:
+        sys.path.insert(0, str(REPO / "noemaforge" / "src"))
+        import caps  # noqa: E402
+
+        issued_to = {"role": "agent", "run_id": "aat-run", "project_id": "noemaforge"}
+        capset = [{"action": "llm.chat"}]
+
+        # 1. allowed: a freshly minted token verifies.
+        token = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=600)
+        ok1, rec1, why1 = caps.verify_token(tokens_dir, token)
+        # 2. revoked: removing the record rejects the bearer.
+        token_id = token.split(".", 1)[0]
+        os.remove(os.path.join(tokens_dir, token_id + ".json"))
+        ok2, _, why2 = caps.verify_token(tokens_dir, token)
+        # 3. expired: a zero-TTL token is rejected.
+        expired = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=0)
+        ok3, _, why3 = caps.verify_token(tokens_dir, expired)
+        # 4. tampered: a valid token_id with a forged secret is rejected.
+        fresh = caps.issue_token(tokens_dir, issued_to, capset, ttl_sec=600)
+        ok4, _, why4 = caps.verify_token(tokens_dir, fresh.split(".", 1)[0] + ".forged-secret")
+
+        detail = {
+            "allowed": {"accepted": ok1, "reason": why1, "epoch_id": (rec1 or {}).get("epoch_id")},
+            "revoked": {"accepted": ok2, "reason": why2},
+            "expired": {"accepted": ok3, "reason": why3},
+            "tampered": {"accepted": ok4, "reason": why4},
+        }
+        ok = ok1 and not ok2 and not ok3 and not ok4
+        _write_json(tier / "token-lifecycle.json", {"status": "pass" if ok else "fail", "detail": detail})
+    except Exception as exc:  # noqa: BLE001
+        detail["error"] = str(exc)
+        ok = False
+        _write_json(tier / "token-lifecycle.json", {"status": "fail", "detail": detail})
+    finally:
+        shutil.rmtree(tokens_dir, ignore_errors=True)
+    return {"name": "capability_tokens", "status": "pass" if ok else "fail",
+            "tier": "40-toolproxy", "detail": detail}
+
+
 def _junit(cases: List[Dict[str, Any]], results: Path) -> None:
     suite = ET.Element("testsuite", name="noemaforge-acceptance",
                        tests=str(len(cases)),
@@ -286,6 +336,7 @@ def main(argv: List[str] | None = None) -> int:
         case_env(results),
         case_checksum_validation(results),
         case_install_dry_run(results),
+        case_capability_tokens(results),
         case_telemetry_privacy(results),
     ]
     for name, tier in PENDING_CASES:
