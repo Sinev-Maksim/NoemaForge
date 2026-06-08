@@ -128,6 +128,20 @@ def test_toolproxy_isolation_posture() -> None:
     assert allow and "*" not in allow, "exec must be a bounded allowlist (deny-by-default)"
 
 
+def test_signed_provenance_policy_mandates_signing() -> None:
+    """The shipped release-provenance policy must mandate signed provenance: detached
+    signature + key fingerprint required, and plaintext private keys forbidden."""
+    policy = json.loads(
+        (REPO / "noemaforge" / "configs" / "release-provenance-policy.json").read_text(encoding="utf-8")
+    )
+    sc = policy.get("policy", {}).get("signing_controls", {})
+    assert sc.get("signature_required") is True
+    assert sc.get("detached_signature_required") is True
+    assert sc.get("public_key_fingerprint_required") is True
+    assert sc.get("plaintext_private_key_allowed") is False
+    assert sc.get("allowed_signature_schemes")
+
+
 def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     out = tmp_path / "results"
     proc = subprocess.run(
@@ -146,6 +160,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     assert cases.get("telemetry_privacy") == "pass", cases
     assert cases.get("capability_tokens") == "pass", cases
     assert cases.get("toolproxy_isolation") == "pass", cases
+    assert cases.get("signed_manifest_verification") == "pass", cases
     # the bundle must be self-describing.
     assert (out / "manifest.sha256").exists()
     assert (out / "junit.xml").exists()

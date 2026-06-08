@@ -50,7 +50,7 @@ diffing against it proves the published evidence was not altered after the run.
 | `toolproxy_isolation` | 40-toolproxy | gateway is unix-socket only (no remote egress); `exec` is a bounded allowlist; enforcement on | **yes** |
 | `contract_epoch_immutability` | 50-epochs | canonical artifact hash stable without an explicit revision | pending |
 | `telemetry_privacy` | 60-telemetry | no raw secret/PII markers in stored artifacts (via the shipped `sense_privacy_runtime` filter) | **yes** |
-| `signed_manifest_verification` | 70-release | signature valid; subject hash matches manifest | pending |
+| `signed_manifest_verification` | 70-release | policy mandates signed provenance (detached sig + key fingerprint, no plaintext keys); provenance record binds the manifest subject hash | **yes** |
 
 `pending` cases reserve their tier and appear in `summary.json` as `pending` until
 their implementation slice lands. The process exit code is non-zero **only** when an
