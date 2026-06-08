@@ -49,7 +49,7 @@ diffing against it proves the published evidence was not altered after the run.
 | `capability_tokens` | 40-toolproxy | allowed `llm.chat` succeeds; revoked token rejected | pending |
 | `toolproxy_isolation` | 40-toolproxy | remote HTTP off by default; no host-command execution | pending |
 | `contract_epoch_immutability` | 50-epochs | canonical artifact hash stable without an explicit revision | pending |
-| `telemetry_privacy` | 60-telemetry | no raw secret/PII markers in stored artifacts | pending |
+| `telemetry_privacy` | 60-telemetry | no raw secret/PII markers in stored artifacts (via the shipped `sense_privacy_runtime` filter) | **yes** |
 | `signed_manifest_verification` | 70-release | signature valid; subject hash matches manifest | pending |
 
 `pending` cases reserve their tier and appear in `summary.json` as `pending` until

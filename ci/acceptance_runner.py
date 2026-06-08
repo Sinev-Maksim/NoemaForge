@@ -61,7 +61,6 @@ PENDING_CASES = [
     ("capability_tokens", "40-toolproxy"),
     ("toolproxy_isolation", "40-toolproxy"),
     ("contract_epoch_immutability", "50-epochs"),
-    ("telemetry_privacy", "60-telemetry"),
     ("signed_manifest_verification", "70-release"),
 ]
 
@@ -215,6 +214,53 @@ def case_install_dry_run(results: Path) -> Dict[str, Any]:
             "tier": "20-install", "detail": note}
 
 
+# ── case: telemetry_privacy (redaction-before-persistence) ───────────────────
+def case_telemetry_privacy(results: Path) -> Dict[str, Any]:
+    """Prove the privacy filter redacts sensitive fields before an event/report is
+    persisted: planted secret markers and path-like values must not survive into the
+    stored artifact. Exercises the shipped ``sense_privacy_runtime`` filter, so this is
+    real redaction (not a stub)."""
+    tier = results / "60-telemetry"
+    detail: Dict[str, Any] = {}
+    ok = True
+    markers = ["SK-LEAK-AKIA0001", "Bearer-TT-77", "hunter2pw", "ST-SESSION-9"]
+    try:
+        sys.path.insert(0, str(REPO / "noemaforge" / "src"))
+        import sense_privacy_runtime as spr  # noqa: E402
+
+        policy = {"forbidden_keys": ["password", "session_token"], "forbid_raw_paths": True}
+        payload = {
+            "event": "telemetry.sample",
+            "api_secret": markers[0],
+            "nested": {"auth_token": markers[1], "ok_field": "kept"},
+            "password": markers[2],
+            "home_path": "/home/operator/.ssh/id_rsa",
+            "items": [{"session_token": markers[3]}, {"value": "kept"}],
+        }
+        result = spr.apply_privacy_filter(payload, policy)
+        blob = json.dumps(result["filtered"], ensure_ascii=False)
+        leaked = [m for m in markers if m in blob]
+        forbidden_present = [k for k in ("api_secret", "auth_token", "password", "session_token") if k in blob]
+        detail = {
+            "redactions": len(result["redactions"]),
+            "leaked_markers": leaked,
+            "forbidden_keys_present": forbidden_present,
+            "path_redacted": "/home/operator/.ssh/id_rsa" not in blob,
+        }
+        ok = not leaked and not forbidden_present and bool(result["redactions"]) and detail["path_redacted"]
+        _write_json(
+            tier / "redaction-check.json",
+            {"status": "pass" if ok else "fail", "policy": policy,
+             "filtered": result["filtered"], "redactions": result["redactions"], "detail": detail},
+        )
+    except Exception as exc:  # noqa: BLE001
+        detail["error"] = str(exc)
+        ok = False
+        _write_json(tier / "redaction-check.json", {"status": "fail", "detail": detail})
+    return {"name": "telemetry_privacy", "status": "pass" if ok else "fail",
+            "tier": "60-telemetry", "detail": detail}
+
+
 def _junit(cases: List[Dict[str, Any]], results: Path) -> None:
     suite = ET.Element("testsuite", name="noemaforge-acceptance",
                        tests=str(len(cases)),
@@ -240,6 +286,7 @@ def main(argv: List[str] | None = None) -> int:
         case_env(results),
         case_checksum_validation(results),
         case_install_dry_run(results),
+        case_telemetry_privacy(results),
     ]
     for name, tier in PENDING_CASES:
         cases.append({"name": name, "status": "pending", "tier": tier,

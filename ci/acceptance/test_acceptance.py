@@ -68,6 +68,28 @@ def test_checksum_verification_passes() -> None:
     assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
+def test_telemetry_privacy_redacts() -> None:
+    """The shipped privacy filter must drop secret-bearing keys and path-like values
+    before persistence, so planted markers never reach a stored artifact."""
+    sys.path.insert(0, str(REPO / "noemaforge" / "src"))
+    import sense_privacy_runtime as spr
+
+    policy = {"forbidden_keys": ["password", "session_token"], "forbid_raw_paths": True}
+    payload = {
+        "api_secret": "SK-LEAK-1",
+        "nested": {"auth_token": "TT-2"},
+        "password": "pw3",
+        "path": "/home/u/.ssh/id_rsa",
+        "items": [{"session_token": "ST-4"}, {"keep": "ok"}],
+    }
+    result = spr.apply_privacy_filter(payload, policy)
+    blob = json.dumps(result["filtered"])
+    for marker in ("SK-LEAK-1", "TT-2", "pw3", "ST-4"):
+        assert marker not in blob, f"{marker} leaked into stored artifact"
+    assert result["redactions"], "no redactions recorded"
+    assert "/home/u/.ssh/id_rsa" not in blob
+
+
 def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     out = tmp_path / "results"
     proc = subprocess.run(
@@ -83,6 +105,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
     # checksum_validation is the gating integrity case and must pass.
     cases = {c["name"]: c["status"] for c in summary["cases"]}
     assert cases.get("checksum_validation") == "pass", cases
+    assert cases.get("telemetry_privacy") == "pass", cases
     # the bundle must be self-describing.
     assert (out / "manifest.sha256").exists()
     assert (out / "junit.xml").exists()
