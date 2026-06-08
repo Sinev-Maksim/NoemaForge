@@ -27,10 +27,10 @@ cat <<EOF
 === NoemaForge smoke ===
 backend socket: $backend_sock
 backend health: $bh
-backend chat:   $bc response=$br
+backend chat(liveness): $bc response=$br
 gateway socket: $gateway_sock
 gateway health: $gh
-gateway chat:   $gc response=$gr
+gateway chat(liveness): $gc response=$gr
 overall:        $overall
 EOF
 if [[ "$DEBUG" == 1 ]]; then echo; echo '=== NoemaForge smoke debug ==='; for f in "$tmp"/*.err; do [[ -s "$f" ]] && echo "$(basename "$f" .err) error: $(cat "$f")"; done; fi
