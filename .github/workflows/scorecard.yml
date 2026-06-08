@@ -1,0 +1,54 @@
+name: scorecard
+
+# === NoemaForge File Header ===
+# File: .github/workflows/scorecard.yml
+# Zone: ci/security
+# Version: 0.33.0
+# Purpose: OpenSSF Scorecard supply-chain security analysis. Runs nightly and on
+#   default-branch updates; publishes results to the OpenSSF API (maturity badge)
+#   and uploads SARIF to GitHub code scanning. Part of the nightly/manual CI tier.
+# Notes: Code comments are English-only. Read-only analysis; no auto-commit/push.
+# === End NoemaForge File Header ===
+
+on:
+  branch_protection_rule:
+  schedule:
+    - cron: '27 3 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Run Scorecard analysis
+        uses: ossf/scorecard-action@v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: scorecard-sarif
+          path: results.sarif
+          retention-days: 30
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
