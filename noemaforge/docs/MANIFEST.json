@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1851,
+  "file_count": 1852,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -615,6 +615,7 @@
     "docs/policies/noemaforge-stop-policy.json",
     "docs/policies/quantization-policy.yaml",
     "docs/policies/runtime-invariants.json",
+    "docs/quality/AAT_SUITE.md",
     "docs/quality/ARCHIVE_AUDIT_NoemaForge_0.32.1.md",
     "docs/quality/AUTONOMOUS_WORKFLOW_SAFETY_REVIEW_0.32.2.md",
     "docs/quality/BRANCH_RECONCILIATION_0.32.2.md",
