@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1851,
+  "file_count": 1853,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -1027,6 +1027,7 @@
     "src/multios_runtime_contract.py",
     "src/netguard.py",
     "src/nids_lite.py",
+    "src/noema_catalog.py",
     "src/noema_cli.py",
     "src/noema_doctor.py",
     "src/noema_release.py",
@@ -1469,6 +1470,7 @@
     "tests/test_multios_runtime_contract.py",
     "tests/test_multios_runtime_performance.py",
     "tests/test_multios_runtime_qa.py",
+    "tests/test_noema_catalog.py",
     "tests/test_noema_cli.py",
     "tests/test_noema_doctor.py",
     "tests/test_noema_release.py",
