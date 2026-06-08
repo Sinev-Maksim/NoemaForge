@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2080,
+  "file_count": 2081,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/autonomous-pipeline.yml",
@@ -653,6 +653,7 @@
     "noemaforge/docs/onboarding/SETUP_MODES.md",
     "noemaforge/docs/operations/OPERATOR_GUIDE.md",
     "noemaforge/docs/operations/first-start.md",
+    "noemaforge/docs/operations/noema-cli.md",
     "noemaforge/docs/operations/operator-runbook.md",
     "noemaforge/docs/operations/release-verification.md",
     "noemaforge/docs/policies/POLICIES.md",
