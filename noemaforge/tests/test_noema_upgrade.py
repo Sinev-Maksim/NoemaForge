@@ -15,12 +15,14 @@ Tests: python3 -m unittest test_noema_upgrade
 Notes: Code comments are English-only.
 === End NoemaForge File Header ===
 """
+import hashlib
 import io
 import json
 import sys
 import tarfile
 import tempfile
 import unittest
+import unittest.mock as mock
 import zipfile
 from pathlib import Path
 
@@ -29,6 +31,29 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 import noema_upgrade as nu  # noqa: E402
+
+
+def _release_tar(files, *, version="0.33.0", topdir="pkg", with_manifest=True, corrupt=False):
+    """Build a gzip tarball mimicking a GitHub release (nested under one topdir), optionally with
+    a release-manifest.json whose artifact hashes are correct (or corrupted)."""
+    members = {f"{topdir}/{rel}": content.encode("utf-8") for rel, content in files}
+    if with_manifest:
+        artifacts = []
+        for rel, content in files:
+            b = content.encode("utf-8")
+            digest = "0" * 64 if corrupt else hashlib.sha256(b).hexdigest()
+            artifacts.append({"path": rel, "sha256": digest, "bytes": len(b)})
+        manifest = {"apiVersion": "noemaforge.release-manifest/v1", "version": version,
+                    "contract_epoch": "epoch-1", "generated_at": "2026-06-08T00:00:00Z",
+                    "artifacts": artifacts}
+        members[f"{topdir}/release-manifest.json"] = json.dumps(manifest).encode("utf-8")
+    bio = io.BytesIO()
+    with tarfile.open(fileobj=bio, mode="w:gz") as tf:
+        for name, data in members.items():
+            ti = tarfile.TarInfo(name)
+            ti.size = len(data)
+            tf.addfile(ti, io.BytesIO(data))
+    return bio.getvalue()
 
 
 def _tar_bytes(files, *, symlink=None, traversal=None):
@@ -257,6 +282,92 @@ class NoemaUpgradeFetchTests(unittest.TestCase):
                 rc = nu.main(["fetch", "--repo", "o/r", "--dest", d])
             self.assertEqual(rc, 1)
             self.assertIn("FAIL: fetch failed", buf.getvalue())
+
+
+class NoemaUpgradeRunTests(unittest.TestCase):
+    FILES = [("noemaforge/src/app.py", "new code"), ("README.md", "hello")]
+
+    def _current(self, stack):
+        cur = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+        (cur / "noemaforge" / "src").mkdir(parents=True)
+        (cur / "noemaforge" / "src" / "app.py").write_text("old code", encoding="utf-8")
+        (cur / "context.md").write_text("MY STATE", encoding="utf-8")  # protected
+        return cur
+
+    def test_run_verified_dry_run(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES)
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", fetcher=lambda u: blob, dest=dest)
+            self.assertTrue(res["ok"], res)
+            self.assertTrue(res["verified"])
+            self.assertEqual(res["stage"], "plan")
+            self.assertTrue(res["result"]["dry_run"])
+            # dry-run wrote nothing
+            self.assertEqual((cur / "noemaforge/src/app.py").read_text(encoding="utf-8"), "old code")
+
+    def test_run_apply_writes_and_preserves(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES)
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", apply=True,
+                                 fetcher=lambda u: blob, dest=dest)
+            self.assertTrue(res["ok"])
+            self.assertEqual((cur / "noemaforge/src/app.py").read_text(encoding="utf-8"), "new code")
+            self.assertEqual((cur / "README.md").read_text(encoding="utf-8"), "hello")
+            self.assertEqual((cur / "context.md").read_text(encoding="utf-8"), "MY STATE")  # preserved
+
+    def test_run_aborts_on_invalid_manifest(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES, corrupt=True)
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", fetcher=lambda u: blob, dest=dest)
+            self.assertFalse(res["ok"])
+            self.assertEqual(res["stage"], "verify")
+            self.assertTrue(res["verify_errors"])
+            # nothing applied
+            self.assertEqual((cur / "noemaforge/src/app.py").read_text(encoding="utf-8"), "old code")
+
+    def test_run_aborts_when_no_manifest_and_not_allowed(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES, with_manifest=False)
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", fetcher=lambda u: blob, dest=dest)
+            self.assertFalse(res["ok"])
+            self.assertEqual(res["stage"], "verify")
+
+    def test_run_allow_unverified_proceeds(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES, with_manifest=False)
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", allow_unverified=True,
+                                 fetcher=lambda u: blob, dest=dest)
+            self.assertTrue(res["ok"])
+            self.assertIsNone(res["verified"])
+
+    def test_cli_run_dry_run_exit_zero(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = self._current(stack)
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            blob = _release_tar(self.FILES)
+            with mock.patch.object(nu, "_default_fetcher", lambda u, **k: blob):
+                buf = io.StringIO()
+                with contextlib.redirect_stdout(buf):
+                    rc = nu.main(["run", "--current", str(cur), "--repo", "owner/repo",
+                                  "--version", "v1", "--dest", str(dest)])
+            self.assertEqual(rc, 0)
+            self.assertIn("DRY-RUN", buf.getvalue())
 
 
 if __name__ == "__main__":
