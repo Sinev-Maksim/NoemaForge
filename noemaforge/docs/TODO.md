@@ -30,6 +30,40 @@ and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](refere
 - [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
 - [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
 
+## 0.33.x forward roadmap (added 2026-06-09)
+
+_Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cycle._
+
+### Version milestones
+
+- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on
+  *nix (Linux), macOS and Windows: parity for paths, service/process management, sockets,
+  exec/sandbox, display-safety and the Admin GUI launcher across all three OS families
+  (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
+  Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
+  Linux / macOS / Windows.
+- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local
+  models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
+  Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
+  deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
+  cost/rate ceilings, and explicit operator opt-in (nothing leaves the machine by default).
+
+### Cross-cutting tasks (any 0.33.x)
+
+- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer
+  operators: one-button install/run, plain-language errors with guided recovery, no
+  terminal or YAML required for the happy path, GUI-first flows and safe defaults so a
+  non-technical user cannot foot-gun the system.
+- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to
+  date with the latest state (noema CLI, AAT suite, OpenSSF Scorecard, security/governance
+  front page, scenario pack); rewrite stale pages; keep README v2 as the narrative landing.
+- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review
+  comments (Codex / CodeRabbit / Copilot) on open PRs, fold recurring nits back into this
+  TODO, and clear each PR's review thread before requesting merge.
+- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and
+  CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
+  reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
+
 ## 0.32.2 release-hardening checkpoints
 
 - 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.
