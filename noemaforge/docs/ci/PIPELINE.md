@@ -38,6 +38,13 @@ Maintains a P0 readiness ledger so release-blocking status is tracked transparen
 ### `qa-version-bump.yml` — gated version-bump automation
 Performs the version bump only through the dedicated, gated workflow — never ad hoc.
 
+### `publish-evidence.yml` — published acceptance evidence
+On a release tag (`v*`) or manual dispatch, assembles the provenance chain (`MANIFEST.json` +
+`SHA256SUMS` + sidecars), a machine-readable verification report, the capability catalog, and the
+UAT acceptance scenarios into a single **`acceptance-evidence`** artifact — one-click downloadable
+from the Actions run — and attaches a build-provenance attestation. This makes the evidence a
+visible repository layer rather than something you must read the code to find.
+
 ## Review lanes
 
 | Lane | Role |

@@ -75,6 +75,7 @@ NoemaForge's claims are **checkable from this repository**, not taken on faith:
   [release-manifest schema](noemaforge/schemas/release-manifest.schema.json); see [`RELEASING.md`](noemaforge/docs/release/RELEASING.md).
 - **Deny-by-default, guarded in CI** — `noema policy test` fails if any `default allow := false` policy is weakened.
 - **Green, legible CI** — the badges above + [`docs/ci/PIPELINE.md`](noemaforge/docs/ci/PIPELINE.md).
+- **Downloadable acceptance evidence** — the [`publish-evidence`](.github/workflows/publish-evidence.yml) workflow bundles the manifest/checksums + a verification report + the capability catalog + UAT scenarios into a one-click `acceptance-evidence` artifact (with a build-provenance attestation) on every release tag or manual run.
 
 Full claim → proof mapping is the [Public verifiability](#public-verifiability--dont-trust-verify) table below.
 

@@ -7,6 +7,7 @@
     ".github/workflows/autonomous-pipeline.yml",
     ".github/workflows/p0-status-ledger.yml",
     ".github/workflows/premerge-quality.yml",
+    ".github/workflows/publish-evidence.yml",
     ".github/workflows/qa-version-bump.yml",
     ".gitignore",
     "CONTRIBUTING.md",
