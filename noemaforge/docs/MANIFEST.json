@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1842,
+  "file_count": 1846,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -1184,8 +1184,12 @@
     "systemd/noemaforge-autostart-gui.timer",
     "systemd/noemaforge-autostart-wogui.service",
     "systemd/noemaforge-llama@.service",
+    "systemd/noemaforge-llm-backends-manager.service",
+    "systemd/noemaforge-llm-backends-manager.timer",
     "systemd/noemaforge-llm-gateway.service",
     "systemd/noemaforge-memsentinel.service",
+    "systemd/noemaforge-modelscan.service",
+    "systemd/noemaforge-modelscan.timer",
     "systemd/noemaforge-shutdown-stop.service",
     "systemd/noemaforge-toolproxy.service",
     "templates/pipeline-dashboard/app.js",

@@ -1,0 +1,24 @@
+# === NoemaForge File Header ===
+# File: systemd/noemaforge-llm-backends-manager.timer
+# Zone: release/package
+# Version: 0.32.2
+# Created: 2026-06-08
+# Modified: 2026-06-08
+# Purpose: Schedule periodic backend reconcile (noemaforge-llm-backends-manager.service).
+# Inputs: none.
+# Outputs: periodic activation of the reconcile service.
+# Side effects: none beyond timer scheduling.
+# Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
+# Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+# === End NoemaForge File Header ===
+[Unit]
+Description=NoemaForge LLM Backends Manager Timer
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=5m
+Persistent=true
+Unit=noemaforge-llm-backends-manager.service
+
+[Install]
+WantedBy=timers.target
