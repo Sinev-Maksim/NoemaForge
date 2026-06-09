@@ -274,6 +274,52 @@ def fetch_and_extract(archive_url: str, dest: Path, *, fetcher: Optional[Fetcher
     return entries[0] if len(entries) == 1 else dest
 
 
+def run_upgrade(current_root: Path, repo: str, *, version: Optional[str] = None,
+                manifest_name: str = "release-manifest.json", apply: bool = False,
+                allow_unverified: bool = False, preserve_globs: Optional[Sequence[str]] = None,
+                fetcher: Optional[Fetcher] = None, dest: Optional[Path] = None) -> Dict[str, Any]:
+    """End-to-end in-place upgrade: fetch a GitHub release -> verify its signed manifest ->
+    plan -> apply (dry-run by default).
+
+    Aborts BEFORE planning/applying if the release manifest fails verification (or is absent and
+    --allow-unverified was not given), so an unverified release is never installed. Display-safe:
+    file operations only (no GPU/model/display); never deletes or overwrites protected state.
+    """
+    import tempfile
+    current_root = Path(current_root)
+    if dest is None:
+        dest = tempfile.mkdtemp(prefix="noema-upgrade-")
+
+    rel = resolve_release(repo, version, fetcher=fetcher)
+    incoming = fetch_and_extract(rel["archive_url"], Path(dest), fetcher=fetcher)
+
+    # Verify the signed release manifest before touching the install.
+    verified: Optional[bool] = None
+    manifest_path = Path(incoming) / manifest_name
+    if manifest_path.is_file():
+        import noema_release
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            return {"ok": False, "stage": "verify", "version": rel["version"],
+                    "verify_errors": [f"unreadable manifest: {exc}"], "incoming": str(incoming)}
+        vres = noema_release.verify_manifest(manifest, Path(incoming))
+        verified = bool(vres.get("ok"))
+        if not verified:
+            return {"ok": False, "stage": "verify", "version": rel["version"],
+                    "verify_errors": vres.get("errors", []), "incoming": str(incoming)}
+    elif not allow_unverified:
+        return {"ok": False, "stage": "verify", "version": rel["version"],
+                "verify_errors": [f"no {manifest_name} in release; pass --allow-unverified to proceed"],
+                "incoming": str(incoming)}
+
+    plan = plan_upgrade(current_root, Path(incoming), preserve_globs=preserve_globs)
+    result = apply_plan(plan, dry_run=not apply)
+    return {"ok": True, "stage": "apply" if apply else "plan", "version": rel["version"],
+            "verified": verified, "plan_summary": plan["summary"], "result": result,
+            "incoming": str(incoming)}
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(
         prog="noema upgrade",
@@ -298,7 +344,41 @@ def main(argv: Optional[List[str]] = None) -> int:
     p_fetch.add_argument("--dest", required=True, help="directory to extract into")
     p_fetch.add_argument("--json", action="store_true")
 
+    p_run = sub.add_parser("run", help="fetch + verify + plan + apply an upgrade end-to-end")
+    p_run.add_argument("--current", required=True, help="current install root")
+    p_run.add_argument("--repo", required=True, help="GitHub 'owner/name'")
+    p_run.add_argument("--version", default=None, help="tag to fetch (default: latest release)")
+    p_run.add_argument("--manifest-name", default="release-manifest.json")
+    p_run.add_argument("--apply", action="store_true", help="write changes (default is dry-run)")
+    p_run.add_argument("--allow-unverified", action="store_true",
+                       help="proceed even if the release ships no signed manifest (UNSAFE)")
+    p_run.add_argument("--preserve", action="append", default=[])
+    p_run.add_argument("--dest", default=None, help="extract dir (default: a temp dir)")
+    p_run.add_argument("--json", action="store_true")
+
     args = parser.parse_args(argv)
+
+    if args.command == "run":
+        try:
+            res = run_upgrade(Path(args.current), args.repo, version=args.version,
+                              manifest_name=args.manifest_name, apply=args.apply,
+                              allow_unverified=args.allow_unverified,
+                              preserve_globs=args.preserve,
+                              dest=Path(args.dest) if args.dest else None)
+        except (OSError, ValueError, urllib.error.URLError,
+                tarfile.TarError, zipfile.BadZipFile) as exc:
+            print(f"FAIL: upgrade failed: {exc}")
+            return 1
+        if args.json:
+            print(json.dumps(res, indent=2, ensure_ascii=False))
+        elif not res["ok"]:
+            print(f"FAIL [{res['stage']}]: " + "; ".join(res.get("verify_errors", [])))
+        else:
+            s = res["plan_summary"]
+            mode = "APPLIED" if args.apply else "DRY-RUN (no changes written; pass --apply)"
+            print(f"upgrade {args.repo}@{res['version']} verified={res['verified']} -> {mode}: "
+                  f"replace={s['replace']} add={s['add']} preserve={s['preserve']}")
+        return 0 if res["ok"] else 1
 
     if args.command == "fetch":
         try:
