@@ -23,6 +23,7 @@ Usage:
     noema --help
 
 Commands:
+    start     one-button start: readiness + ensure dirs + launch the Admin GUI
     doctor    read-only readiness report
     release   build (pack) / verify release manifests
     upgrade   plan / apply an in-place upgrade (preserves user state)
@@ -38,8 +39,10 @@ def _subcommands() -> Dict[str, Callable[[Optional[List[str]]], int]]:
     import noema_doctor
     import noema_policy
     import noema_release
+    import noema_start
     import noema_upgrade
     return {
+        "start": noema_start.main,
         "doctor": noema_doctor.main,
         "release": noema_release.main,
         "upgrade": noema_upgrade.main,
@@ -51,6 +54,7 @@ _USAGE = (
     "usage: noema <command> [args...]\n"
     "\n"
     "commands:\n"
+    "  start     one-button start: readiness + ensure dirs + launch the Admin GUI\n"
     "  doctor    read-only readiness report\n"
     "  release   build (pack) / verify release manifests\n"
     "  upgrade   plan / apply an in-place upgrade (preserves user state)\n"
