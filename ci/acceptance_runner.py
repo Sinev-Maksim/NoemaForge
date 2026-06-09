@@ -41,6 +41,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 REPO = Path(__file__).resolve().parents[1]
 VERIFIER = REPO / "noemaforge" / "src" / "manifest_checksum_exclusion_runtime.py"
@@ -122,28 +123,46 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
         detail["index_error"] = str(exc)
         ok = False
 
-    # 2. .sha256 sidecars must match their targets.
-    sidecars = {
-        "MANIFEST.json.sha256": "MANIFEST.json",
-        "SHA256SUMS.sha256": "noemaforge/checksums/SHA256SUMS",
-        "noemaforge/docs/MANIFEST.json.sha256": "noemaforge/docs/MANIFEST.json",
-    }
+    # 2. each .sha256 sidecar must match the artifact it NAMES. The target is parsed
+    #    from the sidecar body ("<hash>  <path>") rather than a hardcoded mapping, so the
+    #    check always follows the declared target and can never verify the wrong artifact.
+    #    (The top-level SHA256SUMS itself is covered by the authoritative verifier in step 3.)
+    sidecar_files = [
+        "MANIFEST.json.sha256",
+        "MANIFEST.sha256",
+        "SHA256SUMS.sha256",
+        "noemaforge/docs/MANIFEST.json.sha256",
+    ]
     sidecar_results: Dict[str, Any] = {}
-    for sidecar, target in sidecars.items():
+    for sidecar in sidecar_files:
         sp = REPO / sidecar
-        entry: Dict[str, Any] = {"target": target}
+        entry: Dict[str, Any] = {}
         if not sp.exists():
             entry["status"] = "sidecar_missing"
             ok = False
-        elif target not in index:
-            entry["status"] = "target_untracked"
-            ok = False
         else:
-            recorded = sp.read_text(encoding="utf-8").split()[0] if sp.read_text(encoding="utf-8").split() else ""
-            actual = index[target]
-            entry.update(recorded=recorded, actual=actual)
-            entry["status"] = "ok" if recorded == actual else "mismatch"
-            ok = ok and recorded == actual
+            parts = sp.read_text(encoding="utf-8").split()
+            if len(parts) < 2:
+                entry["status"] = "sidecar_malformed"
+                ok = False
+            else:
+                recorded, named = parts[0], parts[1]
+                # the named path is relative to the sidecar's own directory (sha256sum
+                # convention): root sidecars name repo-relative paths, the docs sidecar
+                # names a bare file in its own dir. Resolve before looking it up.
+                try:
+                    target_rel = (sp.parent / named).resolve().relative_to(REPO.resolve()).as_posix()
+                except ValueError:
+                    target_rel = named
+                entry["target"] = target_rel
+                if target_rel not in index:
+                    entry["status"] = "target_untracked"
+                    ok = False
+                else:
+                    actual = index[target_rel]
+                    entry.update(recorded=recorded, actual=actual)
+                    entry["status"] = "ok" if recorded == actual else "mismatch"
+                    ok = ok and recorded == actual
         sidecar_results[sidecar] = entry
     detail["sidecars"] = sidecar_results
 
@@ -199,8 +218,10 @@ def case_install_dry_run(results: Path) -> Dict[str, Any]:
         return {"name": "install_dry_run", "status": "skip", "tier": "20-install", "detail": note}
     try:
         proc = subprocess.run(
+            # --keep-display is mandatory for any model-selection / GPU command per the
+            # project's display-safety rule; capture the compliant shape even in dry-run.
             ["bash", str(setup), "vm", "--model-profile", "minimal",
-             "--gpu-policy", "on-demand", "--first-start", "none", "--dry-run"],
+             "--gpu-policy", "on-demand", "--first-start", "none", "--keep-display", "--dry-run"],
             cwd=str(REPO), capture_output=True, text=True, timeout=300, check=False,
         )
         (tier / "setup-dry-run.txt").write_text(proc.stdout + proc.stderr, encoding="utf-8")
@@ -327,7 +348,9 @@ def case_toolproxy_isolation(results: Path) -> Dict[str, Any]:
         enf = cfg.get("enforcement", {}) or {}
 
         endpoints = [str(gw.get("chat_endpoint", "")), str(gw.get("embed_endpoint", ""))]
-        remote_endpoints = [e for e in endpoints if e and "localhost" not in e and "127.0.0.1" not in e]
+        # Validate the parsed host, not raw substring presence: "https://localhost.evil.tld/"
+        # contains "localhost" but is remote. Empty endpoints are not egress (unix-socket-only).
+        remote_endpoints = [e for e in endpoints if e and (urlparse(e).hostname or "") not in ("localhost", "127.0.0.1", "::1")]
         allow_bins = execp.get("allow_bins") or []
         gateway_unix = bool(gw.get("unix_socket"))
         exec_allowlisted = isinstance(allow_bins, list) and len(allow_bins) > 0 and "*" not in allow_bins

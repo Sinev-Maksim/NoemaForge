@@ -63,6 +63,7 @@ def test_checksum_verification_passes() -> None:
         cwd=str(REPO),
         text=True,
         capture_output=True,
+        timeout=600,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
@@ -118,12 +119,16 @@ def test_toolproxy_isolation_posture() -> None:
     """The shipped ToolProxy config must be unix-socket only (no remote egress) with a
     bounded exec allowlist."""
     import yaml
+    from urllib.parse import urlparse
 
     cfg = yaml.safe_load((REPO / "noemaforge" / "configs" / "toolproxy.yaml").read_text(encoding="utf-8"))
     gw = cfg.get("llm_gateway", {})
     assert gw.get("unix_socket"), "gateway must use a unix socket"
     for ep in (gw.get("chat_endpoint", ""), gw.get("embed_endpoint", "")):
-        assert "localhost" in ep or "127.0.0.1" in ep, f"remote endpoint exposed: {ep}"
+        if not ep:
+            continue  # an unconfigured endpoint is not remote egress (unix-socket-only is valid)
+        host = urlparse(ep).hostname or ""
+        assert host in ("localhost", "127.0.0.1", "::1"), f"remote endpoint exposed: {ep}"
     allow = cfg.get("exec", {}).get("allow_bins") or []
     assert allow and "*" not in allow, "exec must be a bounded allowlist (deny-by-default)"
 
@@ -166,6 +171,7 @@ def test_acceptance_runner_produces_bundle(tmp_path: pathlib.Path) -> None:
         cwd=str(REPO),
         text=True,
         capture_output=True,
+        timeout=600,
         check=False,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
