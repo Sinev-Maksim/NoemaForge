@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1855,
+  "file_count": 1856,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -606,6 +606,7 @@
     "docs/onboarding/SETUP_MODES.md",
     "docs/operations/OPERATOR_GUIDE.md",
     "docs/operations/first-start.md",
+    "docs/operations/noema-cli.md",
     "docs/operations/operator-runbook.md",
     "docs/operations/release-verification.md",
     "docs/policies/POLICIES.md",
