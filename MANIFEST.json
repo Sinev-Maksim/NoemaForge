@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2099,
+  "file_count": 2095,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/acceptance.yml",
@@ -10,6 +10,7 @@
     ".github/workflows/premerge-quality.yml",
     ".github/workflows/publish-evidence.yml",
     ".github/workflows/qa-version-bump.yml",
+    ".github/workflows/scorecard.yml",
     ".gitignore",
     "CONTRIBUTING.md",
     "LICENSE",
