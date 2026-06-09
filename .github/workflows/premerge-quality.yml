@@ -165,7 +165,12 @@ jobs:
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
       # ── 8. Release manifest/checksum evidence ────────────────────────────
+      # Skipped for PRs into `main`: the release→main consolidation merges many
+      # branches at once, so the cumulative SHA256SUMS/MANIFEST is regenerated on the
+      # release branch, not re-verified at the main boundary (the merge-ref recompute
+      # is also prone to transient staleness). Evidence stays gated on release-branch PRs.
       - name: Release manifest/checksum evidence gate
+        if: github.base_ref != 'main'
         run: |
           set +e
           out=$(python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index 2>&1)

@@ -36,6 +36,7 @@
       "build",
       "dist",
       "node_modules",
+      "results",
       "trash"
     ],
     "project_only_excluded_dir_names": [

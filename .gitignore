@@ -28,6 +28,9 @@ htmlcov/
 .mypy_cache/
 .dmypy.json
 dmypy.json
+
+# Acceptance suite (AAT) output bundle — generated, never committed
+results/
 .ruff_cache/
 
 # Editors and IDEs
