@@ -58,11 +58,10 @@ The control plane is a localhost web dashboard at `http://127.0.0.1:8765/`: mode
 job/event timeline, pipeline drafts behind an approval gate, and artifact download. It starts no
 GPU/model work on its own — heavy actions are surfaced as operator-approved commands.
 
-<!-- screenshot/gif: a polished install → GUI → pipeline-draft → approval → artifact → trend →
-forensics walkthrough (with assets) ships in the guided scenario pack — see docs/showcase/. -->
-
-> A guided, screenshot/gif demo path (install → GUI open → pipeline draft → approval gate → artifact
-> download → selftest trend → forensics bundle) is being assembled under `docs/showcase/`.
+**Guided demo:** the canonical end-to-end walkthrough — install → GUI open → pipeline draft →
+approval gate → artifact download → selftest trend → forensics bundle — is in
+**[`docs/showcase/SCENARIO.md`](noemaforge/docs/showcase/SCENARIO.md)** (each step with its command +
+the governance boundary; screenshot/gif slots reserved for a live capture).
 
 ## What is proven here
 
