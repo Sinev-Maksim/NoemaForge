@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1858,
+  "file_count": 1859,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -641,6 +641,7 @@
     "docs/security/signed-manifests.md",
     "docs/security/threat-model.md",
     "docs/setup.sh",
+    "docs/showcase/SCENARIO.md",
     "docs/uninstall_noemaforge_0.31.13.alpha_mvp.sh",
     "docs/wiki/README.md",
     "docs/wiki/WIKI-imported-1.md",
