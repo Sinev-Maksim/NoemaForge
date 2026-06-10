@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — model evolution and model selection
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Model evolution remains a measured control-plane process. It creates candidate artifacts and rollback instructions; it does not mutate production weights automatically.
 
 0.32.1 adds a separate model-selection bridge for epoch optimization:

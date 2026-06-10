@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — TTY status, GUI restore and interrupt recovery
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Context
 
 Live full-composite real launch on legacy live-validation host showed that a heavy `first-start` can make the local TTY look frozen or leave the host in emergency/safe-mode if GUI/headless and share bind-mount recovery are not handled explicitly.
@@ -34,4 +36,3 @@ sudo noemaforge first-start abort
 ```
 
 Both paths stop model backends and restore Debian GUI.
-

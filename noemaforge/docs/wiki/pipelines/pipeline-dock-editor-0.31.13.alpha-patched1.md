@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — Pipeline Dock and Editor Plan
 
+> **Status: historical snapshot (0.31.13.alpha-patched1 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Left click
 Open a pipeline, explain it, request required inputs, then run or create a plan according to policy.
 

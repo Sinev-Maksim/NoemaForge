@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — full composite real launch
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Status: alpha-prep runbook.
 
 This page records the legacy live-validation host live findings that led to patched10 and the safe procedure for a real full-composite launch.
@@ -60,4 +62,3 @@ sudo systemctl start --no-block display-manager.service 2>/dev/null || true
 sudo systemctl start --no-block gdm.service 2>/dev/null || true
 sudo systemctl isolate --no-block graphical.target
 ```
-

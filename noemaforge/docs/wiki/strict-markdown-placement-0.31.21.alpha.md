@@ -1,5 +1,7 @@
 # Strict Markdown placement
 
+> **Status: historical snapshot (0.31.21.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](WIKI.md).
+
 NoemaForge uses documentation as part of its release contract, so Markdown placement has to be deterministic. Active Markdown belongs in the package documentation tree, helper notes or prelaunch material. The package docs root stays small: `README.md` explains the map, `Manifest.md` states the policy, and `TODO.md` carries current work. Everything else belongs in named subfolders such as architecture, backlog, history, operations, policies, quality, reference, i18n or wiki.
 
 This rule keeps release archives understandable. Operators should not have to decide which parallel changelog, release note or copied research fragment is authoritative. The canonical release history is `noemaforge/docs/history/CHANGELOG.md`, and roadmap state is kept in `noemaforge/docs/backlog/ROADMAP_AND_TODO.md` plus `noemaforge/docs/TODO.md`.
