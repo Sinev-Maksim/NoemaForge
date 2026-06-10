@@ -1,5 +1,7 @@
 # Autostart runtime policy — 0.31.10
 
+> **Status: historical snapshot (0.31.04 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ```text
 gui mode:
   runtime/toolproxy allowed

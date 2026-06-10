@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1: live runtime and model-selection fixes
 
+> **Status: historical snapshot (0.31.13.alpha-patched1 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Context
 
 This patch records the live legacy live-validation host validation findings after the NoemaForge rename and the first `patched6` dry-run model-selection attempts.
@@ -96,4 +98,3 @@ The epoch must not be applied unless:
 - failed-runtime models are excluded;
 - partial-valid models retain only their successful role scores;
 - `systemctl --failed` is clean or failures are documented as non-blocking.
-

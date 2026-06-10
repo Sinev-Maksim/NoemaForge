@@ -1,5 +1,8 @@
 # Release Notes — NoemaForge 0.31.03
 
+> **Status: historical snapshot (0.31.03 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
+
 This release converts the live-tested fixes into a policy release.
 
 Boot policy:

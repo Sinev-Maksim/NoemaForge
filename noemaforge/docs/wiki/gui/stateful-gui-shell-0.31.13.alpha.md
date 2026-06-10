@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — Stateful GUI Shell
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Purpose
 The alpha GUI shell persists chat history, restores state after refresh, shows persona portraits, tasks, jobs, pipeline catalog, telemetry, epoch state, and SR/SSR-ready backend message records.
 
