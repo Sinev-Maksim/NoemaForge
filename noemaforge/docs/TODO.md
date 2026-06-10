@@ -67,8 +67,8 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 
 _Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
-and acceptance criteria are canonical in `docs/uat/DEFECT-REGISTER-0.32.2.md` (project
-root); per-run detail in `docs/uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
+detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
 PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
 production readiness for non-engineer operators = NOT READY._
 
