@@ -200,8 +200,9 @@ jobs:
       contents: read
       issues: write
       pull-requests: write
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
+    # No job-level GITHUB_TOKEN: the Codex CLI step runs without a sandbox
+    # (see below), so the token is scoped to exactly the steps that call the
+    # GitHub API. The model process must never inherit a write-scoped token.
     steps:
       - name: Check usage-limit pause marker
         id: gate
@@ -249,6 +250,8 @@ jobs:
         if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $archive = Join-Path $env:RUNNER_TEMP 'codex-source.zip'
@@ -303,6 +306,8 @@ jobs:
         if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           Set-Location -LiteralPath $env:CODEX_WORKTREE
@@ -351,7 +356,9 @@ jobs:
           # diff goes into the model prompt, and cap the remainder defensively.
           $raw = Get-Content -LiteralPath $diffPath -Raw
           $blocks = [regex]::Split($raw, '(?m)(?=^diff --git )')
-          $skipRe = '(?m)^diff --git a/(MANIFEST\.json(\.sha256)?|MANIFEST\.sha256|SHA256SUMS(\.sha256)?|noemaforge/checksums/SHA256SUMS|noemaforge/docs/MANIFEST\.json(\.sha256)?) '
+          # Generic: match the generated evidence basenames at any path depth, so
+          # future mirrors (e.g. docs/MANIFEST.json) are covered without edits.
+          $skipRe = '(?m)^diff --git a/(?:[^ ]*/)?(MANIFEST(\.json)?(\.sha256)?|SHA256SUMS(\.sha256)?) '
           $kept = New-Object System.Collections.Generic.List[string]
           $omitted = 0; $omittedChars = 0
           foreach ($b in $blocks) {
@@ -544,8 +551,10 @@ jobs:
           # `-s read-only` left every review without local command execution.
           # `danger-full-access` skips the broken sandbox helper. Risk is bounded:
           # self-hosted runner, throwaway extracted worktree (not a git checkout),
-          # no secrets in this step's environment, and the prompt mandates
-          # read-only inspection.
+          # the prompt mandates read-only inspection, and — per Codex review on
+          # PR #87 — GITHUB_TOKEN is deliberately NOT in this step's (or the
+          # job's) environment, so the model process holds no write-scoped
+          # credentials; API steps get the token individually.
           $prompt | & $codex exec `
             -s danger-full-access `
             --skip-git-repo-check `
