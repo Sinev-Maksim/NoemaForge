@@ -62,11 +62,11 @@ class MachineLocalDefaultsRuntimeTests(unittest.TestCase):
             "noemaforge-llama@.service",
             "noemaforge-memsentinel.service",
         ]:
-            text = (PROJECT_ROOT / "systemd" / service).read_text(encoding="utf-8")
+            text = (PROJECT_ROOT / "noemaforge" / "systemd" / service).read_text(encoding="utf-8")
             self.assertIn("EnvironmentFile=-/etc/default/noemaforge-runtime", text, service)
 
         for service in ["noemaforge-autostart-gui.service", "noemaforge-autostart-wogui.service"]:
-            text = (PROJECT_ROOT / "systemd" / service).read_text(encoding="utf-8")
+            text = (PROJECT_ROOT / "noemaforge" / "systemd" / service).read_text(encoding="utf-8")
             self.assertIn("EnvironmentFile=-/etc/default/noemaforge-runtime", text, service)
             self.assertIn("EnvironmentFile=-/etc/default/noemaforge-firstboot", text, service)
 
