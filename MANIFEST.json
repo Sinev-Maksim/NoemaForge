@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2100,
+  "file_count": 2095,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/acceptance.yml",
@@ -686,6 +686,7 @@
     "noemaforge/docs/reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md",
     "noemaforge/docs/reference/KNOWLEDGE_BASE.md",
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
+    "noemaforge/docs/reference/SYSTEM_INDEPENDENCE_0.33.1.md",
     "noemaforge/docs/reference/control-plane.openapi.yaml",
     "noemaforge/docs/release.json",
     "noemaforge/docs/release/RELEASE_0.33.0_DEV.md",
