@@ -25,6 +25,7 @@ Environment=NOEMAFORGE_ROOT=/opt/noemaforge
 Environment=NOEMAFORGE_STATE=/var/lib/noemaforge
 Environment=NOEMAFORGE_GATEWAY_SOCKET=/run/noemaforge/llm/gateway.sock
 Environment=NOEMAFORGE_TOOLPROXY_SOCKET=/run/noemaforge/toolproxy.sock
+EnvironmentFile=-/etc/default/noemaforge-runtime
 ExecStartPre=+/usr/bin/install -d -o noemaforge -g noemaforge -m 0755 /run/noemaforge /run/noemaforge/llm /run/noemaforge/llm/backends /var/lib/noemaforge
 ExecStart=/usr/bin/python3 /opt/noemaforge/src/toolproxy.py
 Restart=on-failure

@@ -1,5 +1,7 @@
 # NoemaForge consolidated MVP kernel and shell roadmap
 
+> **Status: historical snapshot (0.31.13.alpha-patched1 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Status: candidate roadmap/backlog material for future versions.  
 Release package: `0.32.1`.  
 Runtime impact: none for this package; this document does not add hard dependencies or install-time requirements.

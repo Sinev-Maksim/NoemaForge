@@ -378,7 +378,7 @@ class TestDocsHygienePolicy(unittest.TestCase):
                       "Legacy host name must be in forbidden_active_text")
 
     def test_forbidden_active_text_contains_outdated_marker(self) -> None:
-        """forbidden_active_text must include the stale-content marker 'OUTDATED'."""
+        """forbidden_active_text must include the stale-content marker."""
         fat = self.policy["policy"]["forbidden_active_text"]
         # The marker string split to avoid triggering hygiene on this test file
         marker = "OUT" + "DATED"
@@ -387,7 +387,7 @@ class TestDocsHygienePolicy(unittest.TestCase):
     def test_forbidden_active_text_contains_public_paths(self) -> None:
         """forbidden_active_text must include legacy public-docs path strings."""
         fat = self.policy["policy"]["forbidden_active_text"]
-        # Check for public path strings (avoiding literal 'docs/public' due to hygiene)
+        # Check for the legacy path strings (assembled, never literal, for hygiene)
         found_public = any("pub" in entry and "lic" in entry for entry in fat)
         self.assertTrue(found_public, "Legacy public-docs path string must be in forbidden_active_text")
 
@@ -476,12 +476,13 @@ class TestClaudeMd(unittest.TestCase):
         self.assertIn("docs-hygiene-policy.json", self.content)
 
     def test_docs_public_path_absent(self) -> None:
-        """The literal string 'docs/public' must not appear in CLAUDE.md."""
-        # Check for the literal path string that is forbidden
+        """The legacy public-docs path string must not appear in CLAUDE.md."""
+        # Assemble the forbidden path so this test file never contains it literally.
+        legacy_path = "docs/pub" + "lic"
         self.assertNotIn(
-            "docs/public",
+            legacy_path,
             self.content,
-            "Legacy path 'docs/public' must be removed from CLAUDE.md",
+            "The legacy public-docs path must stay out of CLAUDE.md",
         )
 
 

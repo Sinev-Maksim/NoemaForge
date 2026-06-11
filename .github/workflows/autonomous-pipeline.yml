@@ -28,10 +28,20 @@ jobs:
         id: info
         run: |
           set -euo pipefail
-          base_branch="release/0.32.2-hardening"
+          # Auto-detect the nearest active release line so 0.32.2 and 0.33.0 branches both
+          # diff against their true base (release/0.33.0-dev descends from 0.32.2-hardening,
+          # so both are ancestors of a 0.33.0 branch — prefer the closest one listed first).
+          base_branch=""
+          for cand in release/0.33.0-dev release/0.32.2-hardening; do
+            git fetch --no-tags --depth=200 origin "$cand" 2>/dev/null || continue
+            if git merge-base --is-ancestor "origin/$cand" HEAD 2>/dev/null; then
+              base_branch="$cand"; break
+            fi
+          done
+          [ -n "$base_branch" ] || base_branch="release/0.32.2-hardening"
+          echo "Resolved base branch: $base_branch"
           changed_file_list="$RUNNER_TEMP/changed_files.txt"
 
-          git fetch --no-tags --depth=1 origin "$base_branch"
           git diff --name-only --diff-filter=ACMR "origin/$base_branch" HEAD > "$changed_file_list"
 
           echo "branch=${GITHUB_REF#refs/heads/}" >> "$GITHUB_OUTPUT"
@@ -140,14 +150,22 @@ jobs:
           print("PASS: no forbidden RUNTIME_VERSION assignment in changed files")
           EOF
 
-      - name: VERSION files = 0.32.2
+      - name: VERSION files equal SoT version
         run: |
           python - <<'EOF'
           from pathlib import Path
           import os
           import sys
 
-          expected = '0.32.2'
+          # Derive the expected version from the source of truth (noemaforge_version.RUNTIME_VERSION,
+          # which reads the canonical VERSION file) instead of hardcoding a literal. This keeps the
+          # check version-agnostic across release lines (0.32.2, 0.33.0, ...).
+          sys.path.insert(0, 'noemaforge/src')
+          try:
+              from noemaforge_version import RUNTIME_VERSION as expected
+          except Exception:
+              expected = Path('VERSION').read_text(encoding='utf-8').strip()
+          print(f"Expected version (from SoT): {expected!r}")
           version_files = {Path('VERSION'), Path('noemaforge/VERSION'), Path('docs/VERSION')}
           changed_file_list = Path(os.environ['RUNNER_TEMP']) / 'changed_files.txt'
           changed = [Path(line.strip()) for line in changed_file_list.read_text().splitlines() if line.strip()]
@@ -289,7 +307,28 @@ jobs:
           $ErrorActionPreference = 'Stop'
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
-          $base = [System.Uri]::EscapeDataString('release/0.32.2-hardening')
+          # Resolve the PR's TRUE base branch from the API (authoritative) so a 0.33.0 branch is
+          # reviewed against release/0.33.0-dev, not the whole 0.32.2 delta. Shallow-clone ancestry
+          # (git merge-base --is-ancestor) is unreliable on the depth=1 runner checkout, so we ask
+          # GitHub for the open PR's base.ref. Fallback preserves prior behavior for 0.32.2 branches.
+          $apiHeaders = @{
+            Accept = 'application/vnd.github+json'
+            'User-Agent' = 'NoemaForge-CI'
+            'X-GitHub-Api-Version' = '2022-11-28'
+          }
+          if ($env:GITHUB_TOKEN) { $apiHeaders.Authorization = "Bearer $env:GITHUB_TOKEN" }
+          $owner = $env:GITHUB_REPOSITORY.Split('/')[0]
+          $baseBranch = ''
+          try {
+            $prUrl = "https://api.github.com/repos/$($env:GITHUB_REPOSITORY)/pulls?head=$($owner):$($env:GITHUB_REF_NAME)&state=open"
+            $prs = Invoke-RestMethod -Uri $prUrl -Headers $apiHeaders
+            if ($prs -and @($prs).Count -ge 1 -and @($prs)[0].base.ref) { $baseBranch = @($prs)[0].base.ref }
+          } catch { Write-Host "PR base lookup failed: $($_.Exception.Message)" }
+          if (-not $baseBranch) { $baseBranch = 'release/0.32.2-hardening' }
+          Write-Host "Resolved Codex review base: $baseBranch"
+          "CODEX_BASE_BRANCH=$baseBranch" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $base = [System.Uri]::EscapeDataString($baseBranch)
           $head = [System.Uri]::EscapeDataString($env:GITHUB_SHA)
           $diffPath = Join-Path $env:CODEX_WORKTREE 'diff.patch'
           $compareUrl = "https://api.github.com/repos/$env:GITHUB_REPOSITORY/compare/$base...$head"
@@ -430,7 +469,7 @@ jobs:
 
           $prompt = @(
             "You are reviewing a Claude Code branch in NoemaForge."
-            "Base branch: origin/release/0.32.2-hardening"
+            "Base branch: origin/$(if ($env:CODEX_BASE_BRANCH) { $env:CODEX_BASE_BRANCH } else { 'release/0.32.2-hardening' })"
             "Head branch: $env:GITHUB_REF_NAME"
             "Commit: $env:GITHUB_SHA"
             ""
@@ -438,6 +477,7 @@ jobs:
             "Inspect the branch changes from diff.patch included below."
             "If local command execution is unavailable, use the inline content below and the GitHub connector as read-only fallback."
             "Return a concise GitHub-ready Markdown review."
+            "Write the entire review in English (all GitHub-facing text in this repository is English-only)."
             "Start with exactly one verdict line:"
             "Verdict: PASS"
             "or"
@@ -452,7 +492,7 @@ jobs:
             $instructions
             '```'
             ""
-            "Branch diff from release/0.32.2-hardening to $env:GITHUB_SHA:"
+            "Branch diff from $(if ($env:CODEX_BASE_BRANCH) { $env:CODEX_BASE_BRANCH } else { 'release/0.32.2-hardening' }) to $env:GITHUB_SHA:"
             '```diff'
             $diffText
             '```'

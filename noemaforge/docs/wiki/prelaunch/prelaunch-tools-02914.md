@@ -1,5 +1,7 @@
 # Prelaunch tools — 0.29.14
 
+> **Status: historical snapshot (02914 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Contents
 
 This release includes extracted prelaunch helper tools under `prelaunch/tools/source/` and OS-specific wrappers under:

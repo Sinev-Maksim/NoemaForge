@@ -1,5 +1,7 @@
 # NFG-PROP-0.32.1-edge-ml-pack — Edge / TinyML / OTA backlog
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Status: candidate backlog pack / future-version idea.  
 Release anchor: NoemaForge `0.32.1` documentation patch.  
 Runtime impact: **none**. This package is intentionally recorded as roadmap/Wiki/TODO material only and must not become a hard dependency for public `0.32.1` startup.

@@ -20,6 +20,8 @@ ConditionPathExists=/etc/noemaforge/boot-mode
 
 [Service]
 Type=oneshot
+EnvironmentFile=-/etc/default/noemaforge-runtime
+EnvironmentFile=-/etc/default/noemaforge-firstboot
 ExecStart=/opt/noemaforge/tools/prep/noemaforge-autostart-safe.sh --mode gui --nonfatal-gui-wait
 TimeoutStartSec=10min
 RemainAfterExit=no

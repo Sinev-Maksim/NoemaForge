@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — first-start model selection modes
 
+> **Status: historical snapshot (0.32.1 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 0.32.1 introduces explicit first-start model-selection modes and warmup-gated scoring.
 
 ## Why

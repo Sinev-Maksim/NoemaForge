@@ -3,11 +3,13 @@ name: Premerge quality gate
 # === NoemaForge File Header ===
 # File: .github/workflows/premerge-quality.yml
 # Zone: release/package
-# Version: 0.32.2
+# Version: 0.33.0
 # Created: 2026-05-28
-# Purpose: Read-only premerge quality gate for PRs targeting release/0.32.2-hardening
-#   and main. Fails fast on version violations, compile errors or tracked cache files.
-#   No auto-commits, no auto-push, no auto-tagging.
+# Purpose: Read-only premerge quality gate for PRs targeting the active release branch
+#   and main. The expected version is derived from the version source of truth
+#   (noemaforge_version.RUNTIME_VERSION), so this gate is version-agnostic and works for
+#   0.32.2 and 0.33.0 alike. Fails fast on version violations, compile errors or tracked
+#   cache files. No auto-commits, no auto-push, no auto-tagging.
 # Notes: Code comments are English-only.
 # === End NoemaForge File Header ===
 
@@ -15,6 +17,7 @@ on:
   pull_request:
     branches:
       - release/0.32.2-hardening
+      - release/0.33.0-dev
       - main
 
 permissions:
@@ -37,6 +40,14 @@ jobs:
 
       - name: Install PyYAML
         run: pip install pyyaml --quiet
+
+      # ── 0. Resolve expected version from the source of truth ─────────────
+      - name: Resolve expected version from SoT
+        run: |
+          v=$(python -c "import sys; sys.path.insert(0, 'noemaforge/src'); from noemaforge_version import RUNTIME_VERSION; print(RUNTIME_VERSION)")
+          if [ -z "$v" ]; then echo "FAIL: could not resolve RUNTIME_VERSION from SoT"; exit 1; fi
+          echo "EXPECTED_VERSION=$v" >> "$GITHUB_ENV"
+          echo "Expected version (from noemaforge_version.RUNTIME_VERSION): $v"
 
       # ── 1. Python compile ────────────────────────────────────────────────
       - name: py_compile noemaforge/src/*.py
@@ -64,10 +75,10 @@ jobs:
           fi
           echo "PASS: no forbidden RUNTIME_VERSION assignment"
 
-      # ── 3. VERSION files = 0.32.2 ────────────────────────────────────────
-      - name: VERSION files equal 0.32.2
+      # ── 3. VERSION files = SoT version ───────────────────────────────────
+      - name: VERSION files equal SoT version
         run: |
-          expected="0.32.2"
+          expected="$EXPECTED_VERSION"
           failed=0
           for f in VERSION noemaforge/VERSION docs/VERSION; do
             if [ -f "$f" ]; then
@@ -84,17 +95,17 @@ jobs:
           done
           [ "$failed" -eq 0 ] || exit 1
 
-      # ── 4. docs/release.json active fields ───────────────────────────────
-      - name: docs/release.json version fields = 0.32.2
+      # ── 4. docs/release.json active fields = SoT version ─────────────────
+      - name: docs/release.json version fields equal SoT version
         run: |
           python - <<'PYEOF'
-          import json, sys
+          import json, os, sys
           p = "docs/release.json"
           try:
               d = json.loads(open(p, encoding="utf-8").read())
           except Exception as e:
               print(f"FAIL: cannot parse {p}: {e}"); sys.exit(1)
-          expected = "0.32.2"
+          expected = os.environ["EXPECTED_VERSION"]
           failed = []
           for field in ("version", "release"):
               if d.get(field) != expected:
@@ -206,6 +217,14 @@ jobs:
           done < <(find . -name "*.sh" ! -path './.git/*' -print0)
           echo "bash -n: $count files, $errs syntax errors"
           [ "$errs" -eq 0 ] || exit 1
+
+      # ── 10. Wiki integrity (links · hub index · no dumps) ────────────────
+      - name: Wiki integrity (links, hub index, no consolidated dumps)
+        run: python ci/wiki_check.py
+
+      # ── 11. Docs hygiene (markdown layout · forbidden text · canon files) ─
+      - name: Docs hygiene gate
+        run: python noemaforge/src/docs_hygiene_runtime.py --project-root .
 
       # ── Summary ───────────────────────────────────────────────────────────
       - name: Summary

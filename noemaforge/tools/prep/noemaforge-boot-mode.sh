@@ -82,9 +82,9 @@ write_profile(){
 }
 install_units(){
   local srcdir="$ROOT/../systemd"
-  [[ -d "$srcdir" ]] || srcdir="$ROOT/systemd"
+  [[ -d "$srcdir" ]] || srcdir="$ROOT/noemaforge/systemd"
   [[ -d "$srcdir" ]] || srcdir="/opt/systemd"
-  [[ -d "$srcdir" ]] || srcdir="$(cd "$(dirname "$0")/../../.." 2>/dev/null && pwd)/systemd"
+  [[ -d "$srcdir" ]] || srcdir="$(cd "$(dirname "$0")/../.." 2>/dev/null && pwd)/systemd"
   for u in noemaforge-autostart-gui.service noemaforge-autostart-gui.timer noemaforge-autostart-wogui.service; do
     [[ -f "$srcdir/$u" ]] || continue
     if [[ "$DRY_RUN" == 1 ]]; then echo "install systemd/$u -> /etc/systemd/system/$u"; else install -D -m 0644 "$srcdir/$u" "/etc/systemd/system/$u"; fi

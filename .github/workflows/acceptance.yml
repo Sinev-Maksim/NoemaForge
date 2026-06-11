@@ -1,0 +1,67 @@
+name: acceptance
+
+# === NoemaForge File Header ===
+# File: .github/workflows/acceptance.yml
+# Zone: ci/acceptance
+# Version: 0.33.0
+# Purpose: Artifact-driven acceptance suite (AAT). Runs the acceptance harness,
+#   publishes the results/ outputs bundle as a workflow artifact, and attests
+#   build provenance over the bundle digest. Gating cases span the integrity,
+#   telemetry-privacy, toolproxy (capability tokens + isolation), release-provenance
+#   and contract-epoch tiers; boot-dependent safety + LLM cases are target/nightly-only.
+# Notes: Code comments are English-only. Read-only checks; no auto-commit/push.
+# === End NoemaForge File Header ===
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - 'claude/aat-**'
+      - 'release/**'
+  pull_request:
+    branches:
+      - release/0.33.0-dev
+      - release/0.32.2-hardening
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  aat:
+    name: Acceptance suite (artifact-driven)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test deps
+        run: pip install pytest pyyaml --quiet
+
+      - name: Run acceptance harness
+        run: bash ci/run_acceptance.sh results
+
+      - name: Pytest acceptance layer
+        run: python -m pytest ci/acceptance -q
+
+      - name: Upload acceptance results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: noemaforge-acceptance-results
+          path: results
+          retention-days: 90
+
+      - name: Attest acceptance bundle provenance
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
+        with:
+          subject-path: results/manifest.sha256

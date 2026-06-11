@@ -30,6 +30,109 @@ and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](refere
 - [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
 - [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
 
+## 0.33.x forward roadmap (added 2026-06-09)
+
+_Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cycle._
+
+### Version milestones
+
+- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on
+  *nix (Linux), macOS and Windows: parity for paths, service/process management, sockets,
+  exec/sandbox, display-safety and the Admin GUI launcher across all three OS families
+  (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
+  Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
+  Linux / macOS / Windows.
+- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local
+  models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
+  Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
+  deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
+  cost/rate ceilings, and explicit operator opt-in (nothing leaves the machine by default).
+
+### Cross-cutting tasks (any 0.33.x)
+
+- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer
+  operators: one-button install/run, plain-language errors with guided recovery, no
+  terminal or YAML required for the happy path, GUI-first flows and safe defaults so a
+  non-technical user cannot foot-gun the system.
+- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to
+  date with the latest state (noema CLI, AAT suite, OpenSSF Scorecard, security/governance
+  front page, scenario pack); rewrite stale pages; keep README v2 as the narrative landing.
+- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review
+  comments (Codex / CodeRabbit / Copilot) on open PRs, fold recurring nits back into this
+  TODO, and clear each PR's review thread before requesting merge.
+- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and
+  CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
+  reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
+
+## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
+
+_Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
+and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
+detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
+production readiness for non-engineer operators = NOT READY._
+
+### P0 — trust and feedback loop (blocks operator use)
+
+- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain
+  `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
+  the user's language — never hallucinate them as filenames.
+- [ ] **U-002** No silent no-ops: every user command produces at least one visible
+  response; async work shows accepted → running → status → result/failure with run id.
+- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input
+  (editable, with visible confirmation); Cancel only closes the dialog.
+- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage
+  highlighted, completed stages marked, errors with stage + short message, run id linked
+  to artifacts/logs (text-only is acceptable for MVP).
+- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API
+  already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
+  result cards with open/download/copy actions; readable failure message on error.
+
+### P1 — comprehension and persona UX
+
+- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for
+  state terms, full model names on hover, internally consistent progress numbers, and a
+  "Latest plan" that reflects the actually applied run (no stale `normal` after a real
+  `full_composite`).
+- [ ] **U-003** Distinct personas with an explicit selector: observably different
+  behavior/tone/scope per persona, switch logged in chat, completion offers
+  stay / return-to-Admin / switch.
+- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on
+  launch the chat shows the switch and the persona greets with next steps.
+- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button
+  label change + "next message runs as N-step cycle" notice + iteration progress), or are
+  disabled with a warning where unsupported.
+
+### P2 — presentation polish and guards
+
+- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw
+  JSON only behind Details/Debug.
+- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection
+  status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
+  no raw JSON in the default view.
+- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback +
+  error if rendering fails; source behind debug).
+- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short
+  interval prompts start-new / continue-existing / cancel; existing runs visible.
+
+### Runtime / ops follow-ups (0.33.x)
+
+- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure
+  observed during the composite first-start window (plan-only oneshot; `reset-failed` was
+  applied on host but is not a fix); add a regression check.
+- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model
+  reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
+  tiny instruct model is not reported `degraded`.
+- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs
+  every available pipeline in safe test mode with small built-in prompts and exports a
+  summary report (pipeline, case, status, artifact, error, duration, persona); failures
+  do not stop the batch by default.
+- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
+  real values (or be replaced by the normalized-verdict extraction); fix unit-name and
+  path quoting in evidence-collection helpers.
+- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator
+  starts the localhost dashboard) in the operator guide.
+
 ## 0.32.2 release-hardening checkpoints
 
 - 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.

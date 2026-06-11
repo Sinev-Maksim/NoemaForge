@@ -1,5 +1,7 @@
 # Persona Portraits and Dashboard — 0.31.10
 
+> **Status: historical snapshot (0.31.10 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Persona portraits are SVG assets under `noemaforge/ui/personas/portraits`. The
 first-run audit now checks that persona catalog entries resolve to portraits and
 that the dashboard can be started after first-run.

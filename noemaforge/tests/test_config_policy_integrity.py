@@ -92,14 +92,15 @@ class TestDocsHygienePolicyJson(unittest.TestCase):
         self.assertGreater(len(policy["forbidden_active_text"]), 0)
 
     def test_forbidden_active_text_has_no_literal_outdated(self) -> None:
-        """The OUTDATED marker must not appear as a literal string in the raw file."""
+        """The stale-content marker must not appear as a literal in the raw file."""
         raw = self._path.read_text(encoding="utf-8")
         # The policy encodes forbidden strings via unicode escapes in the JSON
         # source to avoid self-referential violations. The decoded value will
         # appear when loaded, but we validate the raw source does not contain
-        # the literal forbidden string 'OUTDATED'.
-        self.assertNotIn("OUTDATED", raw,
-                         "OUTDATED must be unicode-escaped in the JSON source to avoid self-reference")
+        # the literal marker (assembled here so this test file stays clean too).
+        marker = "OUT" + "DATED"
+        self.assertNotIn(marker, raw,
+                         "the stale-content marker must be unicode-escaped in the JSON source")
 
     def test_required_canonical_files_is_list(self) -> None:
         policy = self._doc["policy"]
