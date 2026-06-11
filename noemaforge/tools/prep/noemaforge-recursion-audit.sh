@@ -32,7 +32,7 @@ if [[ -e "$TARGET/noemaforge/bin/noemaforge" ]]; then
   LAYOUT="package"
   CLI_REL="noemaforge/bin/noemaforge"
   PREP_REL="noemaforge/tools/prep"
-  SYS_DIR="$TARGET/systemd"
+  SYS_DIR="$TARGET/noemaforge/systemd"
   GUI_SERVICE="$SYS_DIR/noemaforge-autostart-gui.service"
   GUI_TIMER="$SYS_DIR/noemaforge-autostart-gui.timer"
   VERSION_FILE="$TARGET/VERSION"
@@ -47,8 +47,8 @@ else
   LAYOUT="unknown"
   CLI_REL="noemaforge/bin/noemaforge"
   PREP_REL="noemaforge/tools/prep"
-  GUI_SERVICE="$TARGET/systemd/noemaforge-autostart-gui.service"
-  GUI_TIMER="$TARGET/systemd/noemaforge-autostart-gui.timer"
+  GUI_SERVICE="$TARGET/noemaforge/systemd/noemaforge-autostart-gui.service"
+  GUI_TIMER="$TARGET/noemaforge/systemd/noemaforge-autostart-gui.timer"
   VERSION_FILE="$TARGET/VERSION"
 fi
 
@@ -60,7 +60,7 @@ CUR_VER="unknown"
 
 # Layout-specific required files.
 if [[ "$LAYOUT" == "package" ]]; then
-  for f in setup.sh "$CLI_REL" systemd/noemaforge-autostart-gui.service systemd/noemaforge-autostart-gui.timer; do
+  for f in setup.sh "$CLI_REL" noemaforge/systemd/noemaforge-autostart-gui.service noemaforge/systemd/noemaforge-autostart-gui.timer; do
     have "$f" || add_problem "missing required package file: $f"
   done
   installer="$TARGET/install_noemaforge_${CUR_VER}_mvp.sh"
