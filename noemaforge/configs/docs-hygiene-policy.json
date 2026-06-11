@@ -10,7 +10,7 @@
       "helpers/",
       "prelaunch/"
     ],
-    "allowed_root_markdown": ["CONTRIBUTING.md", "SECURITY.md"],
+    "allowed_root_markdown": ["CONTRIBUTING.md", "SECURITY.md", "Claude_stats.md"],
     "allowed_docs_root_markdown": [
       "noemaforge/docs/README.md",
       "noemaforge/docs/Manifest.md",
