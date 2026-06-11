@@ -30,6 +30,46 @@ _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each
 - [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku)_
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
 - [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku)_
+**Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
+Codex review is handled **before the PR merges** — each suggestion is either applied on
+the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
+periodically so older reviews do not rot in comment threads.
+
+### Harvest 2026-06-11 (review back-sweep #5–#85)
+
+- [ ] **Replace smart quotes in the dashboard locale option template** — 5 literal
+  curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
+  they can produce malformed `<option value=…>` values and break locale selection.
+  (Codex #5)
+- [ ] **Frontend session restore narrows to `selected_mode`** — either restore
+  `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
+  code comment that claims full history restore. (Codex #5)
+- [ ] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
+  verify no duplicated entries after the events/session additions. (Codex #10)
+- [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
+  `env_description` parameter and quote `echo "$response"`. (Codex #11)
+- [ ] **`brainui.py` path containment** — prefer
+  `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
+  string checks. (Codex #11)
+- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31)
+- [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
+  `resolve()`; serialize `prune_terminal()` with other `jobs.json` writes if it is
+  ever wired into a periodic path. (Codex #37)
+- [ ] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
+  to module top level. (Codex #42)
+- [ ] **Create `docs/architecture/system-context.md`** or drop the dangling
+  "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
+- [ ] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
+
+- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
+- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
+- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
+- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
+- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
+- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
+- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
@@ -82,6 +122,87 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 - [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and _(S · human action — repo Settings toggle, not codeable)_
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
+
+## Accepted optimization decisions (2026-06-10 analysis review)
+
+_The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
+decision below is a committed work item for the 0.33.x cycle (not an optional nit).
+Restored 2026-06-11: this section was added by PR #82 but got lost in the #86
+release→main conflict resolution; statuses updated on restore._
+
+### A. Process / CI
+
+- [x] **A1 — evidence generation moves to CI on dev branches.** Done (this PR):
+  `ci/regen_evidence.py` is the single generator; the premerge gate regenerates
+  and verifies the merged tree (stale-evidence failures abolished); the new
+  `evidence-refresh.yml` workflow keeps committed copies current on `release/**`
+  after merges. Branches no longer commit regenerated evidence.
+- [x] **A2 — docs-hygiene gate joins premerge-quality.** Done in PR #85:
+  pre-existing reds cleared (`context.md` legacy host name, CONTRIBUTING/SECURITY
+  allowlist, three broken registry wiki refs) and the gate wired as step 11.
+- [ ] **A3 — p0-status-ledger concurrency dedupe.** The workflow runs twice per
+  push and the concurrency group cancels the older run, leaving misleading
+  CANCELLED check entries; dedupe triggers or set `cancel-in-progress` with a
+  per-ref group so only one run per push remains.
+- [ ] **A4 — version-agnostic installer.** Replace per-release
+  `install/uninstall_noemaforge_<ver>_mvp.sh` pairs with a single
+  `install_noemaforge_mvp.sh` reading the VERSION SoT; archive the stale 0.32.1
+  pair. Also closes the pre-existing red contract check
+  `setup_does_not_delegate_to_current_installer` (no 0.33.0 installer exists).
+- [ ] **A5 — refresh CLAUDE.md.** Working base is `release/0.33.0-dev`; drop the
+  completed 0.32.2 P0 list and stale PR refs; point at the UAT defect register
+  and the canonical TODO/roadmap as task sources; record the English-only
+  GitHub-communication rule.
+
+### B. Tree canonicalization (single source under the package root)
+
+- [x] **B1 — systemd:** `noemaforge/systemd/` is the only unit tree; newer
+  root-tree units merged in, root tree removed, installers/audit/boot-mode
+  re-pointed, config refs verified against the contract resolvers. Done in
+  PR #81 (and re-asserted in the #86 sync merge).
+- [x] **B2 (wiki slice):** `noemaforge/docs/wiki/` is the canonical wiki; the
+  drifted project-root mirror was removed, dumps extracted into standalone
+  articles, hub + integrity gate + GitHub Wiki auto-publish added. Done in PR #80.
+- [ ] **B2 (remaining docs):** merge the remaining drifted `docs/` ↔
+  `noemaforge/docs/` pairs (i18n, architecture, reference, onboarding, …) into
+  the package tree, make the project-root `docs/` a generated mirror or remove
+  it, and re-point referencing paths in JSON/configs the same way as B1.
+
+### C. Code health (refactor-as-you-touch; no big-bang)
+
+- [ ] **Split `admin_gui_server.py` before the GUI fixpack grows it** (~2.2k
+  lines, ~119 endpoint references in one handler): route table + modules per
+  area (session, jobs, pipelines, model-selection). First slice of the fixpack.
+- [ ] **Modularize the dashboard frontend** (`templates/pipeline-dashboard/app.js`)
+  and add a small reusable card/progress/artifact component set — precondition
+  for the raw-JSON-rendering defects (D-001/D-004/D-006).
+- [ ] **Desktop app shell (accepted direction).** The GUI must feel like an
+  application window, not a browser tab, via the lightest path: `noemaforge
+  dashboard app` launcher using Chromium-family `--app=` mode with plain-browser
+  fallback, plus a PWA manifest (`display: standalone`) for installability.
+  Zero new mandatory dependencies; pywebview stays an optional future extra.
+  ADR: `wiki/architecture/desktop-app-shell.md`.
+- [ ] **Replace deprecated `datetime.utcnow()`** (8× in `caps.py`, then repo-wide)
+  with timezone-aware `datetime.now(UTC)`; py3.12+ deprecates utcnow and CI on
+  3.11 masks it.
+- [ ] **Add a minimal `pyproject.toml`** (metadata + extras: `dev` = pytest/pyyaml,
+  `vector` = numpy, `gateway` = httpx) without changing the stdlib-only runtime
+  posture; tooling deps are currently undeclared anywhere.
+- [ ] **Wire targeted contract-test shards into CI and burn down pre-existing
+  reds.** premerge runs `py_compile` only, so contract tests rot silently:
+  legacy refs to root `TODO.md`/`CHANGELOG.md`/`RELEASE_NOTES.md` in
+  machine-local-defaults policy, stale installer delegation, and the
+  `test_pr_release_artifacts` snapshot tests (hardcoded file counts) that fail
+  on any live tree. Add bounded test shards to premerge/acceptance and fix the
+  reds (make snapshot tests dynamic).
+- [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
+  dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
+  under-covered.
+
+### E. Supply chain
+
+- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
+  Dependabot for `github-actions` updates; Scorecard already flags this.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 

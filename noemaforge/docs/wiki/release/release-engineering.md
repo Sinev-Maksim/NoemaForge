@@ -13,6 +13,9 @@ and which gates it must pass. Maintained page; the workflows under
   PRs to non-default branches request CodeRabbit explicitly
   (`@coderabbitai review`). Actionable review comments are fixed before
   merge; recurring nits are folded into the canonical TODO.
+- The `## Optimizations` section of every Codex review is handled before the
+  PR merges: each suggestion is applied on the branch or recorded in the
+  canonical TODO with its `Codex #PR` tag (owner directive 2026-06-11).
 
 ## CI gates
 
@@ -35,10 +38,17 @@ The release contract is artifact-driven: `MANIFEST.json` (project) and
 must report `ok=true`. Verification runs against a **pristine worktree** —
 local checkouts accumulate untracked files that pollute filesystem scans.
 
-Accepted direction (2026-06-10, being implemented): on dev branches the
-generated evidence files move out of git into a CI regenerate-and-verify
-step, so parallel PRs stop conflicting on every base advance; committed,
-signed evidence remains mandatory on release branches and tags.
+Evidence lifecycle (decision A1, shipped 2026-06-11):
+
+- `ci/regen_evidence.py` is the **single generator** of the seven evidence
+  files, computing everything from the git index.
+- PR branches **do not commit regenerated evidence**. The premerge gate runs
+  the generator on the merged tree and then verifies it
+  (regen-then-verify) — the old "stale committed evidence" failure class and
+  the cross-PR SHA256SUMS merge conflicts are gone.
+- `evidence-refresh.yml` regenerates and commits the evidence on every push
+  to `release/**`, so release branches (and therefore `main` and release
+  archives) always carry exact committed evidence.
 
 ## Provenance and hygiene
 

@@ -165,37 +165,29 @@ jobs:
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
       # ── 8. Release manifest/checksum evidence ────────────────────────────
-      # Skipped for PRs into `main`: the release→main consolidation merges many
-      # branches at once, so the cumulative SHA256SUMS/MANIFEST is regenerated on the
-      # release branch, not re-verified at the main boundary (the merge-ref recompute
-      # is also prone to transient staleness). Evidence stays gated on release-branch PRs.
-      - name: Release manifest/checksum evidence gate
-        if: github.base_ref != 'main'
+      # Evidence is GENERATED here, then verified (accepted decision A1):
+      # branches no longer commit regenerated MANIFEST/SHA256SUMS, so parallel
+      # PRs stop conflicting on every base advance. The gate proves the merged
+      # tree yields a self-consistent evidence set; the committed copies on
+      # release branches are refreshed post-merge by evidence-refresh.yml.
+      - name: Release manifest/checksum evidence gate (regen-then-verify)
         run: |
           set +e
+          python ci/regen_evidence.py || { echo "::error title=Evidence regeneration failed::ci/regen_evidence.py exited non-zero — see log."; exit 1; }
           out=$(python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index 2>&1)
           code=$?
           echo "$out"
           if [ "$code" -eq 0 ]; then
-            echo "PASS: release manifest/checksum evidence is consistent"
+            echo "PASS: regenerated release evidence is self-consistent for the merged tree"
             exit 0
           fi
-          # This step verifies release EVIDENCE consistency (SHA256SUMS / MANIFEST.json),
-          # not code correctness. A failure here is typically NOT a code defect.
-          echo "::error title=Release evidence stale (not a code defect)::SHA256SUMS/MANIFEST mismatch - regenerate checksums or update this branch from release/0.32.2-hardening. See the job summary for the exact files."
+          # After an in-CI regeneration a failure is structural (policy/layout),
+          # not the old "stale committed evidence" class.
+          echo "::error title=Release evidence inconsistent after regeneration::manifest/checksum policy violation on the merged tree - see the job summary."
           {
-            echo "## Release manifest/checksum evidence gate FAILED"
+            echo "## Release manifest/checksum evidence gate FAILED (post-regen)"
             echo ""
-            echo "The committed release evidence (\`SHA256SUMS\`, \`noemaforge/checksums/SHA256SUMS\`, \`MANIFEST.json\`) does not match the current tracked file set. **This is an evidence-consistency check, not a code defect** - the code gates (py_compile, JSON/YAML, versions) are reported separately above."
-            echo ""
-            echo "### Most likely cause"
-            echo "- a tracked file changed without regenerating the checksums, **or**"
-            echo "- this branch is **behind / diverged from** \`release/0.32.2-hardening\`. PRs are checked as the head **merged with base**, so once the base advances (e.g. after another PR merges) a stale branch produces an inconsistent merged \`SHA256SUMS\`."
-            echo ""
-            echo "### Fix"
-            echo "1. Update the branch from \`release/0.32.2-hardening\` (merge or rebase)."
-            echo "2. Regenerate the manifests/checksums and commit them."
-            echo "3. Push; this gate re-runs."
+            echo "Evidence was regenerated in CI and still fails verification, so this is a real manifest/exclusion-policy or layout problem, not stale committed files."
             echo ""
             echo "<details><summary>Reported mismatches (machine output)</summary>"
             echo ""
