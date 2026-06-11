@@ -25,6 +25,10 @@ DIFF_PATH_RE = re.compile(r"^diff --git a/(?:[^ ]+) b/([^ \n]+)", re.M)
 
 
 def main() -> int:
+    if len(sys.argv) < 4:
+        print(f"usage: {sys.argv[0]} <diff-file> <worktree-root> <digest-out>",
+              file=sys.stderr)
+        return 2
     diff_file, root_arg, out_file = sys.argv[1:4]
     root = Path(root_arg)
     raw = Path(diff_file).read_text(encoding="utf-8", errors="replace")

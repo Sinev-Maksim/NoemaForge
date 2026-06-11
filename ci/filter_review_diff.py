@@ -26,6 +26,8 @@ from pathlib import Path
 
 # Generated evidence basenames, matched at any path depth so future mirrors
 # (e.g. docs/MANIFEST.json) are covered without edits.
+# Coupled with noemaforge/tests/test_review_diff_filter.py (EVIDENCE_PATHS):
+# extend BOTH together if evidence filenames ever grow beyond MANIFEST*/SHA256SUMS*.
 EVIDENCE_BLOCK_RE = re.compile(
     r"^diff --git a/(?:[^ ]*/)?"
     r"(MANIFEST(\.json)?(\.sha256)?|SHA256SUMS(\.sha256)?) ",
