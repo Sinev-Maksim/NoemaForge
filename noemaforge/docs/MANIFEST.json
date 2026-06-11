@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1895,
+  "file_count": 1896,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -1613,6 +1613,7 @@
     "tests/test_research_packet_performance.py",
     "tests/test_research_packet_qa.py",
     "tests/test_research_packet_runtime.py",
+    "tests/test_review_diff_filter.py",
     "tests/test_role_corpus_binding_performance.py",
     "tests/test_role_corpus_binding_qa.py",
     "tests/test_role_corpus_binding_runtime.py",
