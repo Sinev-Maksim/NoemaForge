@@ -13,6 +13,9 @@ and which gates it must pass. Maintained page; the workflows under
   PRs to non-default branches request CodeRabbit explicitly
   (`@coderabbitai review`). Actionable review comments are fixed before
   merge; recurring nits are folded into the canonical TODO.
+- The `## Optimizations` section of every Codex review is handled before the
+  PR merges: each suggestion is applied on the branch or recorded in the
+  canonical TODO with its `Codex #PR` tag (owner directive 2026-06-11).
 
 ## CI gates
 

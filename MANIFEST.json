@@ -1672,6 +1672,7 @@
     "noemaforge/tests/test_research_packet_performance.py",
     "noemaforge/tests/test_research_packet_qa.py",
     "noemaforge/tests/test_research_packet_runtime.py",
+    "noemaforge/tests/test_review_diff_filter.py",
     "noemaforge/tests/test_role_corpus_binding_performance.py",
     "noemaforge/tests/test_role_corpus_binding_qa.py",
     "noemaforge/tests/test_role_corpus_binding_runtime.py",
