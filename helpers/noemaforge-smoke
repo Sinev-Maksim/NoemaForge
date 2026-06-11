@@ -19,18 +19,18 @@ for arg in "$@"; do case "$arg" in --debug) DEBUG=1 ;; --timeout=*) TIMEOUT="${a
 backend_sock="${NOEMAFORGE_BACKEND_SOCKET_DIR:-/run/noemaforge/llm/backends}/main.sock"; gateway_sock="${NOEMAFORGE_GATEWAY_SOCKET:-/run/noemaforge/llm/gateway.sock}"
 bh=fail; bc=fail; gh=fail; gc=fail; br=''; gr=''; tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 [[ -S "$backend_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -fsS --max-time 15 --unix-socket "$backend_sock" http://localhost:8080/health >/dev/null 2>"$tmp/bh.err" && bh=ok || true
-if [[ -S "$backend_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -sS --max-time "$TIMEOUT" --unix-socket "$backend_sock" http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$tmp/bc.json" 2>"$tmp/bc.err"; then br=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("choices",[{}])[0].get("message",{}).get("content","").strip())' "$tmp/bc.json" 2>/dev/null || true); [[ "$br" == OK* ]] && bc=ok || bc=non_ok_response; fi
+if [[ -S "$backend_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -sS --max-time "$TIMEOUT" --unix-socket "$backend_sock" http://localhost:8080/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$tmp/bc.json" 2>"$tmp/bc.err"; then br=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("choices",[{}])[0].get("message",{}).get("content","").strip())' "$tmp/bc.json" 2>/dev/null || true); [[ -n "$br" ]] && bc=ok || bc=empty_response; fi
 [[ -S "$gateway_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -fsS --max-time 15 --unix-socket "$gateway_sock" http://localhost/health >/dev/null 2>"$tmp/gh.err" && gh=ok || true
-if [[ -S "$gateway_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -sS --max-time "$TIMEOUT" --unix-socket "$gateway_sock" http://localhost/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$tmp/gc.json" 2>"$tmp/gc.err"; then gr=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("choices",[{}])[0].get("message",{}).get("content","").strip())' "$tmp/gc.json" 2>/dev/null || true); [[ "$gr" == OK* ]] && gc=ok || gc=non_ok_response; fi
+if [[ -S "$gateway_sock" ]] && runuser -u "$NOEMAFORGE_USER" -- curl -sS --max-time "$TIMEOUT" --unix-socket "$gateway_sock" http://localhost/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$tmp/gc.json" 2>"$tmp/gc.err"; then gr=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("choices",[{}])[0].get("message",{}).get("content","").strip())' "$tmp/gc.json" 2>/dev/null || true); [[ -n "$gr" ]] && gc=ok || gc=empty_response; fi
 overall=fail; [[ "$bh" == ok && "$bc" == ok && "$gh" == ok && "$gc" == ok ]] && overall=ok
 cat <<EOF
 === NoemaForge smoke ===
 backend socket: $backend_sock
 backend health: $bh
-backend chat:   $bc response=$br
+backend chat(liveness): $bc response=$br
 gateway socket: $gateway_sock
 gateway health: $gh
-gateway chat:   $gc response=$gr
+gateway chat(liveness): $gc response=$gr
 overall:        $overall
 EOF
 if [[ "$DEBUG" == 1 ]]; then echo; echo '=== NoemaForge smoke debug ==='; for f in "$tmp"/*.err; do [[ -s "$f" ]] && echo "$(basename "$f" .err) error: $(cat "$f")"; done; fi

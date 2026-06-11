@@ -216,15 +216,16 @@ def build_task_workflow_sequence(*, package_root: Path | str) -> Dict[str, Any]:
 def _source_report(policy: Dict[str, Any], *, project_root: Path, package_root: Path) -> Dict[str, Any]:
     failures: List[str] = []
     reports: List[Dict[str, Any]] = []
+    required_tokens = _as_string_list(policy.get("required_api_tokens")) + _as_string_list(policy.get("required_chat_tokens"))
     for ref in _as_string_list(policy.get("required_runtime_scripts")):
         resolved = _resolve_ref(ref, project_root=project_root, package_root=package_root)
         text = load_text(resolved["path"]) if resolved.get("ok") else ""
         local_failures: List[str] = []
         if not resolved.get("ok"):
             local_failures.append(f"script_missing:{ref}")
-        for token in _as_string_list(policy.get("required_api_tokens")) + _as_string_list(policy.get("required_chat_tokens")):
+        for index, token in enumerate(required_tokens, start=1):
             if text and token not in text:
-                local_failures.append(f"source_token_missing:{token}")
+                local_failures.append(f"source_token_missing:token_{index}")
         reports.append({"ref": ref, "ok": not local_failures, "failures": local_failures, "resolved": resolved})
         failures.extend(local_failures)
     return {"failures": failures, "reports": reports}

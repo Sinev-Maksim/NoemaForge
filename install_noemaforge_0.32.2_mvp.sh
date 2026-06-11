@@ -148,6 +148,9 @@ if command -v rsync >/dev/null 2>&1; then
 else
   cp -a "$PKG_DIR/noemaforge/." "$(target /opt/noemaforge)/"
 fi
+# Guarantee the CLI entrypoint is executable even if the package was delivered without mode bits
+# (e.g. a zip). rsync/cp -a preserve modes, so this is belt-and-suspenders for the canonical CLI.
+[[ -e "$(target /opt/noemaforge)/bin/noemaforge" ]] && chmod 0755 "$(target /opt/noemaforge)/bin/noemaforge" || true
 
 for h in noemaforge-stop noemaforge-reboot-safe noemaforge-sel-fix noemaforge-vault-mount-ro noemaforge-model-advisor noemaforge-safe-start noemaforge-smoke noemaforge-manager noemaforge-monitor noemaforge-chat noemaforge-interpret noemaforge-toolproxy-diag gui-status gui-rescue gui-start noemaforge-health noemaforge-safe-mode noemaforge-llm-memory-override noemaforge-start-llm-safe noemaforge-llm-stop noemaforge-service-stop; do
   [[ -f "$PKG_DIR/helpers/$h" ]] && install_file "$PKG_DIR/helpers/$h" "/usr/local/sbin/$h" 0755
@@ -254,6 +257,10 @@ install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-gateway.service" /etc/s
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-toolproxy.service" /etc/systemd/system/noemaforge-toolproxy.service 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-memsentinel.service" /etc/systemd/system/noemaforge-memsentinel.service 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llama@.service" /etc/systemd/system/noemaforge-llama@.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-modelscan.service" /etc/systemd/system/noemaforge-modelscan.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-modelscan.timer" /etc/systemd/system/noemaforge-modelscan.timer 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-backends-manager.service" /etc/systemd/system/noemaforge-llm-backends-manager.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-backends-manager.timer" /etc/systemd/system/noemaforge-llm-backends-manager.timer 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.service" /opt/systemd/noemaforge-autostart-gui.service 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.timer" /opt/systemd/noemaforge-autostart-gui.timer 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-wogui.service" /opt/systemd/noemaforge-autostart-wogui.service 0644
@@ -261,6 +268,10 @@ install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-gateway.service" /opt/s
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-toolproxy.service" /opt/systemd/noemaforge-toolproxy.service 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-memsentinel.service" /opt/systemd/noemaforge-memsentinel.service 0644
 install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llama@.service" /opt/systemd/noemaforge-llama@.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-modelscan.service" /opt/systemd/noemaforge-modelscan.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-modelscan.timer" /opt/systemd/noemaforge-modelscan.timer 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-backends-manager.service" /opt/systemd/noemaforge-llm-backends-manager.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-backends-manager.timer" /opt/systemd/noemaforge-llm-backends-manager.timer 0644
 if [[ -d "$PKG_DIR/noemaforge/systemd/dropins" ]]; then
   find "$PKG_DIR/noemaforge/systemd/dropins" -type f | while read -r f; do
     rel="${f#$PKG_DIR/noemaforge/systemd/dropins/}"

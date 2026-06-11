@@ -2,7 +2,7 @@
 # === NoemaForge File Header ===
 # File: setup.sh
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.32.2
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Validate and install the NoemaForge release package on the host.
@@ -12,7 +12,7 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.32.1 setup front door.
+# NoemaForge setup front door.
 # Safe by default: dry-run friendly, one active LLM invariant, no heavy backend autostart.
 set -euo pipefail
 
@@ -26,6 +26,9 @@ fi
 export NOEMAFORGE_SETUP_DEPTH=$(( ${NOEMAFORGE_SETUP_DEPTH:-0} + 1 ))
 
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Read the version from the canonical VERSION file so the printed plan never goes stale.
+NOEMAFORGE_VERSION="$(tr -d '[:space:]' < "$PKG_DIR/VERSION" 2>/dev/null \
+  || tr -d '[:space:]' < "$PKG_DIR/noemaforge/VERSION" 2>/dev/null || echo 'unknown')"
 MODE="vm"
 INSTALL_ROOT="/"
 DATA_ROOT="/var/lib/noemaforge"
@@ -127,7 +130,7 @@ if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: CLI/API surfaces are covered by targeted verification; package syntax validation passed"
 fi
 cat <<PLAN
-NoemaForge 0.32.1 setup plan
+NoemaForge ${NOEMAFORGE_VERSION} setup plan
   mode:                  $MODE
   install_root:          $INSTALL_ROOT
   data_root:             $DATA_ROOT
