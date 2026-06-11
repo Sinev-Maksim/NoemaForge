@@ -477,6 +477,7 @@ jobs:
             "Inspect the branch changes from diff.patch included below."
             "If local command execution is unavailable, use the inline content below and the GitHub connector as read-only fallback."
             "Return a concise GitHub-ready Markdown review."
+            "Write the entire review in English (all GitHub-facing text in this repository is English-only)."
             "Start with exactly one verdict line:"
             "Verdict: PASS"
             "or"
