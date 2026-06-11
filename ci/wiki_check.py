@@ -45,7 +45,10 @@ MARKERS = {
 
 
 def wiki_pages() -> list[Path]:
-    return sorted(p for p in WIKI.rglob("*.md"))
+    # Sort by the posix relpath string: Path ordering is case-insensitive on
+    # Windows but case-sensitive on Linux, which made the generated hub index
+    # platform-dependent (stale on CI when written locally).
+    return sorted(WIKI.rglob("*.md"), key=lambda p: p.relative_to(WIKI).as_posix())
 
 
 def rel(p: Path) -> str:
