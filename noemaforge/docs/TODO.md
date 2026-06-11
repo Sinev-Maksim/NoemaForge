@@ -64,84 +64,74 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
 
-## Accepted optimization decisions (2026-06-10 analysis review)
+## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 
-_The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
-decision below is a committed work item for the 0.33.x cycle (not an optional nit)._
+_Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
+and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
+detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
+production readiness for non-engineer operators = NOT READY._
 
-### A. Process / CI
+### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **A1 — evidence generation moves to CI on dev branches.** Stop tracking the
-  generated `MANIFEST.json` / `SHA256SUMS` (+ sidecars) on `release/*-dev` and
-  `claude/*` branches; the premerge gate recomputes and verifies them from the
-  git index instead of diffing committed copies. Committed, signed evidence stays
-  mandatory on release branches and tags. Kills the standing source of cross-PR
-  conflicts on every base advance.
-- [ ] **A2 — docs-hygiene gate joins premerge-quality.** Pre-existing reds to fix
-  first: legacy host name inside tracked `context.md` (replace file with a
-  hygiene-clean version), and `CONTRIBUTING.md` / `SECURITY.md` added to the
-  policy root allowlist.
-- [ ] **A3 — p0-status-ledger concurrency dedupe.** The workflow runs twice per
-  push and the concurrency group cancels the older run, leaving misleading
-  CANCELLED check entries; dedupe triggers or set `cancel-in-progress` with a
-  per-ref group so only one run per push remains.
-- [ ] **A4 — version-agnostic installer.** Replace per-release
-  `install/uninstall_noemaforge_<ver>_mvp.sh` pairs with a single
-  `install_noemaforge_mvp.sh` reading the VERSION SoT; archive the stale 0.32.1
-  pair. Also closes the pre-existing red contract check
-  `setup_does_not_delegate_to_current_installer` (no 0.33.0 installer exists).
-- [ ] **A5 — refresh CLAUDE.md.** Working base is `release/0.33.0-dev`; drop the
-  completed 0.32.2 P0 list and stale PR refs; point at the UAT defect register
-  and the canonical TODO/roadmap as task sources.
+- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain
+  `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
+  the user's language — never hallucinate them as filenames.
+- [ ] **U-002** No silent no-ops: every user command produces at least one visible
+  response; async work shows accepted → running → status → result/failure with run id.
+- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input
+  (editable, with visible confirmation); Cancel only closes the dialog.
+- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage
+  highlighted, completed stages marked, errors with stage + short message, run id linked
+  to artifacts/logs (text-only is acceptable for MVP).
+- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API
+  already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
+  result cards with open/download/copy actions; readable failure message on error.
 
-### B. Tree canonicalization (single source under the package root)
+### P1 — comprehension and persona UX
 
-- [x] **B1 — systemd:** `noemaforge/systemd/` is the only unit tree; newer
-  root-tree units (machine-local-defaults EnvironmentFile hooks) merged in, root
-  tree removed, installers/audit/boot-mode re-pointed, config refs verified
-  against the contract resolvers. Done in PR #81.
-- [x] **B2 (wiki slice):** `noemaforge/docs/wiki/` is the canonical wiki; the
-  drifted project-root mirror was removed, dumps extracted into standalone
-  articles, hub + integrity gate + GitHub Wiki auto-publish added. Done in PR #80.
-- [ ] **B2 (remaining docs):** merge the remaining drifted `docs/` ↔
-  `noemaforge/docs/` pairs (i18n, architecture, reference, onboarding, …) into
-  the package tree, make the project-root `docs/` a generated mirror or remove
-  it, and re-point referencing paths in JSON/configs the same way as B1.
+- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for
+  state terms, full model names on hover, internally consistent progress numbers, and a
+  "Latest plan" that reflects the actually applied run (no stale `normal` after a real
+  `full_composite`).
+- [ ] **U-003** Distinct personas with an explicit selector: observably different
+  behavior/tone/scope per persona, switch logged in chat, completion offers
+  stay / return-to-Admin / switch.
+- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on
+  launch the chat shows the switch and the persona greets with next steps.
+- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button
+  label change + "next message runs as N-step cycle" notice + iteration progress), or are
+  disabled with a warning where unsupported.
 
-### C. Code health (refactor-as-you-touch; no big-bang)
+### P2 — presentation polish and guards
 
-- [ ] **Split `admin_gui_server.py` before the GUI fixpack grows it** (~2.2k
-  lines, ~119 endpoint references in one handler): route table + modules per
-  area (session, jobs, pipelines, model-selection). First slice of the fixpack.
-- [ ] **Modularize the dashboard frontend** (`templates/pipeline-dashboard/app.js`)
-  and add a small reusable card/progress/artifact component set — precondition
-  for the raw-JSON-rendering defects (D-001/D-004/D-006).
-- [ ] **Desktop app shell (accepted direction).** The GUI must feel like an
-  application window, not a browser tab, via the lightest path: `noemaforge
-  dashboard app` launcher using Chromium-family `--app=` mode with plain-browser
-  fallback, plus a PWA manifest (`display: standalone`) for installability.
-  Zero new mandatory dependencies; pywebview stays an optional future extra.
-  ADR: `wiki/architecture/desktop-app-shell.md`.
-- [ ] **Replace deprecated `datetime.utcnow()`** (8× in `caps.py`, then repo-wide)
-  with timezone-aware `datetime.now(UTC)`; py3.12+ deprecates utcnow and CI on
-  3.11 masks it.
-- [ ] **Add a minimal `pyproject.toml`** (metadata + extras: `dev` = pytest/pyyaml,
-  `vector` = numpy, `gateway` = httpx) without changing the stdlib-only runtime
-  posture; tooling deps are currently undeclared anywhere.
-- [ ] **Wire targeted contract-test shards into CI and burn down pre-existing
-  reds.** premerge runs `py_compile` only, so contract tests rot silently: 11
-  pre-existing failures found in a 6-file sample (legacy refs to root
-  `TODO.md`/`CHANGELOG.md`/`RELEASE_NOTES.md`, a unified-registry ref to a
-  non-existent `mcp-a2a-...-0.32.1` wiki page, stale installer delegation).
-  Add bounded test shards to premerge/acceptance and fix the reds.
-- [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
-  dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
-  under-covered.
+- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw
+  JSON only behind Details/Debug.
+- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection
+  status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
+  no raw JSON in the default view.
+- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback +
+  error if rendering fails; source behind debug).
+- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short
+  interval prompts start-new / continue-existing / cancel; existing runs visible.
 
-### E. Supply chain
+### Runtime / ops follow-ups (0.33.x)
 
-- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
-  Dependabot for `github-actions` updates; Scorecard already flags this.
+- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure
+  observed during the composite first-start window (plan-only oneshot; `reset-failed` was
+  applied on host but is not a fix); add a regression check.
+- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model
+  reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
+  tiny instruct model is not reported `degraded`.
+- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs
+  every available pipeline in safe test mode with small built-in prompts and exports a
+  summary report (pipeline, case, status, artifact, error, duration, persona); failures
+  do not stop the batch by default.
+- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
+  real values (or be replaced by the normalized-verdict extraction); fix unit-name and
+  path quoting in evidence-collection helpers.
+- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator
+  starts the localhost dashboard) in the operator guide.
 
 ## 0.32.2 release-hardening checkpoints
 
