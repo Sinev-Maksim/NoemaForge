@@ -121,7 +121,7 @@ else
 fi
 
 # Drop-in strict ExecStartPre is unsafe in GUI mode.
-for drop in "$TARGET/systemd/dropins/noemaforge-autostart-gui.service.d/10-safe-gui-delay.conf" "/etc/systemd/system/noemaforge-autostart-gui.service.d/10-safe-gui-delay.conf"; do
+for drop in "$TARGET/noemaforge/systemd/dropins/noemaforge-autostart-gui.service.d/10-safe-gui-delay.conf" "/etc/systemd/system/noemaforge-autostart-gui.service.d/10-safe-gui-delay.conf"; do
   if [[ -f "$drop" ]]; then
     if grep -Eq 'ExecStartPre=.*(nvidia-smi|nvidia_drm|display-manager|gdm3|gdm)' "$drop"; then
       add_problem "GUI autostart drop-in contains strict readiness ExecStartPre: $drop"
