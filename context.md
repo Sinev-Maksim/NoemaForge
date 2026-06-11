@@ -10,7 +10,7 @@ _Refreshed: 2026-06-04 (post-`/clear` restore. THIS turn: fixed RED CI on #32/#3
 | Field | Value |
 |-------|-------|
 | Project | NoemaForge 0.32.2 hardening — local-first, privacy-first AI OS |
-| Target host | BigBro-BOS: Debian Trixie, GNOME/GDM, RTX 3080 Ti |
+| Target host | the production target host: Debian Trixie, GNOME/GDM, RTX 3080 Ti |
 | Version (SoT) | 0.32.2 — `noemaforge/src/noemaforge_version.py` |
 | Release branch | `release/0.32.2-hardening` @ `24f2b65` (**PR #30 MERGED** 2026-06-04; human also merged release into #31 = `f167130`. Local #31 behind origin by 5 — harmless, I branch features off origin/release) |
 | Current branch | `claude/fix-admin-gui-unit-tests` @ `bb1e719` (PR #31; origin ahead) |
@@ -18,12 +18,12 @@ _Refreshed: 2026-06-04 (post-`/clear` restore. THIS turn: fixed RED CI on #32/#3
 | Open PRs (mine) | **#34** unix-syscall guards (`aa12567`) · **#35** composite-pair scorer (`1ae194c`, +normalize/loader fix) · **#36** Windows Admin-GUI launcher (`6ed23d9`, +fail-loud fix) · **#37** JobManager.prune_terminal (`5a5583b`, **+path-traversal SECURITY fix**) · **#38** premerge-gate + Optimizations harvest (`a13b665`, PASS, CodeRabbit-reviewed) · **#41** UAT scenarios doc (`7c9c3b7`, PASS) — all non-draft (#37 un-drafted), → release |
 | Night watch (2026-06-05) | Resolved conflicts #35/#37; fixed stale-checksum reds #34/#36 (regen); actioned harvested optimizations — #35 family/runtime normalize + loader validation (Codex #35), #36 fail-loud on bad -PythonExe (Codex #36); **#37 fixed a REAL path-traversal security bug** (`prune_terminal` unlinked `<job_id>.json` from untrusted index → added `_safe_job_file` guard + test); UAT scenarios → PR #41; CodeRabbit triggered on #34/#38/#41 (reviewed). **GOTCHA learned: `git add` the source edit BEFORE running the regen script** (it checksums the staged blob; I hit ok=false on #37 by regenerating first → fixed with a follow-up regen). Remaining: CodeRabbit on #35/#36/#37 once their Codex re-PASS (cron does it); sandbox `rlimits_available` metadata is now UNBLOCKED (#33 merged) = next dev task; #34 role_tournament systemctl + DRY-signal optimizations stay in the block. |
 | Liveness timer | session cron `4716ccbf` — every 15 min, **dev-tick**: fix-red-CI (incl. human-merge stale-checksum → merge+regen) + harvest Codex/CodeRabbit optimizations into TODO block + **trigger `@coderabbitai review` on Codex-PASS PRs** + advance next task; session-only, 7-day expiry; recreate on restore. |
-| Release PR | release→`main` — do NOT mark merge-ready w/o BigBro-BOS target validation |
+| Release PR | release→`main` — do NOT mark merge-ready w/o production-target validation |
 | Backup ref | `backup/platform-paths-pre-rebase-20260603` @ `964d096` |
 
 ## Goal & guardrails (memory: hardening-0.32.2-protocol)
 
-Bring 0.32.2 hardening to a valid, verifiable state; NOT merge-ready without target validation. Roles: Claude=write/fix `claude/*`; Codex=review + some fix PRs (ChatGPT OAuth only, `CODEX_HOME=C:\Users\sinev\.codex`, never API key); CodeRabbit=PR lane; GH Actions on self-hosted `BIGBRO-WIN`; human=merge/target validation. Issue #1 CLOSED. Never claim BigBro-BOS validation unless actually run.
+Bring 0.32.2 hardening to a valid, verifiable state; NOT merge-ready without target validation. Roles: Claude=write/fix `claude/*`; Codex=review + some fix PRs (ChatGPT OAuth only, `CODEX_HOME=C:\Users\sinev\.codex`, never API key); CodeRabbit=PR lane; GH Actions on self-hosted `BIGBRO-WIN`; human=merge/target validation. Issue #1 CLOSED. Never claim production-target validation unless actually run.
 
 ## Just landed this session
 
@@ -76,7 +76,7 @@ Bring 0.32.2 hardening to a valid, verifiable state; NOT merge-ready without tar
 1. **Policy-validation cluster** (`test_workspace_*_policy_validates`: stateful_admin_gui, task_workflow, telemetry_card_truthfulness, locale_main_chat_surface, dashboard_api_endpoint, artifact_card_affordance, model_route_distinction). Policies require doc-refs/tokens incl. forbidden `CHANGELOG`/`RELEASE_NOTES` + Codex-lane `TODO.md`. → governance/docs decision (likely Codex): relax stale policy JSONs vs add tokens — needs a call.
 2. **Sockets (#3b)** `/run/noemaforge/*.sock` — cross-component (Go gateway), not mine.
 3. **Release finalization** (P0 clean archive `noemaforge_0.32.2_release.tar.gz` + consolidated test evidence) — do at merge time, premature now.
-4. **Merge PRs #30/#31 + BigBro-BOS target validation** — human.
+4. **Merge PRs #30/#31 + production-target validation** — human.
 5. **Cloud watchdog** (hourly self-check) — spec DEFINED 2026-06-04. Remote claude.ai routine, hourly; checks (a) PRs #30/#31 open+mergeable+CI green, (b) Codex/CodeRabbit reviews posted, (c) release CI passing, (d) open `claude-next` issues; reports + flags breakage/new issue. claude.ai `/schedule` STILL DOWN (day 2) → auto-retry loop active (~30 min); self-creates routine (dup-safe) on recovery, then stops retrying.
 6. **Codex quota: NOT blocked (verified 2026-06-04)** — Codex posted a real PASS review on #31 at 01:33Z (~44.6k tokens, full reasoning). The earlier "~Jun 8 reset" note was STALE. CodeRabbit "Review skipped" (release ≠ default) — trigger `@coderabbitai review` manually if needed.
 
