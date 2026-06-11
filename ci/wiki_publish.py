@@ -37,7 +37,10 @@ def flat_name(rel: str) -> str:
 
 
 def page_map() -> dict[Path, str]:
-    return {p: flat_name(p.relative_to(WIKI).as_posix()) for p in sorted(WIKI.rglob("*.md"))}
+    # Same portable ordering as ci/wiki_check.py (Path sorting is
+    # case-insensitive on Windows only).
+    pages = sorted(WIKI.rglob("*.md"), key=lambda p: p.relative_to(WIKI).as_posix())
+    return {p: flat_name(p.relative_to(WIKI).as_posix()) for p in pages}
 
 
 def rewrite_links(text: str, src: Path, names: dict[Path, str], repo_url: str, branch: str) -> str:
