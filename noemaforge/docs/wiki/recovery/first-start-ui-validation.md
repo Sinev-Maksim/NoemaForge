@@ -1,5 +1,8 @@
 # NoemaForge 0.31.01 — full first-start UI validation
 
+> **Status: historical snapshot (0.31.01 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
+
 The live machine test should validate NoemaForge through the real first-start/UI path, not only through manual `noemaforge-llama@main.service` start/stop.
 
 ## GUI mode

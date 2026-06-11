@@ -30,6 +30,7 @@ ReadWritePaths=/run/noemaforge/llm/backends /var/lib/modelstore /var/lib/noemafo
 WorkingDirectory=/var/lib/modelstore/models/%i
 Environment=NOEMAFORGE_MODELSTORE_ROOT=/var/lib/modelstore
 Environment=NOEMAFORGE_LLAMA_SERVER=/opt/noemaforge/bin/llama-server
+EnvironmentFile=-/etc/default/noemaforge-runtime
 ExecStartPre=+/usr/bin/install -d -o noemaforge -g noemaforge -m 0755 /run/noemaforge /run/noemaforge/llm /run/noemaforge/llm/backends
 ExecStartPre=/bin/rm -f /run/noemaforge/llm/backends/%i.sock
 ExecStart=/opt/noemaforge/bin/noemaforge-llama-start %i /run/noemaforge/llm/backends/%i.sock

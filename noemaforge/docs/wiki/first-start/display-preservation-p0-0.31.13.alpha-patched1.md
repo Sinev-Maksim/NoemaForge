@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 display-preservation P0 fix
 
+> **Status: historical snapshot (0.31.13.alpha-patched1 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Purpose
 
 This page records the P0 safety rule added after a real model-selection run caused local monitor blackout / display-manager handoff failures.
