@@ -56,6 +56,7 @@ Rules:
 | 2026-06-11 | #87 fix-up v2: enforced read-only + pre-flight digest | M | Fable 5 | ~40m | ~35k | — | approach change on 2nd Codex FAIL; filter → tested script |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
+| 2026-06-11 | E pin actions + dependabot (#93) | S | Sonnet 4.6 → Fable review | 4.6m agent | 56.4k | 1 | SHAs all correct (3/3 spot-check), but main-based agent worktree would have rolled back #87/#88 workflow changes — re-applied as pure pin substitutions |
 
 **Calibration note (2026-06-11):** every task so far ran on Fable 5 because the
 routing policy did not exist yet — these rows are the baseline. From the next
