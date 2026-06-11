@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2122,
+  "file_count": 2109,
   "files": [
     ".codex/instructions.md",
     ".github/workflows/acceptance.yml",
@@ -2110,19 +2110,6 @@
     "sense/edge/mqtt_adapter.py",
     "sense/edge/serial_adapter.py",
     "setup.sh",
-    "systemd/dropins/noemaforge-autostart-gui.service.d/10-safe-gui-delay.conf",
-    "systemd/dropins/noemaforge-llama@.service.d/40-socket-perms.conf",
-    "systemd/dropins/noemaforge-llm-backends-manager.service.d/50-single-active-manager.conf",
-    "systemd/dropins/noemaforge-toolproxy.service.d/05-sel-perms.conf",
-    "systemd/dropins/noemaforge-toolproxy.service.d/10-root-preflight.conf",
-    "systemd/noemaforge-autostart-gui.service",
-    "systemd/noemaforge-autostart-gui.timer",
-    "systemd/noemaforge-autostart-wogui.service",
-    "systemd/noemaforge-llama@.service",
-    "systemd/noemaforge-llm-gateway.service",
-    "systemd/noemaforge-memsentinel.service",
-    "systemd/noemaforge-shutdown-stop.service",
-    "systemd/noemaforge-toolproxy.service",
     "uninstall_noemaforge_0.32.1_mvp.sh",
     "uninstall_noemaforge_0.32.2_mvp.sh"
   ],
