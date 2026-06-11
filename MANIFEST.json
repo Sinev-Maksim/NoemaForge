@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2123,
+  "file_count": 2126,
   "files": [
     ".codex/instructions.md",
     ".github/scripts/setup-environments.sh",
@@ -26,7 +26,9 @@
     "VERSION",
     "ci/acceptance/test_acceptance.py",
     "ci/acceptance_runner.py",
+    "ci/filter_review_diff.py",
     "ci/regen_evidence.py",
+    "ci/review_preflight.py",
     "ci/run_acceptance.sh",
     "ci/wiki_check.py",
     "ci/wiki_publish.py",
