@@ -77,3 +77,6 @@ noemaforge_*.tar.gz
 PyYAML/
 PyYAML.egg-info/
 pytest/
+
+# Claude agent worktrees (session-local, never tracked)
+.claude/
