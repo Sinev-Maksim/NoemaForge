@@ -1,5 +1,7 @@
 # GUI live reboot stabilization — 0.31.10
 
+> **Status: historical snapshot (0.31.04 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 0.31.10 promotes the legacy live-validation host live reboot fixes into package code.
 
 Key lessons:
@@ -8,4 +10,3 @@ Key lessons:
 - ToolProxy startup must not fail because SEL files are root-owned or append-only.
 - GUI autostart must default to `runtime_only` and must not start or preserve stale LLM processes.
 - Help flags must never trigger rescue actions.
-

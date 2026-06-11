@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — Admin routing
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 This build fixes the `создай музыку для приветственного демо NoemaForge` route regression by using boundary-aware greeting detection and domain-priority scoring.
 
 ## Route priorities

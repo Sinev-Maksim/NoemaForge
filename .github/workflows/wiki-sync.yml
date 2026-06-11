@@ -1,0 +1,48 @@
+name: Wiki sync
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'noemaforge/docs/wiki/**'
+      - 'ci/wiki_publish.py'
+      - '.github/workflows/wiki-sync.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  publish-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Wiki integrity gate
+        run: python ci/wiki_check.py
+
+      - name: Clone wiki repository
+        run: |
+          git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" wiki-checkout
+
+      - name: Render canonical wiki into wiki checkout
+        run: python ci/wiki_publish.py --dest wiki-checkout --repo-url "https://github.com/${{ github.repository }}" --branch main
+
+      - name: Commit and push wiki changes
+        run: |
+          cd wiki-checkout
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wiki already up to date."
+          else
+            git commit -m "wiki: sync from noemaforge/docs/wiki @ ${{ github.sha }}"
+            git push
+          fi

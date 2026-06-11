@@ -1,5 +1,7 @@
 # Multimodal Vault Readiness — 0.31.12
 
+> **Status: historical snapshot (0.31.12 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 `0.31.12` keeps the `0.31.10/0.31.11` multimodal discovery layer and adds Admin/GUI routes that can create concrete media pipeline runs.
 
 ## Commands preserved
