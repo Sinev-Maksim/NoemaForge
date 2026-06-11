@@ -45,6 +45,14 @@ jobs:
       - name: Install test deps
         run: pip install pytest pyyaml --quiet
 
+      # A1 evidence lifecycle: PR branches no longer commit regenerated
+      # MANIFEST/SHA256SUMS, so the checksum_validation AAT case must verify
+      # the tree against REGENERATED evidence (same regen-then-verify pattern
+      # as the premerge gate). On release/** pushes evidence-refresh.yml has
+      # already committed the refreshed copies, making this a no-op.
+      - name: Regenerate evidence for the checked-out tree
+        run: python ci/regen_evidence.py
+
       - name: Run acceptance harness
         run: bash ci/run_acceptance.sh results
 
