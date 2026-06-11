@@ -1,34 +1,53 @@
 # TODO
 
+## Effort / model routing legend
+
+_Every open item carries an effort tier and the Claude model recommended to execute
+it (owner directive 2026-06-11). The orchestrator session (Fable/Opus) plans and
+reviews; lower tiers are delegated to cheaper-model subagents. Stats and
+recalibration: [`Claude_stats.md`](../../Claude_stats.md) at the project root._
+
+| Tag | Meaning | Executor |
+|---|---|---|
+| `S` | mechanical, ≤2 files, clear spec | **Haiku 4.5** subagent |
+| `M` | localized feature/fix + tests | **Sonnet 4.6** subagent |
+| `L` | cross-file design/refactor, CI/architecture | **Opus 4.8** (or orchestrator) |
+| `XL` | umbrella track, multiple PRs | **Fable 5** orchestrates, mixed executors |
+| `target-gated` | needs the production target host | any (blocked on hardware access) |
+| `obsolete` / `shipped` | stale entry kept for traceability | tick or drop on next sweep |
+
+Auto-escalation: if a delegated tier fails twice (tests/review), it escalates one
+tier up (S→M→L) and the miss is logged in `Claude_stats.md`.
+
 ## Optimizations
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
-- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
-- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
-- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
-- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
+- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
+- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
+- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
+- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku)_
+- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
+- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku)_
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
 _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
-- [ ] Add Hermes-style SKILL.md parser as quarantine-only import.
-- [ ] Add SkillProposal schema with SSR/QA review status.
-- [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events.
-- [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing.
-- [ ] Add provider-runtime-resolver design doc.
-- [ ] Add profile isolation contract for config/memory/sessions/gateway tokens.
-- [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack.
-- [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch.
-- [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial.
-- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A)
-- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
-- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
+- [ ] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet)_
+- [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
+- [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
+- [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
+- [ ] Add provider-runtime-resolver design doc. _(L · opus — 0.33.2 foundation design)_
+- [ ] Add profile isolation contract for config/memory/sessions/gateway tokens. _(M · sonnet)_
+- [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack. _(M · sonnet)_
+- [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch. _(M · sonnet)_
+- [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial. _(M · sonnet)_
+- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A) _(L · opus — partially shipped via noema upgrade #60/#61; re-scope first)_
+- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B) _(L · opus)_
+- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0) _(XL · fable-orchestrated umbrella)_
 
 ## 0.33.x forward roadmap (added 2026-06-09)
 
@@ -36,13 +55,13 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 
 ### Version milestones
 
-- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on
+- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on _(XL · fable-orchestrated umbrella — phased plan merged in #76)_
   *nix (Linux), macOS and Windows: parity for paths, service/process management, sockets,
   exec/sandbox, display-safety and the Admin GUI launcher across all three OS families
   (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
   Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
   Linux / macOS / Windows.
-- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local
+- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local _(XL · fable-orchestrated umbrella)_
   models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
   deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
@@ -50,17 +69,17 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 
 ### Cross-cutting tasks (any 0.33.x)
 
-- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer
+- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer _(XL · fable-orchestrated umbrella — 0.33.0 fixpack is slice 1)_
   operators: one-button install/run, plain-language errors with guided recovery, no
   terminal or YAML required for the happy path, GUI-first flows and safe defaults so a
   non-technical user cannot foot-gun the system.
-- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to
+- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to _(L · opus — includes B2 remaining docs merge)_
   date with the latest state (noema CLI, AAT suite, OpenSSF Scorecard, security/governance
   front page, scenario pack); rewrite stale pages; keep README v2 as the narrative landing.
-- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review
+- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review _(ongoing · S · haiku per sweep)_
   comments (Codex / CodeRabbit / Copilot) on open PRs, fold recurring nits back into this
   TODO, and clear each PR's review thread before requesting merge.
-- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and
+- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and _(S · human action — repo Settings toggle, not codeable)_
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
 
@@ -74,63 +93,63 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain
+- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
   `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
   the user's language — never hallucinate them as filenames.
-- [ ] **U-002** No silent no-ops: every user command produces at least one visible
+- [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
-- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input
+- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
-- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage
+- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
   to artifacts/logs (text-only is acceptable for MVP).
-- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API
+- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet)_
   already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
   result cards with open/download/copy actions; readable failure message on error.
 
 ### P1 — comprehension and persona UX
 
-- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for
+- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet)_
   state terms, full model names on hover, internally consistent progress numbers, and a
   "Latest plan" that reflects the actually applied run (no stale `normal` after a real
   `full_composite`).
-- [ ] **U-003** Distinct personas with an explicit selector: observably different
+- [ ] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — persona routing + prompt design)_
   behavior/tone/scope per persona, switch logged in chat, completion offers
   stay / return-to-Admin / switch.
-- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on
+- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku)_
   launch the chat shows the switch and the persona greets with next steps.
-- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button
+- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet)_
   label change + "next message runs as N-step cycle" notice + iteration progress), or are
   disabled with a warning where unsupported.
 
 ### P2 — presentation polish and guards
 
-- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw
+- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku)_
   JSON only behind Details/Debug.
-- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection
+- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku)_
   status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
   no raw JSON in the default view.
-- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback +
+- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — offline renderer, no CDN allowed)_
   error if rendering fails; source behind debug).
-- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short
+- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku)_
   interval prompts start-new / continue-existing / cancel; existing runs visible.
 
 ### Runtime / ops follow-ups (0.33.x)
 
-- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure
+- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure _(target-gated · M · sonnet for log analysis)_
   observed during the composite first-start window (plan-only oneshot; `reset-failed` was
   applied on host but is not a fix); add a regression check.
-- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model
+- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
-- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs
+- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
   do not stop the batch by default.
-- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
+- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
-- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator
+- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
   starts the localhost dashboard) in the operator guide.
 
 ## 0.32.2 release-hardening checkpoints
@@ -298,7 +317,7 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P1 — PR #2 reviewability (manual action)
 
-- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
+- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.) _(obsolete — 0.32.2-era PR #2 housekeeping)_
 
 ## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
 
@@ -411,7 +430,7 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   `save_message()` called `append_message` twice, doubling session message
   count and halving the effective 500-message window.
 
-- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent
+- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verify and tick)_
   unbounded growth of the job index. Blocked until task-11
   (`claude/task-11-wire-preflight`) merges to release.
 
@@ -422,14 +441,14 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   Note: job_id uses second-precision timestamps so sub-second uniqueness is
   tracked separately in task-16.
 
-- [ ] **Add `_run_preflight()` exception reporting mode** — currently any
+- [ ] **Add `_run_preflight()` exception reporting mode** — currently any _(S · haiku)_
   exception in PreflightSuite is silently swallowed and returns None.
   Add a `_preflight_warning` field to `/api/health` output when preflight
   raises. Blocked until task-10/11 merge.
 
 Target-host required items:
 
-- [ ] **SHA256SUMS regeneration** after all PR branches merge.
+- [ ] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
@@ -1184,8 +1203,8 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 
 ### Day 1 — repository hygiene (partial — needs Linux / target host for shell validation)
 
-- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on the target host to verify all shell scripts pass syntax check.
-- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on the target host.
+- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on the target host to verify all shell scripts pass syntax check. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on the target host. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 - [x] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found. — Both files clean, no stale strings (2026-05-28).
 - [x] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`. — Both clean (2026-05-28).
 - [x] Verify `.gitignore` has `__pycache__/` and `*.pyc` exclusions (and add them if missing). — Created full `.gitignore` (2026-05-28).
@@ -1193,21 +1212,21 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 ### Day 3 — frontend UX (partial — needs live GUI on the target host)
 
 - [x] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". — Implemented in app.js sendAdmin() (2026-05-28).
-- [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI).
-- [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive.
+- [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI). _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ### Day 4 — duplicate-safe jobs (partial — needs target-host smoke)
 
 - [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs the target host.
-- [ ] Manual smoke on the target host: send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
-- [ ] Manual smoke on the target host: click Vault re-inventory twice rapidly and confirm one job, not two.
+- [ ] Manual smoke on the target host: send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Manual smoke on the target host: click Vault re-inventory twice rapidly and confirm one job, not two. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ### Day 5 — release validation (target host required)
 
-- [ ] Run full test suite on the target host: `python -m unittest discover noemaforge/tests/` and record pass/fail counts.
-- [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`.
-- [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`.
-- [ ] Target-machine validation checklist (all on the target host):
+- [ ] Run full test suite on the target host: `python -m unittest discover noemaforge/tests/` and record pass/fail counts. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Target-machine validation checklist (all on the target host): _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
   - Admin GUI stays alive during first-start `--dry-run --keep-display`.
   - Admin chat responds to smalltalk/help without launching a pipeline.
   - Mode switch persists and is visible after browser refresh.
@@ -1216,7 +1235,7 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
   - Page refresh restores message history and active job state.
   - Job stop/cancel leaves no stale active jobs.
   - Gateway, ToolProxy and main llama backend smoke pass or return clear blocked status.
-- [ ] Issue explicit GO/NO-GO merge decision in `noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md` after all above targets pass.
+- [ ] Issue explicit GO/NO-GO merge decision in `noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md` after all above targets pass. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ## Started in this workspace
 
