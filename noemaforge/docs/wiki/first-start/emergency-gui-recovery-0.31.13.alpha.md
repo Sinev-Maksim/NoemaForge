@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — emergency GUI recovery
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Purpose
 
 This page records the legacy live-validation host recovery fixes added after real `first-start --full_composite` runs could leave the operator in an emergency/login state with share unmount warnings.
@@ -50,4 +52,3 @@ sudo noemaforge first-start abort
 ```
 
 This command now uses the same minimal GUI recovery path.
-

@@ -218,6 +218,14 @@ jobs:
           echo "bash -n: $count files, $errs syntax errors"
           [ "$errs" -eq 0 ] || exit 1
 
+      # ── 10. Wiki integrity (links · hub index · no dumps) ────────────────
+      - name: Wiki integrity (links, hub index, no consolidated dumps)
+        run: python ci/wiki_check.py
+
+      # ── 11. Docs hygiene (markdown layout · forbidden text · canon files) ─
+      - name: Docs hygiene gate
+        run: python noemaforge/src/docs_hygiene_runtime.py --project-root .
+
       # ── Summary ───────────────────────────────────────────────────────────
       - name: Summary
         run: echo "All premerge quality gates passed."

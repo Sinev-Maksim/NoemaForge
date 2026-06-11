@@ -1,5 +1,7 @@
 # NoemaForge MultiOS Runtime Host Roadmap — 0.32.1
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Tracking ID: `NFG-PROP-0.32.1-multiOS-runtime-pack`
 Status: candidate alpha backlog pack; documentation only in `0.32.1`
 Runtime impact: none. This does not add Windows/macOS launchers, runtime connectors, Docker dependencies, Ollama, MLX, vLLM, SSH, or remote HTTP runtime requirements to the active install.

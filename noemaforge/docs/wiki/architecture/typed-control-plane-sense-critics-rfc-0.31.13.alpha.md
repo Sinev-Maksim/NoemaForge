@@ -1,5 +1,7 @@
 # NoemaForge Typed Control Plane, Sense Layer, Critics and Pipeline RFC Roadmap — 0.32.1
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Tracking ID: `NFG-ARCH-0.32.1-typed-governance-sense-critics-rfc`
 Status: alpha-prep backlog/wiki inclusion only. Runtime impact: none.
 

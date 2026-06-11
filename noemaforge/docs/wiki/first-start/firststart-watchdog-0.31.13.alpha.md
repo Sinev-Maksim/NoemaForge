@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — first-start watchdog and hang fix
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Tracking: `NFG-FIX-0.32.1-firststart-watchdog`
 
 Status: implemented in `0.32.1`.
@@ -73,4 +75,3 @@ and the tournament moves on or finishes boundedly.
 ## Remaining validation
 
 This fix was syntax/smoke-tested in the package sandbox. Full measured tournament validation still belongs on legacy live-validation host because it requires the mounted Vault, ModelStore, systemd units and actual model runtimes.
-

@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 manifest completeness
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Version: `0.32.1`  
 Created: 2026-05-14  
 Modified: 2026-05-14

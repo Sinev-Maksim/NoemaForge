@@ -1,5 +1,7 @@
 # Trixie recovery operating rule — 0.29.14
 
+> **Status: historical snapshot (02914 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Source: `noemaforge_debug_context.txt`.
 
 ## Known-good legacy live-validation host baseline
@@ -35,4 +37,3 @@ sudo gui-rescue
 ## Release blocker
 
 `noemaforge-llm-backends-manager.timer`, `noemaforge-modelscan.timer`, and `noemaforge-llama@main.service` should remain disabled by default in this hardware profile.
-

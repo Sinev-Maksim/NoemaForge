@@ -532,7 +532,7 @@
         "contracts/rag_eval_suite.schema.json",
         "src/docs_rag_runtime.py",
         "src/production_ai_contracts.py",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
       ],
       "metadata": {
         "domains": [
@@ -4914,7 +4914,7 @@
         "configs/a2a-interop-registry.json",
         "contracts/a2a_interop_registry.schema.json",
         "src/a2a_interop_registry_runtime.py",
-        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.31.21.alpha.md"
       ],
       "metadata": {
         "domains": [
@@ -5034,7 +5034,7 @@
       "refs": [
         "src/docs_rag_runtime.py",
         "configs/docs-rag-policy.json",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
       ],
       "eval_pack_refs": [
         "eval-pack:production-ai-gate-smoke:0.32.1",

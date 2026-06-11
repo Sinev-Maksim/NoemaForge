@@ -1,5 +1,7 @@
 # Roadmap / TODO crosswalk — 0.29.14
 
+> **Status: historical snapshot (02914 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 ## Merge decision
 
 `0.29.14` is not a runtime feature release. It is a prelaunch knowledge/tooling merge release. It consolidates:

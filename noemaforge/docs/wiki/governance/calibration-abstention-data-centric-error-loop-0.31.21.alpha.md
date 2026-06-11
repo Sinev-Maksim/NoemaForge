@@ -1,5 +1,7 @@
 # Calibration, abstention and data-centric error loop
 
+> **Status: historical snapshot (0.31.21.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Version scope: runtime `0.32.1`, documentation reconciliation `0.32.1-docs-integrated`.  
 Updated: 2026-05-18T20:33:59Z
 

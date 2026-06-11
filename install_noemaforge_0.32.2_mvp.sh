@@ -247,23 +247,23 @@ mkdir -p "$(target /opt/docs)"
 if command -v rsync >/dev/null 2>&1; then rsync -a "$PKG_DIR/noemaforge/docs/" "$(target /opt/docs/)"; else cp -a "$PKG_DIR/noemaforge/docs/." "$(target /opt/docs/)"; fi
 
 # Install optional conditional autostart units. They are not enabled by default.
-install_file "$PKG_DIR/systemd/noemaforge-autostart-gui.service" /etc/systemd/system/noemaforge-autostart-gui.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-autostart-gui.timer" /etc/systemd/system/noemaforge-autostart-gui.timer 0644
-install_file "$PKG_DIR/systemd/noemaforge-autostart-wogui.service" /etc/systemd/system/noemaforge-autostart-wogui.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-llm-gateway.service" /etc/systemd/system/noemaforge-llm-gateway.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-toolproxy.service" /etc/systemd/system/noemaforge-toolproxy.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-memsentinel.service" /etc/systemd/system/noemaforge-memsentinel.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-llama@.service" /etc/systemd/system/noemaforge-llama@.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-autostart-gui.service" /opt/systemd/noemaforge-autostart-gui.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-autostart-gui.timer" /opt/systemd/noemaforge-autostart-gui.timer 0644
-install_file "$PKG_DIR/systemd/noemaforge-autostart-wogui.service" /opt/systemd/noemaforge-autostart-wogui.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-llm-gateway.service" /opt/systemd/noemaforge-llm-gateway.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-toolproxy.service" /opt/systemd/noemaforge-toolproxy.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-memsentinel.service" /opt/systemd/noemaforge-memsentinel.service 0644
-install_file "$PKG_DIR/systemd/noemaforge-llama@.service" /opt/systemd/noemaforge-llama@.service 0644
-if [[ -d "$PKG_DIR/systemd/dropins" ]]; then
-  find "$PKG_DIR/systemd/dropins" -type f | while read -r f; do
-    rel="${f#$PKG_DIR/systemd/dropins/}"
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.service" /etc/systemd/system/noemaforge-autostart-gui.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.timer" /etc/systemd/system/noemaforge-autostart-gui.timer 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-wogui.service" /etc/systemd/system/noemaforge-autostart-wogui.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-gateway.service" /etc/systemd/system/noemaforge-llm-gateway.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-toolproxy.service" /etc/systemd/system/noemaforge-toolproxy.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-memsentinel.service" /etc/systemd/system/noemaforge-memsentinel.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llama@.service" /etc/systemd/system/noemaforge-llama@.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.service" /opt/systemd/noemaforge-autostart-gui.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-gui.timer" /opt/systemd/noemaforge-autostart-gui.timer 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-autostart-wogui.service" /opt/systemd/noemaforge-autostart-wogui.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llm-gateway.service" /opt/systemd/noemaforge-llm-gateway.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-toolproxy.service" /opt/systemd/noemaforge-toolproxy.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-memsentinel.service" /opt/systemd/noemaforge-memsentinel.service 0644
+install_file "$PKG_DIR/noemaforge/systemd/noemaforge-llama@.service" /opt/systemd/noemaforge-llama@.service 0644
+if [[ -d "$PKG_DIR/noemaforge/systemd/dropins" ]]; then
+  find "$PKG_DIR/noemaforge/systemd/dropins" -type f | while read -r f; do
+    rel="${f#$PKG_DIR/noemaforge/systemd/dropins/}"
     install_file "$f" "/etc/systemd/system/$rel" 0644
   done
 fi
