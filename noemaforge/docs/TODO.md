@@ -4,6 +4,39 @@
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
 
+**Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
+Codex review is handled **before the PR merges** — each suggestion is either applied on
+the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
+periodically so older reviews do not rot in comment threads.
+
+### Harvest 2026-06-11 (review back-sweep #5–#85)
+
+- [ ] **Replace smart quotes in the dashboard locale option template** — 5 literal
+  curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
+  they can produce malformed `<option value=…>` values and break locale selection.
+  (Codex #5)
+- [ ] **Frontend session restore narrows to `selected_mode`** — either restore
+  `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
+  code comment that claims full history restore. (Codex #5)
+- [ ] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
+  verify no duplicated entries after the events/session additions. (Codex #10)
+- [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
+  `env_description` parameter and quote `echo "$response"`. (Codex #11)
+- [ ] **`brainui.py` path containment** — prefer
+  `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
+  string checks. (Codex #11)
+- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31)
+- [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
+  `resolve()`; serialize `prune_terminal()` with other `jobs.json` writes if it is
+  ever wired into a periodic path. (Codex #37)
+- [ ] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
+  to module top level. (Codex #42)
+- [ ] **Create `docs/architecture/system-context.md`** or drop the dangling
+  "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
+- [ ] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
+
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
 - [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)

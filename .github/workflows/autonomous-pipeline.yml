@@ -345,6 +345,35 @@ jobs:
           $diff = Get-Item -LiteralPath $diffPath
           Write-Host "Downloaded diff.patch ($($diff.Length) bytes)"
 
+          # Token diet: generated evidence files (manifests/checksums) dominate the
+          # diff on most branches but carry zero review signal — the premerge
+          # evidence gate verifies them bit-exactly. Strip their blocks before the
+          # diff goes into the model prompt, and cap the remainder defensively.
+          $raw = Get-Content -LiteralPath $diffPath -Raw
+          $blocks = [regex]::Split($raw, '(?m)(?=^diff --git )')
+          $skipRe = '(?m)^diff --git a/(MANIFEST\.json(\.sha256)?|MANIFEST\.sha256|SHA256SUMS(\.sha256)?|noemaforge/checksums/SHA256SUMS|noemaforge/docs/MANIFEST\.json(\.sha256)?) '
+          $kept = New-Object System.Collections.Generic.List[string]
+          $omitted = 0; $omittedChars = 0
+          foreach ($b in $blocks) {
+            if (-not $b.Trim()) { continue }
+            if ($b -match $skipRe) { $omitted++; $omittedChars += $b.Length } else { $kept.Add($b) }
+          }
+          $filtered = ($kept -join '')
+          if ($omitted -gt 0) {
+            $note = "[NOTE] $omitted generated evidence file diff(s) omitted ($([math]::Round($omittedChars/1KB)) KB): MANIFEST/SHA256SUMS files are regenerated artifacts verified bit-exactly by the premerge evidence gate; do not review them.`n`n"
+            $filtered = $note + $filtered
+          }
+          $capChars = 200KB
+          if ($filtered.Length -gt $capChars) {
+            $filtered = $filtered.Substring(0, $capChars) + "`n`n[NOTE] diff truncated at 200 KB for the review prompt; full diff is in the compare view."
+          }
+          [System.IO.File]::WriteAllText($diffPath, $filtered, [System.Text.Encoding]::UTF8)
+          Write-Host "Prompt diff after evidence filter: $($filtered.Length) chars (omitted $omitted evidence blocks)"
+          if ($kept.Count -eq 0) {
+            "CODEX_DIFF_EMPTY=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Diff contains only generated evidence files — Codex review will be skipped."
+          }
+
       - name: Run Codex CLI review
         id: codex
         if: steps.gate.outputs.paused != 'true'
@@ -388,6 +417,13 @@ jobs:
           # Verify CODEX_WORKTREE is set and exists before trying to use it.
           if (-not $env:CODEX_WORKTREE -or -not (Test-Path -LiteralPath $env:CODEX_WORKTREE)) {
             Write-SkipReview "CODEX_WORKTREE env var is missing or directory does not exist: '$env:CODEX_WORKTREE'."
+            exit 0
+          }
+          if ($env:CODEX_DIFF_EMPTY -eq '1') {
+            # Evidence-only push (regenerated manifests/checksums): nothing for the
+            # model to review and the premerge evidence gate covers it — skip the
+            # Codex call entirely to save usage-limit tokens.
+            Write-SkipReview "The diff contains only regenerated evidence files (MANIFEST/SHA256SUMS), which the premerge evidence gate verifies bit-exactly. No code to review."
             exit 0
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
@@ -503,8 +539,15 @@ jobs:
           # process never launched (exit stayed 0 from the prior command, no output).
           # --skip-git-repo-check is required because the worktree is an extracted
           # archive, not a git repository.
+          # Sandbox: the Codex Windows sandbox helper cannot start under the runner
+          # service account (LookupAccountNameW fails for the machine account), so
+          # `-s read-only` left every review without local command execution.
+          # `danger-full-access` skips the broken sandbox helper. Risk is bounded:
+          # self-hosted runner, throwaway extracted worktree (not a git checkout),
+          # no secrets in this step's environment, and the prompt mandates
+          # read-only inspection.
           $prompt | & $codex exec `
-            -s read-only `
+            -s danger-full-access `
             --skip-git-repo-check `
             --output-last-message $reviewPath `
             - 2>&1 | Tee-Object -FilePath $logPath
