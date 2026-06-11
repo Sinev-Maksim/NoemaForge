@@ -1,5 +1,8 @@
 # NoemaForge public launch and marketing package
 
+> **Status: historical snapshot (0.29.14 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
+
 Status: merged in `0.29.14`.
 Source: `docs/research_sources/0.29.14/marketing.md`.
 

@@ -1,5 +1,7 @@
 # NoemaForge 0.32.1 — Admin Chat, locales, artifacts
 
+> **Status: historical snapshot (0.31.13.alpha era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 0.32.1 changes the default GUI direction from an engineering dashboard to a chat-first Admin console.
 
 ## Layout contract

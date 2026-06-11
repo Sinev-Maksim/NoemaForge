@@ -1,5 +1,7 @@
 # Evaluation metrics and observability research merge
 
+> **Status: historical snapshot (02914 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 Status: merged in `0.29.14`.
 Sources: `deep-research-report.md`, previous metrics pages.
 
@@ -39,4 +41,3 @@ A single aggregate score is not enough.
 ## Integration with 0.29.x state
 
 The current legacy live-validation host operating context makes resource metrics release-critical: GUI/NVIDIA should start cleanly, NoemaForge LLM should not autostart, and heavy Qwen runs should be manual until a delayed/limited manager policy is implemented.
-

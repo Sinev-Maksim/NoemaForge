@@ -1,5 +1,7 @@
 # Model Evolution Control Plane — 0.31.12
 
+> **Status: historical snapshot (0.31.12 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 NoemaForge `0.31.12` introduces an invokable, auditable model-evolution control cycle.
 
 Command:

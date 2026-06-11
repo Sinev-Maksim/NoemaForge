@@ -1,5 +1,7 @@
 # Persona Portraits and Dashboard — 0.31.12
 
+> **Status: historical snapshot (0.31.12 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
 `0.31.12` keeps persona portrait validation and upgrades the dashboard from static-only to a local Admin GUI/API.
 
 ## Checks

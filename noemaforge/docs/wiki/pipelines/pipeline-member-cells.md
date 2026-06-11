@@ -1,5 +1,8 @@
 # NoemaForge 0.31.01 — Pipeline member cells
 
+> **Status: historical snapshot (0.31.01 era).** Kept as release-evidence history; it is not maintained. For the current state start at the [wiki hub](../WIKI.md).
+
+
 This release clarifies the development pipeline model.
 
 A pipeline participant is no longer treated as a single hard-coded command. Each participant can be:
