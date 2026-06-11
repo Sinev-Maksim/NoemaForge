@@ -64,6 +64,85 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
 
+## Accepted optimization decisions (2026-06-10 analysis review)
+
+_The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
+decision below is a committed work item for the 0.33.x cycle (not an optional nit)._
+
+### A. Process / CI
+
+- [ ] **A1 — evidence generation moves to CI on dev branches.** Stop tracking the
+  generated `MANIFEST.json` / `SHA256SUMS` (+ sidecars) on `release/*-dev` and
+  `claude/*` branches; the premerge gate recomputes and verifies them from the
+  git index instead of diffing committed copies. Committed, signed evidence stays
+  mandatory on release branches and tags. Kills the standing source of cross-PR
+  conflicts on every base advance.
+- [ ] **A2 — docs-hygiene gate joins premerge-quality.** Pre-existing reds to fix
+  first: legacy host name inside tracked `context.md` (replace file with a
+  hygiene-clean version), and `CONTRIBUTING.md` / `SECURITY.md` added to the
+  policy root allowlist.
+- [ ] **A3 — p0-status-ledger concurrency dedupe.** The workflow runs twice per
+  push and the concurrency group cancels the older run, leaving misleading
+  CANCELLED check entries; dedupe triggers or set `cancel-in-progress` with a
+  per-ref group so only one run per push remains.
+- [ ] **A4 — version-agnostic installer.** Replace per-release
+  `install/uninstall_noemaforge_<ver>_mvp.sh` pairs with a single
+  `install_noemaforge_mvp.sh` reading the VERSION SoT; archive the stale 0.32.1
+  pair. Also closes the pre-existing red contract check
+  `setup_does_not_delegate_to_current_installer` (no 0.33.0 installer exists).
+- [ ] **A5 — refresh CLAUDE.md.** Working base is `release/0.33.0-dev`; drop the
+  completed 0.32.2 P0 list and stale PR refs; point at the UAT defect register
+  and the canonical TODO/roadmap as task sources.
+
+### B. Tree canonicalization (single source under the package root)
+
+- [x] **B1 — systemd:** `noemaforge/systemd/` is the only unit tree; newer
+  root-tree units (machine-local-defaults EnvironmentFile hooks) merged in, root
+  tree removed, installers/audit/boot-mode re-pointed, config refs verified
+  against the contract resolvers. Done in PR #81.
+- [x] **B2 (wiki slice):** `noemaforge/docs/wiki/` is the canonical wiki; the
+  drifted project-root mirror was removed, dumps extracted into standalone
+  articles, hub + integrity gate + GitHub Wiki auto-publish added. Done in PR #80.
+- [ ] **B2 (remaining docs):** merge the remaining drifted `docs/` ↔
+  `noemaforge/docs/` pairs (i18n, architecture, reference, onboarding, …) into
+  the package tree, make the project-root `docs/` a generated mirror or remove
+  it, and re-point referencing paths in JSON/configs the same way as B1.
+
+### C. Code health (refactor-as-you-touch; no big-bang)
+
+- [ ] **Split `admin_gui_server.py` before the GUI fixpack grows it** (~2.2k
+  lines, ~119 endpoint references in one handler): route table + modules per
+  area (session, jobs, pipelines, model-selection). First slice of the fixpack.
+- [ ] **Modularize the dashboard frontend** (`templates/pipeline-dashboard/app.js`)
+  and add a small reusable card/progress/artifact component set — precondition
+  for the raw-JSON-rendering defects (D-001/D-004/D-006).
+- [ ] **Desktop app shell (accepted direction).** The GUI must feel like an
+  application window, not a browser tab, via the lightest path: `noemaforge
+  dashboard app` launcher using Chromium-family `--app=` mode with plain-browser
+  fallback, plus a PWA manifest (`display: standalone`) for installability.
+  Zero new mandatory dependencies; pywebview stays an optional future extra.
+  ADR: `wiki/architecture/desktop-app-shell.md`.
+- [ ] **Replace deprecated `datetime.utcnow()`** (8× in `caps.py`, then repo-wide)
+  with timezone-aware `datetime.now(UTC)`; py3.12+ deprecates utcnow and CI on
+  3.11 masks it.
+- [ ] **Add a minimal `pyproject.toml`** (metadata + extras: `dev` = pytest/pyyaml,
+  `vector` = numpy, `gateway` = httpx) without changing the stdlib-only runtime
+  posture; tooling deps are currently undeclared anywhere.
+- [ ] **Wire targeted contract-test shards into CI and burn down pre-existing
+  reds.** premerge runs `py_compile` only, so contract tests rot silently: 11
+  pre-existing failures found in a 6-file sample (legacy refs to root
+  `TODO.md`/`CHANGELOG.md`/`RELEASE_NOTES.md`, a unified-registry ref to a
+  non-existent `mcp-a2a-...-0.32.1` wiki page, stale installer delegation).
+  Add bounded test shards to premerge/acceptance and fix the reds.
+- [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
+  dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
+  under-covered.
+
+### E. Supply chain
+
+- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
+  Dependabot for `github-actions` updates; Scorecard already flags this.
+
 ## 0.32.2 release-hardening checkpoints
 
 - 2026-05-30: Docs hygiene now has an executable forbidden-active-text gate.
