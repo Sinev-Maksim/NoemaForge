@@ -51,7 +51,8 @@ Rules:
 | 2026-06-11 | #85 hygiene prereqs + gate (A2) | M | Fable 5 | ~45m | ~50k | 0 | also fixed 3 registry refs; 5 red tests cleared |
 | 2026-06-11 | GH English translation sweep (11 PR bodies + 7 comments) | S | Fable 5 | ~40m | ~45k | 0 | API edits; bot verdicts left untouched (audit trail) |
 | 2026-06-11 | #86 release→main conflict resolution | L | Fable 5 | ~1h | ~70k | 0 | manual installer merge; forbidden-literal test fix |
-| 2026-06-11 | #87 Codex sandbox + token diet + harvest | M | Fable 5 | ~1h | ~55k | 0 | back-swept reviews #5–#85 into TODO |
+| 2026-06-11 | #87 Codex sandbox + token diet + harvest | M | Fable 5 | ~1h | ~55k | 1 | back-swept reviews #5–#85 into TODO; Codex FAIL caught real isolation gap |
+| 2026-06-11 | #87 fix-up: token scoped away from codex exec | S | Fable 5 | ~20m | ~20k | — | job-level GITHUB_TOKEN removed; filter regex generalized |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
 
