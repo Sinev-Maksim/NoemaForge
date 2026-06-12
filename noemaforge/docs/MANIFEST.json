@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1896,
+  "file_count": 1903,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -885,6 +885,13 @@
     "sql/prep_store.sqlite.sql",
     "src/a2a_interop_registry_runtime.py",
     "src/abstention_policy_runtime.py",
+    "src/admin_gui_routes/__init__.py",
+    "src/admin_gui_routes/common.py",
+    "src/admin_gui_routes/job_routes.py",
+    "src/admin_gui_routes/model_routes.py",
+    "src/admin_gui_routes/pipeline_routes.py",
+    "src/admin_gui_routes/session_routes.py",
+    "src/admin_gui_routes/telemetry_routes.py",
     "src/admin_gui_server.py",
     "src/admin_llm_smalltalk_runtime.py",
     "src/admin_runtime.py",

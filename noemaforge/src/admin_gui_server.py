@@ -51,6 +51,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import production_ai_contracts
+import admin_gui_routes
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
@@ -293,6 +294,31 @@ def tail_text(path: Path, limit: int = 4096) -> str:
 class AdminGuiHandler(BaseHTTPRequestHandler):
     server: "AdminGuiServer"  # type: ignore[assignment]
 
+    # Explicit dispatch tables (path -> route handler) assembled once from the
+    # per-area admin_gui_routes modules.  do_GET/do_POST consult these for the
+    # simple single-call endpoints, then fall through to the special-case
+    # branches below (prefix matches and routes with inline request validation).
+    # Built lazily on first request so test stubs can import the class without a
+    # populated table; cached on the class to avoid rebuilding per request.
+    _GET_ROUTES: "Optional[Dict[str, Any]]" = None
+    _POST_ROUTES: "Optional[Dict[str, Any]]" = None
+
+    @classmethod
+    def _get_route_table(cls) -> Dict[str, Any]:
+        if cls._GET_ROUTES is None:
+            cls._GET_ROUTES = admin_gui_routes.get_routes()
+        return cls._GET_ROUTES
+
+    @classmethod
+    def _post_route_table(cls) -> Dict[str, Any]:
+        if cls._POST_ROUTES is None:
+            cls._POST_ROUTES = admin_gui_routes.post_routes()
+        return cls._POST_ROUTES
+
+    def _route_path(self) -> str:
+        """Return the request path without query string (urlparse(self.path).path)."""
+        return urlparse(self.path).path
+
     def log_message(self, fmt: str, *args: Any) -> None:
         sys.stderr.write("[noemaforge-admin-gui] " + fmt % args + "\n")
 
@@ -355,41 +381,16 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
         try:
-            if path == "/api/health":
-                self._send_json(self.server.health())
-                return
-            if path in {"/api/state", "/api/gui/state"}:
-                self._send_json(self.server.gui_state())
-                return
-            if path in {"/api/dashboard", "/api/dashboard/state"}:
-                self._send_json(self.server.dashboard_api())
-                return
-            if path == "/api/locales":
-                self._send_json(self.server.locales())
-                return
-            if path == "/api/epoch/status":
-                self._send_json(self.server.epoch_status())
-                return
-            if path == "/api/runtime/status":
-                self._send_json(self.server.runtime_status())
-                return
-            if path == "/api/runtime/observer-cards":
-                self._send_json(self.server.runtime_observer_cards())
-                return
-            if path == "/api/runtime/device-policy":
-                self._send_json(self.server.device_policy())
-                return
-            if path == "/api/telemetry/status":
-                self._send_json(self.server.telemetry_status())
-                return
-            if path == "/api/usecases":
-                self._send_json(self.server.usecases())
-                return
-            if path == "/api/public-showcase/scenario":
-                self._send_json(self.server.public_showcase_scenario())
-                return
-            if path == "/api/code-evolution/status":
-                self._send_json(self.server.code_evolution_status())
+            # Explicit GET route table: simple single-call endpoints
+            # (health/state/dashboard/locales/epoch-status/runtime/telemetry/
+            # usecases/showcase/code-evolution-status, conversation, tasks,
+            # inactivity, jobs list+stream, persona current/catalog, artifacts
+            # open, pipelines catalog).  Checked before the special-case
+            # branches below so exact matches still win over the startswith
+            # prefixes (same effective ordering as the original if-chain).
+            route = self._get_route_table().get(path)
+            if route is not None:
+                route(self)
                 return
 
             if path == "/api/events":
@@ -418,16 +419,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 session_id = str((query.get("session_id") or ["default"])[0])[:128]
                 self._send_json(self.server.session_current(session_id))
                 return
-            if path == "/api/conversation/current":
-                self._send_json(self.server.conversation_current())
-                return
-            if path == "/api/conversation/history":
-                self._send_json(self.server.conversation_history())
-                return
-            if path == "/api/artifacts/open":
-                query = parse_qs(urlparse(self.path).query)
-                self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
-                return
             if path == "/api/artifacts/download":
                 query = parse_qs(urlparse(self.path).query)
                 payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
@@ -443,24 +434,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 return
-            if path == "/api/tasks":
-                self._send_json(self.server.tasks_list())
-                return
-            if path == "/api/inactivity/status":
-                self._send_json(self.server.inactivity_status())
-                return
-            if path == "/api/jobs":
-                self._send_json(self.server.jobs_list())
-                return
-            if path == "/api/jobs/stream":
-                self._send_sse(self.server.job_stream_events())
-                return
-            if path == "/api/persona/current":
-                self._send_json(self.server.persona_current())
-                return
-            if path == "/api/persona/catalog":
-                self._send_json(self.server.persona_catalog_api())
-                return
             if path.startswith("/api/persona/fallback-avatar/"):
                 name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
                 candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
@@ -468,9 +441,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     self._send_bytes(candidate.read_bytes(), "image/svg+xml")
                 else:
                     self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
-                return
-            if path == "/api/pipelines/catalog":
-                self._send_json(self.server.pipeline_catalog_api())
                 return
             if path.startswith("/api/pipelines/"):
                 parts = path.split("/")
@@ -507,20 +477,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "error": str(exc)}, status=400)
             return
         try:
-            if path in {"/api/admin/message", "/api/admin/ask", "/api/admin/start", "/api/conversation/message"}:
-                text = str(body.get("message") or body.get("text") or body.get("prompt") or "")
-                self._send_json(self.server.admin_message(
-                    text,
-                    execute=bool(body.get("execute")) or path == "/api/admin/start",
-                    prepare_media=bool(body.get("prepare_media", True)),
-                    allow_degraded=bool(body.get("allow_degraded", False)),
-                    apply=bool(body.get("apply", False)),
-                    locale=str(body.get("locale") or body.get("lang") or ""),
-                    max_steps=int(body.get("max_steps") or 0),
-                    time_budget_minutes=int(body.get("time_budget_minutes") or 0),
-                    until_stop=bool(body.get("until_stop", False)),
-                ))
-                return
             if path == "/api/session/mode":
                 try:
                     composite_top_n = int(body.get("composite_top_n") or 0)
@@ -532,97 +488,22 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     composite_top_n=composite_top_n,
                 ))
                 return
-            if path == "/api/conversation/reset":
-                self._send_json(self.server.conversation_reset())
-                return
-            if path == "/api/tasks/create":
-                self._send_json(self.server.task_create(body))
-                return
-            if path in {"/api/tasks/update", "/api/tasks/edit"}:
-                self._send_json(self.server.task_update(body))
-                return
-            if path == "/api/tasks/block":
-                self._send_json(self.server.task_block(body))
-                return
-            if path == "/api/tasks/complete":
-                self._send_json(self.server.task_complete(body))
-                return
-            if path == "/api/tasks/prioritize":
-                self._send_json(self.server.task_prioritize(body))
-                return
-            if path == "/api/admin/modify-pipeline":
-                self._send_json(self.server.modify_pipeline(
-                    str(body.get("pipeline") or body.get("pipeline_id") or "public_mwp"),
-                    add_stage=str(body.get("add_stage") or ""),
-                    after=str(body.get("after") or ""),
-                    before=str(body.get("before") or ""),
-                    description=str(body.get("description") or ""),
-                    team=str(body.get("team") or ""),
-                    apply=bool(body.get("apply", False)),
-                    create=bool(body.get("create", False)),
-                ))
-                return
-            if path in {"/api/pipeline/run", "/api/pipelines/start"}:
-                self._send_json(self.server.pipeline_run(str(body.get("pipeline") or body.get("pipeline_id") or "public_mwp"), str(body.get("request") or "GUI pipeline request"), allow_degraded=bool(body.get("allow_degraded", False))))
-                return
-            if path == "/api/pipeline/approve":
-                self._send_json(self.server.pipeline_action("approve", str(body.get("run_id") or ""), body))
-                return
-            if path == "/api/pipeline/advance":
-                self._send_json(self.server.pipeline_action("advance", str(body.get("run_id") or ""), body))
-                return
-            if path == "/api/model-evolution/run":
-                self._send_json(self.server.model_evolution(str(body.get("request") or "GUI model evolution"), target_role=str(body.get("target_role") or "dev.work/dev"), apply=bool(body.get("apply", False))))
-                return
-            # --- Code-evolution (autonomous self-improvement loop) ----------
-            if path == "/api/code-evolution/propose":
-                self._send_json(self.server.code_evolution_propose())
-                return
-            if path == "/api/code-evolution/status":
-                self._send_json(self.server.code_evolution_status())
-                return
-            if path in {"/api/model-selection/plan", "/api/model-selection/apply"}:
-                self._send_json(self.server.model_selection(
-                    str(body.get("request") or body.get("message") or "GUI model selection"),
-                    mode=str(body.get("mode") or "normal"),
-                    scope=str(body.get("scope") or "active runtime"),
-                    composite_top_n=int(body.get("composite_top_n") or body.get("n") or 0),
-                    apply=bool(body.get("apply", False)) or path.endswith("/apply"),
-                ))
-                return
-            if path == "/api/model-selection/continue":
-                self._send_json(self.server.model_selection_continue(body))
-                return
-            if path == "/api/epoch/apply":
-                self._send_json(self.server.epoch_apply(body))
-                return
-            if path == "/api/vault/reinventory":
-                self._send_json(self.server.vault_reinventory())
-                return
-            if path == "/api/workflow/stop":
-                self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
-                return
-            if path == "/api/runtime/device-policy":
-                self._send_json(self.server.device_policy_set(str(body.get("policy") or body.get("mode") or "auto")))
-                return
-            if path == "/api/pipelines/draft":
-                self._send_json(self.server.pipeline_draft(body))
+            # Explicit POST route table: simple single-call endpoints
+            # (admin/message family, conversation/reset, tasks/*, pipeline/draft/
+            # run/approve/advance, modify-pipeline, model-evolution/run,
+            # model-selection plan/apply/continue, epoch/apply, vault/reinventory,
+            # code-evolution propose/status, runtime/device-policy, workflow/stop,
+            # dev-team/*).  Checked after the inline /api/session/mode branch
+            # (which keeps its composite_top_n validation) and before the
+            # /api/jobs/<id>/cancel prefix + /api/shutdown special cases, so the
+            # effective dispatch order is unchanged from the original if-chain.
+            route = self._post_route_table().get(path)
+            if route is not None:
+                route(self, body)
                 return
             if path.startswith("/api/jobs/") and path.endswith("/cancel"):
                 job_id = unquote(path.split("/")[-2])
                 self._send_json(self.server.job_cancel(job_id))
-                return
-            if path == "/api/dev-team/run":
-                self._send_json(self.server.dev_team_run(str(body.get("request") or "GUI dev-team task"), allow_degraded=bool(body.get("allow_degraded", False))))
-                return
-            if path == "/api/dev-team/write-file":
-                self._send_json(self.server.dev_team_write_file(project=str(body.get("project") or ""), rel_path=str(body.get("path") or ""), content=str(body.get("content") or ""), apply=bool(body.get("apply", False))))
-                return
-            if path == "/api/dev-team/replace":
-                self._send_json(self.server.dev_team_replace(project=str(body.get("project") or ""), rel_path=str(body.get("path") or ""), old=str(body.get("old") or ""), new=str(body.get("new") or ""), once=bool(body.get("once", True)), apply=bool(body.get("apply", False))))
-                return
-            if path == "/api/dev-team/set-version":
-                self._send_json(self.server.dev_team_set_version(project=str(body.get("project") or ""), version=str(body.get("version") or ""), apply=bool(body.get("apply", False))))
                 return
             if path == "/api/shutdown":
                 self.server.record_system_event("shutdown", {"reason": body.get("reason") or "operator"})
