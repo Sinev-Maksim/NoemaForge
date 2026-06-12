@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2130,
+  "file_count": 2137,
   "files": [
     ".codex/instructions.md",
     ".gitattributes",
@@ -949,6 +949,13 @@
     "noemaforge/sql/prep_store.sqlite.sql",
     "noemaforge/src/a2a_interop_registry_runtime.py",
     "noemaforge/src/abstention_policy_runtime.py",
+    "noemaforge/src/admin_gui_routes/__init__.py",
+    "noemaforge/src/admin_gui_routes/common.py",
+    "noemaforge/src/admin_gui_routes/job_routes.py",
+    "noemaforge/src/admin_gui_routes/model_routes.py",
+    "noemaforge/src/admin_gui_routes/pipeline_routes.py",
+    "noemaforge/src/admin_gui_routes/session_routes.py",
+    "noemaforge/src/admin_gui_routes/telemetry_routes.py",
     "noemaforge/src/admin_gui_server.py",
     "noemaforge/src/admin_llm_smalltalk_runtime.py",
     "noemaforge/src/admin_runtime.py",
