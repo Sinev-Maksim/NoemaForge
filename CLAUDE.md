@@ -1,278 +1,60 @@
-Project identity
+# Project identity
 
+- Product: **NoemaForge** — local-first AI OS, privacy-first, runs on the production target host (Debian 13 Trixie, GNOME/GDM, RTX 3080 Ti).
+- Repo: https://github.com/Sinev-Maksim/NoemaForge
+- **Working base branch: `release/0.33.0-dev`** (0.32.2 and 0.33.0 are shipped to `main`; never commit to `main` directly).
+- Version source of truth: `VERSION` file, bridged by `noemaforge/src/noemaforge_version.py`. `RUNTIME_VERSION =` is assigned **only** there; no version literals elsewhere.
 
+# Where work comes from (canonical sources)
 
-Product: NoemaForge — local-first AI OS, privacy-first, runs on the production target host
+- `noemaforge/docs/TODO.md` — the canonical TODO: accepted optimization decisions (A/B/C/E), UAT fixpack items, 0.33.x roadmap, review-harvest backlog.
+- `docs/ROADMAP.md` — milestone roadmap (0.33.0 GUI fixpack → 0.33.1 system independence → 0.33.2 hybrid LLM).
+- `docs/uat/DEFECT-REGISTER-0.32.2.md` — canonical defect register (D-001…D-010, U-001…U-005, R/S/O items) driving the fixpack.
+- `Claude_stats.md` — model-routing protocol + per-task stats (model, time, tokens, review fixes). Update it for every task.
 
-Repo: https://github.com/Sinev-Maksim/NoemaForge
+# Language
 
-Working branch: release/0.32.2-hardening
+- **All GitHub-facing text is English-only**: PR titles/bodies, comments, reviews, commit messages (imperative, concise). Chat with the owner is Russian.
+- Code, file names, CLI commands: English.
 
-PR: https://github.com/Sinev-Maksim/NoemaForge/pull/2
+# Workflow per task
 
-Local root (Windows): C:\\Users\\sinev\\!Projects\\NoemaForge
+1. Branch off fresh base: `git fetch origin && git checkout -b claude/<slug> origin/release/0.33.0-dev`.
+2. Route the task per `Claude_stats.md` (S→Haiku, M→Sonnet, L→Opus, XL→Fable orchestrates); record a stats row with real token/time numbers.
+3. Implement; verify before committing:
+   - `python -m py_compile` on changed `.py`; YAML/JSON parse on changed configs; `bash -n` on changed `.sh` (use `C:\Program Files\Git\bin\bash.exe` on this machine).
+   - Targeted pytest for touched areas; gates in a **pristine worktree** (`git worktree add`): `ci/wiki_check.py`, `docs_hygiene_runtime.py`, pytest.
+4. Commit in small logical chunks; end commit messages with the Claude co-author line.
+5. Push, open PR to `release/0.33.0-dev` with label `codex-review`, post `@coderabbitai review`.
+6. Process review verdicts: fix Codex/CodeRabbit blockers; apply or TODO-log every `## Optimizations` item **before merge**; count review-fix rounds in stats.
+7. The human merges. After base advances, re-sweep open branches if CI asks for it.
 
-Version source of truth: noemaforge/src/noemaforge\_version.py
+# Evidence lifecycle (A1 — IMPORTANT, replaces the old regen ritual)
 
-Current target version: 0.32.2
+- **Do NOT regenerate or commit MANIFEST/SHA256SUMS on task branches.** The premerge gate and acceptance workflow run `ci/regen_evidence.py` themselves (regen-then-verify); `evidence-refresh.yml` auto-commits refreshed evidence on `release/**` after merges; `.gitattributes` (`merge=ours`) keeps merges conflict-free on those files.
+- Release archives/tags still carry exact committed evidence — produced by the refresh workflow, not by hand.
 
+# CI surface
 
+- `premerge-quality.yml` — py_compile, versions vs SoT, JSON/YAML, no caches, bash -n, evidence regen-then-verify, wiki integrity (`ci/wiki_check.py`), docs hygiene (step 11).
+- `acceptance.yml` — artifact-driven AAT suite (regen step first).
+- `autonomous-pipeline.yml` — validate-claude-push + Codex CLI review on the self-hosted Windows runner (enforced read-only sandbox; pre-flight digest supplies validation results; English-only output; evidence-stripped token-lean diff).
+- `evidence-refresh.yml`, `wiki-sync.yml` (auto-publish wiki to GitHub Wiki on main), `p0-status-ledger.yml`, `scorecard.yml` (nightly).
 
-Language and communication
+# Docs and wiki
 
+- Canonical trees live under the package root: `noemaforge/docs/**` (incl. the wiki at `noemaforge/docs/wiki/` — one article per page, indexed from `WIKI.md`; regenerate the hub index with `python ci/wiki_check.py --write-index` after adding pages).
+- Forbidden strings in active files: see `noemaforge/configs/docs-hygiene-policy.json` → `forbidden_active_text` (legacy host name, legacy public-docs paths, stale-content marker). Never write them out.
+- When behavior changes, update the affected maintained wiki article in the same PR.
 
+# Display safety — production target host
 
-Respond in Russian in all commit messages, PR comments, and issue comments
+- Every command that starts model selection or heavy GPU work MUST keep the display alive (`--keep-display` semantics). Stopping a display manager requires an explicit operator opt-in flag. Default stop helpers preserve the graphical desktop.
 
-Code, file names, and CLI commands stay in English
+# Hard rules (never violate)
 
-Commit messages: English, imperative mood, concise
-
-
-
-Git workflow — CRITICAL
-
-Never commit directly to main.
-
-Working branch: release/0.32.2-hardening
-
-Feature sub-branches: claude/task-{issue-number}-{slug}
-
-After completing a task: open PR into release/0.32.2-hardening, NOT main.
-
-Commit message format:
-
-<type>(<scope>): <short description>
-
-
-
-Types: fix, feat, refactor, test, docs, chore
-
-Example: fix(admin-gui): clear input box after message send
-
-Always run before committing:
-
-
-
-python -m py\_compile <changed .py files>
-
-python -m json.tool <changed .json files> (verify parses)
-
-Check no RUNTIME\_VERSION =  assignment outside noemaforge\_version.py
-
-
-
-Task queue
-
-Tasks come from GitHub Issues with label claude-next.
-
-Workflow per task:
-
-
-
-Assign issue to yourself, move to "In Progress"
-
-Create branch: git checkout -b claude/task-{N}-{slug}
-
-Implement, test, commit in small logical chunks
-
-Push, open draft PR targeting release/0.32.2-hardening
-
-Add label codex-review to the PR
-
-Pull next claude-next issue and repeat
-
-
-
-Do NOT batch-commit everything in one giant commit.
-
-Do NOT create new files in noemaforge/src/\_\_pycache\_\_/.
-
-Current P0 blockers (must complete before merge)
-
-Priority order:
-
-
-
-Admin GUI wiring — wire orchestration\_state.py, job\_manager.py,
-
-session\_store.py, event\_log.py into admin\_gui\_server.py:
-
-
-
-GET /api/session/current
-
-GET /api/events
-
-GET /api/jobs + POST /api/jobs/cancel
-
-POST /api/model-selection/continue (duplicate-safe)
-
-POST /api/vault/reinventory (duplicate-safe)
-
-Clear input box after send
-
-Persist selected mode across refresh
-
-Restore message history after refresh
-
-
-
-
-
-Checksum regeneration — regenerate SHA256SUMS after all content changes
-
-Clean release archive — noemaforge\_0.32.2\_release.tar.gz
-
-Test evidence — collect output of: pytest, py\_compile, bash -n,
-
-version-audit, smoke tests
-
-P1: noemaforge\_core.py:2118 — return inside finally block
-
-(can suppress exceptions — fix or add suppression comment with justification)
-
-
-
-Version rules
-
-
-
-RUNTIME\_VERSION assignment allowed ONLY in noemaforge\_version.py
-
-VERSION files at root, noemaforge/VERSION, docs/VERSION must all equal 0.32.2
-
-Never hardcode version strings in Python source outside version module
-
-
-
-Display safety — host: the production target host (Debian Trixie, GNOME/GDM, RTX 3080 Ti)
-
-CRITICAL: Every command that starts model selection or heavy GPU work MUST include
-
-\--keep-display or equivalent. First-start without this flag blanked the display before.
-
-Default behavior for stop helpers: preserve graphical desktop (GDM, Firefox, Nautilus).
-
-Code style
-
-
-
-Python: follow existing style in file, no new external deps without discussion
-
-Shell: POSIX-compatible where possible, add bash -n self-check
-
-No .pyc files in git — .gitignore must cover \_\_pycache\_\_/ and \*.pyc
-
-Markdown only in: noemaforge/docs/\*\*, helpers/, prelaunch/
-
-Docs root noemaforge/docs/ allows only: README.md, Manifest.md, TODO.md
-
-
-
-Forbidden strings in active files
-
-These must never appear outside historical context (see docs-hygiene-policy.json → forbidden_active_text for the exact list):
-
-- The legacy production host name (see docs-hygiene-policy.json → forbidden_active_text)
-- Legacy public-docs path strings (see docs-hygiene-policy.json → forbidden_active_text)
-- The stale-content marker string (see docs-hygiene-policy.json → forbidden_active_text)
-
-
-
-MCP tools available in Claude Code
-
-
-
-github — read/write issues, PRs, comments, branches
-
-filesystem — local file operations
-
-
-
-Use github MCP to:
-
-
-
-Fetch next claude-next issue automatically
-
-Post PR description with test evidence
-
-Add codex-review label after push
-
-Comment on issue when task is done
-
-
-
-After completing each task
-
-bash# 1. Verify
-
-python -m py\_compile $(git diff --name-only HEAD\~1 | grep '\\.py$')
-
-
-
-\# 2. Commit with issue reference
-
-git commit -m "fix(scope): description
-
-
-
-Closes #N"
-
-
-
-\# 3. Push and label
-
-git push origin claude/task-N-slug
-
-
-
-\# 4. Via MCP: add label codex-review to PR, comment on issue
-
-Autonomous review TODO for Claude
-
-Keep this block current after each claude/task-* branch is reviewed. Record branch, PR,
-Codex verdict, CodeRabbit status, actionable/blocking comments, fixes and next action.
-If CodeRabbit and Codex overlap on the same nitpick, record it once as carry-forward
-context instead of treating it as a blocker.
-
-- task-1 / PR #3 / claude/task-1-session-current:
-  Codex PASS on 4829f2f; CodeRabbit success; blocking/actionable comments = 0.
-  Only nitpick matched Codex: route tests were brittle source-string checks. Pilot
-  contour works; proceed to the next branch from the start of the task list.
-- task-2 / PR #4 / claude/task-2-events-api:
-  Codex PASS on c28a8e8; CodeRabbit success after fix; blocking/actionable comments = 0.
-  Fixed /api/events after_index validation so non-integer and negative values return
-  JSON 400; route tests now exercise AdminGuiHandler.do_GET behavior instead of
-  source-string checks. Ready for downstream review or merge.
-- task-3 / PR #5 / claude/task-3-session-mode-history:
-  Codex PASS on d80917f; blocking issues = 0. Fixed CodeRabbit findings from
-  38dec23 in d80917f: /api/session/mode now returns JSON 400 for malformed
-  composite_top_n, frontend persists the selected/restored mode instead of a
-  hardcoded full_composite value, the test header no longer hardcodes Version:
-  0.32.2, and the 500-message cap test now exercises 510 messages.
-  Local verification: py_compile admin_gui_server/orchestration_state/session_store,
-  node --check app.js, and 35 unit tests all passed. CodeRabbit status on
-  d80917f is success but "Review skipped" because release/0.32.2-hardening is
-  not the default branch; before closing task-3, trigger @coderabbitai review on
-  PR #5 and record blocking/actionable comments = 0 or add the next fix here.
-- Copilot review note:
-  Automated reviewer requests were attempted through the API but were not visibly
-  attached as requested reviewers. If explicit Copilot review evidence is required,
-  use the PR UI reviewer picker and record the result here.
-
-Do NOT do
-
-
-
-Do not run sudo noemaforge first-start without --keep-display
-
-Do not merge to main directly
-
-Do not create CHANGELOG\_\*, RELEASE\_NOTES\_\* extra files
-
-Do not leave .pyc / \_\_pycache\_\_ in git tree
-
-Do not mark task complete unless py\_compile + basic test pass
-
+- No production GitHub Release without explicit human GO + target-host validation evidence.
+- `noema upgrade` never removes/overwrites user or machine state.
+- No `.pyc`/`__pycache__` in git; no new external runtime deps without discussion (runtime stays stdlib-only; optional extras live in `pyproject.toml`).
+- Do not mark a task complete unless compile + targeted tests pass.
+- Self-modification stays lab-only behind Pipeline_RFC + explicit approval.

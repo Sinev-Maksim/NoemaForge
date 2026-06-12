@@ -1,9 +1,10 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2127,
+  "file_count": 2129,
   "files": [
     ".codex/instructions.md",
+    ".gitattributes",
     ".github/scripts/setup-environments.sh",
     ".github/workflows/acceptance.yml",
     ".github/workflows/autonomous-pipeline.yml",
@@ -2120,6 +2121,7 @@
     "prelaunch/tools/windows_original/library_windows_smart_launcher/RUN_LIBRARY_PIPELINE.cmd",
     "prelaunch/tools/windows_original/library_windows_smart_launcher/library_pipeline_orchestrator.py",
     "prelaunch/tools/windows_original/library_windows_smart_launcher/oapen_bulk_download_safe.py",
+    "pyproject.toml",
     "release.json",
     "sense/__init__.py",
     "sense/edge/__init__.py",

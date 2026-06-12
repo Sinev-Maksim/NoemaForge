@@ -140,7 +140,7 @@ release→main conflict resolution; statuses updated on restore._
 - [x] **A2 — docs-hygiene gate joins premerge-quality.** Done in PR #85:
   pre-existing reds cleared (`context.md` legacy host name, CONTRIBUTING/SECURITY
   allowlist, three broken registry wiki refs) and the gate wired as step 11.
-- [ ] **A3 — p0-status-ledger concurrency dedupe.** The workflow runs twice per
+- [x] **A3 — p0-status-ledger concurrency dedupe.** Done in the quickwins-t1 PR (queue duplicates instead of cancelling; issues trigger preserved). The workflow runs twice per
   push and the concurrency group cancels the older run, leaving misleading
   CANCELLED check entries; dedupe triggers or set `cancel-in-progress` with a
   per-ref group so only one run per push remains.
@@ -149,7 +149,7 @@ release→main conflict resolution; statuses updated on restore._
   `install_noemaforge_mvp.sh` reading the VERSION SoT; archive the stale 0.32.1
   pair. Also closes the pre-existing red contract check
   `setup_does_not_delegate_to_current_installer` (no 0.33.0 installer exists).
-- [ ] **A5 — refresh CLAUDE.md.** Working base is `release/0.33.0-dev`; drop the
+- [x] **A5 — refresh CLAUDE.md.** Done in the quickwins-t2 PR (new base branch, A1 evidence lifecycle, English-only rule, routing protocol, canonical task sources). Working base is `release/0.33.0-dev`; drop the
   completed 0.32.2 P0 list and stale PR refs; point at the UAT defect register
   and the canonical TODO/roadmap as task sources; record the English-only
   GitHub-communication rule.
@@ -182,10 +182,10 @@ release→main conflict resolution; statuses updated on restore._
   fallback, plus a PWA manifest (`display: standalone`) for installability.
   Zero new mandatory dependencies; pywebview stays an optional future extra.
   ADR: `wiki/architecture/desktop-app-shell.md`.
-- [ ] **Replace deprecated `datetime.utcnow()`** (8× in `caps.py`, then repo-wide)
+- [x] **Replace deprecated `datetime.utcnow()` — caps.py slice done in the quickwins-t1 PR (8 call sites, Z-format preserved, naive-token back-compat); repo-wide pass (55 files) still open as below.** Original item:** (8× in `caps.py`, then repo-wide)
   with timezone-aware `datetime.now(UTC)`; py3.12+ deprecates utcnow and CI on
   3.11 masks it.
-- [ ] **Add a minimal `pyproject.toml`** (metadata + extras: `dev` = pytest/pyyaml,
+- [x] **Add a minimal `pyproject.toml` — done in the quickwins-t2 PR (dynamic version from the VERSION SoT, dev/vector/gateway extras, packages=[]).** Original item:** (metadata + extras: `dev` = pytest/pyyaml,
   `vector` = numpy, `gateway` = httpx) without changing the stdlib-only runtime
   posture; tooling deps are currently undeclared anywhere.
 - [ ] **Wire targeted contract-test shards into CI and burn down pre-existing
