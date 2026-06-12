@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # === NoemaForge File Header ===
-# File: install_noemaforge_0.32.2_mvp.sh
+# File: install_noemaforge_mvp.sh
 # Zone: release/package
-# Version: 0.32.2
+# Version: version-agnostic (reads VERSION at runtime)
 # Created: 2026-05-14
-# Modified: 2026-05-14
+# Modified: 2026-06-11
 # Purpose: Install a historical or current NoemaForge release payload.
 # Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 # Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -12,17 +12,19 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-# NoemaForge 0.32.2 public MVP/MWP installer.
+# NoemaForge public MVP/MWP installer (version-agnostic).
 # Installs the operator CLI, safe runtime helpers, docs, and config defaults.
 # The copied payload includes noemaforge/templates/pipeline-dashboard for the local Admin GUI.
 # It does not auto-start heavy LLM backends and does not enable parallel runtime.
 set -euo pipefail
 
-# 0.32.2: this is the real installer; it performs installation directly and must not re-enter setup.
+# This is the real installer; it performs installation directly and must not re-enter setup.
 # setup.sh may delegate here, but this file performs the install directly.
 
-VERSION="0.32.2"
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Read the release version from the canonical VERSION file at runtime.
+VERSION="$(tr -d '[:space:]' < "$PKG_DIR/VERSION" 2>/dev/null \
+  || tr -d '[:space:]' < "$PKG_DIR/noemaforge/VERSION" 2>/dev/null || echo 'unknown')"
 ROOTFS="/"
 DATA_ROOT="/var/lib/noemaforge"
 MODEL_PROFILE="minimal"
@@ -33,7 +35,7 @@ PRESERVE_TIMERS=0
 DRY_RUN=0
 
 usage(){ cat <<'USAGE'
-Usage: sudo ./install_noemaforge_0.32.2_mvp.sh [options]
+Usage: sudo ./install_noemaforge_mvp.sh [options]
 
 Options:
   --verify                    Verify SHA256SUMS when present.
@@ -88,8 +90,8 @@ fi
 if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: shell syntax"
   bash -n "$PKG_DIR/setup.sh"
-  bash -n "$PKG_DIR/install_noemaforge_0.32.2_mvp.sh"
-  bash -n "$PKG_DIR/uninstall_noemaforge_0.32.2_mvp.sh"
+  bash -n "$PKG_DIR/install_noemaforge_mvp.sh"
+  bash -n "$PKG_DIR/uninstall_noemaforge_mvp.sh"
   bash -n "$PKG_DIR/noemaforge/bin/noemaforge"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-version-audit.sh"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-first-run-audit.sh"
@@ -160,7 +162,7 @@ install -d -m 0755 "$(target /etc/default)"
 for default_name in noemaforge-recovery noemaforge-runtime noemaforge-firstboot; do
   [[ -f "$PKG_DIR/policies/${default_name}.example" ]] && install_default_once "$PKG_DIR/policies/${default_name}.example" "/etc/default/$default_name" 0644
 done
-# 0.32.2: public noemaforge commands are symlinks to the canonical /opt/noemaforge CLI; no wrapper is installed so `noemaforge version` and policy always use the same root.
+# Public noemaforge commands are symlinks to the canonical /opt/noemaforge CLI; no wrapper is installed so `noemaforge version` and policy always use the same root.
 install_symlink /opt/noemaforge/bin/noemaforge /usr/local/sbin/noemaforge
 install_symlink /opt/noemaforge/bin/noemaforge /usr/local/bin/noemaforge
 install_symlink /opt/noemaforge/bin/noemaforge /usr/bin/noemaforge
@@ -188,7 +190,7 @@ install_symlink /usr/local/sbin/gui-start /opt/helpers/gui-start
 install_symlink /usr/local/sbin/gui-start /opt/helpers/gui_start
 
 install -d -m 0750 "$(target "$DATA_ROOT")" "$(target "$DATA_ROOT/.sys")" "$(target "$DATA_ROOT/bootstrap")"
-# 0.32.2 live-fix: create writable runtime/state directories for operator-facing
+# Create writable runtime/state directories for operator-facing
 # commands and service users before systemd services start.
 for d in   "$DATA_ROOT/pipelines" "$DATA_ROOT/personas" "$DATA_ROOT/testbench" "$DATA_ROOT/selftest" "$DATA_ROOT/selftests"   "$DATA_ROOT/wiki-patches" "$DATA_ROOT/wiki_patches" "$DATA_ROOT/dashboard" "$DATA_ROOT/runtime"   "$DATA_ROOT/model-evolution" "$DATA_ROOT/model-selection" "$DATA_ROOT/dev-team" "$DATA_ROOT/multimodal"   "$DATA_ROOT/model_scorecards" "$DATA_ROOT/team_scorecards" "$DATA_ROOT/contracts" "$DATA_ROOT/requests" "$DATA_ROOT/requests/prestart"   "$DATA_ROOT/boot" "$DATA_ROOT/boot/reports" "$DATA_ROOT/outbox"; do
   install -d -m 2775 "$(target "$d")"
@@ -244,7 +246,7 @@ mkdir -p "$(target "$DOCROOT/docs")"
 install_file "$PKG_DIR/context.md" "$DOCROOT/context.md" 0644
 install_file "$PKG_DIR/README.md" "$DOCROOT/README.md" 0644
 if command -v rsync >/dev/null 2>&1; then rsync -a "$PKG_DIR/docs/" "$(target "$DOCROOT/docs/")"; else cp -a "$PKG_DIR/docs/." "$(target "$DOCROOT/docs/")"; fi
-# 0.32.2: keep a package-local docs mirror at /opt/docs too, because consistency-audit
+# Keep a package-local docs mirror at /opt/docs too, because consistency-audit
 # intentionally accepts either /opt/noemaforge/../docs or /usr/local/share/noemaforge/docs.
 mkdir -p "$(target /opt/docs)"
 if command -v rsync >/dev/null 2>&1; then rsync -a "$PKG_DIR/noemaforge/docs/" "$(target /opt/docs/)"; else cp -a "$PKG_DIR/noemaforge/docs/." "$(target /opt/docs/)"; fi
@@ -396,7 +398,7 @@ PYFSTAB
   systemctl disable --now brainos-llm-gateway.service brainos-toolproxy.service brainos-memsentinel.service brainos-autostart-gui.service brainos-autostart-gui.timer brainos-first-start.service 2>/dev/null || true
   /usr/local/sbin/noemaforge-sel-fix 2>/dev/null || true
   systemctl daemon-reload 2>/dev/null || true
-  # 0.32.2: GUI mode must be timer-driven. The direct service is never enabled under graphical.target.
+  # GUI mode must be timer-driven. The direct service is never enabled under graphical.target.
   mode="manual"
   [[ -r /etc/noemaforge/boot-mode ]] && mode="$(tr -d '[:space:]' < /etc/noemaforge/boot-mode)"
   case "$mode" in
@@ -443,4 +445,3 @@ Start runtime manually only when ready:
   sudo noemaforge safe-start --wait --restart
   noemaforge smoke --debug
 EOM
-

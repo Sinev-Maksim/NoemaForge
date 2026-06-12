@@ -274,7 +274,7 @@ def _static_script_failures(payload: Dict[str, Any], *, project_root: Path, pack
     setup_checks = {
         "required_flags": sorted([flag for flag in REQUIRED_SETUP_FLAGS if flag in setup_text]),
         "dry_run_if_line": _line_of(setup_text, 'if [[ "$DRY_RUN" == 1 ]]'),
-        "installer_exec_line": _line_of(setup_text, 'exec "$PKG_DIR/install_noemaforge_0.32.1_mvp.sh"'),
+        "installer_exec_line": _line_of(setup_text, 'exec "$PKG_DIR/install_noemaforge_mvp.sh"'),
         "root_guard": "non-dry-run install requires sudo/root" in setup_text,
         "recursion_guard": "NOEMAFORGE_SETUP_DEPTH" in setup_text,
         "syntax_checks_installer": f'bash -n "$PKG_DIR/{installer_ref}"' in setup_text,

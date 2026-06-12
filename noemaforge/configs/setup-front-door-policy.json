@@ -9,7 +9,7 @@
     "activation_state": "root_setup_wraps_bootstrap_firstboot_progress",
     "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "setup_script_ref": "setup.sh",
-    "installer_ref": "install_noemaforge_0.32.1_mvp.sh",
+    "installer_ref": "install_noemaforge_mvp.sh",
     "firstboot_orchestrator_ref": "src/firstboot_orchestrator.py",
     "require_trace_id": true,
     "require_registry_attachment": true,
@@ -54,7 +54,7 @@
     ],
     "required_runtime_refs": [
       "setup.sh",
-      "install_noemaforge_0.32.1_mvp.sh",
+      "install_noemaforge_mvp.sh",
       "src/firstboot_orchestrator.py",
       "src/firstboot_status.py",
       "src/firstboot_eval.py"
@@ -68,7 +68,7 @@
     "noemaforge/contracts/setup_front_door.schema.json",
     "noemaforge/src/setup_front_door_runtime.py",
     "setup.sh",
-    "install_noemaforge_0.32.1_mvp.sh",
+    "install_noemaforge_mvp.sh",
     "noemaforge/src/firstboot_orchestrator.py",
     "noemaforge/src/firstboot_status.py",
     "noemaforge/src/firstboot_eval.py",

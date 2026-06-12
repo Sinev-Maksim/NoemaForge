@@ -25,8 +25,8 @@ from pathlib import Path
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
 EXPECTED_VERSION = "0.32.2"
-EXPECTED_INSTALLER = "install_noemaforge_0.32.2_mvp.sh"
-EXPECTED_UNINSTALLER = "uninstall_noemaforge_0.32.2_mvp.sh"
+EXPECTED_INSTALLER = "install_noemaforge_mvp.sh"
+EXPECTED_UNINSTALLER = "uninstall_noemaforge_mvp.sh"
 OLD_ACTIVE_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
 
 
