@@ -45,6 +45,16 @@ jobs:
       - name: Install test deps
         run: pip install pytest pyyaml --quiet
 
+      # A1 evidence lifecycle: PR branches do not commit regenerated
+      # MANIFEST/SHA256SUMS (the premerge gate regenerates and verifies),
+      # so align the generated evidence before checksum_validation runs.
+      # On release pushes / dispatch this step is skipped on purpose: there
+      # the case must keep proving the COMMITTED evidence is bit-exact
+      # (evidence-refresh.yml maintains it post-merge).
+      - name: Align generated evidence for PR trees (A1)
+        if: github.event_name == 'pull_request'
+        run: python ci/regen_evidence.py
+
       - name: Run acceptance harness
         run: bash ci/run_acceptance.sh results
 
