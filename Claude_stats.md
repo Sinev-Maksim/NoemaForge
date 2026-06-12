@@ -58,6 +58,7 @@ Rules:
 | 2026-06-11 | C3 caps.py timezone-aware timestamps (quickwins-t1) | S | Haiku 4.5 → Fable review | 95s agent | 31.0k | 0 | clean: Z-format preserved, naive-token back-compat, tests green; 55 remaining utcnow files left for repo-wide pass |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
+| 2026-06-11 | E pin actions + dependabot (#93) | S | Sonnet 4.6 → Fable review | 4.6m agent | 56.4k | 1 | SHAs all correct (3/3 spot-check), but main-based agent worktree would have rolled back #87/#88 workflow changes — re-applied as pure pin substitutions |
 | 2026-06-11 | A3 ledger queue-not-cancel (#90) | S | Haiku 4.5 → Fable review | 53s agent | 23.8k | 1 | draft dropped the issues trigger; orchestrator restored it — real cause was event bursts |
 | 2026-06-11 | C3 caps.py timezone-aware (#90) | S | Haiku 4.5 → Fable review | 95s agent | 31.0k | 0 | clean: Z-format kept, naive-token back-compat, tests green |
 | 2026-06-11 | A1 follow-ups (#91, merge-race salvage) | S | Fable 5 | ~15m | ~12k | — | merge=ours + acceptance regen re-landed; evidence-refresh self-heal confirmed 2x |
