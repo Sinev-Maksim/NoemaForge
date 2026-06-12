@@ -56,6 +56,7 @@ Rules:
 | 2026-06-11 | #87 fix-up v2: enforced read-only + pre-flight digest | M | Fable 5 | ~40m | ~35k | — | approach change on 2nd Codex FAIL; filter → tested script |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
+| 2026-06-11 | A4 version-agnostic installer (#96) | M | Sonnet 4.6 → Fable takeover | ~1h stall + 35m | ~45k (Fable) | 1 | agent stalled silently after a clean draft (no completion notification); escalation fired; 5 pre-existing reds closed (10→5 on the 6-file contract set) |
 
 **Calibration note (2026-06-11):** every task so far ran on Fable 5 because the
 routing policy did not exist yet — these rows are the baseline. From the next
