@@ -54,9 +54,17 @@ Rules:
 | 2026-06-11 | #87 Codex sandbox + token diet + harvest | M | Fable 5 | ~1h | ~55k | 2 | back-swept reviews #5–#85 into TODO; two Codex FAIL rounds caught real isolation gaps (escalation rule fired: S retry → M approach change) |
 | 2026-06-11 | #87 fix-up v1: token scoped away from codex exec | S | Fable 5 | ~20m | ~20k | — | job-level GITHUB_TOKEN removed; filter regex generalized |
 | 2026-06-11 | #87 fix-up v2: enforced read-only + pre-flight digest | M | Fable 5 | ~40m | ~35k | — | approach change on 2nd Codex FAIL; filter → tested script |
+| 2026-06-11 | A3 ledger queue-not-cancel (quickwins-t1) | S | Haiku 4.5 → Fable review | 53s agent | 23.8k | 1 | draft dropped the issues trigger (semantic loss); orchestrator restored it + queue strategy — root cause was event bursts, not duplicate triggers |
+| 2026-06-11 | C3 caps.py timezone-aware timestamps (quickwins-t1) | S | Haiku 4.5 → Fable review | 95s agent | 31.0k | 0 | clean: Z-format preserved, naive-token back-compat, tests green; 55 remaining utcnow files left for repo-wide pass |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
 | 2026-06-11 | C1 admin-gui route split (#94) | L | Opus 4.8 → Fable review | 17.5m agent | 168.8k | 0 | 61/61 endpoint parity; per-file suites identical; found pre-existing group-collection ImportError (reproduced on base) |
+| 2026-06-11 | E pin actions + dependabot (#93) | S | Sonnet 4.6 → Fable review | 4.6m agent | 56.4k | 1 | SHAs all correct (3/3 spot-check), but main-based agent worktree would have rolled back #87/#88 workflow changes — re-applied as pure pin substitutions |
+| 2026-06-11 | A3 ledger queue-not-cancel (#90) | S | Haiku 4.5 → Fable review | 53s agent | 23.8k | 1 | draft dropped the issues trigger; orchestrator restored it — real cause was event bursts |
+| 2026-06-11 | C3 caps.py timezone-aware (#90) | S | Haiku 4.5 → Fable review | 95s agent | 31.0k | 0 | clean: Z-format kept, naive-token back-compat, tests green |
+| 2026-06-11 | A1 follow-ups (#91, merge-race salvage) | S | Fable 5 | ~15m | ~12k | — | merge=ours + acceptance regen re-landed; evidence-refresh self-heal confirmed 2x |
+| 2026-06-11 | C4 minimal pyproject.toml (#92) | S | Sonnet 4.6 → Fable review | 48s agent | 20.1k | 0 | clean: dynamic version from SoT, packages=[], dev/vector/gateway extras |
+| 2026-06-11 | A5 CLAUDE.md rewrite (#92) | M | Fable 5 (orchestrator-context task) | ~15m | ~8k | — | full rewrite: A1 lifecycle, English-only, routing, canonical sources |
 
 **Calibration note (2026-06-11):** every task so far ran on Fable 5 because the
 routing policy did not exist yet — these rows are the baseline. From the next
