@@ -54,6 +54,8 @@ Rules:
 | 2026-06-11 | #87 Codex sandbox + token diet + harvest | M | Fable 5 | ~1h | ~55k | 2 | back-swept reviews #5–#85 into TODO; two Codex FAIL rounds caught real isolation gaps (escalation rule fired: S retry → M approach change) |
 | 2026-06-11 | #87 fix-up v1: token scoped away from codex exec | S | Fable 5 | ~20m | ~20k | — | job-level GITHUB_TOKEN removed; filter regex generalized |
 | 2026-06-11 | #87 fix-up v2: enforced read-only + pre-flight digest | M | Fable 5 | ~40m | ~35k | — | approach change on 2nd Codex FAIL; filter → tested script |
+| 2026-06-11 | A3 ledger queue-not-cancel (quickwins-t1) | S | Haiku 4.5 → Fable review | 53s agent | 23.8k | 1 | draft dropped the issues trigger (semantic loss); orchestrator restored it + queue strategy — root cause was event bursts, not duplicate triggers |
+| 2026-06-11 | C3 caps.py timezone-aware timestamps (quickwins-t1) | S | Haiku 4.5 → Fable review | 95s agent | 31.0k | 0 | clean: Z-format preserved, naive-token back-compat, tests green; 55 remaining utcnow files left for repo-wide pass |
 | 2026-06-11 | #88 evidence-in-CI (A1) | L | Fable 5 | ~50m | ~55k | 0 | regen-then-verify gate passed own PR first try |
 | 2026-06-11 | model routing + this stats file | S | Fable 5 | ~30m | ~30k | 0 | 58 TODO items annotated by script |
 
