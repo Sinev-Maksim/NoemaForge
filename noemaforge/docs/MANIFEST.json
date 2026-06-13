@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1903,
+  "file_count": 1904,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -693,6 +693,7 @@
     "docs/wiki/governance/calibration-abstention-data-centric-error-loop-0.31.21.alpha.md",
     "docs/wiki/governance/deep-research-integration-policy.md",
     "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.31.21.alpha.md",
+    "docs/wiki/governance/repository-hardening.md",
     "docs/wiki/gui/admin-chat-locales-and-artifacts-0.31.13.alpha-patched1.md",
     "docs/wiki/gui/admin-chat-locales-and-artifacts-0.31.13.alpha.md",
     "docs/wiki/gui/admin-chat-locales-and-artifacts-0.32.1.md",

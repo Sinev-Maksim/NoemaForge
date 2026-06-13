@@ -1,0 +1,17 @@
+# NoemaForge code owners.
+# On a public repository this auto-requests the owner's review on any external
+# contribution and documents who is accountable for each surface. The main-branch
+# ruleset does not hard-require a code-owner approval (the project is currently
+# single-maintainer, who cannot approve their own PR), so this is advisory routing
+# plus an explicit ownership record — not a merge block.
+
+# Default owner for everything.
+*                       @Sinev-Maksim
+
+# CI / automation / security surface — highest-attention paths.
+/.github/               @Sinev-Maksim
+/ci/                    @Sinev-Maksim
+
+# Version source of truth and release evidence.
+/VERSION                @Sinev-Maksim
+/noemaforge/src/noemaforge_version.py   @Sinev-Maksim
