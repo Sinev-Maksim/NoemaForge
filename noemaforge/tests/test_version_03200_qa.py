@@ -24,13 +24,20 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
-# NOTE: this literal is intentionally left pinned in this PR. Deriving it from the
-# canonical VERSION (RUNTIME_VERSION=0.33.0) empirically exposes an INCOMPLETE
-# 0.33.0 promotion — ~22 config "version" fields, the CLI echo and first-run-audit
-# are still 0.32.2. Finishing that bump (and making this gate dynamic) is a
-# dedicated task tracked in noemaforge/docs/TODO.md, out of scope for the installer
-# rename. See Codex review on #96.
-EXPECTED_VERSION = "0.32.2"
+# Two distinct invariants (split per Codex review on #96):
+#   SOT_VERSION       — the release version, derived dynamically from the canonical
+#                       VERSION source of truth; the canonical VERSION files must
+#                       always equal it. Never pin this to a literal.
+#   PROMOTED_BASELINE — the version stamped across the *non-canonical* surfaces
+#                       (config schema versions, the CLI echo, first-run-audit,
+#                       root release/manifest metadata). On the 0.33.0 line these
+#                       are still 0.32.2: the bump is half-done. Completing it and
+#                       folding this baseline into SOT_VERSION is a dedicated task
+#                       in noemaforge/docs/TODO.md, out of scope for the installer
+#                       rename. Until then these surfaces are asserted against the
+#                       baseline so the gate stays meaningful without a false green.
+SOT_VERSION = (PROJECT_ROOT / "VERSION").read_text(encoding="utf-8").strip()
+PROMOTED_BASELINE = "0.32.2"
 EXPECTED_INSTALLER = "install_noemaforge_mvp.sh"
 EXPECTED_UNINSTALLER = "uninstall_noemaforge_mvp.sh"
 OLD_ACTIVE_INSTALLER = "install_noemaforge_0.32.1_mvp.sh"
@@ -88,17 +95,17 @@ class Version03200QATests(unittest.TestCase):
         ]
         for path in version_files:
             with self.subTest(path=path):
-                self.assertEqual(EXPECTED_VERSION, path.read_text(encoding="utf-8").strip())
+                self.assertEqual(SOT_VERSION, path.read_text(encoding="utf-8").strip())
 
     def test_release_manifest_metadata_is_promoted(self) -> None:
         release = json.loads((PROJECT_ROOT / "release.json").read_text(encoding="utf-8"))
         manifest = json.loads((PROJECT_ROOT / "MANIFEST.json").read_text(encoding="utf-8"))
 
-        self.assertEqual(EXPECTED_VERSION, release["version"])
-        self.assertEqual(f"noemaforge_{EXPECTED_VERSION}_prelaunch", release["package"])
-        self.assertTrue(release["summary"].startswith(f"NoemaForge {EXPECTED_VERSION}:"))
-        self.assertEqual(EXPECTED_VERSION, manifest["runtime_base_version"])
-        self.assertEqual(f"noemaforge_{EXPECTED_VERSION}_prelaunch", manifest["package_name"])
+        self.assertEqual(PROMOTED_BASELINE, release["version"])
+        self.assertEqual(f"noemaforge_{PROMOTED_BASELINE}_prelaunch", release["package"])
+        self.assertTrue(release["summary"].startswith(f"NoemaForge {PROMOTED_BASELINE}:"))
+        self.assertEqual(PROMOTED_BASELINE, manifest["runtime_base_version"])
+        self.assertEqual(f"noemaforge_{PROMOTED_BASELINE}_prelaunch", manifest["package_name"])
 
     def test_runtime_constants_and_cli_fallback_are_promoted(self) -> None:
         # 0.32.2: runtime files use centralised import, not hardcoded RUNTIME_VERSION.
@@ -111,15 +118,15 @@ class Version03200QATests(unittest.TestCase):
 
         cli = (PACKAGE_ROOT / "bin" / "noemaforge").read_text(encoding="utf-8")
         first_run_audit = (PACKAGE_ROOT / "tools" / "prep" / "noemaforge-first-run-audit.sh").read_text(encoding="utf-8")
-        self.assertIn(f'echo "{EXPECTED_VERSION}"', cli)
-        self.assertIn(f'VERSION="{EXPECTED_VERSION}"', first_run_audit)
+        self.assertIn(f'echo "{PROMOTED_BASELINE}"', cli)
+        self.assertIn(f'VERSION="{PROMOTED_BASELINE}"', first_run_audit)
 
     def test_active_config_versions_are_promoted(self) -> None:
         for rel in CONFIG_VERSION_FILES:
             path = PACKAGE_ROOT / "configs" / rel
             with self.subTest(path=path):
                 payload = json.loads(path.read_text(encoding="utf-8"))
-                self.assertEqual(EXPECTED_VERSION, payload.get("version"))
+                self.assertEqual(PROMOTED_BASELINE, payload.get("version"))
 
     def test_setup_and_dry_run_policy_point_to_promoted_installer(self) -> None:
         setup = (PROJECT_ROOT / "setup.sh").read_text(encoding="utf-8")
