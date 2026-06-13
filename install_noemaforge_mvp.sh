@@ -24,7 +24,14 @@ set -euo pipefail
 PKG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Read the release version from the canonical VERSION file at runtime.
 VERSION="$(tr -d '[:space:]' < "$PKG_DIR/VERSION" 2>/dev/null \
-  || tr -d '[:space:]' < "$PKG_DIR/noemaforge/VERSION" 2>/dev/null || echo 'unknown')"
+  || tr -d '[:space:]' < "$PKG_DIR/noemaforge/VERSION" 2>/dev/null || true)"
+# Fail fast on a malformed package: an empty/unreadable VERSION would otherwise
+# stamp 'unknown' into backups and setup state and weaken package evidence
+# (Codex review on #96).
+if [[ -z "$VERSION" ]]; then
+  echo "[install][ERROR] cannot read a release version from \$PKG_DIR/VERSION or \$PKG_DIR/noemaforge/VERSION; refusing to install a version-less package." >&2
+  exit 1
+fi
 ROOTFS="/"
 DATA_ROOT="/var/lib/noemaforge"
 MODEL_PROFILE="minimal"

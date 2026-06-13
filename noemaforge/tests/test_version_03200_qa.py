@@ -24,6 +24,12 @@ from pathlib import Path
 
 PACKAGE_ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
 PROJECT_ROOT = PACKAGE_ROOT.parent
+# NOTE: this literal is intentionally left pinned in this PR. Deriving it from the
+# canonical VERSION (RUNTIME_VERSION=0.33.0) empirically exposes an INCOMPLETE
+# 0.33.0 promotion — ~22 config "version" fields, the CLI echo and first-run-audit
+# are still 0.32.2. Finishing that bump (and making this gate dynamic) is a
+# dedicated task tracked in noemaforge/docs/TODO.md, out of scope for the installer
+# rename. See Codex review on #96.
 EXPECTED_VERSION = "0.32.2"
 EXPECTED_INSTALLER = "install_noemaforge_mvp.sh"
 EXPECTED_UNINSTALLER = "uninstall_noemaforge_mvp.sh"
