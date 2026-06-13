@@ -198,6 +198,13 @@ release→main conflict resolution; statuses updated on restore._
 - [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
   dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
   under-covered.
+- [ ] **Manifest `generated_at` freshness vs A1 idempotency** (CodeRabbit #99).
+  `MANIFEST.json.generated_at` is not bumped by `ci/regen_evidence.py`, so it can
+  look stale after a file-set change. Bumping it to `now()` per regen would break
+  the idempotency the premerge regen-then-verify gate and `regen_evidence --check`
+  rely on (committed vs fresh regen would always differ). If a trustworthy
+  timestamp is wanted, derive `generated_at` **deterministically from the
+  release/commit metadata** (stable per commit), not from wall-clock regen time.
 
 ### E. Supply chain
 
