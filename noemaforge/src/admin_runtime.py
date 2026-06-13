@@ -438,6 +438,107 @@ def maybe_usecase_help(root: Path, message: str, locale: str) -> Optional[Dict[s
     return {"id": cid, "title": spec["title"], "reply": f"{spec['title']}: {text}", "available_usecases": [v["title"] for v in cases.values()]}
 
 
+# ---------------------------------------------------------------------------
+# Dashboard-state glossary — deterministic, pre-LLM, D-003 fix
+# ---------------------------------------------------------------------------
+
+_STATE_GLOSSARY: list[dict] = [
+    {
+        "term": "degraded_selected",
+        "pattern": r"degraded_selected",
+        "ru": "degraded_selected: обязательные роли укомплектованы, но часть выбранных ролей не достигла целевого порога качества. Это состояние WARNING, не критический сбой.",
+        "en": "degraded_selected: mandatory core roles are staffed, but some selected roles are below target quality thresholds. This is a WARNING state, not a fatal failure.",
+    },
+    {
+        "term": "selected=N",
+        "pattern": r"selected\s*=\s*\d+",
+        "ru": "selected=N: N runtime-моделей выбрано для активного покрытия ролей/main.",
+        "en": "selected=N: N runtime model(s) were selected for active role/main coverage.",
+    },
+    {
+        "term": "applied_no_reboot",
+        "pattern": r"applied_no_reboot",
+        "ru": "applied_no_reboot: эпоха выбора моделей применена к живому runtime без перезагрузки.",
+        "en": "applied_no_reboot: the model-selection epoch was applied to the live runtime without requiring a reboot.",
+    },
+    {
+        "term": "candidate_map_bad",
+        "pattern": r"candidate_map_bad",
+        "ru": "candidate_map_bad: количество кандидатов ролей, не прошедших валидацию; 0 означает норму.",
+        "en": "candidate_map_bad: count of role candidates that failed validation; 0 means healthy.",
+    },
+    {
+        "term": "tournament_bad",
+        "pattern": r"tournament_bad",
+        "ru": "tournament_bad: количество записей role-tournament, не прошедших валидацию; 0 означает норму.",
+        "en": "tournament_bad: count of role-tournament entries that failed validation; 0 means healthy.",
+    },
+    {
+        "term": "unsafe_count",
+        "pattern": r"unsafe_count",
+        "ru": "unsafe_count (modelstore): число GGUF-шардов, не прошедших проверку безопасности; 0 означает, что все в норме.",
+        "en": "unsafe_count (modelstore): number of GGUF model shards that failed safety validation; 0 means all safe.",
+    },
+    {
+        "term": "runtime_safety",
+        "pattern": r"runtime_safety",
+        "ru": "runtime_safety (runtime_safety_ok / runtime_safety.ok): прошёл ли post-apply runtime проверки безопасности.",
+        "en": "runtime_safety (runtime_safety_ok / runtime_safety.ok): whether the post-apply runtime passed its safety checks.",
+    },
+    {
+        "term": "staffing_state",
+        "pattern": r"staffing_state",
+        "ru": "staffing_state: итоговый вердикт укомплектованности ролей (например, degraded_selected).",
+        "en": "staffing_state: the overall role-staffing verdict (e.g. degraded_selected).",
+    },
+    {
+        "term": "full_composite",
+        "pattern": r"full_composite",
+        "ru": "full_composite: режим первого запуска, при котором для каждой роли компонуется топ-N кандидатов вместо одного.",
+        "en": "full_composite: a first-start mode that composes the top-N candidate models per role instead of a single pick.",
+    },
+]
+
+
+def maybe_state_glossary(message: str, locale: str) -> Optional[Dict[str, Any]]:
+    """Return a deterministic glossary reply if the message mentions known dashboard-state terms.
+
+    Returns None when:
+    - the message is not an explanation request, OR
+    - no known term is found in the message.
+    """
+    lower = str(message or "").lower()
+    # Self-contained control guard: suppress the glossary only for an explicit
+    # imperative to ACT (so a passive/question mention of a term is still
+    # explained). Kept LOCAL and verb-only — it does not reuse the shared
+    # has_explicit_control_request router (whose noun terms like "epoch"/"vault"
+    # would over-suppress, and whose substring "run" collided with
+    # "runtime_safety"). Word boundaries keep "run" out of "runtime".
+    if re.search(
+        r"(\bзапус|\bоткрой|\bпокажи|\bпроведи|\bсоздай|\bдоработай|\bоптимизир|"
+        r"\bпереключи|\bпродолж|\bинвентар|\brun\b|\bstart\b|\bopen\b|"
+        r"\bexecute\b|\blaunch\b|\bcontinue\b|\binventory\b)",
+        lower,
+    ):
+        return None
+    matched: list[dict] = []
+    for entry in _STATE_GLOSSARY:
+        if re.search(entry["pattern"], lower):
+            matched.append(entry)
+    if not matched:
+        return None
+    use_ru = locale.startswith("ru")
+    lines = [e["ru" if use_ru else "en"] for e in matched]
+    reply = "\n".join(lines)
+    canonical = matched[0]["term"] if len(matched) == 1 else ", ".join(e["term"] for e in matched)
+    return {
+        "id": "state_glossary",
+        "term": canonical,
+        "reply": reply,
+        "matched_terms": [e["term"] for e in matched],
+    }
+
+
 def is_smalltalk(text: str) -> bool:
     lower = str(text or "").lower().strip()
     return bool(re.search(r"^(супер|спасибо|как ты|ты там|ты жив|рад|hello|hi|thanks|thank you|ок|ok)[!?.\sа-яa-z0-9,-]*$", lower))
@@ -714,6 +815,15 @@ def cmd_message(args: argparse.Namespace) -> int:
     if budget.get("active"):
         result["improvement_budget"] = budget
         result["internal_events"].append("Admin recorded bounded improvement depth: " + str(budget.get("operator_rule")))
+    glossary = maybe_state_glossary(message, locale)
+    if glossary:
+        result["reply"] = glossary["reply"]
+        result["route"] = {"id": "state_glossary", "intent": "explain", "label": "Dashboard state glossary", "operator_request": message}
+        result["persona_switch"] = None
+        result["mode"] = "conversation"
+        result["state_glossary"] = glossary
+        print(json_dumps(result) if args.json else result["reply"])
+        return 0
     help_doc = maybe_usecase_help(root, message, locale)
     if help_doc:
         result["persona_switch"] = None
