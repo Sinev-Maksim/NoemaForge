@@ -7,6 +7,8 @@ on:
 jobs:
   qa-and-bump:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write     # commits and pushes the version bump
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
