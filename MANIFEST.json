@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2142,
+  "file_count": 2143,
   "files": [
     ".codex/instructions.md",
     ".gitattributes",
@@ -9,6 +9,7 @@
     ".github/dependabot.yml",
     ".github/rulesets/protect-main.json",
     ".github/rulesets/protect-release.json",
+    ".github/rulesets/protect-tags.json",
     ".github/scripts/setup-environments.sh",
     ".github/workflows/acceptance.yml",
     ".github/workflows/autonomous-pipeline.yml",
