@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "docs_overlay_version": "0.32.2",
-  "file_count": 2137,
+  "file_count": 2135,
   "files": [
     ".codex/instructions.md",
     ".gitattributes",
@@ -63,8 +63,7 @@
     "helpers/noemaforge-stop",
     "helpers/noemaforge-toolproxy-diag",
     "helpers/noemaforge-vault-mount-ro",
-    "install_noemaforge_0.32.1_mvp.sh",
-    "install_noemaforge_0.32.2_mvp.sh",
+    "install_noemaforge_mvp.sh",
     "lib/noemaforge-common.sh",
     "noemaforge/B_backlog.yaml",
     "noemaforge/VERSION",
@@ -2138,8 +2137,7 @@
     "sense/edge/mqtt_adapter.py",
     "sense/edge/serial_adapter.py",
     "setup.sh",
-    "uninstall_noemaforge_0.32.1_mvp.sh",
-    "uninstall_noemaforge_0.32.2_mvp.sh"
+    "uninstall_noemaforge_mvp.sh"
   ],
   "generated_at": "2026-06-02T18:40:40Z",
   "kind": "ReleaseManifest",

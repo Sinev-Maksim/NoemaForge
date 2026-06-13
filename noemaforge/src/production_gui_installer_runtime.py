@@ -169,7 +169,7 @@ def analyze_installer_surface(payload: Dict[str, Any], *, project_root: Path | s
     for token in _as_string_list(policy.get("required_cli_tokens")):
         if token not in cli_text:
             failures.append(f"cli_token_missing:{token}")
-    if "exec \"$PKG_DIR/install_noemaforge_0.32.1_mvp.sh\"" not in setup_text:
+    if "exec \"$PKG_DIR/install_noemaforge_mvp.sh\"" not in setup_text:
         failures.append("setup_does_not_delegate_to_current_installer")
     if re.search(r"systemctl\s+enable\s+noemaforge-autostart-gui\.service", installer_text):
         failures.append("installer_enables_direct_gui_service")

@@ -14,7 +14,7 @@
     "required_pipeline_ref": "pipeline:firstboot-model-selection:0.32.1",
     "required_scripts": {
       "setup": "setup.sh",
-      "installer": "install_noemaforge_0.32.1_mvp.sh",
+      "installer": "install_noemaforge_mvp.sh",
       "cli": "noemaforge/bin/noemaforge"
     },
     "required_gui_assets": [
@@ -88,7 +88,7 @@
   },
   "refs": [
     "setup.sh",
-    "install_noemaforge_0.32.1_mvp.sh",
+    "install_noemaforge_mvp.sh",
     "noemaforge/bin/noemaforge",
     "noemaforge/configs/production-gui-installer-policy.json",
     "noemaforge/contracts/production_gui_installer.schema.json",
