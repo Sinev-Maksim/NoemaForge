@@ -11,8 +11,14 @@ and which gates it must pass. Maintained page; the workflows under
   per complete feature from `claude/*`/`codex/*` branches.
 - Review is shared by Codex, CodeRabbit and (when enabled repo-side) Copilot;
   PRs to non-default branches request CodeRabbit explicitly
-  (`@coderabbitai review`). Actionable review comments are fixed before
-  merge; recurring nits are folded into the canonical TODO.
+  (`@coderabbitai review`).
+- **Review-response gate (mandatory before merge).** Every actionable review
+  comment is resolved, not just the verdict: Codex blocking issues are fixed and
+  its `## Optimizations` are applied or TODO-logged; **every CodeRabbit inline
+  comment** (fetched with `gh api repos/<repo>/pulls/<n>/comments`, not only the
+  summary) gets a fix or an explicit reply explaining why it is declined. A PR is
+  not merge-ready while an unaddressed actionable comment exists; recurring nits
+  are folded into the canonical TODO.
 - The `## Optimizations` section of every Codex review is handled before the
   PR merges: each suggestion is applied on the branch or recorded in the
   canonical TODO with its `Codex #PR` tag (owner directive 2026-06-11).

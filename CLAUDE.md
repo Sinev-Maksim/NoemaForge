@@ -26,7 +26,17 @@
    - Targeted pytest for touched areas; gates in a **pristine worktree** (`git worktree add`): `ci/wiki_check.py`, `docs_hygiene_runtime.py`, pytest.
 4. Commit in small logical chunks; end commit messages with the Claude co-author line.
 5. Push, open PR to `release/0.33.0-dev` with label `codex-review`, post `@coderabbitai review`.
-6. Process review verdicts: fix Codex/CodeRabbit blockers; apply or TODO-log every `## Optimizations` item **before merge**; count review-fix rounds in stats.
+6. **Review-response gate (mandatory before merge).** Every actionable review
+   comment MUST be resolved, not just the verdict line:
+   - **Codex** `## Blocking Issues` → fix; `## Optimizations` → apply or TODO-log.
+   - **CodeRabbit** — go through EVERY inline comment (the `⚠️ Potential issue`
+     / `🛠️ Refactor` / `🧹 Nitpick` items, fetched via
+     `gh api repos/<repo>/pulls/<n>/comments`), not only the summary. Each one
+     gets either a fix (commit) **or** a reply explaining why it's declined
+     (false positive / conflicts with a design constraint). Never leave an
+     actionable CodeRabbit comment silent.
+   - Re-request review after pushing fixes; count review-fix rounds in stats.
+   A PR is not merge-ready while an unaddressed actionable review comment exists.
 7. The human merges. After base advances, re-sweep open branches if CI asks for it.
 
 # Evidence lifecycle (A1 — IMPORTANT, replaces the old regen ritual)
