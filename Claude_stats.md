@@ -73,3 +73,4 @@ and orchestrator-token usage per S/M task to drop roughly 3–5×. "Review fixes
 counts post-publication reviewer findings that required code changes (Codex
 FAIL on #82 is excluded — the finding was a pre-existing tree violation, fixed
 in #85).
+| 2026-06-11 | A4 version-agnostic installer (#96) | M | Sonnet 4.6 -> Fable takeover | ~1h stall + 35m | ~45k (Fable) | 2 | agent stalled after a clean draft; escalation; resweep + Codex FAIL fix (dynamic version test) |
