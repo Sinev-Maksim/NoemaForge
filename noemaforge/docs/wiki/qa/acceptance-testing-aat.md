@@ -14,14 +14,19 @@ back to bytes. The canonical spec is
 
 | Case | Proves |
 |---|---|
-| `checksum_validation` | release MANIFEST/SHA256SUMS are internally consistent |
 | `telemetry_privacy` | privacy filter strips planted secrets/paths from stored artifacts |
 | `capability_tokens` | minted ToolProxy token verifies; revoked/expired/tampered are rejected |
 | `toolproxy_isolation` | gateway is unix-socket-only; exec allowlist bounded, deny-by-default |
-| `signed_manifest_verification` | release provenance policy mandates signatures; subject records well-formed |
 | `contract_epoch_immutability` | canonical epoch hash is stable without an explicit revision |
 
 plus best-effort `install_dry_run`.
+
+**Release tier.** `checksum_validation` (MANIFEST/SHA256SUMS internally
+consistent) and `signed_manifest_verification` (provenance policy mandates
+signatures; subject records well-formed) bind the **release evidence**, which
+is generated only at pre-release (owner directive 2026-06-14). They report
+`skip` on dev/PR trees and run on release trees where `publish-evidence.yml`
+has generated the evidence.
 
 **Nightly/security tier (shipped).** OpenSSF Scorecard
 (`.github/workflows/scorecard.yml`) publishes supply-chain posture nightly.

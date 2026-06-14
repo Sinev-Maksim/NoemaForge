@@ -1,14 +1,4 @@
-# Generated release evidence (decision A1): these files are produced by
-# ci/regen_evidence.py and verified/refreshed in CI, so a textual merge of
-# their contents is never meaningful. The built-in `ours` merge driver keeps
-# the current branch's copy on merge — no manual checksum conflicts — and the
-# premerge regen-then-verify gate plus evidence-refresh.yml recompute the
-# correct content for the merged tree anyway.
-MANIFEST.json merge=ours
-MANIFEST.json.sha256 merge=ours
-MANIFEST.sha256 merge=ours
-SHA256SUMS merge=ours
-SHA256SUMS.sha256 merge=ours
-noemaforge/checksums/SHA256SUMS merge=ours
-noemaforge/docs/MANIFEST.json merge=ours
-noemaforge/docs/MANIFEST.json.sha256 merge=ours
+# Release evidence (MANIFEST.json / SHA256SUMS and sidecars) is no longer
+# tracked: it is generated only at pre-release by publish-evidence.yml and is
+# gitignored on dev/release branches (owner directive 2026-06-14). There is
+# therefore nothing to merge, and the previous `merge=ours` entries are gone.

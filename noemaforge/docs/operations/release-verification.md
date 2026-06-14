@@ -3,19 +3,24 @@
 How to verify that a NoemaForge release is what it claims to be. Trust comes from artifacts, not
 promises.
 
-## 0.32.2 (current — git-index based)
+## Current — pre-release, working-tree based
 
-The premerge **manifest/checksum evidence gate** verifies the file set + content hashes against the
-committed `SHA256SUMS` / `MANIFEST.json` on every PR. To run it locally on a clean checkout:
+The release evidence — `MANIFEST.json` / `noemaforge/docs/MANIFEST.json` (active-file manifests)
+and `SHA256SUMS` / `.sha256` sidecars (content hashes) — is **generated at pre-release only**
+(`publish-evidence.yml`); it is not tracked, and there is no premerge evidence gate (owner directive
+2026-06-14). To generate and verify it locally on a clean checkout:
 
 ```bash
+python ci/regen_evidence.py
 python noemaforge/src/manifest_checksum_exclusion_runtime.py \
-  --project-root . --summary --hash-source git-index
+  --project-root . --summary --hash-source working-tree
 # ok=true with 0 hash_mismatches = release evidence is consistent
 ```
 
-A failure here is evidence-consistency (the checksums need regeneration after a file change), not a
-code defect — the gate now says so explicitly with a job-summary explanation.
+`regen_evidence.py` writes the evidence from the working tree, and the verifier hashes the same
+working-tree files, so the two are consistent by construction. A failure means the verification
+itself is broken (publish-evidence fails the workflow rather than publishing it) — never a stale
+committed checksum, since the evidence is regenerated every run.
 
 ## 0.33.0 target: signed release-manifest contract
 
