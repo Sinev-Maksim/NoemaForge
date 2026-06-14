@@ -1,0 +1,109 @@
+﻿name: Codex review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review:
+    name: Run Codex review
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@codex review') &&
+      contains(fromJson('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+    environment: codex-review
+
+    steps:
+      - name: Resolve PR metadata
+        id: meta
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.issue.number,
+            });
+
+            core.setOutput("pr_number", String(pr.data.number));
+            core.setOutput("base_ref", pr.data.base.ref);
+            core.setOutput("head_sha", pr.data.head.sha);
+
+      - name: Checkout PR merge ref
+        uses: actions/checkout@v5
+        with:
+          ref: refs/pull/${{ steps.meta.outputs.pr_number }}/merge
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch base branch
+        env:
+          BASE_REF: ${{ steps.meta.outputs.base_ref }}
+        run: |
+          git fetch --no-tags origin "$BASE_REF"
+
+      - name: Guard review-control surfaces
+        id: guard
+        env:
+          BASE_REF: ${{ steps.meta.outputs.base_ref }}
+        run: |
+          changed="$(git diff --name-only "origin/$BASE_REF"...HEAD)"
+          echo "$changed"
+
+          if echo "$changed" | grep -Eq '^(AGENTS\.md|CLAUDE\.md|\.codex/|\.github/workflows/|\.github/prompts/)'; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Codex
+        if: steps.guard.outputs.skip != 'true'
+        id: codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/prompts/codex-review.md
+          sandbox: read-only
+          codex-args: >-
+            ["--output-last-message","codex_review.md"]
+
+      - name: Write manual-review notice
+        if: steps.guard.outputs.skip == 'true'
+        run: |
+          cat > codex_review.md <<'EOF'
+          Automated Codex review skipped.
+
+          Reason: this PR modifies review-control or CI policy files:
+          AGENTS.md, CLAUDE.md, .codex/**, .github/workflows/**, or .github/prompts/**.
+
+          Human maintainer review is required before relying on automated review.
+          EOF
+
+      - name: Post review result
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require("fs");
+            const path = "codex_review.md";
+
+            let body = "Codex review completed without a final message.";
+            if (fs.existsSync(path)) {
+              body = fs.readFileSync(path, "utf8").trim() || body;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: Number("${{ steps.meta.outputs.pr_number }}"),
+              body,
+            });
