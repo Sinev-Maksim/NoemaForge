@@ -5,10 +5,13 @@ These tests assert the integrity tier and the self-describing nature of the resu
 bundle. They are intentionally thin: the heavy lifting lives in
 ``ci/acceptance_runner.py`` so the same logic runs both interactively and in CI.
 
-Note: ``test_checksum_verification_passes`` and the bundle test invoke the release
-verifier with ``--hash-source git-index``, which enumerates the working tree. Run
-them against a clean checkout (CI, or a ``git worktree``); a development tree polluted
-with untracked artifacts will report extra files and fail by design.
+Note: ``test_manifest_files_exist`` and ``test_checksum_verification_passes`` are
+release-tier. The release evidence is generated (untracked) at pre-release only
+(``publish-evidence.yml``), so these tests skip on dev/PR trees where it is absent
+and run on a release tree -- or a clean ``git worktree`` after
+``python ci/regen_evidence.py``. The verifier is invoked with
+``--hash-source working-tree`` to match ``publish-evidence.yml`` and
+``ci/acceptance_runner.py``.
 """
 from __future__ import annotations
 
