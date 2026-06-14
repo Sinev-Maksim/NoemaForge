@@ -3,7 +3,7 @@
 ## Package
 
 - Package: NoemaForge
-- Version: `0.32.1`
+- Version: `0.32.2`
 - Documentation consolidation: complete
 - Markdown policy: enforced
 

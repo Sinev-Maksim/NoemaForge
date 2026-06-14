@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: sense/edge/metrics_schema.py
 Zone: prelaunch/sense
-Version: 0.32.1
+Version: 0.32.2
 Created: 2026-05-19
 Modified: 2026-05-19
 Purpose: Normalize edge sensor and system metrics into one explicit trust schema.

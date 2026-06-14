@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: systemd/noemaforge-autostart-wogui.service
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.32.2
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Define a systemd unit used by NoemaForge runtime or recovery.
