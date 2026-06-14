@@ -436,9 +436,10 @@ def case_signed_manifest_verification(results: Path) -> Dict[str, Any]:
             isinstance(rec.get("sha256"), str) and len(rec.get("sha256", "")) == 64
             and rec.get("bytes", 0) > 0 and rec.get("path") == "MANIFEST.json"
         )
-        # On an LF checkout the working-tree subject hash equals the published digest;
-        # recorded as evidence (not gated) because a CRLF checkout legitimately differs in
-        # raw bytes — canonical (git-index) hash equality is covered by checksum_validation.
+        # subject_match compares the working-tree hash of MANIFEST.json against its
+        # .sha256 sidecar; recorded as evidence (not gated). The evidence is generated on
+        # this same checkout, so the authoritative file-hash equality is covered by
+        # checksum_validation (also working-tree).
         subject_match = record_well_formed and rec.get("sha256") == recorded
         detail = {
             "signing_mandated": signing_mandated,
