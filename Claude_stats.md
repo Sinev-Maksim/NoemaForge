@@ -74,3 +74,4 @@ counts post-publication reviewer findings that required code changes (Codex
 FAIL on #82 is excluded — the finding was a pre-existing tree violation, fixed
 in #85).
 | 2026-06-11 | A4 version-agnostic installer (#96) | M | Sonnet 4.6 -> Fable takeover | ~1h stall + 35m | ~45k (Fable) | 2 | agent stalled after a clean draft; escalation; resweep + Codex FAIL fix (dynamic version test) |
+| 2026-06-14 | #100 evidence pre-release-only + working-tree release-gen | L | Fable 5 | ~2h | ~110k | 1 | owner directive: untrack evidence, no dev gate; Codex FAIL caught broken release-gen path (git-index assumed committed files) -> rewrote regen to working-tree + bootstrap + templates; clean-worktree verified ok=true |
