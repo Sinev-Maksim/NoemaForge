@@ -26,20 +26,21 @@
    - Targeted pytest for touched areas; gates in a **pristine worktree** (`git worktree add`): `ci/wiki_check.py`, `docs_hygiene_runtime.py`, pytest.
 4. Commit in small logical chunks; end commit messages with the Claude co-author line.
 5. Push, open PR to `release/0.33.0-dev` with label `codex-review`, post `@coderabbitai review`.
-6. Process review verdicts: fix Codex/CodeRabbit blockers; apply or TODO-log every `## Optimizations` item **before merge**; count review-fix rounds in stats.
+6. **Respond to EVERY review comment before merge — mandatory, not optional** (owner directive 2026-06-13): each Codex finding AND each CodeRabbit inline comment (fetched via `gh api repos/.../pulls/<n>/comments`, not just the summary) must be either fixed on the branch or answered with a reasoned reply (why it's a non-issue / deferred to TODO with a tag). A PR is not merge-ready while an unaddressed actionable comment remains. Apply or TODO-log every `## Optimizations` item too; count review-fix rounds in stats.
 7. The human merges. After base advances, re-sweep open branches if CI asks for it.
 
-# Evidence lifecycle (A1 — IMPORTANT, replaces the old regen ritual)
+# Evidence lifecycle (PRE-RELEASE ONLY — IMPORTANT)
 
-- **Do NOT regenerate or commit MANIFEST/SHA256SUMS on task branches.** The premerge gate and acceptance workflow run `ci/regen_evidence.py` themselves (regen-then-verify); `evidence-refresh.yml` auto-commits refreshed evidence on `release/**` after merges; `.gitattributes` (`merge=ours`) keeps merges conflict-free on those files.
-- Release archives/tags still carry exact committed evidence — produced by the refresh workflow, not by hand.
+- **Release evidence is a pre-release artifact, never a dev concern** (owner directive 2026-06-14). `MANIFEST.json`, `SHA256SUMS` and their sidecars are **not tracked** (gitignored), **not generated**, **not checked** and **not merged** on dev/PR/release branches. There is no premerge evidence gate and no auto-refresh workflow.
+- Evidence is generated and verified **only at pre-release** by `publish-evidence.yml` (tag `v*` / dispatch): it runs `ci/regen_evidence.py`, verifies with `manifest_checksum_exclusion_runtime.py`, and assembles the signed release bundle. The AAT `checksum_validation` and `signed_manifest_verification` cases are release-tier (report `skip` on dev trees, run on release trees).
+- **Never run `ci/regen_evidence.py` or commit evidence on a task branch.** If a diff shows committed evidence files, remove them.
 
 # CI surface
 
-- `premerge-quality.yml` — py_compile, versions vs SoT, JSON/YAML, no caches, bash -n, evidence regen-then-verify, wiki integrity (`ci/wiki_check.py`), docs hygiene (step 11).
-- `acceptance.yml` — artifact-driven AAT suite (regen step first).
+- `premerge-quality.yml` — py_compile, versions vs SoT, JSON/YAML, no caches, bash -n, wiki integrity (`ci/wiki_check.py`), docs hygiene. NO evidence gate (pre-release only).
+- `acceptance.yml` — artifact-driven AAT suite; checksum/signed-manifest cases are release-tier (skip on PR).
 - `autonomous-pipeline.yml` — validate-claude-push + Codex CLI review on the self-hosted Windows runner (enforced read-only sandbox; pre-flight digest supplies validation results; English-only output; evidence-stripped token-lean diff).
-- `evidence-refresh.yml`, `wiki-sync.yml` (auto-publish wiki to GitHub Wiki on main), `p0-status-ledger.yml`, `scorecard.yml` (nightly).
+- `publish-evidence.yml` (tag/dispatch — generates+verifies+publishes evidence), `wiki-sync.yml` (auto-publish wiki to GitHub Wiki on main), `p0-status-ledger.yml`, `scorecard.yml` (nightly).
 
 # Docs and wiki
 

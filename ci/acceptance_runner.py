@@ -115,6 +115,23 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
     detail: Dict[str, Any] = {}
     ok = True
 
+    # Release-tier: the generated evidence (MANIFEST/SHA256SUMS) is not tracked
+    # or generated on dev/PR trees (owner directive 2026-06-14) — it is produced
+    # only at pre-release. When it is absent, report a skip instead of a failure
+    # so this case gates releases without blocking day-to-day PRs.
+    if not (REPO / "MANIFEST.json").exists() or not (REPO / "SHA256SUMS").exists():
+        tier.mkdir(parents=True, exist_ok=True)
+        _write_json(tier / "checksum_validation.json", {
+            "status": "skip",
+            "reason": "release-tier: evidence is generated at pre-release only",
+        })
+        return {
+            "name": "checksum_validation",
+            "status": "skip",
+            "tier": "10-integrity",
+            "detail": {"reason": "release-tier evidence absent on this tree"},
+        }
+
     # 1. canonical blob hashes (git-index), same source as SHA256SUMS.
     try:
         index = _git_index_hashes()
@@ -383,6 +400,21 @@ def case_signed_manifest_verification(results: Path) -> Dict[str, Any]:
     tier = results / "70-release"
     detail: Dict[str, Any] = {}
     ok = True
+
+    # Release-tier: the manifest this case binds is generated only at pre-release
+    # (owner directive 2026-06-14). Skip when absent so dev/PR runs stay green.
+    if not (REPO / "MANIFEST.json").exists():
+        tier.mkdir(parents=True, exist_ok=True)
+        _write_json(tier / "provenance-verify.json", {
+            "status": "skip",
+            "reason": "release-tier: evidence is generated at pre-release only",
+        })
+        return {
+            "name": "signed_manifest_verification",
+            "status": "skip",
+            "tier": "70-release",
+            "detail": {"reason": "release-tier evidence absent on this tree"},
+        }
     try:
         policy = json.loads((REPO / "noemaforge" / "configs" / "release-provenance-policy.json").read_text(encoding="utf-8"))
         pol = policy.get("policy", {}) or {}

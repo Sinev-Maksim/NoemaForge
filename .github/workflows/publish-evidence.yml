@@ -37,6 +37,12 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Evidence is generated HERE (pre-release), not tracked on dev branches
+      # (owner directive 2026-06-14). Produce the manifests/checksums from the
+      # release tree first, then assemble + verify + attest them into the bundle.
+      - name: Generate release evidence
+        run: python ci/regen_evidence.py
+
       - name: Assemble acceptance-evidence bundle
         run: |
           set -uo pipefail

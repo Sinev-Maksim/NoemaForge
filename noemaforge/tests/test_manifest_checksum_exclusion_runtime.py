@@ -30,6 +30,10 @@ import production_ai_contracts as pac
 
 
 class ManifestChecksumExclusionRuntimeTests(unittest.TestCase):
+    @unittest.skipUnless(
+        (PROJECT_ROOT / "MANIFEST.json").exists() and (PROJECT_ROOT / "SHA256SUMS").exists(),
+        "release-tier: workspace evidence is generated at pre-release only",
+    )
     def test_workspace_manifests_and_checksums_validate(self) -> None:
         policy = mcer.load_policy(ROOT / "configs" / "manifest-checksum-exclusion-policy.json")
         report = mcer.validate_manifest_checksum_exclusion_policy(
