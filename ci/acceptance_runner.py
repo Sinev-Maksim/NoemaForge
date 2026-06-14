@@ -132,15 +132,9 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
             "detail": {"reason": "release-tier evidence absent on this tree"},
         }
 
-    # 1. canonical blob hashes (git-index), same source as SHA256SUMS.
-    try:
-        index = _git_index_hashes()
-    except Exception as exc:  # noqa: BLE001
-        index = {}
-        detail["index_error"] = str(exc)
-        ok = False
-
-    # 2. each .sha256 sidecar must match the artifact it NAMES. The target is parsed
+    # 2. each .sha256 sidecar must match the artifact it NAMES, hashed from the
+    #    working tree (the same source as SHA256SUMS — evidence is generated on
+    #    disk at pre-release, not committed). The target is parsed
     #    from the sidecar body ("<hash>  <path>") rather than a hardcoded mapping, so the
     #    check always follows the declared target and can never verify the wrong artifact.
     #    (The top-level SHA256SUMS itself is covered by the authoritative verifier in step 3.)
@@ -172,11 +166,12 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
                 except ValueError:
                     target_rel = named
                 entry["target"] = target_rel
-                if target_rel not in index:
-                    entry["status"] = "target_untracked"
+                target_path = REPO / target_rel
+                if not target_path.is_file():
+                    entry["status"] = "target_missing"
                     ok = False
                 else:
-                    actual = index[target_rel]
+                    actual = _sha256_file(target_path)
                     entry.update(recorded=recorded, actual=actual)
                     entry["status"] = "ok" if recorded == actual else "mismatch"
                     ok = ok and recorded == actual
@@ -186,7 +181,7 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
     # 3. authoritative manifest/checksum verifier (the same gate CI uses).
     try:
         proc = subprocess.run(
-            [sys.executable, str(VERIFIER), "--summary", "--hash-source", "git-index"],
+            [sys.executable, str(VERIFIER), "--summary", "--hash-source", "working-tree"],
             cwd=str(REPO),
             capture_output=True,
             text=True,

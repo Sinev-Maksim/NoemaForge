@@ -39,7 +39,8 @@ and which gates it must pass. Maintained page; the workflows under
 The release contract is artifact-driven: `MANIFEST.json` (project) and
 `noemaforge/docs/MANIFEST.json` (package) enumerate active files;
 `SHA256SUMS` + sidecar `.sha256` files pin their hashes;
-`manifest_checksum_exclusion_runtime.py --summary --hash-source git-index`
+`ci/regen_evidence.py` generates them from the working tree and
+`manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree`
 reports `ok=true` over the release tree.
 
 Evidence lifecycle (owner directive 2026-06-14):

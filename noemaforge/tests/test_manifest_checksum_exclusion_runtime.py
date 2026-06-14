@@ -40,7 +40,7 @@ class ManifestChecksumExclusionRuntimeTests(unittest.TestCase):
             policy,
             project_root=PROJECT_ROOT,
             package_root=ROOT,
-            hash_source="git-index",
+            hash_source="working-tree",
         )
 
         self.assertTrue(report["ok"], report["failures"][:10])

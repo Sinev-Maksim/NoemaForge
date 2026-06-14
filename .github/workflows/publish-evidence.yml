@@ -56,8 +56,12 @@ jobs:
           [ -f noemaforge/checksums/SHA256SUMS ] && cp noemaforge/checksums/SHA256SUMS "$out/package-SHA256SUMS" || true
 
           # 2. Machine-readable verification report (the manifest/checksum evidence gate).
-          python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index \
-            > "$out/verification-report.json" 2>"$out/verification-report.err" || true
+          # This is the SOLE release-evidence verification point, so it must FAIL the
+          # workflow on a broken/missing bundle — never publish unverified evidence.
+          python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree \
+            > "$out/verification-report.json" 2>"$out/verification-report.err"
+          python -c "import json,sys; d=json.load(open('$out/verification-report.json')); sys.exit(0 if d.get('ok') else 1)" \
+            || { echo '::error title=Release evidence verification failed::see verification-report.json'; cat "$out/verification-report.json"; exit 1; }
 
           # 3. Capability catalog (declared contracts), if the generator is present on this ref.
           if [ -f noemaforge/src/noema_catalog.py ]; then
@@ -77,7 +81,7 @@ jobs:
             echo "Contents:"
             ( cd "$out" && ls -1 )
             echo ""
-            echo "Verify locally: python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index  (expect ok=true)"
+            echo "Verify locally: python ci/regen_evidence.py && python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree  (expect ok=true)"
           } > "$out/INDEX.md"
 
           echo "=== bundle ==="; ls -la "$out"
