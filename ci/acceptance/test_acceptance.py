@@ -71,8 +71,10 @@ def test_epoch_artifact_is_stable(tmp_path: pathlib.Path) -> None:
 
 @_release_tier
 def test_checksum_verification_passes() -> None:
+    # Evidence is generated (untracked) at pre-release, so it is hashed from the
+    # working tree, matching publish-evidence.yml and acceptance_runner.
     proc = subprocess.run(
-        [sys.executable, str(VERIFIER), "--summary", "--hash-source", "git-index"],
+        [sys.executable, str(VERIFIER), "--summary", "--hash-source", "working-tree"],
         cwd=str(REPO),
         text=True,
         capture_output=True,

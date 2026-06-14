@@ -18,10 +18,12 @@ is consistent by construction:
 
 These files are NOT tracked (gitignored) and are produced ONLY at pre-release by
 `publish-evidence.yml` (owner directive 2026-06-14); they are not committed,
-checked or merged on dev/PR/release branches. The stable manifest metadata lives
-in `ci/evidence-templates/*.template.json` (the generator fills file_count, the
-file list and generated_at); the volatile per-file hashes are computed here from
-the working-tree contents.
+checked or merged on dev/PR/release branches. The schema-only manifest metadata
+(apiVersion/kind/notes) lives in `ci/evidence-templates/*.template.json`; the
+version-bearing fields (runtime_base_version/docs_overlay_version/package_name/
+version) are derived from the release SoT (`release.json`) every run so they
+never drift; file_count/files/generated_at and the volatile per-file hashes are
+computed here from the working-tree contents.
 
 Bootstrap: the manifests/checksums are self-referential (each lists the others),
 so the eight files are first created as empty placeholders — so the active-file
@@ -105,14 +107,32 @@ def _active_sets() -> tuple[list[str], list[str]]:
     return proj_active, pkg_active
 
 
-def _write_manifest(rel: str, files: list[str], template_rel: str) -> None:
-    path = REPO / rel
-    if path.exists() and path.read_text(encoding="utf-8").strip():
-        obj = json.loads(path.read_text(encoding="utf-8-sig"))
-    else:
-        # Clean pre-release tree: evidence is untracked, so the manifest does not
-        # exist yet — seed the stable metadata from the committed template.
-        obj = json.loads((TEMPLATES / template_rel).read_text(encoding="utf-8-sig"))
+def _release_metadata() -> dict[str, str]:
+    """Version-bearing manifest fields, derived from the release SoT (release.json)
+    every run so the manifests never drift from the release surface. release.json
+    carries the *promoted release baseline* (the version-QA gate asserts manifest
+    metadata == release.json), which is deliberately distinct from the runtime
+    RUNTIME_VERSION until the version promotion completes across all surfaces."""
+    rj = json.loads((REPO / "release.json").read_text(encoding="utf-8-sig"))
+    version = str(rj["version"])
+    package = str(rj.get("package") or f"noemaforge_{version}_prelaunch")
+    return {
+        "runtime_base_version": version,
+        "docs_overlay_version": version,
+        "package_name": package,
+        "version": version,
+    }
+
+
+def _write_manifest(rel: str, files: list[str], template_rel: str,
+                    version_fields: dict[str, str]) -> None:
+    # Evidence is untracked, so the manifest never pre-exists on a clean release
+    # tree — seed the schema-only metadata (apiVersion/kind/notes) from the
+    # committed template, then inject the version fields derived from release.json.
+    obj = json.loads((TEMPLATES / template_rel).read_text(encoding="utf-8-sig"))
+    for key in obj:
+        if key in version_fields:
+            obj[key] = version_fields[key]
     obj["generated_at"] = _now_iso()
     obj["file_count"] = len(files)
     obj["files"] = files
@@ -122,10 +142,12 @@ def _write_manifest(rel: str, files: list[str], template_rel: str) -> None:
 def regenerate() -> tuple[int, int]:
     _ensure_placeholders()
     proj_active, pkg_active = _active_sets()
+    version_fields = _release_metadata()
 
-    # 1. manifests — depend only on the active SET (file names), so stable.
-    _write_manifest("MANIFEST.json", proj_active, "MANIFEST.template.json")
-    _write_manifest("noemaforge/docs/MANIFEST.json", pkg_active, "docs-MANIFEST.template.json")
+    # 1. manifests — active SET (file names) + version fields from release.json.
+    _write_manifest("MANIFEST.json", proj_active, "MANIFEST.template.json", version_fields)
+    _write_manifest("noemaforge/docs/MANIFEST.json", pkg_active,
+                    "docs-MANIFEST.template.json", version_fields)
 
     # 2. manifest hash sidecars — hash the (now final) manifests from disk.
     mh = _sha256_file(REPO / "MANIFEST.json")

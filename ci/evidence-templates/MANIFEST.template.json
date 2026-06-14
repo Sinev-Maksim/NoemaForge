@@ -1,11 +1,11 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "kind": "ReleaseManifest",
-  "runtime_base_version": "0.32.2",
-  "docs_overlay_version": "0.32.2",
-  "package_name": "noemaforge_0.32.2_prelaunch",
+  "runtime_base_version": "",
+  "docs_overlay_version": "",
+  "package_name": "",
   "generated_at": "",
   "notes": [
-    "Release evidence is generated at pre-release only (publish-evidence.yml); this template carries the stable metadata while file_count/files/generated_at are filled by ci/regen_evidence.py."
+    "Schema-only template: ci/regen_evidence.py fills the version-bearing fields (runtime_base_version/docs_overlay_version/package_name) from release.json and file_count/files/generated_at from the working tree, at pre-release only (publish-evidence.yml)."
   ]
 }
