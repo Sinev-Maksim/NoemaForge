@@ -72,7 +72,7 @@ REQUIRED_DOC_REFS = {
     "noemaforge/docs/reference/PROJECT_CONTEXT.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/history/CHANGELOG.md",
-    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
     "noemaforge/docs/wiki/first-start/model-selection-modes-0.32.1.md",
 }
 

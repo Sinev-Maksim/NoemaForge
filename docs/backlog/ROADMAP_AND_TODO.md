@@ -2464,7 +2464,7 @@ MVP recommendation:
 docker-compose + MQTT + gateway inference + manifest + rules + health metrics
 ```
 
-See: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`.
+See: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md`.
 
 
 #### Future architecture package — Kernel / NoemaShell / git_exchange
@@ -2744,7 +2744,7 @@ Status: candidate backlog pack; experimental only; no hard dependency for `0.32.
 - [x] Keep eKuiper as preferred local stream/rule engine.
 - [x] Keep Mender/RAUC as OTA reference implementations.
 
-Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`.
+Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md`.
 #### 0.32.1 follow-up
 
 - Run NoemaForge first-start candidate review on real Vault/ModelStore.
@@ -2953,7 +2953,7 @@ Status: candidate backlog pack; experimental only; no hard dependency for `0.32.
 - [x] Keep eKuiper as preferred local stream/rule engine.
 - [x] Keep Mender/RAUC as OTA reference implementations.
 
-Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`.
+Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md`.
 ### NoemaForge 0.31.0 update
 
 This repository snapshot is current for NoemaForge `0.31.0`: GUI recovery/help compatibility, code-dev QA sub-team, and user test-case handoff are included.
@@ -3399,7 +3399,7 @@ Status: candidate backlog pack; experimental only; no hard dependency for `0.32.
 - [x] Keep eKuiper as preferred local stream/rule engine.
 - [x] Keep Mender/RAUC as OTA reference implementations.
 
-Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`.
+Docs: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md`.
 ### NoemaForge 0.31.01 update
 
 This repository snapshot is current for NoemaForge `0.31.01`: GUI recovery/help compatibility, code-dev QA sub-team, and user test-case handoff are included.

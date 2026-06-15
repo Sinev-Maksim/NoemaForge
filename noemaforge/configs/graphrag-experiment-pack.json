@@ -50,7 +50,7 @@
         "id": "source:production-rag-doc",
         "type": "source",
         "title": "Production RAG grounding and docs index",
-        "source_ref": "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
+        "source_ref": "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md",
         "terms": ["classic rag", "graphrag", "evaluationgate", "baseline"]
       },
       {
@@ -107,7 +107,7 @@
       "query": "When can GraphRAG experiments be used in NoemaForge?",
       "seed_node_ids": ["concept:graphrag"],
       "expected_source_refs": [
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md",
         "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"
       ],
       "expected_answer_terms": ["graphrag", "classic rag", "evaluationgate"],
@@ -121,7 +121,7 @@
       "query": "Which baseline must GraphRAG preserve before promotion?",
       "seed_node_ids": ["concept:classic-rag"],
       "expected_source_refs": [
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md",
         "docs/quality/PRODUCTION_AI_PATTERNS_INTEGRATION_0.32.1.md"
       ],
       "expected_answer_terms": ["classic rag", "citations", "groundedness"],
@@ -138,7 +138,7 @@
     "src/graphrag_experiment_runtime.py",
     "src/docs_rag_runtime.py",
     "src/production_ai_contracts.py",
-    "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md",
+    "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md",
     "docs/wiki/architecture/production-ai-lifecycle-registry-trace-evaluation-0.32.1.md"
   ]
 }

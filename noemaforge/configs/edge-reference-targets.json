@@ -39,7 +39,7 @@
       "network_required": true,
       "local_mvp_alternative_ref": "eval-pack:gateway-inference-service-core:0.32.1",
       "refs": [
-        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md"
       ]
     },
     {
@@ -52,7 +52,7 @@
       "network_required": true,
       "local_mvp_alternative_ref": "eval-pack:edge-rules-engine-core:0.32.1",
       "refs": [
-        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
         "noemaforge/configs/edge-rules-engine-policy.json"
       ]
     },
@@ -92,7 +92,7 @@
     "noemaforge/tests/test_edge_reference_targets_runtime.py",
     "noemaforge/tests/test_edge_reference_targets_qa.py",
     "noemaforge/tests/test_edge_reference_targets_performance.py",
-    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
+    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
     "noemaforge/configs/edge-rules-engine-policy.json",
     "noemaforge/configs/gateway-inference-service.json",
     "noemaforge/configs/ota-update-layer.json",

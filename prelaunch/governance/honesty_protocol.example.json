@@ -31,7 +31,7 @@
         "can_proceed_without_evidence": false
       },
       "refs": [
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
       ]
     },
     {
@@ -44,7 +44,7 @@
       "confidence": 0.35,
       "uncertainty_reason": "Freshness-sensitive answer requires research before claiming a fact.",
       "evidence_refs": [
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
       ],
       "error_attribution": {
         "class": "data_missing",
@@ -63,7 +63,7 @@
         "can_proceed_without_evidence": false
       },
       "refs": [
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
       ]
     },
     {
@@ -77,7 +77,7 @@
       "uncertainty_reason": "The error source is known, but the failed validation result is incomplete.",
       "evidence_refs": [
         "prelaunch/governance/concept_frame.admin_architect.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
       ],
       "error_attribution": {
         "class": "tool_error",
@@ -97,7 +97,7 @@
       },
       "refs": [
         "prelaunch/governance/concept_frame.admin_architect.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
       ]
     }
   ],
@@ -119,7 +119,7 @@
         "trace_id": "trace:honesty:classify-freshness",
         "confidence": 0.4,
         "evidence_refs": [
-          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
         ],
         "freshness_required": true
       },
@@ -136,7 +136,7 @@
           "summary": "validator timeout"
         },
         "evidence_refs": [
-          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"
+          "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"
         ]
       },
       "expected_state": "error_attribution",

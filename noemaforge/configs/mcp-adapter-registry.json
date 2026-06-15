@@ -121,7 +121,7 @@
         "contracts/docs_rag_policy.schema.json",
         "contracts/rag_eval_suite.schema.json",
         "src/docs_rag_runtime.py",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
       ]
     }
   ]
