@@ -104,7 +104,7 @@ class HonestyProtocolRuntimeTests(unittest.TestCase):
         self.assertEqual("ask_clarification", unknown["response_template"]["next_action"])
 
         need_research = hpr.classify_honesty_event(
-            {"trace_id": "trace:test:fresh", "confidence": 0.7, "freshness_required": True, "evidence_refs": ["docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md"]},
+            {"trace_id": "trace:test:fresh", "confidence": 0.7, "freshness_required": True, "evidence_refs": ["docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md"]},
             policy,
         )
         self.assertEqual("need_research", need_research["state"])

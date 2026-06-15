@@ -63,7 +63,7 @@ REQUIRED_DOC_REFS = {
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/history/CHANGELOG.md",
     "noemaforge/docs/wiki/operations/recovery-stability-trixie.md",
-    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+    "noemaforge/docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
 }
 
 SRC_DIR = Path(__file__).resolve().parent

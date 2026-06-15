@@ -35,7 +35,7 @@
     "runtime_impact": "none; no hard dependency for first-start/Admin GUI/Dev Team/model-selection/localized HOW2START",
     "status": "candidate backlog pack; experimental only",
     "tracking_id": "NFG-PROP-0.32.1-edge-ml-pack",
-    "wiki": "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md"
+    "wiki": "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md"
   },
   "first_start_emergency_recovery": {
     "fixes": [

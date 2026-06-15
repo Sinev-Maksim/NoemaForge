@@ -532,7 +532,7 @@
         "contracts/rag_eval_suite.schema.json",
         "src/docs_rag_runtime.py",
         "src/production_ai_contracts.py",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
       ],
       "metadata": {
         "domains": [
@@ -1922,7 +1922,7 @@
         "tests/test_edge_reference_targets_runtime.py",
         "tests/test_edge_reference_targets_qa.py",
         "tests/test_edge_reference_targets_performance.py",
-        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
+        "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
         "configs/edge-rules-engine-policy.json",
         "configs/gateway-inference-service.json",
         "configs/ota-update-layer.json",
@@ -2005,7 +2005,7 @@
         "tests/test_concept_frame_qa.py",
         "tests/test_concept_frame_performance.py",
         "prelaunch/governance/concept_frame.admin_architect.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2039,7 +2039,7 @@
         "tests/test_sense_privacy_qa.py",
         "tests/test_sense_privacy_performance.py",
         "prelaunch/governance/sense_privacy.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2073,7 +2073,7 @@
         "tests/test_drive_state_performance.py",
         "prelaunch/governance/drive_state.example.json",
         "prelaunch/governance/sense_privacy.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2107,7 +2107,7 @@
         "tests/test_honesty_protocol_performance.py",
         "prelaunch/governance/honesty_protocol.example.json",
         "prelaunch/governance/concept_frame.admin_architect.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2142,7 +2142,7 @@
         "tests/test_slop_critic_performance.py",
         "prelaunch/governance/slop_critic.example.json",
         "prelaunch/governance/honesty_protocol.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2177,7 +2177,7 @@
         "tests/test_provenance_watermark_performance.py",
         "prelaunch/governance/provenance_watermark.example.json",
         "prelaunch/governance/slop_critic.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2212,7 +2212,7 @@
         "tests/test_research_packet_performance.py",
         "prelaunch/governance/research_packet.example.json",
         "prelaunch/governance/provenance_watermark.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2248,7 +2248,7 @@
         "prelaunch/governance/pipeline_rfc.example.json",
         "prelaunch/governance/research_packet.example.json",
         "prelaunch/governance/provenance_watermark.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -2284,7 +2284,7 @@
         "tests/test_typed_governance_track_performance.py",
         "prelaunch/governance/typed_governance_track.example.json",
         "prelaunch/governance/pipeline_rfc.example.json",
-        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md",
+        "docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md",
         "docs/backlog/ROADMAP_AND_TODO.md"
       ],
       "metadata": {
@@ -4325,7 +4325,7 @@
         "tests/test_target_live_validation_readiness_qa.py",
         "tests/test_target_live_validation_readiness_performance.py",
         "prelaunch/governance/target_live_validation_readiness.example.json",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/README.md",
         "docs/TODO.md",
         "docs/reference/PROJECT_CONTEXT.md",
@@ -4914,7 +4914,7 @@
         "configs/a2a-interop-registry.json",
         "contracts/a2a_interop_registry.schema.json",
         "src/a2a_interop_registry_runtime.py",
-        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.31.21.alpha.md"
       ],
       "metadata": {
         "domains": [
@@ -5034,7 +5034,7 @@
       "refs": [
         "src/docs_rag_runtime.py",
         "configs/docs-rag-policy.json",
-        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.32.1.md"
+        "docs/wiki/knowledge/production-rag-grounding-and-docs-index-0.31.21.alpha.md"
       ],
       "eval_pack_refs": [
         "eval-pack:production-ai-gate-smoke:0.32.1",
@@ -5756,7 +5756,7 @@
         "src/role_tournament.py",
         "src/firstboot_orchestrator.py",
         "src/privileged_gui_job_runner.py",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/wiki/first-start/model-selection-modes-0.32.1.md",
         "docs/README.md",
         "docs/TODO.md",
@@ -5799,7 +5799,7 @@
         "prelaunch/governance/full_composite_ssh_readiness.example.json",
         "configs/full-composite-target-run-readiness-policy.json",
         "src/full_composite_target_run_readiness_runtime.py",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/README.md",
         "docs/TODO.md",
         "docs/reference/PROJECT_CONTEXT.md",
@@ -5843,7 +5843,7 @@
         "configs/full-composite-ssh-readiness-policy.json",
         "src/full_composite_target_run_readiness_runtime.py",
         "src/full_composite_ssh_readiness_runtime.py",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/README.md",
         "docs/TODO.md",
         "docs/reference/PROJECT_CONTEXT.md",
@@ -5883,7 +5883,7 @@
         "configs/nologin-recovery-readiness-policy.json",
         "src/first_start_abort_recovery_runtime.py",
         "src/nologin_recovery_readiness_runtime.py",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/README.md",
         "docs/TODO.md",
         "docs/reference/PROJECT_CONTEXT.md",
@@ -5925,7 +5925,7 @@
         "src/clean_install_share_readiness_runtime.py",
         "src/nologin_recovery_readiness_runtime.py",
         "docs/wiki/operations/recovery-stability-trixie.md",
-        "docs/wiki/first-start/full-composite-real-launch-0.32.1.md",
+        "docs/wiki/first-start/full-composite-real-launch-0.31.13.alpha-patched1.md",
         "docs/README.md",
         "docs/TODO.md",
         "docs/reference/PROJECT_CONTEXT.md",

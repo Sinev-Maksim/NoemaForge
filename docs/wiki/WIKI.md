@@ -89,12 +89,12 @@ New pages:
 
 #### Future / experimental backlog packs
 
-- [Edge / TinyML / OTA roadmap (0.32.1)](edge/edge-tinyml-ota-roadmap-0.32.1.md) — candidate backlog pack for edge inference, signed manifests, rules and OTA.
+- [Edge / TinyML / OTA roadmap (0.32.1)](edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md) — candidate backlog pack for edge inference, signed manifests, rules and OTA.
 
 #### 0.32.1 additions
 
 - Architecture: `docs/wiki/architecture/consolidated-mvp-kernel-roadmap-0.32.1.md` — protected MVP kernel, NoemaShell Lite, RoleFlow, git_exchange, HFBridge, Evolve boundaries.
-- Edge: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md` — candidate Edge/TinyML/OTA backlog pack.
+- Edge: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md` — candidate Edge/TinyML/OTA backlog pack.
 
 
 #### Alpha preparation backlog added in 0.32.1
@@ -104,7 +104,7 @@ New pages:
 - Original source reports are preserved under `docs/source_reports/`.
 
 These are backlog/wiki additions only and do not add runtime hard dependencies.
-- Architecture: `docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.32.1.md` — typed governance, Sense/Privacy, Honesty, critics and Pipeline_RFC roadmap.
+- Architecture: `docs/wiki/architecture/typed-control-plane-sense-critics-rfc-0.31.13.alpha-patched1.md` — typed governance, Sense/Privacy, Honesty, critics and Pipeline_RFC roadmap.
 
 
 #### Alpha additions

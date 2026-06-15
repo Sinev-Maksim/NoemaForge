@@ -562,7 +562,7 @@ sudo jq . /var/lib/noemaforge/bootstrap/model-run-records.json
 ##### Docs / roadmap
 
 - Added `NFG-PROP-0.32.1-edge-ml-pack` as a future-version backlog package.
-- Added Edge/TinyML/OTA Wiki page: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md`.
+- Added Edge/TinyML/OTA Wiki page: `docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md`.
 - Added package summary: `docs/EDGE_TINYML_OTA_BACKLOG_0.32.1.md`.
 - Updated `docs/ROADMAP.md`, top-level `TODO.md`, `docs/TODO.md`, `noemaforge/TODO.md`, `docs/wiki/README.md`, and `context.md`.
 - Kept Edge/TinyML/OTA explicitly experimental and non-blocking for public first-start.

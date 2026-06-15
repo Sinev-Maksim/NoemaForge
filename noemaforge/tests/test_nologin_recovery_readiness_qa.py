@@ -70,7 +70,7 @@ class NologinRecoveryReadinessQATests(unittest.TestCase):
             ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "reference" / "PROJECT_CONTEXT.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.32.1.md",
+            ROOT / "docs" / "wiki" / "first-start" / "full-composite-real-launch-0.31.13.alpha-patched1.md",
         ]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(PACK_ID, text, str(path))

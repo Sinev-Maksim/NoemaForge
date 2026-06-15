@@ -82,7 +82,7 @@
     "noemaforge/src/edge_rules_engine_runtime.py",
     "noemaforge/src/ota_update_layer_runtime.py",
     "noemaforge/src/edge_reference_targets_runtime.py",
-    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.32.1.md",
+    "docs/wiki/edge/edge-tinyml-ota-roadmap-0.31.13.alpha-patched1.md",
     "TODO.md",
     "noemaforge/TODO.md",
     "docs/TODO.md",
