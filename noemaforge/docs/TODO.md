@@ -130,7 +130,12 @@ _Strategic agent-OS maturation track requested 2026-06-16; milestone summary in
 items mature an existing **validation-contract runtime** into a live, enforced
 system (the foundation is noted per item) rather than greenfield work. Each track is
 an XL umbrella decomposed into the L/M slices below; sequence after the 0.33.0–0.33.2
-milestones. Items with no existing anchor are tagged `new`._
+milestones. Items with no existing anchor are tagged `new`. Cross-checked 2026-06-16
+against the "Agentic Orchestration Hardening" proposal — its genuinely-new items (task
+contract, context packet + handoff scoring, role distinctiveness, empty-output=failure,
+artifact relevance, automatic skill extraction) are folded into the tracks below; the
+rest duplicated this roadmap, the Hermes skill track, or existing primitives
+(`production_ai_contracts` gates, `sandbox.py`, member-cell batons)._
 
 ### Agent governance _(XL · fable-orchestrated umbrella)_
 
@@ -139,8 +144,16 @@ milestones. Items with no existing anchor are tagged `new`._
   conversations. _(L · opus — builds on `admin_runtime.py` + the RoleFlow/orchestration_graph backlog in `release.json` consolidated_architecture_backlog)_
 - [ ] **Agent lifecycle states** — `task_created → task_assigned → task_in_progress →
   task_review → task_completed → task_archived`. _(L · opus — formalise on `task_workflow_runtime.py` add/edit/prioritize/block/complete + `task_governance`)_
-- [ ] **Explicit agent handoff protocol** — ownership tracking, reasoning trace,
-  confidence propagation. _(L · opus — `new` protocol; reasoning trace shares the Observability trace layer below)_
+- [ ] **Task contract per request** — convert each user request into a structured
+  contract: goal, owner, expected artifact, success criteria, failure conditions.
+  _(L · opus — formalise on the existing `production_ai_contracts.evaluate_gate` primitive)_
+- [ ] **Explicit agent handoff protocol** — ownership tracking, reasoning trace and
+  confidence propagation, plus a compact **context packet** (goal, constraints,
+  completed work, known failures, next action) instead of passing the full
+  conversation, and **handoff quality scoring** (completeness, relevance, context
+  preservation). _(L · opus — `new` protocol on the member-cell baton model; reasoning trace shares the Observability trace layer below)_
+- [ ] **Role distinctiveness checks** — flag specialist personas producing
+  near-identical outputs or duplicated responsibilities. _(M · sonnet — `new`; directly addresses the UAT indistinct-personas finding U-003/D-009)_
 
 ### Multi-model consensus _(XL · fable-orchestrated umbrella)_
 
@@ -165,15 +178,22 @@ milestones. Items with no existing anchor are tagged `new`._
 - [ ] **Internal GAIA-inspired benchmark.** _(L · opus — new)_
 - [ ] **Internal AgentBench-inspired benchmark.** _(L · opus — new)_
 - [ ] **Regression testing framework** — agent routing, memory retrieval, tool
-  execution, artifact generation. _(L · opus — extend the AAT harness `ci/acceptance_runner.py`)_
+  execution, artifact generation; per-run checks `tests_passed` / `artifact_exists` /
+  `artifact_relevant` / `admin_returned`. _(L · opus — extend the AAT harness `ci/acceptance_runner.py`)_
+- [ ] **Automatic skill extraction** — mine reusable skills from successful, repeated
+  execution traces. _(L · opus — `new`; complements the Hermes skill-import track, which only imports skills)_
 
 ### Artifact-centric workflows _(XL · fable-orchestrated umbrella)_
 
 - [ ] **Every generation pipeline produces artifact outputs** — document, report,
-  spreadsheet, presentation, code archive. _(M · sonnet — wire `pipeline_runtime.py` outputs to artifacts; in-chat cards already exist, U-001/U-005)_
+  spreadsheet, presentation, code archive; an **empty output directory is treated as
+  failed execution** (a meaningful artifact or an explicit failure report, never a
+  silent no-op). _(M · sonnet — wire `pipeline_runtime.py` outputs to artifacts; in-chat cards already exist, U-001/U-005; the failure-report rule extends U-002)_
 - [ ] **Unified artifact registry.** _(L · opus — promote `artifact_registry_table_runtime.py` contract to a live registry)_
 - [ ] **Artifact lineage tracking** — creator, source inputs, generation chain.
   _(L · opus — extend the artifact-registry-table (outputs/reviews/graph patches) + `provenance_record`)_
+- [ ] **Artifact relevance scoring** — validate that generated files answer the
+  original user request. _(M · sonnet — `new`; consumes the judge-model scores)_
 
 ### Sandbox & security _(XL · fable-orchestrated umbrella)_
 
