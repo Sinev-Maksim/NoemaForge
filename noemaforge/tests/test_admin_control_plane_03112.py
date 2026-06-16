@@ -14,12 +14,15 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 === End NoemaForge File Header ===
 """
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON = "/usr/bin/python3"
+# Use the interpreter running the tests so the suite is cross-platform; allow an
+# explicit override. The previous hardcoded "/usr/bin/python3" failed on Windows.
+PYTHON = os.environ.get("NOEMAFORGE_TEST_PYTHON") or sys.executable
 
 
 def run_json(args, env=None):
