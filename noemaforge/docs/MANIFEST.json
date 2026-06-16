@@ -1,6 +1,6 @@
 {
   "apiVersion": "noemaforge.docs/v1",
-  "file_count": 1846,
+  "file_count": 1847,
   "files": [
     "B_backlog.yaml",
     "VERSION",
@@ -1204,6 +1204,7 @@
     "templates/ui-dashboard/app.js",
     "templates/ui-dashboard/index.html",
     "templates/ui-dashboard/style.css",
+    "tests/conftest.py",
     "tests/test_a2a_interop_registry_runtime.py",
     "tests/test_abstention_policy_runtime.py",
     "tests/test_admin_chat_routing.py",

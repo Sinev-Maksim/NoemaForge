@@ -12,6 +12,28 @@ _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
 - [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
+## Broad pytest run-to-completion + failure triage (2026-06-16)
+
+_The dev-host unit suite (`python -m pytest noemaforge/tests`) aborted at collection
+(3 import errors) so no test bodies ran and downstream failures were invisible. Full
+findings: [`../../docs/uat/BROAD-PYTEST-0.32.2-FINDINGS.md`](../../docs/uat/BROAD-PYTEST-0.32.2-FINDINGS.md)._
+
+- [x] **Order-independent broad collection + execution** — shared `noemaforge/tests/conftest.py`
+  (pre-import the real runtime leaf modules; restore the baseline before each module import and after
+  each test). Removes the `orchestration_state` "unknown location" `ImportError` collection blocker.
+  No runtime changes, no per-test edits.
+- [x] **Cross-platform interpreter in subprocess tests** — `test_admin_control_plane_03112`,
+  `test_admin_gui_evolution_03112`, `test_multimodal_shards_03112` default the hardcoded
+  `/usr/bin/python3` to `sys.executable` (override `NOEMAFORGE_TEST_PYTHON`).
+- [ ] **D2 (follow-up PR): POSIX/bash entrypoint tests** — `test_code_qa_0310`, `test_pipeline_p1_03021`,
+  `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
+  `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each marked
+  as bypassing the bash wrapper (limited coverage; the wrapper is validated on the Debian target / CI).
+  `test_autostart_policy_03103` (`.sh` ops scripts, no Python entrypoint) → documented skip-with-reason.
+- [ ] **Remaining pre-existing broad failures** — docs/policy content drift, repo-root doc layout drift,
+  stale refs, and runtime POSIX-shell coupling (`admin_runtime.py` pipeline exec shells out to `.sh`);
+  classified in the findings doc.
+
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
 _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
