@@ -123,6 +123,88 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
 
+## 0.33.3 strategic roadmap (post-0.32.x)
+
+_Strategic agent-OS maturation track requested 2026-06-16; milestone summary in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). **Validated against the codebase**: most
+items mature an existing **validation-contract runtime** into a live, enforced
+system (the foundation is noted per item) rather than greenfield work. Each track is
+an XL umbrella decomposed into the L/M slices below; sequence after the 0.33.0–0.33.2
+milestones. Items with no existing anchor are tagged `new`._
+
+### Agent governance _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Admin-driven orchestration model** — Admin is the only user-facing authority;
+  specialist agents return results to Admin and cannot directly terminate
+  conversations. _(L · opus — builds on `admin_runtime.py` + the RoleFlow/orchestration_graph backlog in `release.json` consolidated_architecture_backlog)_
+- [ ] **Agent lifecycle states** — `task_created → task_assigned → task_in_progress →
+  task_review → task_completed → task_archived`. _(L · opus — formalise on `task_workflow_runtime.py` add/edit/prioritize/block/complete + `task_governance`)_
+- [ ] **Explicit agent handoff protocol** — ownership tracking, reasoning trace,
+  confidence propagation. _(L · opus — `new` protocol; reasoning trace shares the Observability trace layer below)_
+
+### Multi-model consensus _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Fusion-style execution mode** — parallel execution by multiple LLMs,
+  independent reasoning paths, final adjudication layer. _(L · opus — extends `role_tournament.py` parallel eval + `composite_pair_scoring`)_
+- [ ] **Judge-model framework** — score answers, detect hallucinations and
+  unsupported assumptions. _(L · opus — promotes the Sense/Critic governance backlog: Slop_Score, Critic_Stack, Detection_Verdict, Honesty Protocol)_
+- [ ] **Debate mode** — pro/con reasoning, adversarial validation, consensus
+  generation. _(L · opus — `new`, layered on the judge framework)_
+
+### Context engineering _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Context budget manager** — token accounting, memory prioritization,
+  retrieval ranking. _(L · opus — promote `memory_budgeted_retrieval_runtime.py` + `topic_adjacent_retrieval_runtime.py` contracts to a live manager)_
+- [ ] **Context compression pipeline** — conversation summarization, semantic
+  deduplication, fact extraction. _(L · opus — builds on `knowledge/extraction_pipeline.py` + session history; summarization is `new`)_
+- [ ] **Context quality metrics** — relevance, freshness, trust scores. _(M · sonnet — new scoring layer over the retrieval runtimes)_
+
+### Evaluation framework _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Internal SWE-bench-inspired benchmark.** _(L · opus — new harness; seed from the AAT LLM tier + Hermes benchmark cases)_
+- [ ] **Internal GAIA-inspired benchmark.** _(L · opus — new)_
+- [ ] **Internal AgentBench-inspired benchmark.** _(L · opus — new)_
+- [ ] **Regression testing framework** — agent routing, memory retrieval, tool
+  execution, artifact generation. _(L · opus — extend the AAT harness `ci/acceptance_runner.py`)_
+
+### Artifact-centric workflows _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Every generation pipeline produces artifact outputs** — document, report,
+  spreadsheet, presentation, code archive. _(M · sonnet — wire `pipeline_runtime.py` outputs to artifacts; in-chat cards already exist, U-001/U-005)_
+- [ ] **Unified artifact registry.** _(L · opus — promote `artifact_registry_table_runtime.py` contract to a live registry)_
+- [ ] **Artifact lineage tracking** — creator, source inputs, generation chain.
+  _(L · opus — extend the artifact-registry-table (outputs/reviews/graph patches) + `provenance_record`)_
+
+### Sandbox & security _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Per-agent sandbox execution.** _(L · opus — scope `sandbox.py` per agent)_
+- [ ] **Capability-based permissions.** _(M · sonnet — mostly exists: ToolProxy capability tokens + deny-by-default policy; enforce per agent)_
+- [ ] **Tool allowlist system.** _(M · sonnet — extend the existing allowlist policy/`caps.py`)_
+- [ ] **Resource quotas** — RAM, CPU, GPU, network. _(L · opus — RAM/CPU exist via `sandbox.py` rlimits; GPU/network quotas are `new`)_
+
+### Runtime intelligence _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Dynamic model routing.** _(L · opus — extend the product model-routing surface `admin_gui_routes/model_routes.py` + `runtime_policy`; distinct from the Claude-dev routing in `Claude_stats.md`)_
+- [ ] **Cost-aware model selection.** _(L · opus — reuse the 0.33.2 cost/rate ceilings)_
+- [ ] **Latency-aware routing.** _(M · sonnet — new signal)_
+- [ ] **Quality-aware routing.** _(M · sonnet — new signal; consumes judge-model scores)_
+
+### Observability _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Agent execution traces.** _(L · opus — mature the `trace-observability-evaluation-gates` wiki design + `seclog.py`)_
+- [ ] **Workflow replay.** _(L · opus — new, on top of traces + the artifact registry)_
+- [ ] **Decision auditing.** _(M · sonnet — extend the audit/remediation runtime + `team_scorecards.py`)_
+- [ ] **Failure classification.** _(M · sonnet — new taxonomy over traces)_
+- [ ] **Runtime dashboard.** _(L · opus — promote the alpha `telemetry_dashboard` to a live observability dashboard)_
+
+### Production readiness _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Formal release process.** _(M · sonnet — formalise `noema release` pack/attest/sign/verify + `publish-evidence.yml`)_
+- [ ] **Stable/LTS channel.** _(L · opus — new; current `release.json` channel is pre-alpha)_
+- [ ] **Migration framework.** _(L · opus — new, generalised from `noema upgrade`)_
+- [ ] **Upgrade rollback support.** _(M · sonnet — extend `noema upgrade --verify-only` + rollback artifacts)_
+- [ ] **Automated UAT suite.** _(L · opus — largely the AAT track + the U-004 all-pipeline test/demo mode; cross-ref the AAT cross-cutting task)_
+
 ## Accepted optimization decisions (2026-06-10 analysis review)
 
 _The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
