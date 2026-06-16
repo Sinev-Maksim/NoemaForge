@@ -12,13 +12,12 @@ and which gates it must pass. Maintained page; the workflows under
 - Review is shared by Codex, CodeRabbit and (when enabled repo-side) Copilot;
   PRs to non-default branches request CodeRabbit explicitly
   (`@coderabbitai review`).
-- **Review-response gate (mandatory before merge).** Every actionable review
-  comment is resolved, not just the verdict: Codex blocking issues are fixed and
-  its `## Optimizations` are applied or TODO-logged; **every CodeRabbit inline
-  comment** (fetched with `gh api repos/<repo>/pulls/<n>/comments`, not only the
-  summary) gets a fix or an explicit reply explaining why it is declined. A PR is
-  not merge-ready while an unaddressed actionable comment exists; recurring nits
-  are folded into the canonical TODO.
+- **Every review comment must be responded to before merge — mandatory.**
+  Each Codex finding and each CodeRabbit *inline* comment (read via
+  `gh api repos/.../pulls/<n>/comments`, not just the summary) is either fixed
+  on the branch or answered with a reasoned reply; a PR is not merge-ready
+  while an unaddressed actionable comment remains. Recurring nits are folded
+  into the canonical TODO with their source tag.
 - The `## Optimizations` section of every Codex review is handled before the
   PR merges: each suggestion is applied on the branch or recorded in the
   canonical TODO with its `Codex #PR` tag (owner directive 2026-06-11).
@@ -27,34 +26,36 @@ and which gates it must pass. Maintained page; the workflows under
 
 | Workflow | Trigger | Gates |
 |---|---|---|
-| `premerge-quality.yml` | PRs | py_compile over src; version SoT consistency (`VERSION` files, `release.json`, no stray `RUNTIME_VERSION`); JSON/YAML parse; no tracked caches; shell `bash -n`; release manifest/checksum evidence (skipped for PRs into `main`); wiki integrity check |
-| `acceptance.yml` | push/PR | artifact-driven AAT CI tier ([overview](../qa/acceptance-testing-aat.md)) |
+| `premerge-quality.yml` | PRs | py_compile over src; version SoT consistency (`VERSION` files, `release.json`, no stray `RUNTIME_VERSION`); JSON/YAML parse; no tracked caches; shell `bash -n`; wiki integrity; docs hygiene. **No evidence gate** (pre-release only). |
+| `acceptance.yml` | push/PR | artifact-driven AAT CI tier ([overview](../qa/acceptance-testing-aat.md)); checksum/signed-manifest cases are release-tier (skip on PR) |
+| `publish-evidence.yml` | tag `v*` / dispatch | generates + verifies + attests release evidence into the signed bundle |
 | `autonomous-pipeline.yml` | `claude/**`/`codex/**` push | lint+compile validation stages for the autonomous flow |
 | `scorecard.yml` | nightly + main | OpenSSF Scorecard supply-chain posture |
 | `p0-status-ledger.yml` | push | status ledger upkeep |
-| `publish-evidence.yml` | release events | published evidence bundle |
 | `wiki-sync.yml` | push to `main` touching the wiki | publishes `noemaforge/docs/wiki/` to the GitHub Wiki |
 
-## Release evidence
+## Release evidence (pre-release only)
 
 The release contract is artifact-driven: `MANIFEST.json` (project) and
 `noemaforge/docs/MANIFEST.json` (package) enumerate active files;
 `SHA256SUMS` + sidecar `.sha256` files pin their hashes;
-`manifest_checksum_exclusion_runtime.py --summary --hash-source git-index`
-must report `ok=true`. Verification runs against a **pristine worktree** —
-local checkouts accumulate untracked files that pollute filesystem scans.
+`ci/regen_evidence.py` generates them from the working tree and
+`manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree`
+reports `ok=true` over the release tree.
 
-Evidence lifecycle (decision A1, shipped 2026-06-11):
+Evidence lifecycle (owner directive 2026-06-14):
 
-- `ci/regen_evidence.py` is the **single generator** of the seven evidence
-  files, computing everything from the git index.
-- PR branches **do not commit regenerated evidence**. The premerge gate runs
-  the generator on the merged tree and then verifies it
-  (regen-then-verify) — the old "stale committed evidence" failure class and
-  the cross-PR SHA256SUMS merge conflicts are gone.
-- `evidence-refresh.yml` regenerates and commits the evidence on every push
-  to `release/**`, so release branches (and therefore `main` and release
-  archives) always carry exact committed evidence.
+- Evidence is a **pre-release artifact only**. The manifests/checksums are
+  **not tracked** (gitignored), **not generated, not checked and not merged**
+  on dev / PR / release branches. There is no premerge evidence gate and no
+  auto-refresh workflow — this removes the recurring cross-PR checksum churn
+  entirely.
+- `ci/regen_evidence.py` remains the single generator, but it runs **only at
+  pre-release**: `publish-evidence.yml` (tag `v*` / dispatch) generates the
+  evidence, verifies it, and assembles + attests the signed release bundle.
+- The AAT `checksum_validation` and `signed_manifest_verification` cases are
+  **release-tier**: they report `skip` on dev/PR trees (evidence absent) and
+  run on release trees where the evidence has been generated.
 
 ## Provenance and hygiene
 

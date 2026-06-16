@@ -205,6 +205,17 @@ release→main conflict resolution; statuses updated on restore._
   rely on (committed vs fresh regen would always differ). If a trustworthy
   timestamp is wanted, derive `generated_at` **deterministically from the
   release/commit metadata** (stable per commit), not from wall-clock regen time.
+- [ ] **Complete the 0.33.0 version promotion.** `RUNTIME_VERSION`/`VERSION` files
+  are 0.33.0 but the bump is half-done: ~22 `noemaforge/configs/*.json` `version`
+  fields, the `bin/noemaforge` `echo`, `tools/prep/noemaforge-first-run-audit.sh`
+  `VERSION=`, and root `release.json`/`MANIFEST.json` metadata are still `0.32.2`.
+  `test_version_03200_qa.py` already splits the two invariants (`SOT_VERSION` =
+  dynamic canonical-VERSION check, `PROMOTED_BASELINE` = `0.32.2` for those
+  non-canonical surfaces); finishing the task = bump the baseline surfaces to the
+  SoT and collapse `PROMOTED_BASELINE` into `SOT_VERSION`. **First investigate**
+  whether each config `version` is the release version or an independent schema
+  version before bumping, and sweep for other tests pinning `0.32.2` to avoid
+  cascade. Own PR, not bundled with feature work (surfaced by Codex on #96).
 
 ### E. Supply chain
 

@@ -68,7 +68,7 @@ REQUIRED_REGISTRY_REFS = [
     "contracts/setup_front_door.schema.json",
     "src/setup_front_door_runtime.py",
     "setup.sh",
-    "install_noemaforge_0.32.1_mvp.sh",
+    "install_noemaforge_mvp.sh",
     "src/firstboot_orchestrator.py",
     "src/firstboot_status.py",
     "src/firstboot_eval.py",

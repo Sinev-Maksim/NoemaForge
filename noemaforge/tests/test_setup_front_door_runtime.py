@@ -54,7 +54,7 @@ class SetupFrontDoorRuntimeTests(unittest.TestCase):
 
     def test_setup_script_prints_single_command_progress_phases(self) -> None:
         setup = (PROJECT_ROOT / "setup.sh").read_text(encoding="utf-8")
-        installer = (PROJECT_ROOT / "install_noemaforge_0.32.1_mvp.sh").read_text(encoding="utf-8")
+        installer = (PROJECT_ROOT / "install_noemaforge_mvp.sh").read_text(encoding="utf-8")
         analysis = sfd.analyze_setup_front_door(setup, installer)
 
         self.assertTrue(analysis["ok"], analysis["failures"])

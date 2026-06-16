@@ -3,14 +3,17 @@
 NoemaForge tracks release integrity through **manifests + checksums**, with a path toward a fully
 **signed, verifiable release contract**. Trust in a release should come from artifacts, not promises.
 
-## Today (0.32.2)
+## Today
 
-- The repository ships `MANIFEST.json` (+ the package `noemaforge/docs/MANIFEST.json`) listing the
-  active file set, and `SHA256SUMS` / `noemaforge/checksums/SHA256SUMS` pinning content hashes.
-- A premerge **manifest/checksum evidence gate** verifies that the committed evidence matches the
-  git-index (`manifest_checksum_exclusion_runtime.py --hash-source git-index`). A failure there is an
-  evidence-consistency issue (regenerate), not a code defect — the gate now says so explicitly.
-- Version source of truth is `noemaforge_version.py`; `VERSION` files are all `0.32.2`.
+- `MANIFEST.json` (+ the package `noemaforge/docs/MANIFEST.json`) lists the active file set, and
+  `SHA256SUMS` / `noemaforge/checksums/SHA256SUMS` pin content hashes. This evidence is **generated
+  at pre-release only** (`publish-evidence.yml`) — it is not tracked, and there is no premerge
+  evidence gate (owner directive 2026-06-14), which removes cross-PR checksum churn.
+- `ci/regen_evidence.py` writes the evidence from the working tree and
+  `manifest_checksum_exclusion_runtime.py --hash-source working-tree` verifies it (`ok=true`).
+  `publish-evidence.yml` regenerates, verifies, and fails the workflow on any mismatch rather than
+  publishing unverified evidence.
+- Version source of truth is `noemaforge_version.py` reading `VERSION` (`RUNTIME_VERSION`).
 
 ## Target (0.33.0): release-manifest contract
 
