@@ -37,6 +37,7 @@ this hub; merges to `main` auto-publish this tree to the GitHub Wiki.
 - [Mender Update Module placeholder](edge/mender-module-model-update-readme.md)
 - [RAUC Bundle Notes](edge/rauc-bundle-notes.md)
 - [NoemaForge Evolve Lab Roadmap](evolve/evolve-lab-roadmap.md)
+- [Repository hardening (public repo)](governance/repository-hardening.md)
 - [Evaluation, Observability, and Team Metrics](metrics/eval-observability-metrics.md)
 - [Self-test resource metrics](metrics/selftest-resource-metrics.md)
 - [Testbench and regression metrics](metrics/testbench-and-regression-metrics.md)

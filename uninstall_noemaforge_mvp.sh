@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # === NoemaForge File Header ===
-# File: uninstall_noemaforge_0.32.1_mvp.sh
+# File: uninstall_noemaforge_mvp.sh
 # Zone: release/package
-# Version: 0.32.1
+# Version: version-agnostic (plan-only handoff)
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Install a historical or current NoemaForge release payload.
@@ -19,14 +19,14 @@ SELFTEST=0
 
 usage(){ cat <<'USAGE'
 Usage:
-  ./uninstall_noemaforge_0.32.1_mvp.sh [--dry-run] [--selftest]
+  ./uninstall_noemaforge_mvp.sh [--dry-run] [--selftest]
 
 Options:
   --dry-run, --plan   Print the uninstall handoff plan only.
   --selftest          Validate this script without changing the host.
 
 Notes:
-  - 0.32.1 is an installer-loop stabilization package.
+  - This package line is an installer-loop stabilization series.
   - The historical uninstall flow remains the authoritative apply path.
 USAGE
 }
@@ -46,7 +46,7 @@ if [[ "$SELFTEST" == 1 ]]; then
 fi
 
 cat <<PLAN
-NoemaForge 0.32.1 uninstall plan
+NoemaForge uninstall plan
   dry_run: $DRY_RUN
   destructive_actions: none
   authoritative_apply_path: previous release uninstall flow
@@ -57,5 +57,5 @@ if [[ "$DRY_RUN" == 1 ]]; then
   exit 0
 fi
 
-echo "Use previous uninstall flow; 0.32.1 is an installer-loop stabilization package."
+echo "Use the previous uninstall flow; this package line is an installer-loop stabilization series."
 
