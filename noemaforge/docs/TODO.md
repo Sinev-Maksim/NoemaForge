@@ -85,6 +85,38 @@ periodically so older reviews do not rot in comment threads.
 - [ ] **Add a mixed-case wiki-path regression test** locking the portable
   (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
 
+### Broad pytest run-to-completion + failure triage 2026-06-16
+
+_The developer-host unit suite (`python -m pytest noemaforge/tests`) used to abort
+at collection (3 import errors) so no test bodies ran and downstream failures were
+invisible. Full classified findings:
+[`uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](uat/BROAD-PYTEST-0.33.0-FINDINGS.md).
+After the isolation fix the suite runs end-to-end: 1947 passed / 199 failed / 40
+skipped / 164 subtests passed. The 199 are pre-existing (unmasked, not caused).
+First landed on `release/0.32.2-hardening` (PR #104); this is the port._
+
+- [x] **Order-independent broad collection + execution** via a single shared
+  `noemaforge/tests/conftest.py` (pre-import real runtime leaves; restore the
+  baseline before each module import and after each test). Removes the
+  `orchestration_state`/`platform_paths` "unknown location" `ImportError` class
+  (down to 0); no runtime changes, no per-test edits. _(L · opus — DONE)_
+- [x] **Cross-platform interpreter in subprocess tests** — `test_admin_control_plane_03112`,
+  `test_admin_gui_evolution_03112`, `test_multimodal_shards_03112` defaulted the
+  hardcoded `/usr/bin/python3` to `sys.executable` (override `NOEMAFORGE_TEST_PYTHON`). _(S · haiku — DONE)_
+- [ ] **POSIX/bash entrypoint tests (D2, follow-up PR)** — `test_code_qa_0310`, `test_pipeline_p1_03021`,
+  `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
+  `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
+  marked as bypassing the bash wrapper (limited coverage; wrapper validated on the Debian target / CI).
+  `test_autostart_policy_03103` (`.sh` ops scripts) → documented skip-with-reason. _(M · sonnet)_
+- [ ] **Root-doc layout drift (Class A, ~48 FileNotFoundError)** — tests open repo-root
+  `CHANGELOG.md` (27) / `TODO.md`; canonical docs live under `noemaforge/docs/`. Point tests at the
+  canonical paths or add root shims. _(M · sonnet)_
+- [ ] **Docs/policy content-assertion drift (Class B, 127 AssertionError)** — "discoverable"/
+  "capture"/"policy_validates" source-guard tests vs current docs/policies; triage per track. _(L · opus — umbrella)_
+- [ ] **Runtime shells out to POSIX scripts (D3)** — `admin_runtime.py` pipeline exec spawns
+  `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
+  skip-with-reason at the test layer. _(L · opus — 0.33.1)_
+
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
