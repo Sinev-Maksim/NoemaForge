@@ -11,6 +11,8 @@ jobs:
   validate-claude-push:
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       branch: ${{ steps.info.outputs.branch }}
       changed_count: ${{ steps.info.outputs.changed_count }}
@@ -193,7 +195,14 @@ jobs:
   # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
-    if: github.actor == 'Sinev-Maksim'
+    # Self-hosted runner safety (public repo): this job runs on the maintainer's
+    # own Windows machine, so it must only ever fire for trusted, in-repo pushes.
+    # Defense in depth — three independent guards:
+    #   1. the workflow `on:` has no pull_request/pull_request_target trigger, so
+    #      fork PRs cannot reach it (a fork cannot push to this repo's branches);
+    #   2. event_name == 'push' makes that explicit and survives a future trigger add;
+    #   3. the actor allowlist restricts it to the maintainer even among collaborators.
+    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim'
     runs-on: [self-hosted, Windows, codex]
     timeout-minutes: 45
     permissions:
@@ -734,6 +743,9 @@ jobs:
     needs: codex-review
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read      # list branches/commits
+      actions: write      # createWorkflowDispatch -> qa-version-bump
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
