@@ -1083,6 +1083,10 @@ cmd_selftest() {
   NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/selftest_runtime.py" "$@"
 }
 
+cmd_uat() {
+  NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/uat_runtime.py" "$@"
+}
+
 cmd_wiki_patch() {
   NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/selftest_runtime.py" wiki-patch "$@"
 }
@@ -1350,6 +1354,7 @@ case "$cmd" in
   schema|schemas) cmd_schema "$@" ;;
   persona|personas|roles-persona) cmd_persona "$@" ;;
   selftest|self-test|tests|telemetry-tests|testbench) cmd_selftest "$@" ;;
+  uat|uat-run|uat-button) cmd_uat "$@" ;;
   wiki-patch|wikipatch|wiki_patch|wiki-delta) cmd_wiki_patch "$@" ;;
   profiles|model-profiles|profile) cmd_profiles "$@" ;;
   prep-core|prep|cross-platform-prep) cmd_prep_core "$@" ;;
