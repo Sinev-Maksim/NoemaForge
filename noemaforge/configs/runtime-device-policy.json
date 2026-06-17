@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.runtime/v1",
   "kind": "RuntimeDevicePolicy",
-  "version": "0.32.2",
+  "version": "0.33.0",
   "decision": "cpu_safe_always_on_with_gpu_on_demand",
   "default": "cpu",
   "allowed": [
