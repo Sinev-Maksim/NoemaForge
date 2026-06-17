@@ -20,6 +20,17 @@ import os
 import subprocess
 from pathlib import Path
 
+import pytest
+
+# These tests execute POSIX shell ops scripts (.sh) directly; there is no Python
+# entrypoint to call, so they require a POSIX shell. Skipped off-POSIX with a
+# stated reason; validated on the Debian target host and in CI.
+pytestmark = pytest.mark.skipif(
+    os.name != "posix",
+    reason="runs POSIX shell ops scripts (noemaforge-autostart-safe.sh etc.); "
+    "no Python entrypoint. See docs/uat/BROAD-PYTEST-0.33.0-FINDINGS.md.",
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 AUTOSTART = ROOT / 'tools' / 'prep' / 'noemaforge-autostart-safe.sh'
 BOOT_MODE = ROOT / 'tools' / 'prep' / 'noemaforge-boot-mode.sh'

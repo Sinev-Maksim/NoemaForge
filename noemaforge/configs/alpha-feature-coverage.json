@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.release/v1",
   "kind": "AlphaFeatureCoverage",
-  "version": "0.32.2",
+  "version": "0.33.0",
   "generated_at_utc": "2026-05-14T15:20:00Z",
   "features": {
     "stateful_admin_gui": "active",

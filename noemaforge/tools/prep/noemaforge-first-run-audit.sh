@@ -22,7 +22,7 @@ STORAGE_SCAN=1
 MVP_SMOKE=1
 REBOOT_READY=0
 OUT=""
-VERSION="0.32.2"
+VERSION="0.33.0"
 
 usage(){ cat <<'USAGE'
 Usage: noemaforge first-run [options]

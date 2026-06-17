@@ -639,6 +639,19 @@ Important runtime policy: CPU/GPU switching is staged. The selected device polic
 
 Privileged operations such as Vault re-inventory, model-selection continuation and epoch apply are plan/job-first from the GUI. They require explicit operator approval or a terminal sudo command.
 
+#### 0.33.0
+- Admin GUI session/event wiring: `GET /api/session/current` and `/api/events`, frontend event polling, session-mode persistence and message-history restore.
+- Reworked release evidence to a pre-release-only model: `MANIFEST.json`/`SHA256SUMS` are generated and verified at tag time by `publish-evidence.yml`, not tracked or gated on dev branches.
+- Added a version-agnostic installer (`install_noemaforge_mvp.sh`) and aligned `setup.sh`/dry-run policy to it.
+- Added the artifact-driven AAT acceptance suite (results tree + `acceptance.yml`) with release-tier checksum/signed-manifest cases.
+- Split and hardened the Admin GUI control-plane routes; added a deterministic admin-state glossary.
+- Security and CI hardening: resolved open CodeQL findings, pinned GitHub Actions, branch-protection rulesets as code, and self-hosted Codex review-runner hardening (read-only sandbox, English-only output).
+- System-independence/portability groundwork (cross-platform paths, runtime-device policy) toward 0.33.1.
+- Model-routing telemetry/stats and routing policy.
+- Consolidated canonical docs/wiki/systemd under the package tree; portable wiki hub-index ordering.
+- Test-suite hardening: order-independent broad pytest collection (shared `conftest.py`), cross-platform CLI integration tests, and root-doc candidate-path test fixes.
+- Promoted all active release surfaces (configs, release metadata, CLI fallbacks) from 0.32.2 to 0.33.0.
+
 #### 0.32.1
 - Added stateful GUI conversation history and SR/SSR review records.
 - Fixed persona portrait root cause by serving `/ui/...` assets and adding HEAD support.
