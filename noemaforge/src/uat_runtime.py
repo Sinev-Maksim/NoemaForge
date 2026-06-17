@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/uat_runtime.py
 Zone: src/runtime
-Version: 0.33.0
+Version: tracks the VERSION source of truth (noemaforge_version.RUNTIME_VERSION)
 Purpose: One-command UAT orchestration ("the UAT button"). Sequentially:
            1. starts event recording (a dedicated event-log dir for the session),
            2. (optionally) launches the Admin GUI, display-safe, pointed at the
@@ -82,7 +82,13 @@ def _run_pipeline(
     ]
     if dry_run:
         cmd.append("--dry-run")
+    # Display-safety: pipeline_runtime.run is orchestration with no display surface;
+    # any model/GPU launch it triggers goes through model_selection_runtime, which
+    # always passes --keep-display. The UAT runner never stops a display manager.
     record: Dict[str, Any] = {"pipeline": pipeline_id, "run_id": run_id, "cmd": cmd}
+    out_dir = bundle / "pipelines" / pipeline_id
+    out_dir.mkdir(parents=True, exist_ok=True)
+    record["artifact_count"] = 0
     try:
         proc = subprocess.run(
             cmd, cwd=str(package_root), env=env, text=True,
@@ -90,8 +96,6 @@ def _run_pipeline(
         )
         record["returncode"] = proc.returncode
         record["status"] = "ok" if proc.returncode == 0 else "failed"
-        out_dir = bundle / "pipelines" / pipeline_id
-        out_dir.mkdir(parents=True, exist_ok=True)
         (out_dir / "stdout.txt").write_text(proc.stdout or "", encoding="utf-8")
         (out_dir / "stderr.txt").write_text(proc.stderr or "", encoding="utf-8")
         run_dir = ""
@@ -104,14 +108,16 @@ def _run_pipeline(
             record["artifact_count"] = sum(
                 1 for _ in (out_dir / "run_dir").rglob("*") if _.is_file()
             )
-        else:
-            record["artifact_count"] = 0
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         record["status"] = "timeout"
         record["returncode"] = None
+        (out_dir / "status.txt").write_text(f"timeout after {timeout}s\n", encoding="utf-8")
+        (out_dir / "stdout.txt").write_text(exc.stdout or "", encoding="utf-8")
+        (out_dir / "stderr.txt").write_text(exc.stderr or "", encoding="utf-8")
     except Exception as exc:  # noqa: BLE001 - a pipeline crash is captured, not fatal
         record["status"] = "error"
         record["error"] = repr(exc)
+        (out_dir / "status.txt").write_text(f"error: {exc!r}\n", encoding="utf-8")
     return record
 
 
@@ -131,11 +137,13 @@ def _launch_gui(package_root: Path, bundle: Path, env: Dict[str, str], keep_disp
         )
         return None
     time.sleep(2)  # give it a moment to bind / fail fast
+    alive = proc.poll() is None
     (gui_dir / "gui.json").write_text(
-        json.dumps({"launched": proc.poll() is None, "pid": proc.pid, "cmd": cmd}, indent=2),
+        json.dumps({"launched": alive, "pid": proc.pid, "cmd": cmd}, indent=2),
         encoding="utf-8",
     )
-    return proc
+    # Drop the handle if the GUI died during startup so manifest.gui_launched is accurate.
+    return proc if alive else None
 
 
 def run_uat(args: argparse.Namespace) -> int:
@@ -153,11 +161,15 @@ def run_uat(args: argparse.Namespace) -> int:
     env["NOEMAFORGE_ALLOW_DEGRADED_MUTATION"] = "1"
 
     catalog = _load_catalog(package_root)
-    selected = (
-        [p for p in args.pipelines.split(",") if p.strip()]
-        if args.pipelines else sorted(catalog)
-    )
-    selected = [p for p in selected if p in catalog]
+    if args.pipelines:
+        selected = [p for p in args.pipelines.split(",") if p.strip()]
+        unknown = [p for p in selected if p not in catalog]
+        if unknown:
+            print(json.dumps({"ok": False, "error": "unknown_pipelines", "unknown": unknown}),
+                  file=sys.stderr)
+            return 2
+    else:
+        selected = sorted(catalog)
 
     # Step 1 — start recording.
     _append_event(events_dir, "uat_session_start", {
@@ -235,7 +247,8 @@ def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="noemaforge uat", description="One-command UAT runner.")
     sub = p.add_subparsers(dest="command", required=True)
     run = sub.add_parser("run", help="record events, (launch GUI,) run all pipelines, bundle artifacts")
-    run.add_argument("--root", default="noemaforge", help="package root (contains src/, configs/)")
+    run.add_argument("--root", default=os.environ.get("NOEMAFORGE_ROOT", "noemaforge"),
+                     help="package root (contains src/, configs/); defaults to $NOEMAFORGE_ROOT")
     run.add_argument("--out", required=True, help="logging/evidence bundle directory")
     run.add_argument("--request", default="UAT smoke run", help="request text passed to each pipeline")
     run.add_argument("--pipelines", default="", help="comma-separated pipeline ids (default: all in catalog)")

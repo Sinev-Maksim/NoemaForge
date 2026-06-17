@@ -27,7 +27,7 @@ Options: `--out` (required), `--pipelines a,b` (default: all), `--request TEXT`
 
 ## Bundle layout (`--out`)
 
-```
+```text
 <out>/
   manifest.json        # kind=NoemaForgeUATBundle: per-pipeline status + counts
   summary.md           # human-readable per-pipeline table
