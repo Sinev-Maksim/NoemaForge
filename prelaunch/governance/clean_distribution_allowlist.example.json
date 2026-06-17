@@ -18,7 +18,7 @@
       "included_refs": [
         "VERSION",
         "README.md",
-        "TODO.md",
+        "noemaforge/docs/TODO.md",
         "noemaforge/configs/unified-registry.json",
         "noemaforge/configs/clean-distribution-allowlist.json",
         "noemaforge/contracts/clean_distribution_allowlist.schema.json",
