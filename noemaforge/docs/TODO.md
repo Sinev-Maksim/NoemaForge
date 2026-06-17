@@ -51,7 +51,7 @@ touches release-gating logic across ~26 files + configs)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
 - [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku)_
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku)_
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
 **Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
 Codex review is handled **before the PR merges** — each suggestion is either applied on
 the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
@@ -123,7 +123,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
 - [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
