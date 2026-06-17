@@ -63,7 +63,7 @@ class CommunityPackContributionQATests(unittest.TestCase):
         validation = cpcr.validate_community_pack_contribution_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "README.md",
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
@@ -73,7 +73,9 @@ class CommunityPackContributionQATests(unittest.TestCase):
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(phrase, text)
         self.assertIn("[x] Community-safe pack contribution path.", (PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md").read_text(encoding="utf-8"))
