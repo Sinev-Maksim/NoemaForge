@@ -145,6 +145,108 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
 
+## 0.33.3 strategic roadmap (post-0.32.x)
+
+_Strategic agent-OS maturation track requested 2026-06-16; milestone summary in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). **Validated against the codebase**: most
+items mature an existing **validation-contract runtime** into a live, enforced
+system (the foundation is noted per item) rather than greenfield work. Each track is
+an XL umbrella decomposed into the L/M slices below; sequence after the 0.33.0–0.33.2
+milestones. Items with no existing anchor are tagged `new`. Cross-checked 2026-06-16
+against the "Agentic Orchestration Hardening" proposal — its genuinely-new items (task
+contract, context packet + handoff scoring, role distinctiveness, empty-output=failure,
+artifact relevance, automatic skill extraction) are folded into the tracks below; the
+rest duplicated this roadmap, the Hermes skill track, or existing primitives
+(`production_ai_contracts` gates, `sandbox.py`, member-cell batons)._
+
+### Agent governance _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Admin-driven orchestration model** — Admin is the only user-facing authority;
+  specialist agents return results to Admin and cannot directly terminate
+  conversations. _(L · opus — builds on `admin_runtime.py` + the RoleFlow/orchestration_graph backlog in `release.json` consolidated_architecture_backlog)_
+- [ ] **Agent lifecycle states** — `task_created → task_assigned → task_in_progress →
+  task_review → task_completed → task_archived`. _(L · opus — formalise on `task_workflow_runtime.py` add/edit/prioritize/block/complete + `task_governance`)_
+- [ ] **Task contract per request** — convert each user request into a structured
+  contract: goal, owner, expected artifact, success criteria, failure conditions.
+  _(L · opus — formalise on the existing `production_ai_contracts.evaluate_gate` primitive)_
+- [ ] **Explicit agent handoff protocol** — ownership tracking, reasoning trace and
+  confidence propagation, plus a compact **context packet** (goal, constraints,
+  completed work, known failures, next action) instead of passing the full
+  conversation, and **handoff quality scoring** (completeness, relevance, context
+  preservation). _(L · opus — `new` protocol on the member-cell baton model; reasoning trace shares the Observability trace layer below)_
+- [ ] **Role distinctiveness checks** — flag specialist personas producing
+  near-identical outputs or duplicated responsibilities. _(M · sonnet — `new`; directly addresses the UAT indistinct-personas finding U-003/D-009)_
+
+### Multi-model consensus _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Fusion-style execution mode** — parallel execution by multiple LLMs,
+  independent reasoning paths, final adjudication layer. _(L · opus — extends `role_tournament.py` parallel eval + `composite_pair_scoring`)_
+- [ ] **Judge-model framework** — score answers, detect hallucinations and
+  unsupported assumptions. _(L · opus — promotes the Sense/Critic governance backlog: Slop_Score, Critic_Stack, Detection_Verdict, Honesty Protocol)_
+- [ ] **Debate mode** — pro/con reasoning, adversarial validation, consensus
+  generation. _(L · opus — `new`, layered on the judge framework)_
+
+### Context engineering _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Context budget manager** — token accounting, memory prioritization,
+  retrieval ranking. _(L · opus — promote `memory_budgeted_retrieval_runtime.py` + `topic_adjacent_retrieval_runtime.py` contracts to a live manager)_
+- [ ] **Context compression pipeline** — conversation summarization, semantic
+  deduplication, fact extraction. _(L · opus — builds on `knowledge/extraction_pipeline.py` + session history; summarization is `new`)_
+- [ ] **Context quality metrics** — relevance, freshness, trust scores. _(M · sonnet — new scoring layer over the retrieval runtimes)_
+
+### Evaluation framework _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Internal SWE-bench-inspired benchmark.** _(L · opus — new harness; seed from the AAT LLM tier + Hermes benchmark cases)_
+- [ ] **Internal GAIA-inspired benchmark.** _(L · opus — new)_
+- [ ] **Internal AgentBench-inspired benchmark.** _(L · opus — new)_
+- [ ] **Regression testing framework** — agent routing, memory retrieval, tool
+  execution, artifact generation; per-run checks `tests_passed` / `artifact_exists` /
+  `artifact_relevant` / `admin_returned`. _(L · opus — extend the AAT harness `ci/acceptance_runner.py`)_
+- [ ] **Automatic skill extraction** — mine reusable skills from successful, repeated
+  execution traces. _(L · opus — `new`; complements the Hermes skill-import track, which only imports skills)_
+
+### Artifact-centric workflows _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Every generation pipeline produces artifact outputs** — document, report,
+  spreadsheet, presentation, code archive; an **empty output directory is treated as
+  failed execution** (a meaningful artifact or an explicit failure report, never a
+  silent no-op). _(M · sonnet — wire `pipeline_runtime.py` outputs to artifacts; in-chat cards already exist, U-001/U-005; the failure-report rule extends U-002)_
+- [ ] **Unified artifact registry.** _(L · opus — promote `artifact_registry_table_runtime.py` contract to a live registry)_
+- [ ] **Artifact lineage tracking** — creator, source inputs, generation chain.
+  _(L · opus — extend the artifact-registry-table (outputs/reviews/graph patches) + `provenance_record`)_
+- [ ] **Artifact relevance scoring** — validate that generated files answer the
+  original user request. _(M · sonnet — `new`; consumes the judge-model scores)_
+
+### Sandbox & security _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Per-agent sandbox execution.** _(L · opus — scope `sandbox.py` per agent)_
+- [ ] **Capability-based permissions.** _(M · sonnet — mostly exists: ToolProxy capability tokens + deny-by-default policy; enforce per agent)_
+- [ ] **Tool allowlist system.** _(M · sonnet — extend the existing allowlist policy/`caps.py`)_
+- [ ] **Resource quotas** — RAM, CPU, GPU, network. _(L · opus — RAM/CPU exist via `sandbox.py` rlimits; GPU/network quotas are `new`)_
+
+### Runtime intelligence _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Dynamic model routing.** _(L · opus — extend the product model-routing surface `admin_gui_routes/model_routes.py` + `runtime_policy`; distinct from the Claude-dev routing in `Claude_stats.md`)_
+- [ ] **Cost-aware model selection.** _(L · opus — reuse the 0.33.2 cost/rate ceilings)_
+- [ ] **Latency-aware routing.** _(M · sonnet — new signal)_
+- [ ] **Quality-aware routing.** _(M · sonnet — new signal; consumes judge-model scores)_
+
+### Observability _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Agent execution traces.** _(L · opus — mature the `trace-observability-evaluation-gates` wiki design + `seclog.py`)_
+- [ ] **Workflow replay.** _(L · opus — new, on top of traces + the artifact registry)_
+- [ ] **Decision auditing.** _(M · sonnet — extend the audit/remediation runtime + `team_scorecards.py`)_
+- [ ] **Failure classification.** _(M · sonnet — new taxonomy over traces)_
+- [ ] **Runtime dashboard.** _(L · opus — promote the alpha `telemetry_dashboard` to a live observability dashboard)_
+
+### Production readiness _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Formal release process.** _(M · sonnet — formalise `noema release` pack/attest/sign/verify + `publish-evidence.yml`)_
+- [ ] **Stable/LTS channel.** _(L · opus — new; current `release.json` channel is pre-alpha)_
+- [ ] **Migration framework.** _(L · opus — new, generalised from `noema upgrade`)_
+- [ ] **Upgrade rollback support.** _(M · sonnet — extend `noema upgrade --verify-only` + rollback artifacts)_
+- [ ] **Automated UAT suite.** _(L · opus — largely the AAT track + the U-004 all-pipeline test/demo mode; cross-ref the AAT cross-cutting task)_
+
 ## Accepted optimization decisions (2026-06-10 analysis review)
 
 _The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
@@ -254,9 +356,11 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
+- [x] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
   `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
-  the user's language — never hallucinate them as filenames.
+  the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
+  in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
+  path (`test_admin_state_glossary.py`).
 - [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
