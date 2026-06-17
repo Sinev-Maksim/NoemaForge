@@ -68,7 +68,7 @@ periodically so older reviews do not rot in comment threads.
 _The developer-host unit suite (`python -m pytest noemaforge/tests`) used to abort
 at collection (3 import errors) so no test bodies ran and downstream failures were
 invisible. Full classified findings:
-[`../../docs/uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](../../docs/uat/BROAD-PYTEST-0.33.0-FINDINGS.md).
+[`uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](uat/BROAD-PYTEST-0.33.0-FINDINGS.md).
 After the isolation fix the suite runs end-to-end: 1947 passed / 199 failed / 40
 skipped / 164 subtests passed. The 199 are pre-existing (unmasked, not caused).
 First landed on `release/0.32.2-hardening` (PR #104); this is the port._
