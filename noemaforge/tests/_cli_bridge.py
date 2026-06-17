@@ -51,6 +51,7 @@ _DISPATCH: Dict[str, Tuple[str, Callable[[List[str]], List[str]]]] = {
     "admin": ("admin_runtime.py", lambda r: r),
     "dev-team": ("dev_team_runtime.py", lambda r: r),
     "member": ("team_member_runtime.py", lambda r: r),
+    "persona": ("persona_runtime.py", lambda r: r),
     "qa": ("code_qa_runtime.py", lambda r: r),
     "code-qa": ("code_qa_runtime.py", lambda r: r),
     "testbench": ("selftest_runtime.py", lambda r: r),
