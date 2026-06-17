@@ -909,13 +909,11 @@ PyYAML/Lib/site-packages/pip/_vendor/requests/certs.py
 sense/edge/metrics_schema.py
 sense/edge/mqtt_adapter.py
 sense/edge/serial_adapter.py
-install_noemaforge_0.32.1_mvp.sh
-install_noemaforge_0.32.2_mvp.sh
+install_noemaforge_mvp.sh
 noemaforge_03113_alpha_validation_logger.sh
 noemaforge_03113_patched11_validation_logger.sh
 noemaforge_03113_validation_logger.sh
 noemaforge_0321_validation_logger.sh
 noemaforge_validation_logger.sh
 setup.sh
-uninstall_noemaforge_0.32.1_mvp.sh
-uninstall_noemaforge_0.32.2_mvp.sh
+uninstall_noemaforge_mvp.sh

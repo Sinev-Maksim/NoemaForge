@@ -17,9 +17,9 @@ Runs on every PR into the release lines and `main`. **No auto-commits, no auto-p
 5. JSON parse of `noemaforge/configs/*.json`.
 6. YAML parse of `noemaforge/configs/*.yaml`.
 7. No tracked `__pycache__` / `*.pyc`.
-8. **Release manifest/checksum evidence gate** — `MANIFEST.json` / `SHA256SUMS` must match the
-   tracked file set (git-index hashes). A failure here is an evidence-consistency issue
-   (regenerate), explicitly *not* a code defect.
+8. **No premerge evidence gate** — the `MANIFEST.json` / `SHA256SUMS` evidence is generated and
+   verified at pre-release only (`publish-evidence.yml`, working-tree hashes), not on PRs; it is
+   untracked (owner directive 2026-06-14), which removes cross-PR checksum churn.
 9. `bash -n` syntax check of `*.sh`.
 
 ### `autonomous-pipeline.yml` — per-push validation + independent review

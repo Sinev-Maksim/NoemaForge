@@ -96,12 +96,12 @@ case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) ech
 if [[ "$SELFTEST" == 1 ]]; then
   echo "[setup] selftest: shell syntax"
   bash -n "$PKG_DIR/setup.sh"
-  bash -n "$PKG_DIR/install_noemaforge_0.32.2_mvp.sh"
-  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_0.32.2_mvp.sh"; then
+  bash -n "$PKG_DIR/install_noemaforge_mvp.sh"
+  if grep -Eq '^[[:space:]]*exec[[:space:]]+.*setup\.sh' "$PKG_DIR/install_noemaforge_mvp.sh"; then
     echo "[setup][ERROR] installer must not exec setup.sh; recursion risk" >&2
     exit 71
   fi
-  bash -n "$PKG_DIR/uninstall_noemaforge_0.32.2_mvp.sh"
+  bash -n "$PKG_DIR/uninstall_noemaforge_mvp.sh"
   bash -n "$PKG_DIR/noemaforge/bin/noemaforge"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-version-audit.sh"
   bash -n "$PKG_DIR/noemaforge/tools/prep/noemaforge-first-run-audit.sh"
@@ -172,5 +172,5 @@ fi
 
 install_args=(--rootfs "$INSTALL_ROOT" --data-root "$DATA_ROOT" --model-profile "$MODEL_PROFILE")
 if [[ -n "$WITH_SHARE" ]]; then install_args+=(--with-share "$WITH_SHARE"); fi
-exec "$PKG_DIR/install_noemaforge_0.32.2_mvp.sh" "${install_args[@]}"
+exec "$PKG_DIR/install_noemaforge_mvp.sh" "${install_args[@]}"
 
