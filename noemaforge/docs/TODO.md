@@ -103,12 +103,12 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **Cross-platform interpreter in subprocess tests** — `test_admin_control_plane_03112`,
   `test_admin_gui_evolution_03112`, `test_multimodal_shards_03112` defaulted the
   hardcoded `/usr/bin/python3` to `sys.executable` (override `NOEMAFORGE_TEST_PYTHON`). _(S · haiku — DONE)_
-- [ ] **POSIX/bash entrypoint tests (D2, follow-up PR)** — `test_code_qa_0310`, `test_pipeline_p1_03021`,
+- [x] **POSIX/bash entrypoint tests (D2)** — DONE (#107): rewrote the five CLI tests to the Python entrypoint via a shared `_cli_bridge`; `test_autostart_policy_03103` + D3 runtime cases skip-with-reason. Was: `test_code_qa_0310`, `test_pipeline_p1_03021`,
   `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
   `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
   marked as bypassing the bash wrapper (limited coverage; wrapper validated on the Debian target / CI).
   `test_autostart_policy_03103` (`.sh` ops scripts) → documented skip-with-reason. _(M · sonnet)_
-- [ ] **Root-doc layout drift (Class A, ~48 FileNotFoundError)** — tests open repo-root
+- [x] **Root-doc layout drift (Class A, ~48 FileNotFoundError)** — DONE (#108): filtered the candidate read loops to existing paths across 42 `*_qa.py`. Was: tests open repo-root
   `CHANGELOG.md` (27) / `TODO.md`; canonical docs live under `noemaforge/docs/`. Point tests at the
   canonical paths or add root shims. _(M · sonnet)_
 - [ ] **Docs/policy content-assertion drift (Class B, 127 AssertionError)** — "discoverable"/
@@ -361,7 +361,7 @@ release→main conflict resolution; statuses updated on restore._
   rely on (committed vs fresh regen would always differ). If a trustworthy
   timestamp is wanted, derive `generated_at` **deterministically from the
   release/commit metadata** (stable per commit), not from wall-clock regen time.
-- [ ] **Complete the 0.33.0 version promotion.** `RUNTIME_VERSION`/`VERSION` files
+- [x] **Complete the 0.33.0 version promotion.** DONE (#110): bumped 22 configs, `release.json`, the `bin/noemaforge` echo and the audit script to 0.33.0 and collapsed `PROMOTED_BASELINE` into `SOT_VERSION`. Was: `RUNTIME_VERSION`/`VERSION` files
   are 0.33.0 but the bump is half-done: ~22 `noemaforge/configs/*.json` `version`
   fields, the `bin/noemaforge` `echo`, `tools/prep/noemaforge-first-run-audit.sh`
   `VERSION=`, and root `release.json`/`MANIFEST.json` metadata are still `0.32.2`.
