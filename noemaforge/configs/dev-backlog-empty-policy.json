@@ -42,14 +42,10 @@
     "noemaforge/tests/test_dev_backlog_empty_policy_runtime.py",
     "noemaforge/tests/test_dev_backlog_empty_policy_qa.py",
     "noemaforge/tests/test_dev_backlog_empty_policy_performance.py",
-    "TODO.md",
-    "noemaforge/TODO.md",
     "docs/TODO.md",
     "noemaforge/docs/TODO.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
-    "CHANGELOG.md",
-    "RELEASE_NOTES.md",
     "docs/history/CHANGELOG.md",
     "noemaforge/docs/history/CHANGELOG.md"
   ]

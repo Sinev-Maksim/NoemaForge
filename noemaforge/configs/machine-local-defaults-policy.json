@@ -157,12 +157,8 @@
     "systemd/noemaforge-memsentinel.service",
     "systemd/noemaforge-autostart-gui.service",
     "systemd/noemaforge-autostart-wogui.service",
-    "TODO.md",
-    "noemaforge/TODO.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
-    "CHANGELOG.md",
-    "RELEASE_NOTES.md",
     "docs/history/CHANGELOG.md",
     "noemaforge/docs/history/CHANGELOG.md"
   ]
