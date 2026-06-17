@@ -42,7 +42,7 @@ keeping all rows). After merge, `release/0.33.0-dev` → `main`.
 - [~] **Broad pytest** — NOT a CI gate. The order-dependent collection blocker is
   fixed (#105); the suite now runs to completion (~1950 pass). The remaining
   pre-existing failures are classified in
-  [`../uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](../uat/BROAD-PYTEST-0.33.0-FINDINGS.md)
+  `noemaforge/docs/uat/BROAD-PYTEST-0.33.0-FINDINGS.md` (lands on this line with #105)
   (root-doc drift fixed in #108; CLI tests fixed in #107). Not release-blocking.
 
 ## 3. Tag + evidence flow (at release, per `RELEASING.md`)
