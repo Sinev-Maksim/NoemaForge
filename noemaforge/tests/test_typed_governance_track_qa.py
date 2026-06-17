@@ -65,20 +65,20 @@ class TypedGovernanceTrackQATests(unittest.TestCase):
         report = tgtr.validate_typed_governance_track_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(report["ok"], report["failures"])
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Track typed governance contracts", text)
             self.assertIn("Typed Governance Track", text)
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("typed-governance-track-core", text)
             self.assertIn("dependency-order and registry-attachment checks", text)

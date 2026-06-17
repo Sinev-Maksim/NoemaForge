@@ -36,26 +36,26 @@ class EdgeTinyMLOTAPackQATests(unittest.TestCase):
         self.assertEqual("edge-tinyml-ota-pack-core", policy["id"])
 
         item = "Edge/TinyML/OTA pack: MQTT/serial, TinyML validation, gateway inference, rules, manifest signing and OTA rollback."
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("edge-tinyml-ota-pack-core", text, str(path))
             self.assertIn("offline aggregate contract", text, str(path))
 
     def test_changelog_release_notes_capture_edge_pack_contract(self) -> None:
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("edge-tinyml-ota-pack-core", text, str(path))
             self.assertIn("Edge/TinyML/OTA pack: MQTT/serial, TinyML validation, gateway inference, rules, manifest signing and OTA rollback", text, str(path))

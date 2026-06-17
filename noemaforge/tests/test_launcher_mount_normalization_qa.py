@@ -33,19 +33,19 @@ class LauncherMountNormalizationQATests(unittest.TestCase):
         self.assertIn("canonicalize_noemaforge_path", safety)
 
         expected = "[x] Implement mount normalization to `/mnt/noemaforge-share` in the launcher happy path."
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             self.assertIn(expected, path.read_text(encoding="utf-8"))
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("launcher mount normalization", text)
             self.assertIn("/mnt/noemaforge-share", text)

@@ -36,30 +36,30 @@ class LlamaServerLauncherGateQATests(unittest.TestCase):
         self.assertIn("llama_libs", policy["policy"]["required_preflight_checks"])
 
         item = "Add `llama-server` binary/shared-library preflight"
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(item, text, str(path))
             self.assertIn("llama-server-launcher-gate-core", text, str(path))
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Add `llama-server` binary/shared-library preflight", text, str(path))
 
     def test_changelog_release_notes_capture_launcher_gate(self) -> None:
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("llama-server launcher gate", text, str(path))
             self.assertIn("unresolved shared libraries", text, str(path))

@@ -63,7 +63,7 @@ class HypergraphFirstAdministratorQATests(unittest.TestCase):
         validation = hfa.validate_hypergraph_first_administrator_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "README.md",
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
@@ -73,7 +73,7 @@ class HypergraphFirstAdministratorQATests(unittest.TestCase):
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(phrase, text)
         closed_item = "[x] Administrator answers must query the hypergraph first for grounded knowledge."

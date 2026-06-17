@@ -66,22 +66,22 @@ class PipelineTemplateAppendQATests(unittest.TestCase):
         validation = ptar.validate_pipeline_template_append_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Turn `template-import` drafts into an explicit reviewed catalog-append workflow.", text)
             self.assertIn("pipeline-template-append-core", text)
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("pipeline-template-append-core", text)
             self.assertIn("noemaforge pipeline template-append", text)

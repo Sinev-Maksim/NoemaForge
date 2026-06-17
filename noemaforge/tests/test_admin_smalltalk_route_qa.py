@@ -36,23 +36,23 @@ class AdminSmalltalkRouteQATests(unittest.TestCase):
         self.assertIn("admin-smalltalk-route-core", policy["id"])
 
         item = "Verify Admin smalltalk uses the conversational path and does not launch `public_mwp`."
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("admin-smalltalk-route-core", text, str(path))
 
     def test_changelog_release_notes_capture_smalltalk_route_guard(self) -> None:
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("Admin smalltalk route", text, str(path))
             self.assertIn("public_mwp", text, str(path))

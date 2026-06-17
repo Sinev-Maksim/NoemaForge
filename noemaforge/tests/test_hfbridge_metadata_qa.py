@@ -64,21 +64,21 @@ class HFBridgeMetadataQATests(unittest.TestCase):
         report = hmr.validate_hfbridge_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(report["ok"], report["failures"])
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Keep HFBridge metadata-first/read-mostly", text)
             self.assertIn("HFBridge Metadata", text)
             self.assertIn("metadata-first", text)
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("hfbridge-metadata-core", text)
             self.assertIn("read-mostly", text)

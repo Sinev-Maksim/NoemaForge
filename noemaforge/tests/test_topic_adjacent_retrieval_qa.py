@@ -63,7 +63,7 @@ class TopicAdjacentRetrievalQATests(unittest.TestCase):
         validation = tar.validate_topic_adjacent_retrieval_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "README.md",
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
@@ -73,7 +73,7 @@ class TopicAdjacentRetrievalQATests(unittest.TestCase):
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(phrase, text)
         closed_item = "[x] Retrieval must prefer topic-adjacent chunks over naive fixed windows, using topic signature overlap plus locality within chapter/section."

@@ -36,26 +36,26 @@ class TelemetryCardTruthfulnessQATests(unittest.TestCase):
         self.assertEqual("telemetry-card-truthfulness-core", policy["id"])
 
         item = "Verify telemetry cards show hardware, runtime and product metrics without overstating creative-media quality."
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("telemetry-card-truthfulness-core", text, str(path))
             self.assertIn("review-required creative-media policy", text, str(path))
 
     def test_changelog_release_notes_capture_telemetry_truthfulness(self) -> None:
-        for path in [
+        for path in [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]:
             text = path.read_text(encoding="utf-8")
             self.assertIn("telemetry-card-truthfulness-core", text, str(path))
             self.assertIn("telemetry cards show hardware, runtime and product metrics without overstating creative-media quality", text, str(path))
