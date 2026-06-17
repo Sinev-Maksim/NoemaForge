@@ -25,6 +25,26 @@ _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each
 
 _2026-06-17 hygiene sweep: items checked below were verified already implemented against current code — Codex #33 (sandbox `rlimits_available()` + run-meta flag), #42 (`contextlib` is a module-level import), #35 (`composite_pair_scoring._norm()` strips/lowercases `family`/`runtime`; `_load_candidates()` raises a clear `ValueError` for non-object entries)._
 
+**Broad-pytest validator-class follow-up (found during 2026-06-17 night watch).**
+~26 `*_qa.py` tests (`test_policy_summary_and_docs_record_completed_item` /
+`*_are_discoverable` / `*_capture_*_boundary`) fail because the src policy
+validators (e.g. `validate_stateful_admin_gui_policy` -> `_docs_report` at
+`noemaforge/src/stateful_admin_gui_runtime.py:329-355`, and `_resolve_refs:81-98`)
+check doc refs/tokens at non-existent locations (`project_root/TODO.md`,
+`/CHANGELOG.md`, `/RELEASE_NOTES.md`, and policy `refs` like `"TODO.md"`) instead
+of the canonical `noemaforge/docs/**` (`docs/TODO.md`, `docs/history/CHANGELOG.md`).
+`_docs_report` reads a missing file as empty text, so it reports
+`docs_tokens_missing` for every non-existent path. Each of the ~26 validators has
+its own `_docs_report`. The premerge release guard calls these with
+`include_docs=False`, so the *release* is not gated by `_docs_report` — only the
+QA tests are. **Recommended (needs owner sign-off; shared release-validator
+change):** (a) make each `_docs_report` require tokens only in EXISTING canonical
+docs and fail only when no existing canonical doc carries them (mirrors the Class A
+test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`/
+`CHANGELOG.md` to canonical `docs/TODO.md`/`docs/history/CHANGELOG.md`. Verify with
+a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
+touches release-gating logic across ~26 files + configs)_
+
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
