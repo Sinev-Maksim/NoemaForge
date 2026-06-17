@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge/v1",
   "kind": "AutostartLlmPolicy",
-  "version": "0.32.2",
+  "version": "0.33.0",
   "invariant": {
     "max_active_llms": 1,
     "mode": "switchable"
