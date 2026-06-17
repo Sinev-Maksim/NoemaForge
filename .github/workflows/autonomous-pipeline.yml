@@ -11,6 +11,8 @@ jobs:
   validate-claude-push:
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       branch: ${{ steps.info.outputs.branch }}
       changed_count: ${{ steps.info.outputs.changed_count }}
@@ -741,6 +743,9 @@ jobs:
     needs: codex-review
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read      # list branches/commits
+      actions: write      # createWorkflowDispatch -> qa-version-bump
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
