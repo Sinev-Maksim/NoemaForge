@@ -232,9 +232,11 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
+- [x] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
   `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
-  the user's language — never hallucinate them as filenames.
+  the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
+  in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
+  path (`test_admin_state_glossary.py`).
 - [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
