@@ -65,21 +65,25 @@ class CleanDistributionAllowlistQATests(unittest.TestCase):
         report = cdar.validate_clean_distribution_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(report["ok"], report["failures"])
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Build public distributions from an allowlist", text)
             self.assertIn("Clean Distribution Allowlist", text)
             self.assertIn("public core seed", text)
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("clean-distribution-allowlist-core", text)
             self.assertIn("allowlist-built public distributions", text)

@@ -66,22 +66,26 @@ class WikiPatchCommitHelperQATests(unittest.TestCase):
         validation = wpchr.validate_wiki_patch_commit_helper_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Add automatic wiki repo branch/commit helper after operator review in 0.31.x.", text)
             self.assertIn("wiki-patch-commit-helper-core", text)
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("wiki-patch-commit-helper-core", text)
             self.assertIn("noemaforge wiki-patch commit-plan", text)

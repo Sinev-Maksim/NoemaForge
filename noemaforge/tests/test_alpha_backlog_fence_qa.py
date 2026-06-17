@@ -64,20 +64,24 @@ class AlphaBacklogFenceQATests(unittest.TestCase):
         report = abfr.validate_alpha_backlog_fence_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(report["ok"], report["failures"])
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Keep this as backlog-only until alpha gates are stable.", text)
             self.assertIn("Alpha Backlog Fence", text)
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("alpha-backlog-fence-core", text)
             self.assertIn("backlog-only promotion blocker", text)

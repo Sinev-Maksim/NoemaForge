@@ -36,26 +36,30 @@ class StatefulAdminGuiQATests(unittest.TestCase):
         self.assertEqual("stateful-admin-gui-core", policy["id"])
 
         item = "Validate stateful Admin GUI after installation: conversation restore, persona portrait, task queue, job panel, telemetry and pipeline dock."
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("stateful-admin-gui-core", text, str(path))
             self.assertIn("conversation restore, persona portrait, task queue, job panel, telemetry and pipeline dock", text, str(path))
 
     def test_changelog_release_notes_capture_stateful_gui_contract(self) -> None:
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("stateful-admin-gui-core", text, str(path))
             self.assertIn("stateful Admin GUI", text, str(path))

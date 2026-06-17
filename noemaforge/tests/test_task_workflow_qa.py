@@ -36,26 +36,30 @@ class TaskWorkflowQATests(unittest.TestCase):
         self.assertEqual("task-workflow-core", policy["id"])
 
         item = "Verify task add/edit/prioritize/block/complete through Admin chat and API."
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("task-workflow-core", text, str(path))
             self.assertIn("Admin chat and API", text, str(path))
 
     def test_changelog_release_notes_capture_task_workflow(self) -> None:
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("task-workflow-core", text, str(path))
             self.assertIn("task add/edit/prioritize/block/complete", text, str(path))

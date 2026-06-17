@@ -63,7 +63,7 @@ class GroundedAdministratorQATests(unittest.TestCase):
         validation = gar.validate_grounded_administrator_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "README.md",
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
@@ -73,7 +73,9 @@ class GroundedAdministratorQATests(unittest.TestCase):
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(phrase, text)
         self.assertIn("[x] Grounded Administrator as the default knowledge surface.", (PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md").read_text(encoding="utf-8"))

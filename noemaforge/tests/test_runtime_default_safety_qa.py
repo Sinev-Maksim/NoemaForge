@@ -66,23 +66,27 @@ class RuntimeDefaultSafetyQATests(unittest.TestCase):
         validation = rdsr.validate_runtime_default_safety_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
         self.assertTrue(validation["ok"], validation["failures"])
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("[x] Do not enable parallel heavy model runtime by default.", text)
             self.assertIn("[x] Do not auto-start heavy GPU LLM backends at boot.", text)
             self.assertIn("runtime-default-safety-core", text)
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "README.md",
             ROOT / "docs" / "README.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("runtime-default-safety-core", text)
             self.assertIn("max_active_llms=1", text)

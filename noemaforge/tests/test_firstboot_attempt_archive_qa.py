@@ -35,22 +35,26 @@ class FirstbootAttemptArchiveQATests(unittest.TestCase):
 
     def test_todo_changelog_and_release_notes_record_completed_item(self) -> None:
         item = "Add automatic archival of failed/invalid firstboot attempts."
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("firstboot-attempt-archive", text, str(path))
 
-        for path in [p for p in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ] if p.exists()]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("failed/invalid firstboot", text, str(path))
             self.assertIn("firstboot-attempt-archive", text, str(path))
