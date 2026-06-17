@@ -9,7 +9,6 @@
     "docs/architecture/**/*.md",
     "docs/backlog/**/*.md",
     "docs/quality/**/*.md",
-    "TODO.md",
     "context.md"
   ],
   "max_chars_per_doc": 12000,

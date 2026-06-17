@@ -42,12 +42,8 @@
     "noemaforge/tools/prep/noemaforge-trixie-preflight.sh",
     "noemaforge/tools/prep/noemaforge-first-launch.sh",
     "noemaforge/tools/prep/noemaforge-gui-prepare.sh",
-    "TODO.md",
-    "noemaforge/TODO.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
-    "CHANGELOG.md",
-    "RELEASE_NOTES.md",
     "docs/history/CHANGELOG.md",
     "noemaforge/docs/history/CHANGELOG.md"
   ]
