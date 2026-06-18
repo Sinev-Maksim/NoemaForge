@@ -75,9 +75,11 @@ periodically so older reviews do not rot in comment threads.
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
 - [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
   runtime modules and unit tests into one shared helper. (Codex #31)
-- [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
-  `resolve()`; serialize `prune_terminal()` with other `jobs.json` writes if it is
-  ever wired into a periodic path. (Codex #37)
+- [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
+  (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
+  `_write_job_file` through the guard (read returns None, write raises) so no job-file
+  IO can escape `jobs_dir`. `prune_terminal()` already uses `_safe_job_file` and is not
+  wired into a periodic path, so no extra serialization needed. (Codex #37)
 - [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
   to module top level. (Codex #42)
 - [x] **Create `docs/architecture/system-context.md`** or drop the dangling
