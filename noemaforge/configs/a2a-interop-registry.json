@@ -64,7 +64,7 @@
         "src/a2a_interop_registry_runtime.py",
         "configs/tool-policy.yaml",
         "configs/tool-registry.yaml",
-        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.31.21.alpha.md"
       ]
     },
     {
@@ -108,7 +108,7 @@
         "src/a2a_interop_registry_runtime.py",
         "src/production_ai_contracts.py",
         "contracts/production_ai_contracts.schema.json",
-        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.32.1.md"
+        "docs/wiki/governance/mcp-a2a-zero-trust-extension-boundaries-0.31.21.alpha.md"
       ]
     }
   ]
