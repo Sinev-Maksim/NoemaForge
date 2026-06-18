@@ -82,8 +82,12 @@ periodically so older reviews do not rot in comment threads.
   to module top level. (Codex #42)
 - [x] **Create `docs/architecture/system-context.md`** or drop the dangling
   "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
-- [ ] **Add a mixed-case wiki-path regression test** locking the portable
-  (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
+- [x] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. DONE:
+  `noemaforge/tests/test_wiki_check_index_order.py` drives `wiki_pages()` over a
+  temp mixed-case tree and asserts codepoint order (uppercase < lowercase),
+  explicitly `!=` case-folded order, so a regression to case-insensitive sorting
+  fails the gate. (Codex #83)
 
 ### Broad pytest run-to-completion + failure triage 2026-06-16
 
