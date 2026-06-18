@@ -59,7 +59,7 @@ periodically so older reviews do not rot in comment threads.
 
 ### Harvest 2026-06-11 (review back-sweep #5–#85)
 
-- [ ] **Replace smart quotes in the dashboard locale option template** — 5 literal
+- [x] **Replace smart quotes in the dashboard locale option template** — 5 literal
   curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
   they can produce malformed `<option value=…>` values and break locale selection.
   (Codex #5)
@@ -80,7 +80,7 @@ periodically so older reviews do not rot in comment threads.
   ever wired into a periodic path. (Codex #37)
 - [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
   to module top level. (Codex #42)
-- [ ] **Create `docs/architecture/system-context.md`** or drop the dangling
+- [x] **Create `docs/architecture/system-context.md`** or drop the dangling
   "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
 - [ ] **Add a mixed-case wiki-path regression test** locking the portable
   (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)

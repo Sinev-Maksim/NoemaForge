@@ -433,7 +433,7 @@ async function loadDashboardBackendState(){
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value=”${htmlEscape(x)}”>${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
   // Try session-based restore first (persists across page refresh); fall back to dashboard state.
   let restoredFromSession = false;
   try{

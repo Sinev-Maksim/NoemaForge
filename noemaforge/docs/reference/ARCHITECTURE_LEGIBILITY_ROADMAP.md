@@ -88,7 +88,8 @@ contributor (hiring reviewer, OSS maintainer, platform architect):
 ## Sequencing (limit-aware)
 
 1. **Now (this PR):** this roadmap + the core `docs/architecture/*` pages (control-plane,
-   toolproxy-capabilities, contract-epochs, system-context). Highest leverage, doc-only, safe.
+   toolproxy-capabilities, contract-epochs). Highest leverage, doc-only, safe.
+   (`system-context` / `runtime-topology` remain planned — see the target IA above.)
 2. **Next 0.32.2 doc PRs:** security docs (threat-model, signed-manifests, local-only-admin),
    operations docs (first-start, operator-runbook, release-verification), ADR-0001/0002, the
    capability-token + release-manifest JSON schemas, example flows/environments, README trust-model.
