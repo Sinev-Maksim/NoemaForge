@@ -63,9 +63,12 @@ import uuid
 import shutil
 import subprocess
 import base64
+import contextlib
 import json
 import tempfile
 import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 try:
     import resource
 except ImportError:  # Unix-only module; absent on Windows (dev host). POSIX rlimits no-op there.
@@ -80,9 +83,6 @@ def rlimits_available() -> bool:
     not mistaken for genuinely resource-limited execution.
     """
     return resource is not None
-import contextlib
-from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass

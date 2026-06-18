@@ -36,6 +36,15 @@ def _is_posix() -> bool:
     return os.name == "posix"
 
 
+def kill_signal() -> int:
+    """Force-kill signal for the host: ``SIGKILL`` where defined, else ``SIGTERM``.
+
+    Windows has no ``signal.SIGKILL``; routing the fallback through one helper keeps
+    the cross-platform process-kill call sites consistent (Codex #34).
+    """
+    return getattr(signal, "SIGKILL", signal.SIGTERM)
+
+
 class ProcessGroupRunner:
     """Launch a subprocess in its own process group and integrate with JobManager.
 
