@@ -27,7 +27,7 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from job_manager import JobManager  # noqa: E402
-from process_group_runner import ProcessGroupRunner  # noqa: E402
+from process_group_runner import ProcessGroupRunner, kill_signal  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -253,6 +253,24 @@ class TestProcessGroupRunnerKeepDisplay(unittest.TestCase):
         runner = ProcessGroupRunner(job_id=job["job_id"], job_manager=self.jm, require_keep_display=False)
         ok = runner.validate_keep_display()
         self.assertTrue(ok)
+
+
+class TestKillSignal(unittest.TestCase):
+    """kill_signal() routes the force-kill signal portably (Codex #34)."""
+
+    def test_returns_sigkill_or_sigterm(self) -> None:
+        import signal
+        expected = getattr(signal, "SIGKILL", signal.SIGTERM)
+        self.assertEqual(kill_signal(), expected)
+
+    def test_posix_prefers_sigkill_else_sigterm(self) -> None:
+        import os
+        import signal
+        if os.name == "posix":
+            self.assertEqual(kill_signal(), signal.SIGKILL)
+        else:
+            # No SIGKILL on this platform — must fall back to SIGTERM.
+            self.assertEqual(kill_signal(), signal.SIGTERM)
 
 
 if __name__ == "__main__":
