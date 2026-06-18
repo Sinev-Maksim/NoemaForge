@@ -27,9 +27,15 @@ permissions:
   issues: write
   pull-requests: read
 
+# Burst events are normal here (e.g. `gh pr create --label` emits opened +
+# labeled back-to-back; one branch push fans out a synchronize per open PR).
+# Queue duplicates instead of cancelling: with cancel-in-progress the older
+# run lingered as a misleading CANCELLED check on every such burst (accepted
+# decision A3). The job is a ~10s idempotent comment upsert, so letting the
+# duplicate run serially is cheaper than the noise.
 concurrency:
   group: p0-status-ledger-issue-1
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   update-ledger:
