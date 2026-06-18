@@ -78,6 +78,7 @@ import time
 import uuid
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 from platform_paths import DEFAULT_PATHS as _pp
+from process_group_runner import kill_signal
 
 try:  # Optional dependency used for policy loading.
     import yaml  # type: ignore
@@ -786,8 +787,8 @@ def _terminate_pid(pid: int) -> bool:
                     LIVE_PROCS.pop(int(pid), None)
                 return True
             time.sleep(0.1)
-        # signal.SIGKILL is absent on Windows; fall back to SIGTERM (still terminates the process).
-        os.kill(int(pid), getattr(signal, "SIGKILL", signal.SIGTERM))
+        # SIGKILL is absent on Windows; kill_signal() falls back to SIGTERM (still terminates).
+        os.kill(int(pid), kill_signal())
         if proc is not None:
             try:
                 proc.wait(timeout=0.5)
