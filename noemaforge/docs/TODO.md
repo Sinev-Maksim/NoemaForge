@@ -49,9 +49,9 @@ touches release-gating logic across ~26 files + configs)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku)_
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku — DONE: explicit Test-Path guard exits 2 with a FAIL message)_
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku)_
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
 **Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
 Codex review is handled **before the PR merges** — each suggestion is either applied on
 the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
@@ -59,20 +59,20 @@ periodically so older reviews do not rot in comment threads.
 
 ### Harvest 2026-06-11 (review back-sweep #5–#85)
 
-- [ ] **Replace smart quotes in the dashboard locale option template** — 5 literal
+- [x] **Replace smart quotes in the dashboard locale option template** — 5 literal
   curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
   they can produce malformed `<option value=…>` values and break locale selection.
   (Codex #5)
 - [ ] **Frontend session restore narrows to `selected_mode`** — either restore
   `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
   code comment that claims full history restore. (Codex #5)
-- [ ] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
-  verify no duplicated entries after the events/session additions. (Codex #10)
+- [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
+  verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
   `env_description` parameter and quote `echo "$response"`. (Codex #11)
-- [ ] **`brainui.py` path containment** — prefer
+- [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
-  string checks. (Codex #11)
+  string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
 - [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
   runtime modules and unit tests into one shared helper. (Codex #31)
 - [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
@@ -80,7 +80,7 @@ periodically so older reviews do not rot in comment threads.
   ever wired into a periodic path. (Codex #37)
 - [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
   to module top level. (Codex #42)
-- [ ] **Create `docs/architecture/system-context.md`** or drop the dangling
+- [x] **Create `docs/architecture/system-context.md`** or drop the dangling
   "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
 - [ ] **Add a mixed-case wiki-path regression test** locking the portable
   (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
@@ -121,9 +121,9 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
