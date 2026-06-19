@@ -377,8 +377,25 @@ release→main conflict resolution; statuses updated on restore._
 
 ### E. Supply chain
 
-- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
-  Dependabot for `github-actions` updates; Scorecard already flags this.
+- [x] **Harden security automation and dependency updates.** GitHub Actions are
+  SHA-pinned and tracked by weekly Dependabot updates; root Python metadata is
+  covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
+  SARIF results, while GitHub CodeQL default setup remains the authoritative
+  CodeQL lane without a conflicting advanced workflow.
+- [ ] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Review
+  each `insecure-innerhtml` location and replace unsafe DOM construction where
+  user-controlled content can reach the sink.
+- [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
+  raw-query construction path and parameterize or constrain active inputs.
+- [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
+  hardened parsing at every untrusted or externally supplied XML boundary.
+- [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
+  Prove fixed argv/environment allowlists or remove tainted command construction.
+
+The counts above are Semgrep baseline findings, not confirmed vulnerabilities
+until audited. Baseline evidence: run `27828184758`, SARIF artifact SHA-256
+`6db96262c017d13c9e7e8ae186d374321c26d89941f2ddd7e9f20e5e9c23a792`, retained
+through 2026-06-26.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 

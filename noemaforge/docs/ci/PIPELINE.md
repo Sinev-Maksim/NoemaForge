@@ -45,6 +45,32 @@ UAT acceptance scenarios into a single **`acceptance-evidence`** artifact — on
 from the Actions run — and attaches a build-provenance attestation. This makes the evidence a
 visible repository layer rather than something you must read the code to find.
 
+### `semgrep.yml` — Semgrep CE code scanning
+Runs Semgrep CE `1.166.0` on pull requests, release-line pushes, manual dispatches, and a weekly
+schedule. The workflow checks out `semgrep/semgrep-rules` at commit
+`d41fb34cf74466e2878af5f268ebf54466a04541`, scans the Python, JavaScript, TypeScript, and Go rule
+directories with registry metrics disabled, and uploads `ERROR` findings to GitHub Code Scanning as
+the `semgrep-ce` SARIF category. The exact SARIF is also retained as an Actions artifact for seven
+days so triage remains reproducible when the alerts API is unavailable. Findings are triaged in
+Code Scanning; promotion to an issue is a manual decision that must include rationale, so CI cannot
+create duplicate or unreviewed issues.
+
+The blocking lane excludes only six triaged rules: generic dynamic-subprocess audit, Python
+identity-comparison/sleep/tempfile/open best-practice checks, and the duplicate JavaScript
+`insecure-document-method` rule. These produced 170 non-security, generic-audit, or duplicate
+findings in run `27828184758`; the 45 remaining DOM/XSS, dynamic SQL, XML-boundary, and subprocess
+taint findings stay visible until their dedicated audits are complete.
+
+### Dependency and CodeQL ownership
+Dependabot checks the root `pyproject.toml` through the `pip` ecosystem and keeps SHA-pinned GitHub
+Actions current on a weekly cadence. There is no `npm` entry because the repository has no Node
+package manifest or lock file, and updates are never auto-merged.
+
+GitHub CodeQL **default setup** is the authoritative CodeQL lane. The repository deliberately has
+no advanced `.github/workflows/codeql.yml`: GitHub rejects advanced-setup SARIF uploads while
+default setup is enabled. The connected repository API used for this change does not expose the
+code-scanning alerts endpoint, so this documentation does not assert a current open-alert count.
+
 ## Review lanes
 
 | Lane | Role |

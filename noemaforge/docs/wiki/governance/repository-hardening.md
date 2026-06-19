@@ -49,6 +49,31 @@ GitHub API), so the model process holds no write capability.
   Dependabot (`github-actions`, weekly) keeps the pins current.
 - Workflow `GITHUB_TOKEN` defaults to read-only; write scope is granted per-job
   only where needed.
+- Dependabot checks the root Python metadata (`pip`) and SHA-pinned GitHub
+  Actions weekly. Updates are grouped, bounded, and require normal review; no
+  dependency update is auto-merged. There is no `npm` ecosystem entry because
+  the repository has no Node package manifest or lock file.
+- `.github/workflows/semgrep.yml` runs Semgrep CE `1.166.0` with the official
+  rules repository pinned at commit
+  `d41fb34cf74466e2878af5f268ebf54466a04541`. It loads only the checked-out
+  Python, JavaScript, TypeScript, and Go rule directories, disables registry
+  metrics, and uploads `ERROR` findings as the `semgrep-ce` SARIF category. The
+  exact SARIF is retained as a seven-day Actions artifact for reproducible
+  triage when direct code-scanning alert API access is unavailable; it is not a
+  long-lived release artifact.
+- The blocking Semgrep lane excludes only six reviewed noisy rules: one generic
+  subprocess audit, four Python correctness/best-practice checks, and the
+  duplicate JavaScript `insecure-document-method` rule. The meaningful DOM/XSS,
+  dynamic SQL, XML input-boundary, and subprocess-taint findings remain in
+  SARIF; rule exclusions cannot be used to hide those groups.
+- GitHub CodeQL default setup is the authoritative CodeQL lane. An advanced
+  `codeql.yml` is intentionally absent because GitHub rejects advanced-setup
+  SARIF uploads while default setup is enabled. Direct alert-count access was
+  unavailable during this change, so no current open-alert count is claimed.
+- Code Scanning findings are triaged before promotion to an issue. False
+  positives are dismissed only with repository-specific rationale recorded in
+  Code Scanning; issue creation remains manual to avoid permission expansion,
+  duplicate alerts, and fork or Dependabot PR failures.
 - Release evidence is generated and verified in CI (`ci/regen_evidence.py`); the
   committed copies on release branches are maintained by `evidence-refresh.yml`.
 
