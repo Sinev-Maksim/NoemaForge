@@ -82,6 +82,15 @@ function addMessage(who, text, cls=''){
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
+function _addPendingBubble(){
+  const div = document.createElement('div');
+  div.className = 'bubble Admin pending-indicator';
+  div.innerHTML = '<small>Admin</small><span class="pending-dots">…</span>';
+  const chatLog = el('chat-log');
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
 function addSystemLine(text){
   const div = document.createElement('div');
   div.className = 'system-line';
@@ -146,6 +155,7 @@ function absorbResult(result){
   const personaSwitch = result.persona_switch;
   if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); }
   if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '');
+  else if(result.ok === false) addMessage('Admin', `Error: ${result.error || 'unknown error'}`, 'error');
   if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
   if(Array.isArray(result.artifacts)) renderArtifacts(result.artifacts);
   if(Array.isArray(result.internal_events)) renderInternal(result.internal_events);
@@ -182,6 +192,7 @@ async function sendAdmin(){
   if(!text) return;
   input.value = '';
   addMessage('User', text);
+  const pendingBubble = _addPendingBubble();
   el('admin-send').disabled = true; el('chat-status').textContent = t('status.running','running');
   try{
     const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
@@ -199,8 +210,9 @@ async function sendAdmin(){
     }else{
       result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
     }
+    pendingBubble.remove();
     absorbResult(result);
-  }catch(e){ addMessage('Admin', `Error: ${String(e)}`, 'error'); }
+  }catch(e){ pendingBubble.remove(); addMessage('Admin', `Error: ${String(e)}`, 'error'); }
   finally{ el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }
 function shortenPath(path){ if(!path) return '—'; const parts = String(path).split('/'); return parts.slice(-2).join('/'); }
