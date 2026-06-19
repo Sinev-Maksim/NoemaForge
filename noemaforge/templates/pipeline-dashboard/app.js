@@ -375,9 +375,10 @@ async function loadPipelines(){
 }
 function startPipeline(id){
   const info = pipelineById(id);
-  el('pipeline-confirm-title').textContent = `Pipeline: ${id}`;
+  const safeId = info.id || id || 'pipeline';
+  el('pipeline-confirm-title').textContent = `Pipeline: ${safeId}`;
   el('pipeline-confirm-desc').textContent = info.description || '';
-  el('pipeline-confirm-req').value = `Запусти ${id} по стандартному сценарию`;
+  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию`;
   el('pipeline-confirm').classList.remove('hidden');
   el('pipeline-confirm-req').focus();
   el('pipeline-confirm-req').select();
