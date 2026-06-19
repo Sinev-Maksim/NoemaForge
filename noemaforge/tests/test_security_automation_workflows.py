@@ -10,6 +10,14 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 FULL_SHA_ACTION = re.compile(r"^[^@\s]+@[0-9a-f]{40}$")
+EXCLUDED_RULES = {
+    "semgrep-rules.python.lang.security.audit.dangerous-subprocess-use-audit",
+    "semgrep-rules.python.lang.correctness.common-mistakes.identical-is-comparison",
+    "semgrep-rules.python.lang.best-practice.arbitrary-sleep",
+    "semgrep-rules.python.lang.correctness.tempfile.tempfile-without-flush",
+    "semgrep-rules.python.lang.best-practice.open-never-closed",
+    "semgrep-rules.javascript.browser.security.insecure-document-method",
+}
 
 
 def _load_workflow(path: Path) -> dict[str, Any]:
@@ -123,6 +131,10 @@ class SecurityAutomationWorkflowTest(unittest.TestCase):
         ):
             self.assertIn(option, command)
         self.assertNotIn("--config auto", command)
+        self.assertEqual(
+            set(re.findall(r"--exclude-rule\s+(\S+)", command)),
+            EXCLUDED_RULES,
+        )
 
     def test_sarif_uses_codeql_v4_uploader(self) -> None:
         upload = next(

@@ -37,6 +37,13 @@ independently on `release/0.32.2-hardening`; this branch does not block or repla
 - GitHub CodeQL default setup remains the authoritative CodeQL lane; no advanced
   workflow is added because it would conflict with default setup SARIF handling.
   The current open-alert count was not independently available for this change.
+- Semgrep baseline triage from run `27828184758` leaves four release-blocker
+  audit tasks: frontend DOM/XSS (22), dynamic SQL construction (15), XML parser
+  and input boundaries (5), and subprocess taint/allowlists (3). These 45
+  findings are not confirmed vulnerabilities until audited in separate PRs.
+  Baseline SARIF SHA-256 is
+  `6db96262c017d13c9e7e8ae186d374321c26d89941f2ddd7e9f20e5e9c23a792` and the
+  audit artifact is retained through 2026-06-26.
 
 ## 0.33.0 roadmap (development order)
 

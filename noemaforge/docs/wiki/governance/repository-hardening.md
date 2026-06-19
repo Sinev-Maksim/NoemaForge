@@ -61,6 +61,11 @@ GitHub API), so the model process holds no write capability.
   exact SARIF is retained as a seven-day Actions artifact for reproducible
   triage when direct code-scanning alert API access is unavailable; it is not a
   long-lived release artifact.
+- The blocking Semgrep lane excludes only six reviewed noisy rules: one generic
+  subprocess audit, four Python correctness/best-practice checks, and the
+  duplicate JavaScript `insecure-document-method` rule. The meaningful DOM/XSS,
+  dynamic SQL, XML input-boundary, and subprocess-taint findings remain in
+  SARIF; rule exclusions cannot be used to hide those groups.
 - GitHub CodeQL default setup is the authoritative CodeQL lane. An advanced
   `codeql.yml` is intentionally absent because GitHub rejects advanced-setup
   SARIF uploads while default setup is enabled. Direct alert-count access was

@@ -55,6 +55,12 @@ days so triage remains reproducible when the alerts API is unavailable. Findings
 Code Scanning; promotion to an issue is a manual decision that must include rationale, so CI cannot
 create duplicate or unreviewed issues.
 
+The blocking lane excludes only six triaged rules: generic dynamic-subprocess audit, Python
+identity-comparison/sleep/tempfile/open best-practice checks, and the duplicate JavaScript
+`insecure-document-method` rule. These produced 170 non-security, generic-audit, or duplicate
+findings in run `27828184758`; the 45 remaining DOM/XSS, dynamic SQL, XML-boundary, and subprocess
+taint findings stay visible until their dedicated audits are complete.
+
 ### Dependency and CodeQL ownership
 Dependabot checks the root `pyproject.toml` through the `pip` ecosystem and keeps SHA-pinned GitHub
 Actions current on a weekly cadence. There is no `npm` entry because the repository has no Node

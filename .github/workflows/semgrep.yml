@@ -50,6 +50,12 @@ jobs:
           --config .semgrep-rules/typescript
           --config .semgrep-rules/go
           --exclude .semgrep-rules
+          --exclude-rule semgrep-rules.python.lang.security.audit.dangerous-subprocess-use-audit
+          --exclude-rule semgrep-rules.python.lang.correctness.common-mistakes.identical-is-comparison
+          --exclude-rule semgrep-rules.python.lang.best-practice.arbitrary-sleep
+          --exclude-rule semgrep-rules.python.lang.correctness.tempfile.tempfile-without-flush
+          --exclude-rule semgrep-rules.python.lang.best-practice.open-never-closed
+          --exclude-rule semgrep-rules.javascript.browser.security.insecure-document-method
           --severity ERROR
           --sarif
           --output semgrep.sarif
