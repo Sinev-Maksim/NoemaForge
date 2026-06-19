@@ -72,18 +72,20 @@ class TestArtifactChatCardHelper(unittest.TestCase):
         body = m.group(1)
         self.assertIn("navigator.clipboard", body)
 
-    def test_htmlescape_used_for_label(self):
+    def test_textcontent_used_for_user_fields(self):
+        # User-controlled fields (label, meta, path) must use textContent, not innerHTML.
         m = re.search(r'function _artifactChatCard\(a\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m)
         body = m.group(1)
-        self.assertIn("htmlEscape", body)
+        self.assertIn(".textContent", body)
 
     def test_no_innerhtml_on_artifact_path(self):
-        # path text must be htmlEscaped before being written to innerHTML.
+        # path must be set via textContent, not interpolated into innerHTML.
         m = re.search(r'function _artifactChatCard\(a\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m)
         body = m.group(1)
-        self.assertIn("htmlEscape(artifactPath", body)
+        self.assertIn("ac-path", body)
+        self.assertNotIn("htmlEscape(artifactPath", body)
 
 
 class TestPostArtifactsToChat(unittest.TestCase):

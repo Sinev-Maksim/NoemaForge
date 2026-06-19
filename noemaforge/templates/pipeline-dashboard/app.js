@@ -142,12 +142,12 @@ function renderInternal(events){
 function _artifactChatCard(a){
   const div = document.createElement('div');
   div.className = 'bubble Admin artifact-inline-card';
-  const label = htmlEscape(a.label || a.type || 'artifact');
-  const status = a.status ? ` · ${htmlEscape(a.status)}` : '';
-  const type = a.type ? ` · ${htmlEscape(a.type)}` : '';
-  const pathText = htmlEscape(artifactPath(a) || a.open_command || '—');
-  const dlUrl = htmlEscape(artifactDownloadUrl(a));
-  div.innerHTML = `<small>Artifact</small><div class="artifact-card-inline"><b>${label}</b><span class="muted">${status}${type}</span><code style="display:block;margin:4px 0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pathText}</code><div class="artifact-actions"><button class="ghost small" data-inline-open>Open</button>${dlUrl ? `<a class="ghost small artifact-link" href="${dlUrl}" download>Download</a>` : ''}<button class="ghost small" data-inline-copy>Copy path</button></div></div>`;
+  const dlUrl = artifactDownloadUrl(a);
+  div.innerHTML = '<small>Artifact</small><div class="artifact-card-inline"><b class="ac-label"></b><span class="muted ac-meta"></span><code class="ac-path" style="display:block;margin:4px 0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></code><div class="artifact-actions"><button class="ghost small" data-inline-open>Open</button>' + (dlUrl ? '<a class="ghost small artifact-link" data-inline-dl download>Download</a>' : '') + '<button class="ghost small" data-inline-copy>Copy path</button></div></div>';
+  div.querySelector('.ac-label').textContent = a.label || a.type || 'artifact';
+  div.querySelector('.ac-meta').textContent = (a.status ? ` · ${a.status}` : '') + (a.type ? ` · ${a.type}` : '');
+  div.querySelector('.ac-path').textContent = artifactPath(a) || a.open_command || '—';
+  if (dlUrl) div.querySelector('[data-inline-dl]').href = dlUrl;
   div.querySelector('[data-inline-open]')?.addEventListener('click', async () => {
     const url = artifactPreviewUrl(a);
     if(!url) return;
