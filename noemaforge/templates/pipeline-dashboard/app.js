@@ -139,6 +139,97 @@ function renderInternal(events){
   const arr = events || [];
   el('internal-chat').innerHTML = arr.length ? arr.slice(-8).map(e => `<div class="internal-event">${htmlEscape(e)}</div>`).join('') : `<p class="muted">${htmlEscape(t('internal.none','No internal handoffs yet.'))}</p>`;
 }
+function _updatePipelineRunPanel(panel, status){
+  const stageStates = Array.isArray(status.stage_states) ? status.stage_states : [];
+  const statusLine = panel.querySelector('.pipeline-run-status');
+  if(statusLine) statusLine.textContent = `Status: ${status.status || '—'}`;
+  stageStates.forEach(({stage, state}) => {
+    const li = Array.from(panel.querySelectorAll('.pipeline-run-stage')).find(n => n.dataset.stage === stage);
+    if(!li) return;
+    li.className = `pipeline-run-stage ${state}`;
+    const icon = li.querySelector('.stage-icon');
+    if(icon) icon.textContent = state === 'active' ? '▶' : state === 'completed' ? '✓' : '○';
+  });
+  const errors = (status.events || []).filter(ev => ev.type === 'stage_failed' || ev.type === 'run_failed');
+  if(errors.length){
+    let errDiv = panel.querySelector('.pipeline-run-errors');
+    if(!errDiv){ errDiv = document.createElement('div'); errDiv.className = 'pipeline-run-errors'; panel.insertBefore(errDiv, panel.querySelector('.pipeline-run-refresh')); }
+    errDiv.innerHTML = '';
+    errors.forEach(ev => { const d = document.createElement('div'); d.className = 'pipeline-run-error-line'; d.textContent = `✗ ${ev.stage || '?'}: ${(ev.data && ev.data.error) || ev.type}`; errDiv.appendChild(d); });
+  }
+}
+function renderPipelineRunPanel(result){
+  const runId = result.run_id || (result.raw && result.raw.run_id) || '';
+  const pipelineId = ((result.route || {}).pipeline_id) || '';
+  const initialStatus = (result.raw && result.raw.status) || result.status || 'ready_for_admin_approval';
+  const catalogInfo = pipelineById(pipelineId);
+  const stages = Array.isArray(catalogInfo.stages) ? catalogInfo.stages : [];
+  const panel = document.createElement('div');
+  panel.className = 'bubble System pipeline-run-panel';
+  panel.dataset.runId = runId;
+  // Header
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'pipeline-run-header';
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'pipeline-run-title';
+  titleSpan.textContent = `Pipeline run: ${pipelineId || 'unknown'}`;
+  const runIdCode = document.createElement('code');
+  runIdCode.className = 'pipeline-run-id';
+  runIdCode.textContent = runId || '—';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'ghost small';
+  copyBtn.textContent = 'Copy ID';
+  copyBtn.addEventListener('click', () => { navigator.clipboard?.writeText(runId); });
+  headerDiv.appendChild(titleSpan);
+  headerDiv.appendChild(runIdCode);
+  headerDiv.appendChild(copyBtn);
+  panel.appendChild(headerDiv);
+  // Status
+  const statusLine = document.createElement('div');
+  statusLine.className = 'pipeline-run-status muted';
+  statusLine.textContent = `Status: ${initialStatus}`;
+  panel.appendChild(statusLine);
+  // Stage list
+  const stageList = document.createElement('ol');
+  stageList.className = 'pipeline-run-stages';
+  stages.forEach((s, i) => {
+    const li = document.createElement('li');
+    li.dataset.stage = s;
+    const state = i === 0 ? 'active' : 'pending';
+    li.className = `pipeline-run-stage ${state}`;
+    const icon = document.createElement('span');
+    icon.className = 'stage-icon';
+    icon.textContent = state === 'active' ? '▶' : '○';
+    const label = document.createElement('span');
+    label.textContent = s;
+    li.appendChild(icon);
+    li.appendChild(label);
+    stageList.appendChild(li);
+  });
+  panel.appendChild(stageList);
+  // Refresh button
+  const refreshBtn = document.createElement('button');
+  refreshBtn.className = 'ghost small pipeline-run-refresh';
+  refreshBtn.textContent = 'Refresh status';
+  refreshBtn.addEventListener('click', async () => {
+    if(!runId){ statusLine.textContent = 'No run ID — cannot refresh'; return; }
+    refreshBtn.disabled = true;
+    refreshBtn.textContent = '…';
+    try{
+      const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+      _updatePipelineRunPanel(panel, status);
+    } catch(e){
+      statusLine.textContent = `Refresh error: ${e.message || String(e)}`;
+    } finally{
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'Refresh status';
+    }
+  });
+  panel.appendChild(refreshBtn);
+  const chatLog = el('chat-log');
+  chatLog.appendChild(panel);
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
 function absorbResult(result){
   latestRaw = result || {};
   el('raw-json').textContent = JSON.stringify(result, null, 2);
@@ -149,6 +240,7 @@ function absorbResult(result){
   if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
   if(Array.isArray(result.artifacts)) renderArtifacts(result.artifacts);
   if(Array.isArray(result.internal_events)) renderInternal(result.internal_events);
+  if(result.mode === 'pipeline_run' || route.intent === 'pipeline_run') renderPipelineRunPanel(result);
   if(result.type === 'model_selection' || route.intent === 'model_selection') pendingAction = null;
   if(route.intent === 'model_selection' || result.mode === 'model_selection_prompt') pendingAction = {type:'model_selection', scope:'dev team'};
   refreshEpoch(false); refreshJobs(); refreshTasks();

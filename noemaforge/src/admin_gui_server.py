@@ -459,6 +459,15 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 job_id = unquote(path.rsplit("/", 1)[-1])
                 self._send_json(self.server.job_get(job_id))
                 return
+            if path.startswith("/api/pipeline/run/"):
+                # /api/pipeline/run/<run_id>/status
+                parts = path.strip("/").split("/")
+                if len(parts) >= 5 and parts[4] == "status":
+                    run_id = unquote(parts[3])
+                    self._send_json(self.server.pipeline_run_status(run_id))
+                    return
+                self._send_json({"ok": False, "error": "unknown pipeline run API path"}, status=404)
+                return
             self._serve_static(path)
         except Exception as exc:  # pragma: no cover - server safety net
             # Guard against double-response: if wfile.write() already failed (e.g.
@@ -1842,6 +1851,36 @@ class AdminGuiServer(ThreadingHTTPServer):
         if body.get("note"): cmd.extend(["--note", str(body["note"])])
         if body.get("allow_degraded"): cmd.append("--allow-degraded")
         return run_json(cmd, env=self.env(), timeout=120)
+
+    def pipeline_run_status(self, run_id: str) -> Dict[str, Any]:
+        if not run_id:
+            return {"ok": False, "error": "run_id required"}
+        cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "show", run_id]
+        raw = run_json(cmd, env=self.env(), timeout=30)
+        manifest = raw.get("manifest") or {}
+        if isinstance(manifest, str):
+            try:
+                import json as _json
+                manifest = _json.loads(manifest)
+            except Exception:
+                manifest = {}
+        pipeline_def = manifest.get("pipeline") or {}
+        stages = list(pipeline_def.get("stages") or [])
+        current_stage = str(raw.get("current_stage") or manifest.get("current_stage") or "")
+        stage_states: List[Dict[str, str]] = []
+        if not current_stage:
+            stage_states = [{"stage": s, "state": "pending"} for s in stages]
+        else:
+            found_current = False
+            for s in stages:
+                if s == current_stage:
+                    stage_states.append({"stage": s, "state": "active"})
+                    found_current = True
+                elif not found_current:
+                    stage_states.append({"stage": s, "state": "completed"})
+                else:
+                    stage_states.append({"stage": s, "state": "pending"})
+        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": raw.get("artifacts") or [], "error": raw.get("error")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]
