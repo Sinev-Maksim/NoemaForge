@@ -27,6 +27,17 @@ independently on `release/0.32.2-hardening`; this branch does not block or repla
   0.32.2 and 0.33.0 without further edits.
 - Release evidence (`SHA256SUMS` / `MANIFEST.json`) regenerated for the new version surface.
 
+## Security automation
+
+- Weekly Dependabot coverage now includes both SHA-pinned GitHub Actions and the
+  root `pyproject.toml` through the `pip` ecosystem, with grouped and bounded PRs.
+- Semgrep CE `1.166.0` scans Python, JavaScript, TypeScript, and Go with rules
+  pinned to `semgrep/semgrep-rules@d41fb34cf74466e2878af5f268ebf54466a04541`
+  and publishes `ERROR` findings to the `semgrep-ce` Code Scanning category.
+- GitHub CodeQL default setup remains the authoritative CodeQL lane; no advanced
+  workflow is added because it would conflict with default setup SARIF handling.
+  The current open-alert count was not independently available for this change.
+
 ## 0.33.0 roadmap (development order)
 
 The detailed roadmap lives in `noemaforge/docs/TODO.md` and the architecture notes. Planned

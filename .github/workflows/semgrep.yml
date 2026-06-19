@@ -1,0 +1,63 @@
+name: Semgrep CE
+
+on:
+  pull_request:
+    branches:
+      - main
+      - release/0.33.0-dev
+  push:
+    branches:
+      - main
+      - release/0.33.0-dev
+  schedule:
+    - cron: "23 4 * * 3"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Semgrep CE SARIF
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      image: semgrep/semgrep:1.166.0
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      # Keep rule selection reproducible without contacting the Semgrep Registry.
+      - name: Checkout Semgrep CE rules
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          repository: semgrep/semgrep-rules
+          ref: d41fb34cf74466e2878af5f268ebf54466a04541
+          path: .semgrep-rules
+          persist-credentials: false
+
+      # Scan only source languages present in the repository with pinned local rules.
+      - name: Run Semgrep CE
+        run: >-
+          semgrep scan
+          --config .semgrep-rules/python
+          --config .semgrep-rules/javascript
+          --config .semgrep-rules/typescript
+          --config .semgrep-rules/go
+          --exclude .semgrep-rules
+          --severity ERROR
+          --sarif
+          --output semgrep.sarif
+          --metrics=off
+          .
+
+      - name: Upload Semgrep SARIF
+        uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep-ce

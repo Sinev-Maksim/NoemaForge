@@ -375,8 +375,11 @@ release→main conflict resolution; statuses updated on restore._
 
 ### E. Supply chain
 
-- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
-  Dependabot for `github-actions` updates; Scorecard already flags this.
+- [x] **Harden security automation and dependency updates.** GitHub Actions are
+  SHA-pinned and tracked by weekly Dependabot updates; root Python metadata is
+  covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
+  SARIF results, while GitHub CodeQL default setup remains the authoritative
+  CodeQL lane without a conflicting advanced workflow.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 

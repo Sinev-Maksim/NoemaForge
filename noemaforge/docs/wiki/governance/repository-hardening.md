@@ -49,6 +49,23 @@ GitHub API), so the model process holds no write capability.
   Dependabot (`github-actions`, weekly) keeps the pins current.
 - Workflow `GITHUB_TOKEN` defaults to read-only; write scope is granted per-job
   only where needed.
+- Dependabot checks the root Python metadata (`pip`) and SHA-pinned GitHub
+  Actions weekly. Updates are grouped, bounded, and require normal review; no
+  dependency update is auto-merged. There is no `npm` ecosystem entry because
+  the repository has no Node package manifest or lock file.
+- `.github/workflows/semgrep.yml` runs Semgrep CE `1.166.0` with the official
+  rules repository pinned at commit
+  `d41fb34cf74466e2878af5f268ebf54466a04541`. It loads only the checked-out
+  Python, JavaScript, TypeScript, and Go rule directories, disables registry
+  metrics, and uploads `ERROR` findings as the `semgrep-ce` SARIF category.
+- GitHub CodeQL default setup is the authoritative CodeQL lane. An advanced
+  `codeql.yml` is intentionally absent because GitHub rejects advanced-setup
+  SARIF uploads while default setup is enabled. Direct alert-count access was
+  unavailable during this change, so no current open-alert count is claimed.
+- Code Scanning findings are triaged before promotion to an issue. False
+  positives are dismissed only with repository-specific rationale recorded in
+  Code Scanning; issue creation remains manual to avoid permission expansion,
+  duplicate alerts, and fork or Dependabot PR failures.
 - Release evidence is generated and verified in CI (`ci/regen_evidence.py`); the
   committed copies on release branches are maintained by `evidence-refresh.yml`.
 
