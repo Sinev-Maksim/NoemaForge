@@ -50,8 +50,10 @@ Runs Semgrep CE `1.166.0` on pull requests, release-line pushes, manual dispatch
 schedule. The workflow checks out `semgrep/semgrep-rules` at commit
 `d41fb34cf74466e2878af5f268ebf54466a04541`, scans the Python, JavaScript, TypeScript, and Go rule
 directories with registry metrics disabled, and uploads `ERROR` findings to GitHub Code Scanning as
-the `semgrep-ce` SARIF category. Findings are triaged in Code Scanning; promotion to an issue is a
-manual decision that must include rationale, so CI cannot create duplicate or unreviewed issues.
+the `semgrep-ce` SARIF category. The exact SARIF is also retained as an Actions artifact for seven
+days so triage remains reproducible when the alerts API is unavailable. Findings are triaged in
+Code Scanning; promotion to an issue is a manual decision that must include rationale, so CI cannot
+create duplicate or unreviewed issues.
 
 ### Dependency and CodeQL ownership
 Dependabot checks the root `pyproject.toml` through the `pip` ecosystem and keeps SHA-pinned GitHub

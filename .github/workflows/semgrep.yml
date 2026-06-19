@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     container:
-      image: semgrep/semgrep:1.166.0
+      image: semgrep/semgrep:1.166.0@sha256:c180f0c93a17b420c0af5006214a29d3c747c5459c732b740191adf657dd0068
     permissions:
       contents: read
       security-events: write
@@ -55,6 +55,15 @@ jobs:
           --output semgrep.sarif
           --metrics=off
           .
+
+      # Retain the exact SARIF briefly when alert API access is unavailable for triage.
+      - name: Upload Semgrep SARIF artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: semgrep-sarif-${{ github.sha }}
+          path: semgrep.sarif
+          retention-days: 7
+          if-no-files-found: error
 
       - name: Upload Semgrep SARIF
         uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4.36.2

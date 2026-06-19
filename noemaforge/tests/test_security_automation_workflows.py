@@ -93,7 +93,11 @@ class SecurityAutomationWorkflowTest(unittest.TestCase):
         )
 
     def test_semgrep_and_rules_are_immutable(self) -> None:
-        self.assertEqual(self.job["container"]["image"], "semgrep/semgrep:1.166.0")
+        self.assertEqual(
+            self.job["container"]["image"],
+            "semgrep/semgrep:1.166.0@sha256:"
+            "c180f0c93a17b420c0af5006214a29d3c747c5459c732b740191adf657dd0068",
+        )
         rules_step = next(
             step
             for step in self.steps
@@ -129,6 +133,21 @@ class SecurityAutomationWorkflowTest(unittest.TestCase):
             "github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e",
         )
         self.assertEqual(upload["with"]["category"], "semgrep-ce")
+
+    def test_sarif_artifact_is_short_lived_and_sha_pinned(self) -> None:
+        artifact = next(
+            step
+            for step in self.steps
+            if step.get("name") == "Upload Semgrep SARIF artifact"
+        )
+        self.assertEqual(
+            artifact["uses"],
+            "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
+        )
+        self.assertEqual(artifact["with"]["name"], "semgrep-sarif-${{ github.sha }}")
+        self.assertEqual(artifact["with"]["path"], "semgrep.sarif")
+        self.assertEqual(artifact["with"]["retention-days"], 7)
+        self.assertEqual(artifact["with"]["if-no-files-found"], "error")
 
     def test_forbidden_automation_is_absent(self) -> None:
         lowered = self.workflow_text.lower()

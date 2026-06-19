@@ -57,7 +57,10 @@ GitHub API), so the model process holds no write capability.
   rules repository pinned at commit
   `d41fb34cf74466e2878af5f268ebf54466a04541`. It loads only the checked-out
   Python, JavaScript, TypeScript, and Go rule directories, disables registry
-  metrics, and uploads `ERROR` findings as the `semgrep-ce` SARIF category.
+  metrics, and uploads `ERROR` findings as the `semgrep-ce` SARIF category. The
+  exact SARIF is retained as a seven-day Actions artifact for reproducible
+  triage when direct code-scanning alert API access is unavailable; it is not a
+  long-lived release artifact.
 - GitHub CodeQL default setup is the authoritative CodeQL lane. An advanced
   `codeql.yml` is intentionally absent because GitHub rejects advanced-setup
   SARIF uploads while default setup is enabled. Direct alert-count access was
