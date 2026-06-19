@@ -131,10 +131,13 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       <button id="pipeline-confirm-close" class="ghost small" aria-label="Close">×</button>
       <h2 id="pipeline-confirm-title">Launch pipeline</h2>
       <p id="pipeline-confirm-desc" class="muted"></p>
+      <p id="pipeline-confirm-persona" class="muted" style="font-size:12px;margin:4px 0 0"></p>
+      <p id="pipeline-confirm-repeat" class="muted hidden" style="font-size:12px;color:var(--warn,#c47a00);margin:6px 0 0">&#9888; This pipeline was launched recently.</p>
       <label style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
       <textarea id="pipeline-confirm-req" rows="4" style="width:100%;resize:vertical"></textarea>
       <div class="epoch-actions" style="margin-top:12px">
-        <button id="pipeline-confirm-ok">OK — insert into chat</button>
+        <button id="pipeline-confirm-ok">Start new — insert into chat</button>
+        <button id="pipeline-confirm-continue" class="ghost hidden">Continue existing</button>
         <button id="pipeline-confirm-cancel" class="ghost">Cancel</button>
       </div>
     </div>
