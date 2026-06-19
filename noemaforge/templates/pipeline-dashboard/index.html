@@ -126,6 +126,19 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
 
   <div id="context-menu" class="context-menu hidden"></div>
   <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><pre id="modal-body"></pre></div></div>
+  <div id="pipeline-confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pipeline-confirm-title">
+    <div class="modal-inner">
+      <button id="pipeline-confirm-close" class="ghost small" aria-label="Close">×</button>
+      <h2 id="pipeline-confirm-title">Launch pipeline</h2>
+      <p id="pipeline-confirm-desc" class="muted"></p>
+      <label style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
+      <textarea id="pipeline-confirm-req" rows="4" style="width:100%;resize:vertical"></textarea>
+      <div class="epoch-actions" style="margin-top:12px">
+        <button id="pipeline-confirm-ok">OK — insert into chat</button>
+        <button id="pipeline-confirm-cancel" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

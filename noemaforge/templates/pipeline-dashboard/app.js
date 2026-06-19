@@ -373,7 +373,15 @@ function renderPipelines(){
 async function loadPipelines(){
   try{ const data = await api('/api/pipelines/catalog'); pipelineCatalog = data.pipelines || []; const groups = ['All', ...(data.groups || [])]; el('pipeline-groups').innerHTML = groups.map(g => `<button class="ghost small" data-group="${htmlEscape(g)}">${htmlEscape(g)}</button>`).join(''); document.querySelectorAll('[data-group]').forEach(b=>b.addEventListener('click',()=>{ pipelineFilter=b.dataset.group; renderPipelines(); })); renderPipelines(); }catch(e){ el('pipeline-list').innerHTML = '<p class="muted">Pipeline catalog unavailable.</p>'; }
 }
-async function startPipeline(id){ const req = prompt(`Request for pipeline ${id}:`, `Запусти ${id} по стандартному сценарию`); if(req===null) return; absorbResult(await api('/api/pipeline/run', {pipeline:id, request:req, allow_degraded:true})); }
+function startPipeline(id){
+  const info = pipelineById(id);
+  el('pipeline-confirm-title').textContent = `Pipeline: ${id}`;
+  el('pipeline-confirm-desc').textContent = info.description || '';
+  el('pipeline-confirm-req').value = `Запусти ${id} по стандартному сценарию`;
+  el('pipeline-confirm').classList.remove('hidden');
+  el('pipeline-confirm-req').focus();
+  el('pipeline-confirm-req').select();
+}
 function pipelineById(id){ return pipelineCatalog.find(p => p.id === id) || {id:id || 'new_pipeline', description:'', stages:['intake','plan','review']}; }
 function movePipelineStage(from, to){
   const stages = pipelineEditorState.stages;
@@ -477,5 +485,18 @@ el('public-showcase-load').addEventListener('click', loadPublicShowcase);
 el('pipeline-search').addEventListener('input', renderPipelines);
 el('pipeline-new').addEventListener('click', ()=>{ const title = prompt('New pipeline draft title:', 'new_pipeline'); if(!title) return; pipelineEditorState = {pipeline_id:title, title, description:'', stages:['intake','plan','review']}; renderPipelineEditor(); });
 el('modal-close').addEventListener('click', ()=>el('modal').classList.add('hidden'));
+function _closePipelineConfirm(){ el('pipeline-confirm').classList.add('hidden'); }
+el('pipeline-confirm-close').addEventListener('click', _closePipelineConfirm);
+el('pipeline-confirm-cancel').addEventListener('click', _closePipelineConfirm);
+el('pipeline-confirm-ok').addEventListener('click', () => {
+  const req = el('pipeline-confirm-req').value.trim();
+  _closePipelineConfirm();
+  if (!req) return;
+  el('admin-message').value = req;
+  el('admin-message').focus();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !el('pipeline-confirm').classList.contains('hidden')) _closePipelineConfirm();
+});
 document.addEventListener('click', e=>{ if(!el('context-menu').contains(e.target)) el('context-menu').classList.add('hidden'); });
 startup();
