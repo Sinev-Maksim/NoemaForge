@@ -380,9 +380,16 @@ release→main conflict resolution; statuses updated on restore._
   covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
   SARIF results, while GitHub CodeQL default setup remains the authoritative
   CodeQL lane without a conflicting advanced workflow.
-- [ ] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Review
-  each `insecure-innerhtml` location and replace unsafe DOM construction where
-  user-controlled content can reach the sink.
+- [x] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Audited
+  all 14 `pipeline-dashboard` and 8 legacy `ui-dashboard` findings from final
+  baseline run `27829681354`. API-fed task, job, artifact, pipeline, project,
+  event, telemetry, and path values were real trust-boundary inputs; several
+  empty/constant or already-escaped templates were scanner false positives.
+  Both dashboards now construct the DOM with `createElement`, `textContent`,
+  safe attributes, and event listeners. Artifact links additionally reject
+  non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
+  both renderers with hostile payloads and verify literal text plus preserved
+  controls. Remaining `insecure-innerhtml` sinks in these components: 0.
 - [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
   raw-query construction path and parameterize or constrain active inputs.
 - [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
@@ -390,10 +397,11 @@ release→main conflict resolution; statuses updated on restore._
 - [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
   Prove fixed argv/environment allowlists or remove tainted command construction.
 
-The counts above are Semgrep baseline findings, not confirmed vulnerabilities
-until audited. Baseline evidence: run `27828184758`, SARIF artifact SHA-256
-`6db96262c017d13c9e7e8ae186d374321c26d89941f2ddd7e9f20e5e9c23a792`, retained
-through 2026-06-26.
+The open counts above are Semgrep baseline findings, not confirmed
+vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
+artifact SHA-256 `63efafc90c7fc8cccfe77f08177b4bd6fe6f002dd781f14572910e60ac8b90d8`,
+SARIF SHA-256 `7e0923536c76b715e9f3e1ad69480ddd450f2b5c7423dd1a3535b9db23819346`,
+retained through 2026-06-26.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 
