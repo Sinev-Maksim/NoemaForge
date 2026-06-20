@@ -95,6 +95,58 @@ function setPersona(name, portraitUrl){
   if(portraitUrl){ img.src = portraitUrl; }
   img.onerror = () => { img.src = '/ui/personas/avatars/fallback/operator-admin-administrator.svg'; };
 }
+const _PERSONA_ROLE_TO_NAME = {
+  'operator.admin/administrator':'Admin',
+  'system.guard/sr':'Optimizer',
+  'system.guard/ssr':'Model Evolution',
+  'dev.work/dev':'Dev Team',
+  'writing.story/writer':'Music Team',
+  'video.generator':'Video Team',
+  'vision.segmenter':'Vision Team',
+};
+async function _loadPersonaSelect(){
+  try{
+    const cat = await api('/api/persona/catalog');
+    const sel = el('persona-select');
+    if(!sel) return;
+    const items = (cat.personas || []).filter(p => _PERSONA_ROLE_TO_NAME[p.role_key]);
+    sel.innerHTML = items.map(p => {
+      const name = _PERSONA_ROLE_TO_NAME[p.role_key];
+      const label = p.codename ? `${htmlEscape(p.codename)} (${htmlEscape(name)})` : htmlEscape(name);
+      return `<option value="${htmlEscape(name)}">${label}</option>`;
+    }).join('');
+    _updatePersonaSelect(el('active-persona')?.textContent || 'Admin');
+    sel.onchange = () => switchPersona(sel.value);
+  }catch(e){}
+}
+function _updatePersonaSelect(name){
+  const sel = el('persona-select');
+  if(!sel) return;
+  for(const opt of sel.options){ opt.selected = opt.value === name; }
+}
+async function switchPersona(name){
+  try{
+    const r = await api('/api/persona/switch', {name});
+    if(r.ok){
+      setPersona(r.active_persona, r.portrait_url);
+      _updatePersonaSelect(r.active_persona);
+      if(r.switch_line) addSystemLine(r.switch_line);
+      if(r.active_persona && r.active_persona !== 'Admin') _addReturnToAdminLine();
+    }
+  }catch(e){}
+}
+function _addReturnToAdminLine(){
+  const div = document.createElement('div');
+  div.className = 'system-line';
+  const btn = document.createElement('button');
+  btn.className = 'ghost small';
+  btn.style.cssText = 'display:inline-block;margin-left:4px';
+  btn.textContent = '← Return to Admin';
+  btn.onclick = () => switchPersona('Admin');
+  div.appendChild(btn);
+  el('chat-log').appendChild(div);
+  el('chat-log').scrollTop = el('chat-log').scrollHeight;
+}
 function renderConversation(history){
   el('chat-log').innerHTML = '';
   const msgs = history.messages || [];
@@ -144,7 +196,7 @@ function absorbResult(result){
   el('raw-json').textContent = JSON.stringify(result, null, 2);
   const route = result.route || {};
   const personaSwitch = result.persona_switch;
-  if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); }
+  if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); _updatePersonaSelect(personaSwitch.to); if(personaSwitch.to && personaSwitch.to !== 'Admin') _addReturnToAdminLine(); }
   if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '');
   if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
   if(Array.isArray(result.artifacts)) renderArtifacts(result.artifacts);
@@ -456,7 +508,7 @@ async function startup(){
     }
   }catch(_){}
   try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
-  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
+  await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
   connectJobProgressStream();
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
