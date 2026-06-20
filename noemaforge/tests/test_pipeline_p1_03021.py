@@ -22,7 +22,14 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'bin' / 'noemaforge'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _cli_bridge import noemaforge_cli  # noqa: E402
+
+
+# These integration tests invoke the bin/noemaforge operator CLI (a bash
+# wrapper that needs a POSIX shell). We call the underlying Python entrypoint
+# directly (cross-platform); this bypasses the wrapper, which is validated on
+# the Debian target host and in CI.
 sys.path.insert(0, str(ROOT / 'src'))
 import pipeline_runtime
 
@@ -31,7 +38,7 @@ def run_cmd(*args: str, state: Path) -> dict:
     env = os.environ.copy()
     env['NOEMAFORGE_ROOT'] = str(ROOT)
     env['NOEMAFORGE_PIPELINE_STATE'] = str(state)
-    out = subprocess.check_output([str(CLI), *args], text=True, env=env)
+    out = subprocess.check_output(noemaforge_cli(ROOT, *args), text=True, env=env)
     return json.loads(out)
 
 
@@ -47,7 +54,7 @@ def test_p1_schema_event_log_lease_and_executor(tmp_path: Path) -> None:
     assert events['items'][0]['event_type'] == 'pipeline_created'
     lease = run_cmd('pipeline', 'lease', 'acquire', '--owner', 'pytest', '--task-id', run_id, '--ttl-seconds', '60', state=state)
     assert lease['ok'] is True
-    busy = subprocess.run([str(CLI), 'pipeline', 'lease', 'acquire', '--owner', 'other'], text=True, stdout=subprocess.PIPE, env={**os.environ, 'NOEMAFORGE_ROOT': str(ROOT), 'NOEMAFORGE_PIPELINE_STATE': str(state)})
+    busy = subprocess.run(noemaforge_cli(ROOT, 'pipeline', 'lease', 'acquire', '--owner', 'other'), text=True, stdout=subprocess.PIPE, env={**os.environ, 'NOEMAFORGE_ROOT': str(ROOT), 'NOEMAFORGE_PIPELINE_STATE': str(state)})
     assert busy.returncode == 1
     status = run_cmd('pipeline', 'lease', 'status', state=state)
     assert status['active']['owner'] == 'pytest'
@@ -64,7 +71,7 @@ def test_prometheus_metrics_and_task_contexts_are_canonical(tmp_path: Path) -> N
     assert conn.execute('SELECT count(*) FROM task_contexts WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
     assert conn.execute('SELECT count(*) FROM stage_states WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
     env = os.environ.copy(); env['NOEMAFORGE_ROOT'] = str(ROOT); env['NOEMAFORGE_PIPELINE_STATE'] = str(state)
-    prom = subprocess.check_output([str(CLI), 'pipeline', 'metrics', '--format', 'prometheus'], text=True, env=env)
+    prom = subprocess.check_output(noemaforge_cli(ROOT, 'pipeline', 'metrics', '--format', 'prometheus'), text=True, env=env)
     assert 'noemaforge_pipeline_runs_total' in prom
     assert 'noemaforge_llm_active_count' in prom
 
@@ -72,9 +79,9 @@ def test_prometheus_metrics_and_task_contexts_are_canonical(tmp_path: Path) -> N
 def test_toolproxy_token_smoke_without_live_service(tmp_path: Path) -> None:
     tokens = tmp_path / 'tokens'
     env = os.environ.copy(); env['NOEMAFORGE_ROOT'] = str(ROOT)
-    out = subprocess.check_output([str(CLI), 'toolproxy', 'smoke', '--tokens-dir', str(tokens)], text=True, env=env)
+    out = subprocess.check_output(noemaforge_cli(ROOT, 'toolproxy', 'smoke', '--tokens-dir', str(tokens)), text=True, env=env)
     doc = json.loads(out)
     assert doc['ok'] is True
     assert doc['verify']['ok'] is True
-    listed = subprocess.check_output([str(CLI), 'toolproxy', 'token', 'list', '--tokens-dir', str(tokens)], text=True, env=env)
+    listed = subprocess.check_output(noemaforge_cli(ROOT, 'toolproxy', 'token', 'list', '--tokens-dir', str(tokens)), text=True, env=env)
     assert json.loads(listed)['count'] >= 1

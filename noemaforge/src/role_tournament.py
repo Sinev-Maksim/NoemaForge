@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from platform_paths import DEFAULT_PATHS as _pp
+from process_group_runner import kill_signal
 
 try:
     import yaml  # type: ignore
@@ -744,8 +745,8 @@ def stop_gguf_backend(modelstore_id: str) -> None:
         time.sleep(3)
     if _pids_for_backend(modelstore_id):
         systemctl("kill", "--signal=KILL", unit)
-        # signal.SIGKILL is absent on Windows; fall back to SIGTERM.
-        _kill_backend_processes(modelstore_id, getattr(signal, "SIGKILL", signal.SIGTERM))
+        # SIGKILL is absent on Windows; kill_signal() falls back to SIGTERM.
+        _kill_backend_processes(modelstore_id, kill_signal())
     _ACTIVE_BACKENDS.discard(modelstore_id)
     try:
         os.unlink(f"/run/noemaforge/llm/backends/{modelstore_id}.sock")

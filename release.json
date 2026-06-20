@@ -106,7 +106,7 @@
     "tracking_id": "NFG-PROP-0.32.1-multiOS-runtime-pack",
     "wiki": "docs/wiki/multios/multios-runtime-host-roadmap-0.32.1.md"
   },
-  "package": "noemaforge_0.32.2_prelaunch",
+  "package": "noemaforge_0.33.0_prelaunch",
   "patched10_emergency_recovery": {
     "changes": [
       "first-start abort uses minimal no-block GUI recovery",
@@ -153,8 +153,8 @@
     "setup_selftest": "PASS: ./setup.sh --mode vm --dry-run --selftest",
     "version_audit": "PASS: active metadata/runtime versions aligned to 0.32.1; legacy reference warnings only"
   },
-  "release": "0.32.2",
-  "release_name": "NoemaForge 0.32.2",
+  "release": "0.33.0",
+  "release_name": "NoemaForge 0.33.0",
   "roadmap_inclusions": [
     {
       "id": "NFG-ARCH-0.32.1-typed-governance-sense-critics-rfc",
@@ -199,6 +199,6 @@
     "docs/source_reports/deep-research-report-8-noemaforge-governance-quality-pack.md"
   ],
   "status": "pre-alpha",
-  "summary": "NoemaForge 0.32.2: admin GUI session/event wiring, GET /api/session/current + /api/events, frontend event polling, session mode persistence, message history restore, finally-block safety fix, cross-platform checksum script.",
-  "version": "0.32.2"
+  "summary": "NoemaForge 0.33.0: admin GUI session/event wiring, GET /api/session/current + /api/events, frontend event polling, session mode persistence, message history restore, finally-block safety fix, cross-platform checksum script.",
+  "version": "0.33.0"
 }

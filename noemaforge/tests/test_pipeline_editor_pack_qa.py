@@ -36,14 +36,16 @@ class PipelineEditorPackQATests(unittest.TestCase):
         self.assertEqual("pipeline-editor-pack-core", policy["id"])
 
         item = "Pipeline editor pack: drag-and-drop edit, clone as new pipeline class, Scary/Architecture/Admin review."
-        for path in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "TODO.md",
             ROOT / "TODO.md",
             PROJECT_ROOT / "docs" / "TODO.md",
             ROOT / "docs" / "TODO.md",
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn(f"[x] {item}", text, str(path))
             self.assertIn("pipeline-editor-pack-core", text, str(path))
@@ -51,22 +53,26 @@ class PipelineEditorPackQATests(unittest.TestCase):
             self.assertIn("draft-only", text, str(path))
 
     def test_changelog_release_notes_capture_pipeline_editor_contract(self) -> None:
-        for path in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "CHANGELOG.md",
             PROJECT_ROOT / "RELEASE_NOTES.md",
             PROJECT_ROOT / "docs" / "history" / "CHANGELOG.md",
             ROOT / "docs" / "history" / "CHANGELOG.md",
-        ]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("pipeline-editor-pack-core", text, str(path))
             self.assertIn("drag-and-drop edit, clone as new pipeline class, Scary/Architecture/Admin review", text, str(path))
             self.assertIn("draft-only", text, str(path))
 
     def test_full_drag_and_drop_ui_todo_remains_open_after_pack_contract(self) -> None:
-        for path in [
+        _existing_docs = [p for p in [
             PROJECT_ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
             ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md",
-        ]:
+        ] if p.exists()]
+        assert _existing_docs, "no candidate documentation file exists"
+        for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
             self.assertIn("- [ ] Add full drag&drop pipeline editor implementation after alpha.", text, str(path))
 

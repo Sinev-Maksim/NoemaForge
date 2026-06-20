@@ -23,13 +23,35 @@ tier up (S→M→L) and the miss is logged in `Claude_stats.md`.
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
 
+_2026-06-17 hygiene sweep: items checked below were verified already implemented against current code — Codex #33 (sandbox `rlimits_available()` + run-meta flag), #42 (`contextlib` is a module-level import), #35 (`composite_pair_scoring._norm()` strips/lowercases `family`/`runtime`; `_load_candidates()` raises a clear `ValueError` for non-object entries)._
+
+**Broad-pytest validator-class follow-up (found during 2026-06-17 night watch).**
+~26 `*_qa.py` tests (`test_policy_summary_and_docs_record_completed_item` /
+`*_are_discoverable` / `*_capture_*_boundary`) fail because the src policy
+validators (e.g. `validate_stateful_admin_gui_policy` -> `_docs_report` at
+`noemaforge/src/stateful_admin_gui_runtime.py:329-355`, and `_resolve_refs:81-98`)
+check doc refs/tokens at non-existent locations (`project_root/TODO.md`,
+`/CHANGELOG.md`, `/RELEASE_NOTES.md`, and policy `refs` like `"TODO.md"`) instead
+of the canonical `noemaforge/docs/**` (`docs/TODO.md`, `docs/history/CHANGELOG.md`).
+`_docs_report` reads a missing file as empty text, so it reports
+`docs_tokens_missing` for every non-existent path. Each of the ~26 validators has
+its own `_docs_report`. The premerge release guard calls these with
+`include_docs=False`, so the *release* is not gated by `_docs_report` — only the
+QA tests are. **Recommended (needs owner sign-off; shared release-validator
+change):** (a) make each `_docs_report` require tokens only in EXISTING canonical
+docs and fail only when no existing canonical doc carries them (mirrors the Class A
+test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`/
+`CHANGELOG.md` to canonical `docs/TODO.md`/`docs/history/CHANGELOG.md`. Verify with
+a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
+touches release-gating logic across ~26 files + configs)_
+
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
-- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
-- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
-- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku)_
+- [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
+- [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
+- [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku — DONE: explicit Test-Path guard exits 2 with a FAIL message)_
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku)_
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
 **Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
 Codex review is handled **before the PR merges** — each suggestion is either applied on
 the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
@@ -37,39 +59,77 @@ periodically so older reviews do not rot in comment threads.
 
 ### Harvest 2026-06-11 (review back-sweep #5–#85)
 
-- [ ] **Replace smart quotes in the dashboard locale option template** — 5 literal
+- [x] **Replace smart quotes in the dashboard locale option template** — 5 literal
   curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
   they can produce malformed `<option value=…>` values and break locale selection.
   (Codex #5)
 - [ ] **Frontend session restore narrows to `selected_mode`** — either restore
   `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
   code comment that claims full history restore. (Codex #5)
-- [ ] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
-  verify no duplicated entries after the events/session additions. (Codex #10)
+- [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
+  verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
   `env_description` parameter and quote `echo "$response"`. (Codex #11)
-- [ ] **`brainui.py` path containment** — prefer
+- [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
-  string checks. (Codex #11)
+  string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
 - [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
   runtime modules and unit tests into one shared helper. (Codex #31)
-- [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
-  `resolve()`; serialize `prune_terminal()` with other `jobs.json` writes if it is
-  ever wired into a periodic path. (Codex #37)
-- [ ] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
+- [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
+  (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
+  `_write_job_file` through the guard (read returns None, write raises) so no job-file
+  IO can escape `jobs_dir`. `prune_terminal()` already uses `_safe_job_file` and is not
+  wired into a periodic path, so no extra serialization needed. (Codex #37)
+- [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
   to module top level. (Codex #42)
-- [ ] **Create `docs/architecture/system-context.md`** or drop the dangling
+- [x] **Create `docs/architecture/system-context.md`** or drop the dangling
   "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
-- [ ] **Add a mixed-case wiki-path regression test** locking the portable
-  (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
+- [x] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. DONE:
+  `noemaforge/tests/test_wiki_check_index_order.py` drives `wiki_pages()` over a
+  temp mixed-case tree and asserts codepoint order (uppercase < lowercase),
+  explicitly `!=` case-folded order, so a regression to case-insensitive sorting
+  fails the gate. (Codex #83)
+
+### Broad pytest run-to-completion + failure triage 2026-06-16
+
+_The developer-host unit suite (`python -m pytest noemaforge/tests`) used to abort
+at collection (3 import errors) so no test bodies ran and downstream failures were
+invisible. Full classified findings:
+[`uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](uat/BROAD-PYTEST-0.33.0-FINDINGS.md).
+After the isolation fix the suite runs end-to-end: 1947 passed / 199 failed / 40
+skipped / 164 subtests passed. The 199 are pre-existing (unmasked, not caused).
+First landed on `release/0.32.2-hardening` (PR #104); this is the port._
+
+- [x] **Order-independent broad collection + execution** via a single shared
+  `noemaforge/tests/conftest.py` (pre-import real runtime leaves; restore the
+  baseline before each module import and after each test). Removes the
+  `orchestration_state`/`platform_paths` "unknown location" `ImportError` class
+  (down to 0); no runtime changes, no per-test edits. _(L · opus — DONE)_
+- [x] **Cross-platform interpreter in subprocess tests** — `test_admin_control_plane_03112`,
+  `test_admin_gui_evolution_03112`, `test_multimodal_shards_03112` defaulted the
+  hardcoded `/usr/bin/python3` to `sys.executable` (override `NOEMAFORGE_TEST_PYTHON`). _(S · haiku — DONE)_
+- [x] **POSIX/bash entrypoint tests (D2)** — DONE (#107): rewrote the five CLI tests to the Python entrypoint via a shared `_cli_bridge`; `test_autostart_policy_03103` + D3 runtime cases skip-with-reason. Was: `test_code_qa_0310`, `test_pipeline_p1_03021`,
+  `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
+  `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
+  marked as bypassing the bash wrapper (limited coverage; wrapper validated on the Debian target / CI).
+  `test_autostart_policy_03103` (`.sh` ops scripts) → documented skip-with-reason. _(M · sonnet)_
+- [x] **Root-doc layout drift (Class A, ~48 FileNotFoundError)** — DONE (#108): filtered the candidate read loops to existing paths across 42 `*_qa.py`. Was: tests open repo-root
+  `CHANGELOG.md` (27) / `TODO.md`; canonical docs live under `noemaforge/docs/`. Point tests at the
+  canonical paths or add root shims. _(M · sonnet)_
+- [ ] **Docs/policy content-assertion drift (Class B, 127 AssertionError)** — "discoverable"/
+  "capture"/"policy_validates" source-guard tests vs current docs/policies; triage per track. _(L · opus — umbrella)_
+- [ ] **Runtime shells out to POSIX scripts (D3)** — `admin_runtime.py` pipeline exec spawns
+  `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
+  skip-with-reason at the test layer. _(L · opus — 0.33.1)_
 
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
-- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
-- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
-- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
+- [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
+- [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
+- [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
@@ -300,7 +360,14 @@ release→main conflict resolution; statuses updated on restore._
 - [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
   dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
   under-covered.
-- [ ] **Complete the 0.33.0 version promotion.** `RUNTIME_VERSION`/`VERSION` files
+- [ ] **Manifest `generated_at` freshness vs A1 idempotency** (CodeRabbit #99).
+  `MANIFEST.json.generated_at` is not bumped by `ci/regen_evidence.py`, so it can
+  look stale after a file-set change. Bumping it to `now()` per regen would break
+  the idempotency the premerge regen-then-verify gate and `regen_evidence --check`
+  rely on (committed vs fresh regen would always differ). If a trustworthy
+  timestamp is wanted, derive `generated_at` **deterministically from the
+  release/commit metadata** (stable per commit), not from wall-clock regen time.
+- [x] **Complete the 0.33.0 version promotion.** DONE (#110): bumped 22 configs, `release.json`, the `bin/noemaforge` echo and the audit script to 0.33.0 and collapsed `PROMOTED_BASELINE` into `SOT_VERSION`. Was: `RUNTIME_VERSION`/`VERSION` files
   are 0.33.0 but the bump is half-done: ~22 `noemaforge/configs/*.json` `version`
   fields, the `bin/noemaforge` `echo`, `tools/prep/noemaforge-first-run-audit.sh`
   `VERSION=`, and root `release.json`/`MANIFEST.json` metadata are still `0.32.2`.
@@ -314,8 +381,33 @@ release→main conflict resolution; statuses updated on restore._
 
 ### E. Supply chain
 
-- [ ] **Pin GitHub Actions to commit SHAs** (currently `@vN` tags) and enable
-  Dependabot for `github-actions` updates; Scorecard already flags this.
+- [x] **Harden security automation and dependency updates.** GitHub Actions are
+  SHA-pinned and tracked by weekly Dependabot updates; root Python metadata is
+  covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
+  SARIF results, while GitHub CodeQL default setup remains the authoritative
+  CodeQL lane without a conflicting advanced workflow.
+- [x] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Audited
+  all 14 `pipeline-dashboard` and 8 legacy `ui-dashboard` findings from final
+  baseline run `27829681354`. API-fed task, job, artifact, pipeline, project,
+  event, telemetry, and path values were real trust-boundary inputs; several
+  empty/constant or already-escaped templates were scanner false positives.
+  Both dashboards now construct the DOM with `createElement`, `textContent`,
+  safe attributes, and event listeners. Artifact links additionally reject
+  non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
+  both renderers with hostile payloads and verify literal text plus preserved
+  controls. Remaining `insecure-innerhtml` sinks in these components: 0.
+- [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
+  raw-query construction path and parameterize or constrain active inputs.
+- [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
+  hardened parsing at every untrusted or externally supplied XML boundary.
+- [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
+  Prove fixed argv/environment allowlists or remove tainted command construction.
+
+The open counts above are Semgrep baseline findings, not confirmed
+vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
+artifact SHA-256 `63efafc90c7fc8cccfe77f08177b4bd6fe6f002dd781f14572910e60ac8b90d8`,
+SARIF SHA-256 `7e0923536c76b715e9f3e1ad69480ddd450f2b5c7423dd1a3535b9db23819346`,
+retained through 2026-06-26.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 
@@ -327,9 +419,11 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
+- [x] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
   `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
-  the user's language — never hallucinate them as filenames.
+  the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
+  in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
+  path (`test_admin_state_glossary.py`).
 - [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_

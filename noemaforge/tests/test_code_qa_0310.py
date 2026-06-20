@@ -20,15 +20,20 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'bin' / 'noemaforge'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _cli_bridge import noemaforge_cli  # noqa: E402
 
 
+# These integration tests invoke the bin/noemaforge operator CLI. bin/noemaforge
+# is a bash wrapper that cannot run on a host without a POSIX shell, so we call
+# the underlying Python entrypoint directly (cross-platform). This bypasses the
+# bash wrapper itself; the wrapper is validated on the Debian target host and CI.
 def run_cli(args, env=None):
     e = os.environ.copy()
     e['NOEMAFORGE_ROOT'] = str(ROOT)
     if env:
         e.update(env)
-    return subprocess.run([str(CLI)] + args, text=True, capture_output=True, env=e, check=False)
+    return subprocess.run(noemaforge_cli(ROOT, *args), text=True, capture_output=True, env=e, check=False)
 
 
 def test_code_qa_team_excludes_producer():
