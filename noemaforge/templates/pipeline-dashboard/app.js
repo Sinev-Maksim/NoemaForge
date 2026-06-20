@@ -110,11 +110,14 @@ async function _loadPersonaSelect(){
     const sel = el('persona-select');
     if(!sel) return;
     const items = (cat.personas || []).filter(p => _PERSONA_ROLE_TO_NAME[p.role_key]);
-    sel.innerHTML = items.map(p => {
+    sel.innerHTML = '';
+    items.forEach(p => {
       const name = _PERSONA_ROLE_TO_NAME[p.role_key];
-      const label = p.codename ? `${htmlEscape(p.codename)} (${htmlEscape(name)})` : htmlEscape(name);
-      return `<option value="${htmlEscape(name)}">${label}</option>`;
-    }).join('');
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = p.codename ? `${p.codename} (${name})` : name;
+      sel.appendChild(opt);
+    });
     _updatePersonaSelect(el('active-persona')?.textContent || 'Admin');
     sel.onchange = () => switchPersona(sel.value);
   }catch(e){}

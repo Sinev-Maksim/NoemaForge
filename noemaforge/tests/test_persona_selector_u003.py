@@ -93,7 +93,8 @@ class TestLoadPersonaSelect(unittest.TestCase):
 
     def test_populates_select_options(self):
         self.assertIn("persona-select", self.body)
-        self.assertIn("innerHTML", self.body)
+        # Options built via DOM (createElement+textContent), not innerHTML
+        self.assertIn("createElement('option')", self.body.replace(" ", "").replace('"', "'"))
 
     def test_wires_onchange_to_switchpersona(self):
         self.assertIn("switchPersona", self.body)
