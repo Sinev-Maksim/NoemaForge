@@ -75,15 +75,21 @@ periodically so older reviews do not rot in comment threads.
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
 - [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
   runtime modules and unit tests into one shared helper. (Codex #31)
-- [ ] **`_safe_job_file()` extra guard** — reject path separators in job ids before
-  `resolve()`; serialize `prune_terminal()` with other `jobs.json` writes if it is
-  ever wired into a periodic path. (Codex #37)
+- [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
+  (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
+  `_write_job_file` through the guard (read returns None, write raises) so no job-file
+  IO can escape `jobs_dir`. `prune_terminal()` already uses `_safe_job_file` and is not
+  wired into a periodic path, so no extra serialization needed. (Codex #37)
 - [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
   to module top level. (Codex #42)
 - [x] **Create `docs/architecture/system-context.md`** or drop the dangling
   "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
-- [ ] **Add a mixed-case wiki-path regression test** locking the portable
-  (codepoint) hub-index ordering of `ci/wiki_check.py`. (Codex #83)
+- [x] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. DONE:
+  `noemaforge/tests/test_wiki_check_index_order.py` drives `wiki_pages()` over a
+  temp mixed-case tree and asserts codepoint order (uppercase < lowercase),
+  explicitly `!=` case-folded order, so a regression to case-insensitive sorting
+  fails the gate. (Codex #83)
 
 ### Broad pytest run-to-completion + failure triage 2026-06-16
 
@@ -380,9 +386,16 @@ release→main conflict resolution; statuses updated on restore._
   covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
   SARIF results, while GitHub CodeQL default setup remains the authoritative
   CodeQL lane without a conflicting advanced workflow.
-- [ ] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Review
-  each `insecure-innerhtml` location and replace unsafe DOM construction where
-  user-controlled content can reach the sink.
+- [x] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Audited
+  all 14 `pipeline-dashboard` and 8 legacy `ui-dashboard` findings from final
+  baseline run `27829681354`. API-fed task, job, artifact, pipeline, project,
+  event, telemetry, and path values were real trust-boundary inputs; several
+  empty/constant or already-escaped templates were scanner false positives.
+  Both dashboards now construct the DOM with `createElement`, `textContent`,
+  safe attributes, and event listeners. Artifact links additionally reject
+  non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
+  both renderers with hostile payloads and verify literal text plus preserved
+  controls. Remaining `insecure-innerhtml` sinks in these components: 0.
 - [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
   raw-query construction path and parameterize or constrain active inputs.
 - [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
@@ -390,10 +403,11 @@ release→main conflict resolution; statuses updated on restore._
 - [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
   Prove fixed argv/environment allowlists or remove tainted command construction.
 
-The counts above are Semgrep baseline findings, not confirmed vulnerabilities
-until audited. Baseline evidence: run `27828184758`, SARIF artifact SHA-256
-`6db96262c017d13c9e7e8ae186d374321c26d89941f2ddd7e9f20e5e9c23a792`, retained
-through 2026-06-26.
+The open counts above are Semgrep baseline findings, not confirmed
+vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
+artifact SHA-256 `63efafc90c7fc8cccfe77f08177b4bd6fe6f002dd781f14572910e60ac8b90d8`,
+SARIF SHA-256 `7e0923536c76b715e9f3e1ad69480ddd450f2b5c7423dd1a3535b9db23819346`,
+retained through 2026-06-26.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 

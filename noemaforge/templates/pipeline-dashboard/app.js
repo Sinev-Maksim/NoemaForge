@@ -42,9 +42,25 @@ const personaNames = {
 };
 
 function t(key, fallback){ return (allMessages[activeLocale] && allMessages[activeLocale][key]) || fallback || key; }
-function htmlEscape(v){ return String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
 function setText(id, value){ const node = el(id); if(node) node.textContent = value; }
 function setPlaceholder(id, value){ const node = el(id); if(node) node.placeholder = value; }
+function makeNode(tag, className='', text=''){
+  const node = document.createElement(tag);
+  if(className) node.className = className;
+  node.textContent = String(text ?? '');
+  return node;
+}
+function replaceWithNodes(target, nodes){ target.replaceChildren(...nodes); }
+function showMuted(target, text){ replaceWithNodes(target, [makeNode('p', 'muted', text)]); }
+function safeLocalUrl(value){
+  if(!value) return '';
+  try{
+    const base = typeof window === 'undefined' ? 'http://localhost' : window.location.origin;
+    const url = new URL(String(value), base);
+    if(url.origin !== base || !['http:', 'https:'].includes(url.protocol)) return '';
+    return `${url.pathname}${url.search}${url.hash}`;
+  }catch(_){ return ''; }
+}
 function speakerLabel(who){
   const text = String(who || '');
   if(text.toLowerCase() === 'user') return t('role.user', 'User');
@@ -78,7 +94,8 @@ async function api(path, body){
 function addMessage(who, text, cls=''){
   const div = document.createElement('div');
   div.className = `bubble ${speakerClass(who)}${cls ? ' '+cls : ''}`;
-  div.innerHTML = `<small>${htmlEscape(speakerLabel(who))}</small>${htmlEscape(text || '')}`;
+  div.appendChild(makeNode('small', '', speakerLabel(who)));
+  div.appendChild(document.createTextNode(String(text || '')));
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
@@ -96,7 +113,7 @@ function setPersona(name, portraitUrl){
   img.onerror = () => { img.src = '/ui/personas/avatars/fallback/operator-admin-administrator.svg'; };
 }
 function renderConversation(history){
-  el('chat-log').innerHTML = '';
+  el('chat-log').replaceChildren();
   const msgs = history.messages || [];
   if(!msgs.length){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); return; }
   for(const m of msgs){
@@ -113,8 +130,8 @@ function artifactGroup(type){
   return 'Other';
 }
 function artifactPath(a){ return String(a?.path || '').trim(); }
-function artifactPreviewUrl(a){ const p = artifactPath(a); return a?.preview_url || a?.open_url || (p ? `/api/artifacts/open?path=${encodeURIComponent(p)}` : ''); }
-function artifactDownloadUrl(a){ const p = artifactPath(a); return a?.download_url || (p ? `/api/artifacts/download?path=${encodeURIComponent(p)}` : ''); }
+function artifactPreviewUrl(a){ const p = artifactPath(a); return safeLocalUrl(a?.preview_url || a?.open_url || (p ? `/api/artifacts/open?path=${encodeURIComponent(p)}` : '')); }
+function artifactDownloadUrl(a){ const p = artifactPath(a); return safeLocalUrl(a?.download_url || (p ? `/api/artifacts/download?path=${encodeURIComponent(p)}` : '')); }
 async function openArtifact(index){
   const artifact = latestArtifacts[Number(index)];
   const url = artifactPreviewUrl(artifact);
@@ -125,19 +142,43 @@ async function openArtifact(index){
 function renderArtifacts(items){
   const list = items || [];
   latestArtifacts = list;
-  if(!list.length){ el('artifacts').innerHTML = `<p class="muted">${htmlEscape(t('artifact.none','No artifacts yet.'))}</p>`; return; }
+  const target = el('artifacts');
+  if(!list.length){ showMuted(target, t('artifact.none','No artifacts yet.')); return; }
   const groups = {};
   list.forEach((a, index) => { (groups[artifactGroup(a.type || a.label)] ||= []).push({artifact:a, index}); });
-  el('artifacts').innerHTML = Object.entries(groups).map(([g, arr]) => `<h3 class="muted">${htmlEscape(g)}</h3>` + arr.slice(-8).reverse().map(({artifact:a, index}) => {
+  const nodes = [];
+  Object.entries(groups).forEach(([g, arr]) => {
+    nodes.push(makeNode('h3', 'muted', g));
+    arr.slice(-8).reverse().forEach(({artifact:a, index}) => {
     const downloadUrl = artifactDownloadUrl(a);
-    return `<div class="artifact"><b>${htmlEscape(a.label || a.type || 'artifact')}</b><span>${htmlEscape(a.status || '')} · ${htmlEscape(a.type || '')}</span><code>${htmlEscape(a.path || a.open_command || '')}</code><div class="artifact-actions"><button class="ghost small" data-artifact-open="${index}">${htmlEscape(t('artifact.open','Open'))}</button><a class="ghost small artifact-link" href="${htmlEscape(downloadUrl)}" download>${htmlEscape(t('artifact.download','Download'))}</a><button class="ghost small" data-artifact-copy="${index}">${htmlEscape(t('artifact.copy_path','Copy path'))}</button></div></div>`;
-  }).join('')).join('');
-  el('artifacts').querySelectorAll('[data-artifact-open]').forEach(btn => btn.addEventListener('click', () => openArtifact(btn.dataset.artifactOpen)));
-  el('artifacts').querySelectorAll('[data-artifact-copy]').forEach(btn => btn.addEventListener('click', () => navigator.clipboard?.writeText(artifactPath(latestArtifacts[Number(btn.dataset.artifactCopy)]))));
+      const card = makeNode('div', 'artifact');
+      card.append(makeNode('b', '', a.label || a.type || 'artifact'));
+      card.append(makeNode('span', '', `${a.status || ''} · ${a.type || ''}`));
+      card.append(makeNode('code', '', a.path || a.open_command || ''));
+      const actions = makeNode('div', 'artifact-actions');
+      const open = makeNode('button', 'ghost small', t('artifact.open','Open'));
+      open.dataset.artifactOpen = String(index);
+      open.addEventListener('click', () => openArtifact(index));
+      actions.append(open);
+      const download = makeNode('a', 'ghost small artifact-link', t('artifact.download','Download'));
+      if(downloadUrl){ download.setAttribute('href', downloadUrl); download.setAttribute('download', ''); }
+      else download.setAttribute('aria-disabled', 'true');
+      actions.append(download);
+      const copy = makeNode('button', 'ghost small', t('artifact.copy_path','Copy path'));
+      copy.dataset.artifactCopy = String(index);
+      copy.addEventListener('click', () => navigator.clipboard?.writeText(artifactPath(latestArtifacts[index])));
+      actions.append(copy);
+      card.append(actions);
+      nodes.push(card);
+    });
+  });
+  replaceWithNodes(target, nodes);
 }
 function renderInternal(events){
   const arr = events || [];
-  el('internal-chat').innerHTML = arr.length ? arr.slice(-8).map(e => `<div class="internal-event">${htmlEscape(e)}</div>`).join('') : `<p class="muted">${htmlEscape(t('internal.none','No internal handoffs yet.'))}</p>`;
+  const target = el('internal-chat');
+  if(!arr.length){ showMuted(target, t('internal.none','No internal handoffs yet.')); return; }
+  replaceWithNodes(target, arr.slice(-8).map(e => makeNode('div', 'internal-event', e)));
 }
 function absorbResult(result){
   latestRaw = result || {};
@@ -173,7 +214,15 @@ function renderRuntimeObserverCards(cards){
   const list = Array.isArray(cards) ? cards : [];
   const target = el('runtime-observer-cards');
   if(!target) return;
-  target.innerHTML = list.length ? list.map(card => `<div class="observer-card ${htmlEscape(card.status || 'warn')}"><b>${htmlEscape(card.title || card.id)}</b><span>${htmlEscape(card.state || 'unknown')}</span><small>${htmlEscape(card.smoke_affirmation || 'not_affirmed')}</small></div>`).join('') : '<p class="muted">Runtime observers unavailable.</p>';
+  if(!list.length){ showMuted(target, 'Runtime observers unavailable.'); return; }
+  replaceWithNodes(target, list.map(card => {
+    const status = ['ok', 'warn', 'error'].includes(card.status) ? card.status : 'warn';
+    const node = makeNode('div', `observer-card ${status}`);
+    node.append(makeNode('b', '', card.title || card.id));
+    node.append(makeNode('span', '', card.state || 'unknown'));
+    node.append(makeNode('small', '', card.smoke_affirmation || 'not_affirmed'));
+    return node;
+  }));
 }
 
 async function sendAdmin(){
@@ -234,8 +283,15 @@ async function refreshTasks(){
     const st = await api('/api/tasks');
     const tasks = st.tasks || [];
     el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked`;
-    el('tasks').innerHTML = tasks.length ? tasks.slice(-8).reverse().map(x => `<div class="task"><b>${htmlEscape(x.title)}</b><span>${htmlEscape(x.category)} · p=${htmlEscape(x.priority)} · ${htmlEscape(x.status)}</span></div>`).join('') : '<p class="muted">No tasks yet.</p>';
-  }catch(e){ el('tasks').innerHTML = `<p class="muted">tasks unavailable</p>`; }
+    const target = el('tasks');
+    if(!tasks.length){ showMuted(target, 'No tasks yet.'); return; }
+    replaceWithNodes(target, tasks.slice(-8).reverse().map(x => {
+      const task = makeNode('div', 'task');
+      task.append(makeNode('b', '', x.title));
+      task.append(makeNode('span', '', `${x.category} · p=${x.priority} · ${x.status}`));
+      return task;
+    }));
+  }catch(e){ showMuted(el('tasks'), 'tasks unavailable'); }
 }
 const CANCELLABLE_JOB_STATES = new Set(['queued','starting','running','needs_privilege']);
 async function cancelJob(jobId){
@@ -248,21 +304,28 @@ function renderJobs(jobs){
   const list = jobs || [];
   el('job-summary').textContent = `${list.filter(j=>CANCELLABLE_JOB_STATES.has(j.status)).length} active`;
   const container = el('jobs');
-  if(!list.length){ container.innerHTML = '<p class="muted">No jobs.</p>'; return; }
-  container.innerHTML = list.slice(-6).reverse().map(j => {
+  if(!list.length){ showMuted(container, 'No jobs.'); return; }
+  replaceWithNodes(container, list.slice(-6).reverse().map(j => {
     const canCancel = CANCELLABLE_JOB_STATES.has(j.status);
-    const btn = canCancel ? `<button class="job-cancel-btn" data-job-id="${htmlEscape(j.job_id)}" title="Cancel job">✕</button>` : '';
-    return `<div class="job">${btn}<b>${htmlEscape(j.kind)}</b><span>${htmlEscape(j.status)} · ${htmlEscape(j.job_id)}</span><code>${htmlEscape(j.command || '')}</code></div>`;
-  }).join('');
-  container.querySelectorAll('.job-cancel-btn').forEach(btn =>
-    btn.addEventListener('click', () => cancelJob(btn.dataset.jobId))
-  );
+    const job = makeNode('div', 'job');
+    if(canCancel){
+      const btn = makeNode('button', 'job-cancel-btn', '✕');
+      btn.dataset.jobId = String(j.job_id || '');
+      btn.title = 'Cancel job';
+      btn.addEventListener('click', () => cancelJob(j.job_id));
+      job.append(btn);
+    }
+    job.append(makeNode('b', '', j.kind));
+    job.append(makeNode('span', '', `${j.status} · ${j.job_id}`));
+    job.append(makeNode('code', '', j.command || ''));
+    return job;
+  }));
 }
 async function refreshJobs(){
   try{
     const st = await api('/api/jobs');
     renderJobs(st.jobs || []);
-  }catch(e){ el('jobs').innerHTML = '<p class="muted">jobs unavailable</p>'; }
+  }catch(e){ showMuted(el('jobs'), 'jobs unavailable'); }
 }
 function connectJobProgressStream(){
   if(jobStream || typeof EventSource === 'undefined') return;
@@ -335,23 +398,44 @@ async function reinventoryVault(){ try{ const r = await api('/api/vault/reinvent
 async function stopWorkflow(){ try{ absorbResult(await api('/api/workflow/stop', {reason:'operator_clicked_stop'})); }catch(e){ addMessage('Admin', `Stop error: ${String(e)}`, 'error'); } }
 async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
 async function loadUsecases(){
-  try{ const data = await api('/api/usecases'); const cases = data.usecases || []; el('usecases').innerHTML = cases.map(c => `<button class="usecase" data-help="${htmlEscape(c.example)}"><b>${htmlEscape(c.title)}</b><span>${htmlEscape(c.summary)}</span></button>`).join(''); document.querySelectorAll('[data-help]').forEach(btn => btn.addEventListener('click', ()=>{ el('admin-message').value = `что значит ${btn.getAttribute('data-help') || ''}`; sendAdmin(); })); }catch(_){ el('usecases').innerHTML = '<p class="muted">Usecase help unavailable.</p>'; }
+  try{
+    const data = await api('/api/usecases');
+    const cases = data.usecases || [];
+    replaceWithNodes(el('usecases'), cases.map(c => {
+      const btn = makeNode('button', 'usecase');
+      btn.append(makeNode('b', '', c.title));
+      btn.append(makeNode('span', '', c.summary));
+      btn.addEventListener('click', ()=>{ el('admin-message').value = `что значит ${c.example || ''}`; sendAdmin(); });
+      return btn;
+    }));
+  }catch(_){ showMuted(el('usecases'), 'Usecase help unavailable.'); }
 }
 function renderPublicShowcase(){
   const box = el('public-showcase');
   if(!box) return;
   const steps = Array.isArray(publicShowcaseScenario?.steps) ? publicShowcaseScenario.steps : [];
   el('public-showcase-status').textContent = publicShowcaseScenario?.status || '—';
-  box.innerHTML = steps.length ? steps.map((step, index) => `<div class="showcase-step"><b>${htmlEscape(step.title || step.id)}</b><span>${htmlEscape(step.surface || '')} · ${htmlEscape(step.endpoint || '')}</span><div class="showcase-step-actions"><button class="ghost small" data-showcase-fill="${index}">Fill</button><button class="ghost small" data-showcase-preview="${index}">Preview</button></div></div>`).join('') : '<p class="muted">No scenario loaded.</p>';
-  box.querySelectorAll('[data-showcase-fill]').forEach(btn => btn.addEventListener('click', () => fillShowcaseStep(Number(btn.dataset.showcaseFill))));
-  box.querySelectorAll('[data-showcase-preview]').forEach(btn => btn.addEventListener('click', () => previewShowcaseStep(Number(btn.dataset.showcasePreview))));
+  if(!steps.length){ showMuted(box, 'No scenario loaded.'); return; }
+  replaceWithNodes(box, steps.map((step, index) => {
+    const row = makeNode('div', 'showcase-step');
+    row.append(makeNode('b', '', step.title || step.id));
+    row.append(makeNode('span', '', `${step.surface || ''} · ${step.endpoint || ''}`));
+    const actions = makeNode('div', 'showcase-step-actions');
+    const fill = makeNode('button', 'ghost small', 'Fill');
+    fill.addEventListener('click', () => fillShowcaseStep(index));
+    const preview = makeNode('button', 'ghost small', 'Preview');
+    preview.addEventListener('click', () => previewShowcaseStep(index));
+    actions.append(fill, preview);
+    row.append(actions);
+    return row;
+  }));
 }
 async function loadPublicShowcase(){
   try{
     publicShowcaseScenario = await api('/api/public-showcase/scenario');
     renderPublicShowcase();
   }catch(_){
-    el('public-showcase').innerHTML = '<p class="muted">Scenario unavailable.</p>';
+    showMuted(el('public-showcase'), 'Scenario unavailable.');
   }
 }
 function fillShowcaseStep(index){
@@ -367,11 +451,27 @@ function previewShowcaseStep(index){
 function renderPipelines(){
   const q = (el('pipeline-search').value || '').toLowerCase();
   const filtered = pipelineCatalog.filter(p => (pipelineFilter === 'All' || p.group === pipelineFilter) && (p.id.toLowerCase().includes(q) || String(p.description||'').toLowerCase().includes(q)));
-  el('pipeline-list').innerHTML = filtered.slice(0,90).map(p => `<button class="pipeline-card" data-pipeline="${htmlEscape(p.id)}"><b>${htmlEscape(p.id)}</b><span>${htmlEscape(p.group)} · ${htmlEscape(String(p.description||'').slice(0,110))}</span></button>`).join('');
-  document.querySelectorAll('[data-pipeline]').forEach(btn => { btn.addEventListener('click', ()=>startPipeline(btn.dataset.pipeline)); btn.addEventListener('contextmenu', e=>{ e.preventDefault(); showPipelineMenu(e, btn.dataset.pipeline); }); });
+  replaceWithNodes(el('pipeline-list'), filtered.slice(0,90).map(p => {
+    const btn = makeNode('button', 'pipeline-card');
+    btn.append(makeNode('b', '', p.id));
+    btn.append(makeNode('span', '', `${p.group} · ${String(p.description||'').slice(0,110)}`));
+    btn.addEventListener('click', ()=>startPipeline(p.id));
+    btn.addEventListener('contextmenu', e=>{ e.preventDefault(); showPipelineMenu(e, p.id); });
+    return btn;
+  }));
 }
 async function loadPipelines(){
-  try{ const data = await api('/api/pipelines/catalog'); pipelineCatalog = data.pipelines || []; const groups = ['All', ...(data.groups || [])]; el('pipeline-groups').innerHTML = groups.map(g => `<button class="ghost small" data-group="${htmlEscape(g)}">${htmlEscape(g)}</button>`).join(''); document.querySelectorAll('[data-group]').forEach(b=>b.addEventListener('click',()=>{ pipelineFilter=b.dataset.group; renderPipelines(); })); renderPipelines(); }catch(e){ el('pipeline-list').innerHTML = '<p class="muted">Pipeline catalog unavailable.</p>'; }
+  try{
+    const data = await api('/api/pipelines/catalog');
+    pipelineCatalog = data.pipelines || [];
+    const groups = ['All', ...(data.groups || [])];
+    replaceWithNodes(el('pipeline-groups'), groups.map(g => {
+      const btn = makeNode('button', 'ghost small', g);
+      btn.addEventListener('click',()=>{ pipelineFilter=g; renderPipelines(); });
+      return btn;
+    }));
+    renderPipelines();
+  }catch(e){ showMuted(el('pipeline-list'), 'Pipeline catalog unavailable.'); }
 }
 function startPipeline(id){
   const info = pipelineById(id);
@@ -411,19 +511,45 @@ function openPipelineEditor(id=''){
 function renderPipelineEditor(){
   const editor = el('pipeline-editor');
   editor.classList.remove('hidden');
-  editor.innerHTML = `<div class="pipeline-editor-head"><div class="pipeline-editor-title"><b>${htmlEscape(pipelineEditorState.title)}</b><span>draft only · review required before activation</span></div><button id="pipeline-editor-close" class="ghost small">Close</button></div><div class="pipeline-stage-list">${pipelineEditorState.stages.map((stage, index) => `<div class="editor-stage" draggable="true" data-stage-index="${index}"><span class="stage-grip">drag</span><span>${htmlEscape(stage)}</span><div class="stage-actions"><button class="ghost small" data-stage-up="${index}">Up</button><button class="ghost small" data-stage-down="${index}">Down</button><button class="ghost small" data-stage-remove="${index}">Remove</button></div></div>`).join('')}</div><div class="pipeline-editor-actions"><button id="pipeline-stage-add" class="ghost small">Add stage</button><button id="pipeline-draft-save" class="small">Save draft</button></div>`;
-  editor.querySelector('#pipeline-editor-close').onclick = () => editor.classList.add('hidden');
-  editor.querySelector('#pipeline-stage-add').onclick = addPipelineStage;
-  editor.querySelector('#pipeline-draft-save').onclick = savePipelineEditorDraft;
-  editor.querySelectorAll('[data-stage-up]').forEach(btn => btn.onclick = () => movePipelineStage(Number(btn.dataset.stageUp), Number(btn.dataset.stageUp)-1));
-  editor.querySelectorAll('[data-stage-down]').forEach(btn => btn.onclick = () => movePipelineStage(Number(btn.dataset.stageDown), Number(btn.dataset.stageDown)+1));
-  editor.querySelectorAll('[data-stage-remove]').forEach(btn => btn.onclick = () => removePipelineStage(Number(btn.dataset.stageRemove)));
-  editor.querySelectorAll('.editor-stage').forEach(row => {
+  const head = makeNode('div', 'pipeline-editor-head');
+  const title = makeNode('div', 'pipeline-editor-title');
+  title.append(makeNode('b', '', pipelineEditorState.title));
+  title.append(makeNode('span', '', 'draft only · review required before activation'));
+  const close = makeNode('button', 'ghost small', 'Close');
+  close.id = 'pipeline-editor-close';
+  close.onclick = () => editor.classList.add('hidden');
+  head.append(title, close);
+  const stageList = makeNode('div', 'pipeline-stage-list');
+  pipelineEditorState.stages.forEach((stage, index) => {
+    const row = makeNode('div', 'editor-stage');
+    row.draggable = true;
+    row.dataset.stageIndex = String(index);
+    row.append(makeNode('span', 'stage-grip', 'drag'));
+    row.append(makeNode('span', '', stage));
+    const actions = makeNode('div', 'stage-actions');
+    const up = makeNode('button', 'ghost small', 'Up');
+    up.onclick = () => movePipelineStage(index, index-1);
+    const down = makeNode('button', 'ghost small', 'Down');
+    down.onclick = () => movePipelineStage(index, index+1);
+    const remove = makeNode('button', 'ghost small', 'Remove');
+    remove.onclick = () => removePipelineStage(index);
+    actions.append(up, down, remove);
+    row.append(actions);
     row.addEventListener('dragstart', ev => { row.classList.add('dragging'); ev.dataTransfer?.setData('text/plain', row.dataset.stageIndex || '0'); });
     row.addEventListener('dragend', () => row.classList.remove('dragging'));
     row.addEventListener('dragover', ev => ev.preventDefault());
     row.addEventListener('drop', ev => { ev.preventDefault(); movePipelineStage(Number(ev.dataTransfer?.getData('text/plain') || 0), Number(row.dataset.stageIndex || 0)); });
+    stageList.append(row);
   });
+  const editorActions = makeNode('div', 'pipeline-editor-actions');
+  const add = makeNode('button', 'ghost small', 'Add stage');
+  add.id = 'pipeline-stage-add';
+  add.onclick = addPipelineStage;
+  const save = makeNode('button', 'small', 'Save draft');
+  save.id = 'pipeline-draft-save';
+  save.onclick = savePipelineEditorDraft;
+  editorActions.append(add, save);
+  replaceWithNodes(editor, [head, stageList, editorActions]);
 }
 async function savePipelineEditorDraft(){
   const result = await api('/api/pipelines/draft', {id:pipelineEditorState.pipeline_id, title:pipelineEditorState.title, description:pipelineEditorState.description, stages:pipelineEditorState.stages, editor_mode:'drag_drop_pipeline_editor', review_required:true});
@@ -431,7 +557,12 @@ async function savePipelineEditorDraft(){
 }
 function showPipelineMenu(e, id){
   const m = el('context-menu');
-  m.innerHTML = `<button data-act="diagram">Open visual diagram</button><button data-act="stats">Show stats</button><button data-act="explain">Explain pipeline</button><button data-act="draft">Clone/edit draft</button>`;
+  const actions = [['diagram','Open visual diagram'],['stats','Show stats'],['explain','Explain pipeline'],['draft','Clone/edit draft']];
+  replaceWithNodes(m, actions.map(([act, label]) => {
+    const button = makeNode('button', '', label);
+    button.dataset.act = act;
+    return button;
+  }));
   m.style.left = `${e.clientX}px`; m.style.top = `${e.clientY}px`; m.classList.remove('hidden');
   m.querySelectorAll('button').forEach(b => b.onclick = async () => { m.classList.add('hidden'); const act=b.dataset.act; if(act==='diagram') showModal('Pipeline diagram', await api(`/api/pipelines/${encodeURIComponent(id)}/diagram`)); else if(act==='stats') showModal('Pipeline stats', await api(`/api/pipelines/${encodeURIComponent(id)}/stats`)); else if(act==='explain'){ el('admin-message').value = `что значит пайплайн ${id}`; sendAdmin(); } else openPipelineEditor(id); });
 }
@@ -442,7 +573,7 @@ async function loadDashboardBackendState(){
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
   // Try session-based restore first (persists across page refresh); fall back to dashboard state.
   let restoredFromSession = false;
   try{
@@ -453,7 +584,7 @@ async function startup(){
   if(!restoredFromSession){
     try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
   }
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ el('locale-select').innerHTML = loc.locales.map(x => `<option value="${htmlEscape(x)}">${htmlEscape(x)}</option>`).join(''); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
   // Restore selected mode from the session store; conversation state is rendered below.
   try{
     const sess = await api('/api/session/current');
@@ -470,34 +601,90 @@ async function startup(){
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
 }
-el('admin-send').addEventListener('click', sendAdmin);
-el('admin-message').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendAdmin(); } });
-el('locale-select').addEventListener('change', e => { activeLocale = e.target.value; applyLocaleMessages(); renderArtifacts(latestArtifacts); });
-el('gui-shutdown').addEventListener('click', async()=>{ try{ await api('/api/shutdown', {reason:'operator'}); addMessage('Admin','GUI shutdown requested.'); }catch(e){} });
-el('epoch-refresh').addEventListener('click', ()=>refreshEpoch(true));
-el('epoch-apply').addEventListener('click', applyEpoch);
-el('selection-continue').addEventListener('click', continueSelection);
-el('vault-reinventory').addEventListener('click', reinventoryVault);
-el('workflow-stop').addEventListener('click', stopWorkflow);
-el('device-policy').addEventListener('change', setDevicePolicy);
-el('tasks-refresh').addEventListener('click', refreshTasks);
-el('task-add').addEventListener('click', addTaskDialog);
-el('public-showcase-load').addEventListener('click', loadPublicShowcase);
-el('pipeline-search').addEventListener('input', renderPipelines);
-el('pipeline-new').addEventListener('click', ()=>{ const title = prompt('New pipeline draft title:', 'new_pipeline'); if(!title) return; pipelineEditorState = {pipeline_id:title, title, description:'', stages:['intake','plan','review']}; renderPipelineEditor(); });
-el('modal-close').addEventListener('click', ()=>el('modal').classList.add('hidden'));
-function _closePipelineConfirm(){ el('pipeline-confirm').classList.add('hidden'); }
-el('pipeline-confirm-close').addEventListener('click', _closePipelineConfirm);
-el('pipeline-confirm-cancel').addEventListener('click', _closePipelineConfirm);
-el('pipeline-confirm-ok').addEventListener('click', () => {
-  const req = el('pipeline-confirm-req').value.trim();
-  _closePipelineConfirm();
-  if (!req) return;
-  el('admin-message').value = req;
-  el('admin-message').focus();
-});
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && !el('pipeline-confirm').classList.contains('hidden')) _closePipelineConfirm();
-});
-document.addEventListener('click', e=>{ if(!el('context-menu').contains(e.target)) el('context-menu').classList.add('hidden'); });
-startup();
+if (typeof window !== 'undefined' && window.document === document) {
+  el('admin-send').addEventListener('click', sendAdmin);
+
+  el('admin-message').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      sendAdmin();
+    }
+  });
+
+  el('locale-select').addEventListener('change', e => {
+    activeLocale = e.target.value;
+    applyLocaleMessages();
+    renderArtifacts(latestArtifacts);
+  });
+
+  el('gui-shutdown').addEventListener('click', async () => {
+    try {
+      await api('/api/shutdown', { reason: 'operator' });
+      addMessage('Admin', 'GUI shutdown requested.');
+    } catch (e) {}
+  });
+
+  el('epoch-refresh').addEventListener('click', () => refreshEpoch(true));
+  el('epoch-apply').addEventListener('click', applyEpoch);
+  el('selection-continue').addEventListener('click', continueSelection);
+  el('vault-reinventory').addEventListener('click', reinventoryVault);
+  el('workflow-stop').addEventListener('click', stopWorkflow);
+  el('device-policy').addEventListener('change', setDevicePolicy);
+  el('tasks-refresh').addEventListener('click', refreshTasks);
+  el('task-add').addEventListener('click', addTaskDialog);
+  el('public-showcase-load').addEventListener('click', loadPublicShowcase);
+  el('pipeline-search').addEventListener('input', renderPipelines);
+
+  el('pipeline-new').addEventListener('click', () => {
+    const title = prompt('New pipeline draft title:', 'new_pipeline');
+    if (!title) return;
+
+    pipelineEditorState = {
+      pipeline_id: title,
+      title,
+      description: '',
+      stages: ['intake', 'plan', 'review'],
+    };
+
+    renderPipelineEditor();
+  });
+
+  el('modal-close').addEventListener('click', () => {
+    el('modal').classList.add('hidden');
+  });
+
+  function _closePipelineConfirm() {
+    el('pipeline-confirm').classList.add('hidden');
+  }
+
+  el('pipeline-confirm-close').addEventListener('click', _closePipelineConfirm);
+  el('pipeline-confirm-cancel').addEventListener('click', _closePipelineConfirm);
+
+  el('pipeline-confirm-ok').addEventListener('click', () => {
+    const req = el('pipeline-confirm-req').value.trim();
+
+    _closePipelineConfirm();
+
+    if (!req) return;
+
+    el('admin-message').value = req;
+    el('admin-message').focus();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (
+      e.key === 'Escape' &&
+      !el('pipeline-confirm').classList.contains('hidden')
+    ) {
+      _closePipelineConfirm();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!el('context-menu').contains(e.target)) {
+      el('context-menu').classList.add('hidden');
+    }
+  });
+
+  startup();
+}
