@@ -44,10 +44,10 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     <section class="epoch card" aria-label="Epoch status">
       <div class="section-title"><h2 id="epoch-title">Epoch / model selection</h2><span id="epoch-status-pill" class="pill">loading</span></div>
       <div class="epoch-grid">
-        <div><span class="muted">Current main</span><strong id="epoch-current-model">—</strong></div>
-        <div><span class="muted">Staffing</span><strong id="epoch-staffing">—</strong></div>
-        <div><span class="muted">Progress</span><strong id="epoch-progress">—</strong></div>
-        <div><span class="muted">Latest plan</span><strong id="epoch-latest-plan">—</strong></div>
+        <div title="Active model (hover the value for full path)"><span class="muted">Active model</span><strong id="epoch-current-model">—</strong></div>
+        <div title="Model selection state and number of chosen candidates"><span class="muted">Selection state</span><strong id="epoch-staffing">—</strong></div>
+        <div title="How many candidate models have been tested so far (hover for details)"><span class="muted">Candidates tested</span><strong id="epoch-progress">—</strong></div>
+        <div title="Mode and date of the last completed selection plan (hover for apply status)"><span class="muted">Last selection plan</span><strong id="epoch-latest-plan">—</strong></div>
       </div>
       <div class="epoch-actions">
         <button id="epoch-refresh" class="ghost small">Refresh epoch</button>
