@@ -96,7 +96,9 @@ test('pipeline dashboard renders API text literally and rejects active artifact 
   const link = artifacts.querySelector('a');
   assert.equal(link.getAttribute('href'), null);
   assert.equal(link.getAttribute('aria-disabled'), 'true');
-  assert.equal(artifacts.querySelectorAll('button').every((button) => button.listeners.click?.length === 1), true);
+  const actionButtons = artifacts.querySelectorAll('button');
+  assert.ok(actionButtons.length > 0, 'expected artifact action buttons to render');
+  assert.equal(actionButtons.every((button) => button.listeners.click?.length === 1), true);
 
   context.artifacts = [{label: 'safe', path: 'report.json', download_url: '/api/artifacts/download?path=report.json'}];
   vm.runInContext('renderArtifacts(artifacts)', context);
