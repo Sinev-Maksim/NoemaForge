@@ -370,17 +370,37 @@ async function sendAdmin(){
   finally{ el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }
 function shortenPath(path){ if(!path) return '—'; const parts = String(path).split('/'); return parts.slice(-2).join('/'); }
+const _STAFFING_LABELS = {
+  selected: 'Model selected',
+  degraded_selected: 'Model selected (degraded)',
+  no_further_improvement_found: 'Selection complete',
+  selecting: 'Selection in progress',
+  initialized: 'Initialised',
+  not_started: 'Not started yet',
+};
+function _humanStaffingState(s){ if(!s) return 'unknown'; return _STAFFING_LABELS[s] || String(s).replaceAll('_',' '); }
 async function refreshEpoch(showMessage=false){
   try{
     const st = await api('/api/epoch/status');
     const current = st.current_epoch || {}, progress = st.progress || {}, staffing = st.firstboot?.staffing || {}, latest = st.latest_model_selection || {};
-    el('epoch-current-model').textContent = shortenPath(current.model_realpath || current.manifest?.model_id || '—');
-    el('epoch-staffing').textContent = `${staffing.staffing_state || 'unknown'} · selected=${staffing.selected_model_count ?? '—'}`;
-    el('epoch-progress').textContent = `${progress.tested_models ?? 0}/${progress.total_models ?? '—'} tested · failed=${progress.failed_models ?? 0} · left=${progress.remaining_models ?? '—'}`;
-    el('epoch-latest-plan').textContent = latest.decision?.mode || latest.plan?.mode || '—';
+    const fullModel = current.model_realpath || current.manifest?.model_id || '—';
+    const staffState = staffing.staffing_state || 'unknown';
+    const staffSelected = staffing.selected_model_count ?? '—';
+    const tested = progress.tested_models ?? 0, total = progress.total_models ?? '—', failed = progress.failed_models ?? 0, left = progress.remaining_models ?? '—';
+    const planMode = latest.decision?.mode || latest.plan?.mode || '—';
+    const planTs = latest.created_at ? new Date(latest.created_at).toLocaleDateString() : '';
+    el('epoch-current-model').textContent = shortenPath(fullModel);
+    el('epoch-current-model').title = `Full path: ${fullModel}`;
+    el('epoch-staffing').textContent = `${_humanStaffingState(staffState)} · ${staffSelected} selected`;
+    el('epoch-staffing').title = `staffing_state: ${staffState}\nModels chosen for this epoch: ${staffSelected}`;
+    el('epoch-progress').textContent = `${tested}/${total} tested`;
+    el('epoch-progress').title = `Tested: ${tested} of ${total}\nFailed: ${failed}\nRemaining: ${left}`;
+    el('epoch-latest-plan').textContent = planMode + (planTs ? ` (${planTs})` : '');
+    el('epoch-latest-plan').title = planMode === '—' ? 'No selection plan yet' : `Mode: ${planMode}\nCreated: ${latest.created_at || 'unknown'}\nApply available: ${st.apply_available ? 'yes — click Switch to activate' : 'no'}`;
     el('epoch-status-pill').textContent = st.apply_available ? 'ready' : 'no plan';
     el('epoch-status-pill').className = st.apply_available ? 'pill ok' : 'pill warn';
-    if(showMessage) addMessage('Admin', `Epoch status: ${el('epoch-progress').textContent}`);
+    el('epoch-status-pill').title = st.apply_available ? 'A new model selection is ready to apply.' : 'No pending model selection plan.';
+    if(showMessage) addMessage('Admin', `Epoch: ${_humanStaffingState(staffState)} · tested ${tested}/${total}${failed ? ` (${failed} failed)` : ''}`);
   }catch(e){ if(showMessage) addMessage('Admin', `Epoch status error: ${String(e)}`, 'error'); }
 }
 function _gib(bytes){ return bytes != null ? (bytes / 1073741824).toFixed(1) + ' GiB' : '—'; }
