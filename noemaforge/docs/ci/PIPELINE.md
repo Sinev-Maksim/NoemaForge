@@ -58,8 +58,17 @@ create duplicate or unreviewed issues.
 The blocking lane excludes only six triaged rules: generic dynamic-subprocess audit, Python
 identity-comparison/sleep/tempfile/open best-practice checks, and the duplicate JavaScript
 `insecure-document-method` rule. These produced 170 non-security, generic-audit, or duplicate
-findings in run `27828184758`; the 45 remaining DOM/XSS, dynamic SQL, XML-boundary, and subprocess
-taint findings stay visible until their dedicated audits are complete.
+findings before final baseline run `27829681354`; its 45 remaining DOM/XSS, dynamic SQL,
+XML-boundary, and subprocess-taint findings stay visible until their dedicated audits are complete.
+The final baseline SARIF SHA-256 is
+`7e0923536c76b715e9f3e1ad69480ddd450f2b5c7423dd1a3535b9db23819346`.
+
+The frontend DOM/XSS audit covers all 22 baseline `insecure-innerhtml` results: 14 in the stateful
+`pipeline-dashboard` and 8 in the legacy snapshot `ui-dashboard`. API data in both renderers is now
+inserted through DOM APIs and `textContent`; listeners and attributes are attached directly, and
+artifact URLs must resolve to an HTTP(S) path on the Admin GUI origin. The dependency-free
+`node:test` regression executes hostile API payloads against both renderers. Scanner configuration
+and rule exclusions are unchanged.
 
 ### Dependency and CodeQL ownership
 Dependabot checks the root `pyproject.toml` through the `pip` ecosystem and keeps SHA-pinned GitHub
