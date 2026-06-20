@@ -266,16 +266,48 @@ async function refreshEpoch(showMessage=false){
     if(showMessage) addMessage('Admin', `Epoch status: ${el('epoch-progress').textContent}`);
   }catch(e){ if(showMessage) addMessage('Admin', `Epoch status error: ${String(e)}`, 'error'); }
 }
+function _gib(bytes){ return bytes != null ? (bytes / 1073741824).toFixed(1) + ' GiB' : '—'; }
+function _pct(v){ return v != null ? String(Math.round(v)) + '%' : '—'; }
+function _fmtHardware(hw){
+  if (!hw) return '—';
+  const m = hw.memory || {};
+  const lines = [
+    `RAM:   ${_gib(m.used)} / ${_gib(m.total)} (${_pct(m.percent)} used)`,
+    `Swap:  ${_gib(m.swap_used)} / ${_gib(m.swap_total)} (${_pct(m.swap_percent)} used)`,
+  ];
+  const gpu = String(hw.nvidia_smi?.stdout || hw.nvidia_smi?.stderr || '').trim().split('\n')[0];
+  if (gpu) lines.push(`GPU:   ${gpu.slice(0, 140)}`);
+  return lines.join('\n');
+}
+function _metricRow(label, value){ return `${label.padEnd(22)} ${value != null && value !== '' ? String(value) : '—'}`; }
+function _fmtProductMetrics(prod){
+  if (!prod) return '—';
+  const ms = prod.model_selection || {};
+  const cm = prod.creative_media || {};
+  const rows = [
+    _metricRow('Selected model:', ms.current_main_model || ms.main_model || '—'),
+    _metricRow('Selection status:', ms.staffing_state || '—'),
+    _metricRow('Score:', ms.selection_score != null ? ms.selection_score : '—'),
+    _metricRow('Pass rate:', ms.pass_rate != null ? _pct(ms.pass_rate * 100) : '—'),
+    _metricRow('JSON parse rate:', ms.json_parse_rate != null ? _pct(ms.json_parse_rate * 100) : '—'),
+    _metricRow('Quality score:', ms.quality_score != null ? ms.quality_score : '—'),
+    _metricRow('Avg latency (s):', ms.avg_latency_s != null ? ms.avg_latency_s : '—'),
+    _metricRow('Failed tasks:', ms.failed_tasks != null ? ms.failed_tasks : '—'),
+    _metricRow('Top-N composite:', ms.selected_composite_top_n != null ? ms.selected_composite_top_n : '—'),
+    cm.status ? _metricRow('Creative media:', cm.status) : null,
+  ].filter(Boolean);
+  return rows.join('\n');
+}
 async function refreshTelemetry(){
   try{
     const st = await api('/api/telemetry/status');
     el('hardware-status').textContent = 'ok';
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
     el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
-    el('hardware-metrics').textContent = JSON.stringify(st.hardware?.memory || {}, null, 2) + '\nGPU: ' + String(st.hardware?.nvidia_smi?.stdout || st.hardware?.nvidia_smi?.stderr || 'n/a').slice(0,220);
+    el('hardware-metrics').textContent = _fmtHardware(st.hardware);
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('runtime-metrics').textContent = JSON.stringify({device_policy:st.runtime?.device_policy, sockets:st.runtime?.sockets, model:st.runtime?.main_manifest?.model_id || st.runtime?.main_manifest?.name || 'main'}, null, 2);
-    el('product-metrics').textContent = JSON.stringify({model_selection: st.product?.model_selection || {}, creative_media: st.product?.creative_media || {}, creative_metrics_policy: st.creative_metrics_policy || 'review-required'}, null, 2).slice(0,700);
+    el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
 async function refreshTasks(){
