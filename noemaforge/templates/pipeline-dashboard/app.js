@@ -927,6 +927,7 @@ if (typeof window !== 'undefined' && window.document === document) {
     activeLocale = e.target.value;
     applyLocaleMessages();
     renderArtifacts(latestArtifacts);
+    _updateDepthNotice();
   });
 
   el('gui-shutdown').addEventListener('click', async () => {
