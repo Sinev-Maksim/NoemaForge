@@ -32,6 +32,10 @@ let lastServerEpoch = null;
 let lastRotationCount = 0;
 let restoredSelectionMode = {mode:'full_composite', composite_top_n:4};
 
+const _REPEAT_WINDOW_MS = 60_000;
+const _launchHistory = new Map();
+let _confirmPipelineId = '';
+
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
 
@@ -699,10 +703,17 @@ async function loadPipelines(){
 }
 function startPipeline(id){
   const info = pipelineById(id);
+  const codename = info.persona_codename || 'Атлас';
+  const isRepeat = _launchHistory.has(id) && (Date.now() - _launchHistory.get(id)) < _REPEAT_WINDOW_MS;
+  _confirmPipelineId = id;
   const safeId = info.id || id || 'pipeline';
   el('pipeline-confirm-title').textContent = `Pipeline: ${safeId}`;
   el('pipeline-confirm-desc').textContent = info.description || '';
+  el('pipeline-confirm-persona').textContent = `→ Persona: ${codename}`;
+  el('pipeline-confirm-repeat').classList.toggle('hidden', !isRepeat);
+  el('pipeline-confirm-continue').classList.toggle('hidden', !isRepeat);
   el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию`;
+
   el('pipeline-confirm').classList.remove('hidden');
   el('pipeline-confirm-req').focus();
   el('pipeline-confirm-req').select();
@@ -943,14 +954,37 @@ if (typeof window !== 'undefined' && window.document === document) {
 
   el('pipeline-confirm-ok').addEventListener('click', () => {
     const req = el('pipeline-confirm-req').value.trim();
+    const id = typeof _confirmPipelineId !== 'undefined'
+      ? _confirmPipelineId
+      : null;
 
     _closePipelineConfirm();
 
     if (!req) return;
 
+    if (id && typeof _launchHistory !== 'undefined') {
+      _launchHistory.set(id, Date.now());
+    }
+
     el('admin-message').value = req;
     el('admin-message').focus();
   });
+
+  const pipelineConfirmContinue = el('pipeline-confirm-continue');
+  if (pipelineConfirmContinue) {
+    pipelineConfirmContinue.addEventListener('click', () => {
+      const id = typeof _confirmPipelineId !== 'undefined'
+        ? _confirmPipelineId
+        : null;
+
+      _closePipelineConfirm();
+
+      if (!id) return;
+
+      el('admin-message').value = `Продолжи ${id} по текущему сценарию`;
+      el('admin-message').focus();
+    });
+  }
 
   document.addEventListener('keydown', e => {
     if (

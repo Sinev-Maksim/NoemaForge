@@ -1507,6 +1507,28 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "job": job, "suggested_command": command, "privileged_runner_command": job.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": artifacts}
 
     # --- pipeline catalog ------------------------------------------------------------
+    _TEAM_PERSONA_MAP: Dict[str, tuple] = {
+        "development_evolution_team": ("dev.work_solution_architect", "Дедал"),
+        "public_onboarding_team": ("operator.admin_administrator", "Атлас"),
+        "book_team": ("writing.story_writer", "Сирин"),
+        "release_team": ("operator.admin_administrator", "Атлас"),
+        "knowledge_graph_team": ("knowledge.vault_researcher", "Мнемозина"),
+        "media_team": ("operator.admin_administrator", "Атлас"),
+        "model_evolution_team": ("operator.admin_administrator", "Атлас"),
+    }
+
+    @classmethod
+    def _pipeline_persona(cls, team: str, group: str) -> tuple:
+        if team in cls._TEAM_PERSONA_MAP:
+            return cls._TEAM_PERSONA_MAP[team]
+        low = team.lower()
+        if any(x in low for x in ["dev", "code", "qa", "test"]): return ("dev.work_dev", "Гефест")
+        if any(x in low for x in ["model", "epoch", "evolution"]): return ("operator.admin_administrator", "Атлас")
+        if any(x in low for x in ["media", "music", "voice", "video"]): return ("operator.admin_administrator", "Атлас")
+        if any(x in low for x in ["vault", "knowledge", "research"]): return ("knowledge.vault_researcher", "Мнемозина")
+        if any(x in low for x in ["writing", "book", "story"]): return ("writing.story_writer", "Сирин")
+        return ("operator.admin_administrator", "Атлас")
+
     def pipeline_catalog_api(self) -> Dict[str, Any]:
         pipelines = self._read_json(self.root / "configs" / "pipelines.json", {})
         media = self._read_json(self.root / "configs" / "media-pipeline-catalog.json", {})
@@ -1520,11 +1542,13 @@ class AdminGuiServer(ThreadingHTTPServer):
             if any(x in low for x in ["media", "music", "voice", "photo", "video", "camera", "mask", "image"]): group = "Media"
             if any(x in low for x in ["vault", "inventory", "dataset"]): group = "Vault"
             if any(x in low for x in ["scary", "safety", "sr", "ssr", "governance"]): group = "Governance"
-            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": p.get("team", "") if isinstance(p, dict) else ""})
+            team = p.get("team", "") if isinstance(p, dict) else ""
+            persona_key, persona_codename = self._pipeline_persona(team, group)
+            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "persona": persona_key, "persona_codename": persona_codename})
         for p in media.get("pipelines", []) if isinstance(media, dict) else []:
             pid = p.get("id")
             if pid:
-                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", "")})
+                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
         groups = sorted(set(i["group"] for i in items))
         return {"ok": True, "version": RUNTIME_VERSION, "pipelines": items, "groups": groups, "new_pipeline_supported": "draft_only"}
 
