@@ -929,6 +929,27 @@ class AdminGuiServer(ThreadingHTTPServer):
         portrait_url = "/" + portrait.lstrip("/") if portrait and path.exists() else self.fallback_avatar_url(str(p.get("role_key") or persona_name))
         return {"ok": True, "version": RUNTIME_VERSION, "active_persona": persona_name, "persona": p, "portrait_url": portrait_url, "fallback": not (portrait and path.exists())}
 
+    def persona_switch(self, name: str) -> Dict[str, Any]:
+        name = str(name or "").strip()[:64] or "Admin"
+        prev_conv = self._conversation()
+        prev = str(prev_conv.get("active_persona") or "Admin")
+        p = self.persona_for_name(name)
+        portrait = str(p.get("portrait") or "")
+        portrait_path = self.root / portrait if portrait else Path("/missing")
+        portrait_url = "/" + portrait.lstrip("/") if portrait and portrait_path.exists() else self.fallback_avatar_url(str(p.get("role_key") or name))
+        if prev == name:
+            return {"ok": True, "version": RUNTIME_VERSION, "active_persona": name, "persona": p, "portrait_url": portrait_url, "switch_line": None}
+        codename = str(p.get("codename") or name)
+        switch_line = f"-- смена персоны с {prev} на {name} ({codename}) --"
+        self.save_message(
+            "system", switch_line,
+            persona=name,
+            intent="persona_switch",
+            system_event=True,
+            raw={"from": prev, "to": name, "codename": codename},
+        )
+        return {"ok": True, "version": RUNTIME_VERSION, "active_persona": name, "persona": p, "portrait_url": portrait_url, "switch_line": switch_line, "from": prev}
+
     # --- tasks/jobs ------------------------------------------------------------------
     def task_store_file(self) -> Path:
         return self.tasks_dir / "tasks.json"
