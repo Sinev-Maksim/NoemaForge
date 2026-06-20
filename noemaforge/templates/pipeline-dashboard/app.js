@@ -212,7 +212,7 @@ const _STAFFING_LABELS = {
   initialized: 'Initialised',
   not_started: 'Not started yet',
 };
-function _humanStaffingState(s){ return _STAFFING_LABELS[s] || s || 'unknown'; }
+function _humanStaffingState(s){ if(!s) return 'unknown'; return _STAFFING_LABELS[s] || String(s).replaceAll('_',' '); }
 async function refreshEpoch(showMessage=false){
   try{
     const st = await api('/api/epoch/status');
