@@ -180,6 +180,30 @@ function renderInternal(events){
   if(!arr.length){ showMuted(target, t('internal.none','No internal handoffs yet.')); return; }
   replaceWithNodes(target, arr.slice(-8).map(e => makeNode('div', 'internal-event', e)));
 }
+function _artifactChatCard(a){
+  const div = document.createElement('div');
+  div.className = 'bubble Admin artifact-inline-card';
+  const dlUrl = artifactDownloadUrl(a);
+  div.innerHTML = '<small>Artifact</small><div class="artifact-card-inline"><b class="ac-label"></b><span class="muted ac-meta"></span><code class="ac-path" style="display:block;margin:4px 0;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></code><div class="artifact-actions"><button class="ghost small" data-inline-open>Open</button>' + (dlUrl ? '<a class="ghost small artifact-link" data-inline-dl download>Download</a>' : '') + '<button class="ghost small" data-inline-copy>Copy path</button></div></div>';
+  div.querySelector('.ac-label').textContent = a.label || a.type || 'artifact';
+  div.querySelector('.ac-meta').textContent = (a.status ? ` · ${a.status}` : '') + (a.type ? ` · ${a.type}` : '');
+  div.querySelector('.ac-path').textContent = artifactPath(a) || a.open_command || '—';
+  if (dlUrl) div.querySelector('[data-inline-dl]').href = dlUrl;
+  div.querySelector('[data-inline-open]')?.addEventListener('click', async () => {
+    const url = artifactPreviewUrl(a);
+    if(!url) return;
+    try{ showModal(a.label || a.type || 'Artifact', await api(url)); }
+    catch(e){ showModal('Artifact unavailable', {ok:false, error:String(e), path:artifactPath(a)}); }
+  });
+  div.querySelector('[data-inline-copy]')?.addEventListener('click', () => { navigator.clipboard?.writeText(artifactPath(a)); });
+  return div;
+}
+function postArtifactsToChat(artifacts){
+  if(!Array.isArray(artifacts) || !artifacts.length) return;
+  const chatLog = el('chat-log');
+  artifacts.forEach(a => chatLog.appendChild(_artifactChatCard(a)));
+  chatLog.scrollTop = chatLog.scrollHeight;
+}
 function absorbResult(result){
   latestRaw = result || {};
   el('raw-json').textContent = JSON.stringify(result, null, 2);
@@ -187,8 +211,9 @@ function absorbResult(result){
   const personaSwitch = result.persona_switch;
   if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); }
   if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '');
+  else if(result.ok === false) addMessage('Admin', `Error: ${htmlEscape(result.error || 'unknown error')}`, 'error');
   if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
-  if(Array.isArray(result.artifacts)) renderArtifacts(result.artifacts);
+  if(Array.isArray(result.artifacts)){ renderArtifacts(result.artifacts); postArtifactsToChat(result.artifacts); }
   if(Array.isArray(result.internal_events)) renderInternal(result.internal_events);
   if(result.type === 'model_selection' || route.intent === 'model_selection') pendingAction = null;
   if(route.intent === 'model_selection' || result.mode === 'model_selection_prompt') pendingAction = {type:'model_selection', scope:'dev team'};
