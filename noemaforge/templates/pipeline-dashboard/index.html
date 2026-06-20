@@ -36,6 +36,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
         <select id="locale-select" title="Locale"></select>
         <label class="check"><input id="admin-execute" type="checkbox" checked /> <span id="label-execute">выполнить</span></label>
         <label class="check"><input id="admin-prepare-media" type="checkbox" checked /> <span id="label-media-plan">медиа-план</span></label>
+        <label class="device-policy" title="Switch active persona"><span id="persona-select-label">Persona</span> <select id="persona-select" title="Active persona"></select></label>
         <label class="device-policy">Device <select id="device-policy"><option value="auto">auto</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></label>
         <button id="gui-shutdown" class="ghost">Выключить GUI</button>
       </div>
@@ -44,10 +45,10 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     <section class="epoch card" aria-label="Epoch status">
       <div class="section-title"><h2 id="epoch-title">Epoch / model selection</h2><span id="epoch-status-pill" class="pill">loading</span></div>
       <div class="epoch-grid">
-        <div><span class="muted">Current main</span><strong id="epoch-current-model">—</strong></div>
-        <div><span class="muted">Staffing</span><strong id="epoch-staffing">—</strong></div>
-        <div><span class="muted">Progress</span><strong id="epoch-progress">—</strong></div>
-        <div><span class="muted">Latest plan</span><strong id="epoch-latest-plan">—</strong></div>
+        <div title="Active model (hover the value for full path)"><span class="muted">Active model</span><strong id="epoch-current-model">—</strong></div>
+        <div title="Model selection state and number of chosen candidates"><span class="muted">Selection state</span><strong id="epoch-staffing">—</strong></div>
+        <div title="How many candidate models have been tested so far (hover for details)"><span class="muted">Candidates tested</span><strong id="epoch-progress">—</strong></div>
+        <div title="Mode and date of the last completed selection plan (hover for apply status)"><span class="muted">Last selection plan</span><strong id="epoch-latest-plan">—</strong></div>
       </div>
       <div class="epoch-actions">
         <button id="epoch-refresh" class="ghost small">Refresh epoch</button>
@@ -126,6 +127,23 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
 
   <div id="context-menu" class="context-menu hidden"></div>
   <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><pre id="modal-body"></pre></div></div>
+  <div id="pipeline-confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pipeline-confirm-title">
+    <div class="modal-inner">
+      <button id="pipeline-confirm-close" class="ghost small" aria-label="Close">×</button>
+      <h2 id="pipeline-confirm-title">Launch pipeline</h2>
+      <p id="pipeline-confirm-desc" class="muted"></p>
+      <p id="pipeline-confirm-persona" class="muted" style="font-size:12px;margin:4px 0 0"></p>
+      <p id="pipeline-confirm-repeat" class="muted hidden" style="font-size:12px;color:var(--warn,#c47a00);margin:6px 0 0">&#9888; This pipeline was launched recently.</p>
+      <label style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
+      <label for="pipeline-confirm-req" style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
+      <textarea id="pipeline-confirm-req" rows="4" style="width:100%;resize:vertical"></textarea>
+      <div class="epoch-actions" style="margin-top:12px">
+        <button id="pipeline-confirm-ok">Start new — insert into chat</button>
+        <button id="pipeline-confirm-continue" class="ghost hidden">Continue existing</button>
+        <button id="pipeline-confirm-cancel" class="ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>
