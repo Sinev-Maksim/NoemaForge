@@ -66,6 +66,14 @@ GitHub API), so the model process holds no write capability.
   duplicate JavaScript `insecure-document-method` rule. The meaningful DOM/XSS,
   dynamic SQL, XML input-boundary, and subprocess-taint findings remain in
   SARIF; rule exclusions cannot be used to hide those groups.
+- Final baseline run `27829681354` reported 22 `insecure-innerhtml` locations:
+  14 in `templates/pipeline-dashboard/app.js` and 8 in
+  `templates/ui-dashboard/app.js`. The audit found real API-to-DOM trust
+  boundaries alongside constant/already-escaped false positives. Both
+  dashboards now use DOM nodes, `textContent`, direct listeners, and safe
+  same-origin artifact attributes throughout; the rule remains enabled and the
+  audited component count is zero. Dependency-free Node behavior tests inject
+  hostile snapshot/control-plane payloads to prevent regression.
 - GitHub CodeQL default setup is the authoritative CodeQL lane. An advanced
   `codeql.yml` is intentionally absent because GitHub rejects advanced-setup
   SARIF uploads while default setup is enabled. Direct alert-count access was

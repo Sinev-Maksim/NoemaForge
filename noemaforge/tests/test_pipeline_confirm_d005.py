@@ -66,13 +66,13 @@ class TestStartPipelineNoLongerCallsPrompt(unittest.TestCase):
 
     def test_startpipeline_no_prompt(self):
         # Extract the startPipeline function body (up to the closing brace).
-        m = re.search(r'function startPipeline\(id\)\s*\{([^}]+)\}', self.src)
+        m = re.search(r'function startPipeline\(id\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m, "startPipeline function not found")
         body = m.group(1)
         self.assertNotIn("prompt(", body, "startPipeline must not use prompt()")
 
     def test_startpipeline_shows_confirm_dialog(self):
-        m = re.search(r'function startPipeline\(id\)\s*\{([^}]+)\}', self.src)
+        m = re.search(r'function startPipeline\(id\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m, "startPipeline function not found")
         body = m.group(1)
         self.assertIn("pipeline-confirm", body,
@@ -84,7 +84,7 @@ class TestStartPipelineNoLongerCallsPrompt(unittest.TestCase):
                          "startPipeline should not be async (no direct API call)")
 
     def test_startpipeline_no_direct_api_call(self):
-        m = re.search(r'function startPipeline\(id\)\s*\{([^}]+)\}', self.src)
+        m = re.search(r'function startPipeline\(id\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m, "startPipeline function not found")
         body = m.group(1)
         self.assertNotIn("/api/pipeline/run", body,

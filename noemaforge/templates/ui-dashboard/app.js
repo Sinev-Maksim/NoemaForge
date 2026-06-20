@@ -48,8 +48,23 @@ function fmt(x) {
   return String(x);
 }
 
+function makeNode(tag, className = "", text = "") {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  node.textContent = String(text ?? "");
+  return node;
+}
+
+function muted(text) {
+  return makeNode("div", "muted", text);
+}
+
+function replaceWith(target, nodes) {
+  target.replaceChildren(...(Array.isArray(nodes) ? nodes : [nodes]));
+}
+
 function badge(text, cls) {
-  return `<span class="badge ${cls}">${text}</span>`;
+  return makeNode("span", `badge ${cls}`, text);
 }
 
 function setStatus(ok, text) {
@@ -62,18 +77,16 @@ function setStatus(ok, text) {
 
 function renderKV(obj) {
   const keys = Object.keys(obj);
-  if (keys.length === 0) return "<div class='muted'>no data</div>";
-  return keys
-    .map((k) => {
-      return `<div class='k'>${k}</div><div class='v'>${fmt(obj[k])}</div>`;
-    })
-    .join("");
+  if (keys.length === 0) return [muted("no data")];
+  return keys.flatMap((k) => [makeNode("div", "k", k), makeNode("div", "v", fmt(obj[k]))]);
 }
 
 function renderTaskRow(t) {
   const left = `${fmt(t.priority_class)} / ${fmt(t.domain)}`;
   const right = `${fmt(t.task_id)} — ${fmt(t.title)}`;
-  return `<div class='row'><div class='c0'>${left}</div><div class='c1'>${right}</div></div>`;
+  const row = makeNode("div", "row");
+  row.append(makeNode("div", "c0", left), makeNode("div", "c1", right));
+  return row;
 }
 
 function renderEventRow(e) {
@@ -81,7 +94,9 @@ function renderEventRow(e) {
   const typ = fmt(e.type);
   const sev = fmt(e.severity);
   const decision = fmt(e.decision);
-  return `<div class='row'><div class='c0'>${left}</div><div class='c1'>${sev} ${typ} — ${decision}</div></div>`;
+  const row = makeNode("div", "row");
+  row.append(makeNode("div", "c0", left), makeNode("div", "c1", `${sev} ${typ} — ${decision}`));
+  return row;
 }
 
 function renderTelemRow(x) {
@@ -89,19 +104,19 @@ function renderTelemRow(x) {
   const kind = fmt(x.kind);
   const model = fmt(x.model);
   const ms = fmt(x.latency_ms);
-  return `<div class='row'><div class='c0'>${left}</div><div class='c1'>${kind} — ${model} (${ms} ms)</div></div>`;
+  const row = makeNode("div", "row");
+  row.append(makeNode("div", "c0", left), makeNode("div", "c1", `${kind} — ${model} (${ms} ms)`));
+  return row;
 }
 
 function renderFlow(flow, activeRole) {
-  if (!flow || !flow.nodes || flow.nodes.length === 0) return "<div class='muted'>no flow</div>";
-  const nodes = flow.nodes
-    .map((n) => {
-      const role = fmt(n.role);
-      const cls = role === activeRole ? "node active" : "node";
-      return `<span class='${cls}'>${role}</span>`;
-    })
-    .join("");
-  return `<div class='flow'>${nodes}</div>`;
+  if (!flow || !flow.nodes || flow.nodes.length === 0) return muted("no flow");
+  const target = makeNode("div", "flow");
+  flow.nodes.forEach((n) => {
+    const role = fmt(n.role);
+    target.append(makeNode("span", role === activeRole ? "node active" : "node", role));
+  });
+  return target;
 }
 
 function renderProject(p) {
@@ -117,92 +132,89 @@ function renderProject(p) {
   const wakes = p.team && p.team.wakeq ? p.team.wakeq.pending : 0;
   const backlog = p.backlog && p.backlog.counts ? p.backlog.counts.todo : 0;
 
-  const pills = [
-    badge(`prio:${prio}`, "warn"),
-    badge(`status:${st}`, st === "active" ? "good" : "warn"),
-    badge(`stream:${stream}`, "warn"),
-    badge(`wakes:${wakes}`, wakes > 0 ? "warn" : "good"),
+  const pills = makeNode("div");
+  pills.style.textAlign = "right";
+  [
+    badge(`prio:${prio}`, "warn"), badge(`status:${st}`, st === "active" ? "good" : "warn"),
+    badge(`stream:${stream}`, "warn"), badge(`wakes:${wakes}`, wakes > 0 ? "warn" : "good"),
     badge(`todo:${backlog}`, backlog > 0 ? "warn" : "good"),
-  ].join(" ");
-
+  ].forEach((item) => { pills.append(item, document.createTextNode(" ")); });
   const nextWake = p.team && p.team.wakeq ? p.team.wakeq.next : null;
-  const wakeLine = nextWake
-    ? `<div class='mono muted'>next wake: ${fmt(nextWake.to_role)} ← ${fmt(nextWake.from_role)} :: ${fmt(
-        nextWake.objective
-      )}</div>`
-    : "";
-
-  return `
-    <div style="margin-bottom: 12px;">
-      <div style="display:flex; align-items:center; justify-content: space-between; gap:10px;">
-        <div>
-          <div style="font-weight:700;">${title}</div>
-          <div class="muted mono">${p.project_id}${activeRole ? " • active: " + activeRole : ""}</div>
-        </div>
-        <div style="text-align:right;">${pills}</div>
-      </div>
-      ${wakeLine}
-      ${renderFlow(p.flow, activeRole)}
-    </div>
-  `;
+  const block = makeNode("div");
+  block.style.marginBottom = "12px";
+  const head = makeNode("div");
+  Object.assign(head.style, {display:"flex", alignItems:"center", justifyContent:"space-between", gap:"10px"});
+  const labels = makeNode("div");
+  const titleNode = makeNode("div", "", title);
+  titleNode.style.fontWeight = "700";
+  labels.append(titleNode, makeNode("div", "muted mono", `${p.project_id}${activeRole ? " • active: " + activeRole : ""}`));
+  head.append(labels, pills);
+  block.append(head);
+  if (nextWake) block.append(makeNode("div", "mono muted", `next wake: ${fmt(nextWake.to_role)} ← ${fmt(nextWake.from_role)} :: ${fmt(nextWake.objective)}`));
+  block.append(renderFlow(p.flow, activeRole));
+  return block;
 }
 
 
 function renderInboxBuckets(buckets) {
-  if (!buckets || buckets.length === 0) return "<div class='muted'>no buckets</div>";
+  if (!buckets || buckets.length === 0) return muted("no buckets");
   const top = buckets.slice(0, 8);
-  return top
-    .map((b) => {
-      const name = fmt(b.bucket) || "(root)";
-      const files = Number(b.files || 0);
-      const bytes = fmtBytes(b.bytes || 0);
-      const cls = files > 0 ? "warn" : "good";
-      return `${badge(name + ":" + files, cls)} <span class='muted mono'>${bytes}</span>`;
-    })
-    .join(" ");
+  const target = makeNode("div");
+  top.forEach((b) => {
+    const name = fmt(b.bucket) || "(root)";
+    const files = Number(b.files || 0);
+    target.append(badge(name + ":" + files, files > 0 ? "warn" : "good"));
+    target.append(document.createTextNode(" "), makeNode("span", "muted mono", fmtBytes(b.bytes || 0)), document.createTextNode(" "));
+  });
+  return target;
 }
 
 function renderInboxRecent(items) {
-  if (!items || items.length === 0) return "<div class='muted'>empty</div>";
-  return items
-    .slice(0, 10)
-    .map((x) => {
+  if (!items || items.length === 0) return muted("empty");
+  const target = makeNode("div", "table");
+  items.slice(0, 10).forEach((x) => {
       const left = `${fmt(x.mtime)}`;
       const p = fmt(x.path);
       const sz = fmtBytes(x.size || 0);
-      return `<div class='row'><div class='c0'>${left}</div><div class='c1'>${p} <span class='muted mono'>(${sz})</span></div></div>`;
-    })
-    .join("");
+      const row = makeNode("div", "row");
+      const detail = makeNode("div", "c1", `${p} `);
+      detail.append(makeNode("span", "muted mono", `(${sz})`));
+      row.append(makeNode("div", "c0", left), detail);
+      target.append(row);
+    });
+  return target;
 }
 
 function renderInboxBlock(title, obj) {
   if (!obj || obj.available !== true) {
-    return `<div style="margin-bottom: 14px;"><div style="font-weight:700;">${title}</div><div class='muted mono'>not available</div></div>`;
+    const missing = makeNode("div");
+    missing.style.marginBottom = "14px";
+    const heading = makeNode("div", "", title);
+    heading.style.fontWeight = "700";
+    missing.append(heading, makeNode("div", "muted mono", "not available"));
+    return missing;
   }
   const files = Number(obj.total_files || 0);
   const bytes = fmtBytes(obj.total_bytes || 0);
-  const pills = [
-    badge(`files:${files}`, files > 0 ? "warn" : "good"),
-    badge(`size:${bytes}`, files > 0 ? "warn" : "good"),
-  ].join(" ");
-
-  const base = obj.base_dir ? `<div class='muted mono'>${fmt(obj.base_dir)}</div>` : "";
+  const block = makeNode("div");
+  block.style.marginBottom = "16px";
+  const head = makeNode("div");
+  Object.assign(head.style, {display:"flex", alignItems:"center", justifyContent:"space-between", gap:"10px"});
+  const labels = makeNode("div");
+  const heading = makeNode("div", "", title);
+  heading.style.fontWeight = "700";
+  labels.append(heading);
+  if (obj.base_dir) labels.append(makeNode("div", "muted mono", fmt(obj.base_dir)));
+  const pills = makeNode("div");
+  pills.style.textAlign = "right";
+  pills.append(badge(`files:${files}`, files > 0 ? "warn" : "good"), document.createTextNode(" "), badge(`size:${bytes}`, files > 0 ? "warn" : "good"));
+  head.append(labels, pills);
   const buckets = renderInboxBuckets(obj.by_bucket || []);
+  buckets.style.marginTop = "8px";
   const recent = renderInboxRecent(obj.recent || []);
-
-  return `
-    <div style="margin-bottom: 16px;">
-      <div style="display:flex; align-items:center; justify-content: space-between; gap:10px;">
-        <div>
-          <div style="font-weight:700;">${title}</div>
-          ${base}
-        </div>
-        <div style="text-align:right;">${pills}</div>
-      </div>
-      <div style="margin-top:8px;">${buckets}</div>
-      <div style="margin-top:10px;" class="table">${recent}</div>
-    </div>
-  `;
+  recent.style.marginTop = "10px";
+  block.append(head, buckets, recent);
+  return block;
 }
 
 
@@ -231,39 +243,32 @@ async function tick() {
       note: fmt(rt.note),
       last_error: fmt(rt.last_error),
     };
-    el("nowKv").innerHTML = renderKV(nowObj);
+    replaceWith(el("nowKv"), renderKV(nowObj));
 
     const tq = snap.taskqueue || {};
     const sum = tq.summary || {};
-    el("tqSummary").innerHTML = `db: <span class='mono'>${fmt(tq.db_path)}</span> • TODO:${fmt(
-      sum.TODO
-    )} IN_PROGRESS:${fmt(sum.IN_PROGRESS)} DONE:${fmt(sum.DONE)} DEAD:${fmt(sum.DEADLETTER)}`;
+    const tqSummary = el("tqSummary");
+    tqSummary.replaceChildren(document.createTextNode("db: "), makeNode("span", "mono", fmt(tq.db_path)), document.createTextNode(
+      ` • TODO:${fmt(sum.TODO)} IN_PROGRESS:${fmt(sum.IN_PROGRESS)} DONE:${fmt(sum.DONE)} DEAD:${fmt(sum.DEADLETTER)}`
+    ));
 
     const cur = tq.current;
     el("tqCurrent").textContent = cur ? `${fmt(cur.task_id)} — ${fmt(cur.title)} (${fmt(cur.domain)})` : "–";
 
     const next = tq.next || [];
-    el("tqNext").innerHTML = next.length
-      ? next.slice(0, 14).map(renderTaskRow).join("")
-      : "<div class='muted'>empty</div>";
+    replaceWith(el("tqNext"), next.length ? next.slice(0, 14).map(renderTaskRow) : muted("empty"));
 
     const pr = snap.projects || {};
     const items = pr.items || [];
-    el("projectsList").innerHTML = items.length
-      ? items.map(renderProject).join("")
-      : "<div class='muted'>no projects</div>";
+    replaceWith(el("projectsList"), items.length ? items.map(renderProject) : muted("no projects"));
 
     const ev = snap.events || {};
     const evs = ev.recent || [];
-    el("eventsTable").innerHTML = evs.length
-      ? evs.slice(-30).map(renderEventRow).join("")
-      : "<div class='muted'>no events</div>";
+    replaceWith(el("eventsTable"), evs.length ? evs.slice(-30).map(renderEventRow) : muted("no events"));
 
     const tl = snap.telemetry || {};
     const calls = tl.recent_llm_calls || [];
-    el("telemetryTable").innerHTML = calls.length
-      ? calls.slice(-20).map(renderTelemRow).join("")
-      : "<div class='muted'>no calls</div>";
+    replaceWith(el("telemetryTable"), calls.length ? calls.slice(-20).map(renderTelemRow) : muted("no calls"));
 
     const ib = snap.inboxes || {};
     const lib = ib.library || null;
@@ -271,17 +276,23 @@ async function tick() {
     const ws = ib.workspace || null;
 
     const totalFiles = (lib && lib.total_files ? Number(lib.total_files) : 0) + (vault && vault.total_files ? Number(vault.total_files) : 0) + (ws && ws.total_files ? Number(ws.total_files) : 0);
-    el("inboxSummary").innerHTML = `total files: <span class='mono'>${totalFiles}</span> • <span class='muted'>Library/Vault/Workspace inboxes</span>`;
+    el("inboxSummary").replaceChildren(
+      document.createTextNode("total files: "), makeNode("span", "mono", totalFiles),
+      document.createTextNode(" • "), makeNode("span", "muted", "Library/Vault/Workspace inboxes")
+    );
 
-    el("inboxBlocks").innerHTML =
-      renderInboxBlock("Library inbox", lib) +
-      renderInboxBlock("Vault inbox", vault) +
-      renderInboxBlock("Workspace inbox", ws);
+    replaceWith(el("inboxBlocks"), [
+      renderInboxBlock("Library inbox", lib),
+      renderInboxBlock("Vault inbox", vault),
+      renderInboxBlock("Workspace inbox", ws),
+    ]);
   } catch (e) {
     setStatus(false, "offline");
   }
 }
 
-setStatus(null, "starting…");
-tick();
-setInterval(tick, 2000);
+if (typeof window !== "undefined" && window.document === document) {
+  setStatus(null, "starting…");
+  tick();
+  setInterval(tick, 2000);
+}

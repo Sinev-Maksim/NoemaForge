@@ -24,7 +24,7 @@
     "required_frontend_tokens": [
       "artifactPreviewUrl",
       "artifactDownloadUrl",
-      "data-artifact-open",
+      "open.dataset.artifactOpen",
       "artifact-affordances.css",
       "download"
     ],

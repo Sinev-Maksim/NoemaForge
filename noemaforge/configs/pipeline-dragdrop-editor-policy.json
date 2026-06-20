@@ -26,8 +26,8 @@
       "renderPipelineEditor",
       "movePipelineStage",
       "savePipelineEditorDraft",
-      "draggable=\"true\"",
-      "data-stage-index",
+      "row.draggable = true",
+      "row.dataset.stageIndex",
       "/api/pipelines/draft"
     ],
     "required_style_tokens": [
