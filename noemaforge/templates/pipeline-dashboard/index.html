@@ -77,6 +77,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
           <label class="check"><input id="depth-until-stop" type="checkbox" /> <span id="depth-until-stop-label">до остановки</span></label>
           <button id="workflow-stop" class="ghost small">Остановить цикл</button>
         </div>
+        <div id="depth-notice" class="depth-notice hidden" role="status" aria-live="polite"></div>
         <div id="pipeline-dock" class="pipeline-dock">
           <div class="pipeline-dock-head"><strong id="pipeline-dock-title">Док пайплайнов</strong><input id="pipeline-search" placeholder="Поиск пайплайна…" /><button id="pipeline-new" class="new-pipeline">+ Новый пайплайн</button></div>
           <div id="pipeline-groups" class="pipeline-groups"></div>

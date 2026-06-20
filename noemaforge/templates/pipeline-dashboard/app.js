@@ -169,6 +169,26 @@ function selectionModePayload(){
   return {mode, composite_top_n};
 }
 function budgetPayload(){ return { max_steps:Number(el('depth-steps').value || 0), time_budget_minutes:Number(el('depth-minutes').value || 0), until_stop:Boolean(el('depth-until-stop').checked) }; }
+function _updateDepthNotice(){
+  const steps = Number(el('depth-steps')?.value || 0);
+  const mins  = Number(el('depth-minutes')?.value || 0);
+  const stop  = Boolean(el('depth-until-stop')?.checked);
+  const notice = el('depth-notice');
+  const send   = el('admin-send');
+  if(!notice) return;
+  const parts = [];
+  if(steps > 0)  parts.push(`${steps} step${steps !== 1 ? 's' : ''}`);
+  if(mins > 0)   parts.push(`${mins} min`);
+  if(stop)       parts.push('until stopped');
+  if(parts.length){
+    notice.textContent = `⚡ Next message: runs ${parts.join(' · ')}`;
+    notice.classList.remove('hidden');
+    if(send) send.textContent = `Send (${parts.join('·')})`;
+  } else {
+    notice.classList.add('hidden');
+    if(send) send.textContent = t('chat.send','Send');
+  }
+}
 function renderRuntimeObserverCards(cards){
   const list = Array.isArray(cards) ? cards : [];
   const target = el('runtime-observer-cards');
@@ -470,6 +490,9 @@ el('epoch-apply').addEventListener('click', applyEpoch);
 el('selection-continue').addEventListener('click', continueSelection);
 el('vault-reinventory').addEventListener('click', reinventoryVault);
 el('workflow-stop').addEventListener('click', stopWorkflow);
+el('depth-steps').addEventListener('input', _updateDepthNotice);
+el('depth-minutes').addEventListener('input', _updateDepthNotice);
+el('depth-until-stop').addEventListener('change', _updateDepthNotice);
 el('device-policy').addEventListener('change', setDevicePolicy);
 el('tasks-refresh').addEventListener('click', refreshTasks);
 el('task-add').addEventListener('click', addTaskDialog);
