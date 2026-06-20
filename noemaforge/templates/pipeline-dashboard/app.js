@@ -724,7 +724,64 @@ function showPipelineMenu(e, id){
     return button;
   }));
   m.style.left = `${e.clientX}px`; m.style.top = `${e.clientY}px`; m.classList.remove('hidden');
-  m.querySelectorAll('button').forEach(b => b.onclick = async () => { m.classList.add('hidden'); const act=b.dataset.act; if(act==='diagram') showModal('Pipeline diagram', await api(`/api/pipelines/${encodeURIComponent(id)}/diagram`)); else if(act==='stats') showModal('Pipeline stats', await api(`/api/pipelines/${encodeURIComponent(id)}/stats`)); else if(act==='explain'){ el('admin-message').value = `что значит пайплайн ${id}`; sendAdmin(); } else openPipelineEditor(id); });
+  m.querySelectorAll('button').forEach(b => b.onclick = async () => { m.classList.add('hidden'); const act=b.dataset.act; if(act==='diagram'){ const _dd=await api(`/api/pipelines/${encodeURIComponent(id)}/diagram`); showPipelineDiagram(id,_dd); } else if(act==='stats') showModal('Pipeline stats', await api(`/api/pipelines/${encodeURIComponent(id)}/stats`)); else if(act==='explain'){ el('admin-message').value = `что значит пайплайн ${id}`; sendAdmin(); } else openPipelineEditor(id); });
+}
+function showPipelineDiagram(id, data){
+  const stages=Array.isArray(data&&data.stages)?data.stages:[];
+  const mermaidSrc=(data&&data.mermaid)||'';
+  const BOX_W=140,BOX_H=44,GAP=40,MARGIN=20;
+  const n=Math.max(stages.length,1);
+  const svgW=MARGIN*2+n*BOX_W+(n-1)*GAP;
+  const svgH=80,cy=40;
+  const NS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox',`0 0 ${svgW} ${svgH}`);
+  svg.setAttribute('width',String(svgW));
+  svg.setAttribute('height',String(svgH));
+  svg.style.cssText='max-width:100%;display:block';
+  const defs=document.createElementNS(NS,'defs');
+  const mk=document.createElementNS(NS,'marker');
+  mk.setAttribute('id','d6arr');mk.setAttribute('markerWidth','8');mk.setAttribute('markerHeight','8');
+  mk.setAttribute('refX','6');mk.setAttribute('refY','3');mk.setAttribute('orient','auto');
+  const ap=document.createElementNS(NS,'path');
+  ap.setAttribute('d','M0,0 L0,6 L8,3 z');ap.setAttribute('fill','#8ec5ff');
+  mk.appendChild(ap);defs.appendChild(mk);svg.appendChild(defs);
+  stages.forEach((s,i)=>{
+    const x=MARGIN+i*(BOX_W+GAP),y=cy-BOX_H/2;
+    const r=document.createElementNS(NS,'rect');
+    r.setAttribute('x',String(x));r.setAttribute('y',String(y));
+    r.setAttribute('width',String(BOX_W));r.setAttribute('height',String(BOX_H));
+    r.setAttribute('rx','10');r.setAttribute('fill','#0b1118');
+    r.setAttribute('stroke','#2b70c9');r.setAttribute('stroke-width','1.5');
+    svg.appendChild(r);
+    const t=document.createElementNS(NS,'text');
+    t.setAttribute('x',String(x+BOX_W/2));t.setAttribute('y',String(cy+5));
+    t.setAttribute('text-anchor','middle');t.setAttribute('fill','#e8f2ff');
+    t.setAttribute('font-size','12');t.setAttribute('font-family','Inter,system-ui,sans-serif');
+    t.textContent=s;svg.appendChild(t);
+    if(i<stages.length-1){
+      const ln=document.createElementNS(NS,'line');
+      ln.setAttribute('x1',String(x+BOX_W));ln.setAttribute('y1',String(cy));
+      ln.setAttribute('x2',String(x+BOX_W+GAP-8));ln.setAttribute('y2',String(cy));
+      ln.setAttribute('stroke','#8ec5ff');ln.setAttribute('stroke-width','1.5');
+      ln.setAttribute('marker-end','url(#d6arr)');svg.appendChild(ln);
+    }
+  });
+  const wrap=document.createElement('div');
+  wrap.appendChild(svg);
+  if(mermaidSrc){
+    const det=document.createElement('details');
+    det.style.marginTop='12px';
+    const sum=document.createElement('summary');
+    sum.textContent='Mermaid source (debug)';
+    sum.style.cssText='cursor:pointer;color:var(--muted);font-size:12px';
+    const pre=document.createElement('pre');
+    pre.textContent=mermaidSrc;pre.style.cssText='font-size:11px;margin-top:8px';
+    det.appendChild(sum);det.appendChild(pre);wrap.appendChild(det);
+  }
+  el('modal-title').textContent=`Pipeline diagram — ${id}`;
+  const body=el('modal-body');body.textContent='';body.appendChild(wrap);
+  el('modal').classList.remove('hidden');
 }
 function showModal(title, obj){ el('modal-title').textContent = title; el('modal-body').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); el('modal').classList.remove('hidden'); }
 async function addTaskDialog(){ const title = prompt('Task title:'); if(!title) return; const cat = prompt('Category:', 'gui') || 'general'; const priority = Number(prompt('Priority 1-100:', '50') || 50); const r = await api('/api/tasks/create', {title, category:cat, priority}); absorbResult(r); refreshTasks(); }
