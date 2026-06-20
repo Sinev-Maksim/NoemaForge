@@ -103,6 +103,15 @@ function addMessage(who, text, cls=''){
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
+function _addPendingBubble(){
+  const div = document.createElement('div');
+  div.className = 'bubble Admin pending-indicator';
+  div.innerHTML = '<small>Admin</small><span class="pending-dots">…</span>';
+  const chatLog = el('chat-log');
+  chatLog.appendChild(div);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  return div;
+}
 function addSystemLine(text){
   const div = document.createElement('div');
   div.className = 'system-line';
@@ -407,6 +416,7 @@ async function sendAdmin(){
   if(!text) return;
   input.value = '';
   addMessage('User', text);
+  const pendingBubble = _addPendingBubble();
   el('admin-send').disabled = true; el('chat-status').textContent = t('status.running','running');
   try{
     const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
@@ -424,8 +434,9 @@ async function sendAdmin(){
     }else{
       result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
     }
+    pendingBubble.remove();
     absorbResult(result);
-  }catch(e){ addMessage('Admin', `Error: ${String(e)}`, 'error'); }
+  }catch(e){ pendingBubble.remove(); addMessage('Admin', `Error: ${String(e)}`, 'error'); }
   finally{ el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }
 function shortenPath(path){ if(!path) return '—'; const parts = String(path).split('/'); return parts.slice(-2).join('/'); }
