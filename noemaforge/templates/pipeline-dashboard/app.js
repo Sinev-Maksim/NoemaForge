@@ -697,7 +697,16 @@ async function loadPipelines(){
     renderPipelines();
   }catch(e){ showMuted(el('pipeline-list'), 'Pipeline catalog unavailable.'); }
 }
-async function startPipeline(id){ const req = prompt(`Request for pipeline ${id}:`, `Запусти ${id} по стандартному сценарию`); if(req===null) return; absorbResult(await api('/api/pipeline/run', {pipeline:id, request:req, allow_degraded:true})); }
+function startPipeline(id){
+  const info = pipelineById(id);
+  const safeId = info.id || id || 'pipeline';
+  el('pipeline-confirm-title').textContent = `Pipeline: ${safeId}`;
+  el('pipeline-confirm-desc').textContent = info.description || '';
+  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию`;
+  el('pipeline-confirm').classList.remove('hidden');
+  el('pipeline-confirm-req').focus();
+  el('pipeline-confirm-req').select();
+}
 function pipelineById(id){ return pipelineCatalog.find(p => p.id === id) || {id:id || 'new_pipeline', description:'', stages:['intake','plan','review']}; }
 function movePipelineStage(from, to){
   const stages = pipelineEditorState.stages;
@@ -873,12 +882,30 @@ async function startup(){
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
 }
-if(typeof window !== 'undefined' && window.document === document){
+if (typeof window !== 'undefined' && window.document === document) {
   el('admin-send').addEventListener('click', sendAdmin);
-  el('admin-message').addEventListener('keydown', e => { if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); sendAdmin(); } });
-  el('locale-select').addEventListener('change', e => { activeLocale = e.target.value; applyLocaleMessages(); renderArtifacts(latestArtifacts); });
-  el('gui-shutdown').addEventListener('click', async()=>{ try{ await api('/api/shutdown', {reason:'operator'}); addMessage('Admin','GUI shutdown requested.'); }catch(e){} });
-  el('epoch-refresh').addEventListener('click', ()=>refreshEpoch(true));
+
+  el('admin-message').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      sendAdmin();
+    }
+  });
+
+  el('locale-select').addEventListener('change', e => {
+    activeLocale = e.target.value;
+    applyLocaleMessages();
+    renderArtifacts(latestArtifacts);
+  });
+
+  el('gui-shutdown').addEventListener('click', async () => {
+    try {
+      await api('/api/shutdown', { reason: 'operator' });
+      addMessage('Admin', 'GUI shutdown requested.');
+    } catch (e) {}
+  });
+
+  el('epoch-refresh').addEventListener('click', () => refreshEpoch(true));
   el('epoch-apply').addEventListener('click', applyEpoch);
   el('selection-continue').addEventListener('click', continueSelection);
   el('vault-reinventory').addEventListener('click', reinventoryVault);
@@ -888,8 +915,57 @@ if(typeof window !== 'undefined' && window.document === document){
   el('task-add').addEventListener('click', addTaskDialog);
   el('public-showcase-load').addEventListener('click', loadPublicShowcase);
   el('pipeline-search').addEventListener('input', renderPipelines);
-  el('pipeline-new').addEventListener('click', ()=>{ const title = prompt('New pipeline draft title:', 'new_pipeline'); if(!title) return; pipelineEditorState = {pipeline_id:title, title, description:'', stages:['intake','plan','review']}; renderPipelineEditor(); });
-  el('modal-close').addEventListener('click', ()=>el('modal').classList.add('hidden'));
-  document.addEventListener('click', e=>{ if(!el('context-menu').contains(e.target)) el('context-menu').classList.add('hidden'); });
+
+  el('pipeline-new').addEventListener('click', () => {
+    const title = prompt('New pipeline draft title:', 'new_pipeline');
+    if (!title) return;
+
+    pipelineEditorState = {
+      pipeline_id: title,
+      title,
+      description: '',
+      stages: ['intake', 'plan', 'review'],
+    };
+
+    renderPipelineEditor();
+  });
+
+  el('modal-close').addEventListener('click', () => {
+    el('modal').classList.add('hidden');
+  });
+
+  function _closePipelineConfirm() {
+    el('pipeline-confirm').classList.add('hidden');
+  }
+
+  el('pipeline-confirm-close').addEventListener('click', _closePipelineConfirm);
+  el('pipeline-confirm-cancel').addEventListener('click', _closePipelineConfirm);
+
+  el('pipeline-confirm-ok').addEventListener('click', () => {
+    const req = el('pipeline-confirm-req').value.trim();
+
+    _closePipelineConfirm();
+
+    if (!req) return;
+
+    el('admin-message').value = req;
+    el('admin-message').focus();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (
+      e.key === 'Escape' &&
+      !el('pipeline-confirm').classList.contains('hidden')
+    ) {
+      _closePipelineConfirm();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!el('context-menu').contains(e.target)) {
+      el('context-menu').classList.add('hidden');
+    }
+  });
+
   startup();
 }
