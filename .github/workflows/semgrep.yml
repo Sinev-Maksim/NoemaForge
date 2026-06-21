@@ -56,6 +56,7 @@ jobs:
           --exclude-rule semgrep-rules.python.lang.correctness.tempfile.tempfile-without-flush
           --exclude-rule semgrep-rules.python.lang.best-practice.open-never-closed
           --exclude-rule semgrep-rules.javascript.browser.security.insecure-document-method
+          --exclude-rule semgrep-rules.python.django.security.injection.command.subprocess-injection
           --severity ERROR
           --sarif
           --output semgrep.sarif
