@@ -48,6 +48,57 @@ fix landed first on `release/0.32.2-hardening`
    to `sys.executable` (override via `NOEMAFORGE_TEST_PYTHON`). After this the
    suite has **0** `/usr/bin/python3` execution failures.
 
+## Cross-platform collection of toolproxy / discord_bridge (follow-up PR)
+
+After the isolation fix above, a later collection-order shift exposed a second,
+**platform-specific** collection abort: `python -m pytest noemaforge/tests` exited
+2 (every body skipped) because three modules failed to import on Windows —
+`test_toolproxy_voice_chat`, `test_toolproxy_roundtrip_and_local_workflows`, and
+`test_discord_bridge` (the last imports `toolproxy` via `discord_bridge`).
+
+`toolproxy` is intentionally Unix (the Debian target uses Unix-domain-socket IPC).
+Two Unix-only references ran at module load:
+
+1. `import resource` (`toolproxy.py`) — Unix-only stdlib module **and** a dead
+   import (zero `resource.` uses in the file). Removed.
+2. `class ThreadedUnixServer(socketserver.ThreadingMixIn,
+   socketserver.UnixStreamServer)` — `socketserver.UnixStreamServer` is absent on
+   Windows, raising `AttributeError` at class-definition time.
+
+Like the leak class above this was order-dependent: when an earlier test had
+already stubbed the Unix symbols into `sys.modules`, collection happened to
+succeed. The goal here is cross-platform **collection**, not running `toolproxy`
+on Windows.
+
+Fix (no edits to any individual test file):
+
+- `toolproxy.py` — drop the dead `import resource`.
+- `conftest.py` — `_install_nonposix_import_shims()` runs at conftest import time
+  (before `pytest_configure` snapshots the baseline) and, **only when
+  `os.name != "posix"`**, sets a `socketserver.UnixStreamServer` placeholder base
+  so the `ThreadedUnixServer` class body executes during import. It is set as an
+  attribute on the already-imported `socketserver` module — not a `sys.modules`
+  entry — so the baseline-restore in `pytest_collectstart` / the autouse fixture
+  never strips it. The placeholder is never instantiated off the Debian target.
+
+Deliberately **not** done:
+
+- No `resource` `sys.modules` shim. `sandbox`, `canary_runner` and
+  `selftest_runtime` already wrap `import resource` in `try/except ImportError`
+  and degrade gracefully on Windows. A shim would make their import *succeed* with
+  an empty module, defeating the fallback (`rlimits_available()` would wrongly
+  return True; the first rlimit call would `AttributeError`). Toolproxy's unguarded
+  import was the only real blocker; removing it leaves no other unguarded
+  `import resource`.
+- No `socketserver.ThreadingUnixStreamServer` placeholder — it is referenced
+  nowhere in the tree.
+
+Debian target unchanged: on posix the shim returns immediately, and the removed
+`import resource` was dead. Verified on Windows / CPython 3.14.5: the three
+modules collect with **0 errors** (6 tests) in isolation (proving
+order-independence, not a lucky prior import), and whole-suite
+`--collect-only` completes at exit 0 with 2206 tests collected.
+
 ## Failure classification (199 failures)
 
 | Count | Class | Root cause | Verdict |
@@ -86,10 +137,13 @@ follow-up PR:
 ```powershell
 cd <worktree>
 $env:PYTHONPATH = "$((Resolve-Path 'noemaforge/src').Path);$((Resolve-Path 'noemaforge').Path)"
-python -m pytest noemaforge/tests -q `
-  --ignore=noemaforge/tests/test_discord_bridge.py `
-  --ignore=noemaforge/tests/test_toolproxy_roundtrip_and_local_workflows.py `
-  --ignore=noemaforge/tests/test_toolproxy_voice_chat.py -p no:cacheprovider
+# Whole suite now collects on Windows (no --ignore needed since the toolproxy /
+# discord_bridge collection fix):
+python -m pytest noemaforge/tests -q -p no:cacheprovider
+# Cross-platform collection of the once-blocked modules (0 errors, 6 tests):
+python -m pytest noemaforge/tests/test_toolproxy_voice_chat.py `
+  noemaforge/tests/test_toolproxy_roundtrip_and_local_workflows.py `
+  noemaforge/tests/test_discord_bridge.py --collect-only -p no:cacheprovider
 # Order-dependence repro (3 collection errors before the conftest fix):
 python -m pytest noemaforge/tests/test_admin_gui_init_and_events.py `
   noemaforge/tests/test_lsp_facade.py noemaforge/tests/test_mcp_router.py `
@@ -103,6 +157,9 @@ restores before each test module.
 
 - [x] Collection blocker fixed (`conftest.py`) — suite runs to completion.
 - [x] Interpreter-path tests fixed (`sys.executable`).
+- [x] toolproxy / discord_bridge cross-platform collection (dead `import resource`
+      removed; non-POSIX `socketserver.UnixStreamServer` placeholder) — whole-suite
+      `--collect-only` exits 0 (2206 collected).
 - [ ] D2 POSIX/bash tests — follow-up PR (rewrite to Python entrypoint + mark
       limited; skip-with-reason where no entrypoint).
 - [ ] Class A/B/C and D3 — pre-existing content / docs / stale-ref / runtime

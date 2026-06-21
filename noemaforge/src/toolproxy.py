@@ -93,7 +93,6 @@ import pathlib
 import socket
 import socketserver
 import subprocess
-import resource
 import sys
 import time
 import uuid
