@@ -395,6 +395,26 @@ function selectionModePayload(){
   return {mode, composite_top_n};
 }
 function budgetPayload(){ return { max_steps:Number(el('depth-steps').value || 0), time_budget_minutes:Number(el('depth-minutes').value || 0), until_stop:Boolean(el('depth-until-stop').checked) }; }
+function _updateDepthNotice(){
+  const steps = Number(el('depth-steps')?.value || 0);
+  const mins  = Number(el('depth-minutes')?.value || 0);
+  const stop  = Boolean(el('depth-until-stop')?.checked);
+  const notice = el('depth-notice');
+  const send   = el('admin-send');
+  if(!notice) return;
+  const parts = [];
+  if(steps > 0)  parts.push(`${steps} step${steps !== 1 ? 's' : ''}`);
+  if(mins > 0)   parts.push(`${mins} min`);
+  if(stop)       parts.push('until stopped');
+  if(parts.length){
+    notice.textContent = `⚡ Next message: runs ${parts.join(' · ')}`;
+    notice.classList.remove('hidden');
+    if(send) send.textContent = `Send (${parts.join('·')})`;
+  } else {
+    notice.classList.add('hidden');
+    if(send) send.textContent = t('chat.send','Send');
+  }
+}
 function renderRuntimeObserverCards(cards){
   const list = Array.isArray(cards) ? cards : [];
   const target = el('runtime-observer-cards');
@@ -900,6 +920,7 @@ async function startup(){
   }catch(_){}
   try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
+  _updateDepthNotice();
   connectJobProgressStream();
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
@@ -918,6 +939,7 @@ if (typeof window !== 'undefined' && window.document === document) {
     activeLocale = e.target.value;
     applyLocaleMessages();
     renderArtifacts(latestArtifacts);
+    _updateDepthNotice();
   });
 
   el('gui-shutdown').addEventListener('click', async () => {
@@ -932,6 +954,9 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('selection-continue').addEventListener('click', continueSelection);
   el('vault-reinventory').addEventListener('click', reinventoryVault);
   el('workflow-stop').addEventListener('click', stopWorkflow);
+  el('depth-steps').addEventListener('input', _updateDepthNotice);
+  el('depth-minutes').addEventListener('input', _updateDepthNotice);
+  el('depth-until-stop').addEventListener('change', _updateDepthNotice);
   el('device-policy').addEventListener('change', setDevicePolicy);
   el('tasks-refresh').addEventListener('click', refreshTasks);
   el('task-add').addEventListener('click', addTaskDialog);
