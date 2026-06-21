@@ -90,7 +90,9 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        proc = subprocess.run(
+        # pipeline_id is allowlist-validated against the catalog before _run_pipeline
+        # is called (uat_run() lines 164-170); shell=False (list cmd); no injection.
+        proc = subprocess.run(  # nosemgrep
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
         )

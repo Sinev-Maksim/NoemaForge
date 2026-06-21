@@ -53,6 +53,12 @@ def persona_catalog(handler: Any) -> None:
 
 
 # --- POST handlers ---------------------------------------------------------------
+def persona_switch(handler: Any, body: Dict[str, Any]) -> None:
+    name = str(body.get("name") or "Admin")
+    handler._send_json(handler.server.persona_switch(name))
+
+
+
 def admin_message(handler: Any, body: Dict[str, Any]) -> None:
     path = handler._route_path()
     text = str(body.get("message") or body.get("text") or body.get("prompt") or "")
@@ -117,4 +123,5 @@ def post_routes() -> Dict[str, Any]:
         "/api/tasks/block": task_block,
         "/api/tasks/complete": task_complete,
         "/api/tasks/prioritize": task_prioritize,
+        "/api/persona/switch": persona_switch,
     }
