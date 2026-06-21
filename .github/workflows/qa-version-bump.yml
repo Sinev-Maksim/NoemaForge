@@ -11,13 +11,13 @@ jobs:
       contents: write     # commits and pushes the version bump
       issues: write       # failure path opens a QA-failure report issue
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: release/0.32.2-hardening
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.11'
 
@@ -116,7 +116,7 @@ jobs:
 
       - name: Create GitHub release tag
         if: success()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const v = '${{ steps.bump.outputs.new_version }}';
@@ -131,7 +131,7 @@ jobs:
       # ── On FAIL: create failure report issue ──────────────────────────
       - name: Create failure report on gate fail
         if: failure()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const failed = '${{ steps.gates.outputs.failed }}';
