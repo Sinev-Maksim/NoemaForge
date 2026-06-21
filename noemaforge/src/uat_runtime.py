@@ -92,7 +92,7 @@ def _run_pipeline(
     try:
         # pipeline_id is allowlist-validated against the catalog before _run_pipeline
         # is called (uat_run() lines 164-170); shell=False (list cmd); no injection.
-        proc = subprocess.run(  # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection
+        proc = subprocess.run(  # nosemgrep
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
         )
