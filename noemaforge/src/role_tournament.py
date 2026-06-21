@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from platform_paths import DEFAULT_PATHS as _pp
 from process_group_runner import kill_signal
+import service_manager as _svcmgr
 
 try:
     import yaml  # type: ignore
@@ -664,10 +665,7 @@ def stat_is_socket(path: str) -> bool:
 
 
 def systemctl(*args: str) -> int:
-    try:
-        return subprocess.call(["systemctl", *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        return 127
+    return _svcmgr.call(*args)
 
 
 def start_gguf_backend(modelstore_id: str) -> Tuple[bool, str, str]:
