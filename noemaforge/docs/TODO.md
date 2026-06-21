@@ -161,6 +161,7 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
   Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
   Linux / macOS / Windows.
+- [ ] **TODO(031-opt2):** Migrate remaining direct `systemctl` calls in `noemaforge_status.py` to `service_manager.call()`/`check_output()` abstraction. (Codex #141 Opt 2 — deferred, fold into 0.33.1 system-independence wave) _(S · haiku)_
 - [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local _(XL · fable-orchestrated umbrella)_
   models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
