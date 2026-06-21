@@ -165,7 +165,7 @@ def _load_policy_enabled_backends() -> List[str]:
     paths = []
     if e_dir:
         paths.append(os.path.join(e_dir, "llm-backends-policy.yaml"))
-    paths.append(str(_pp.config_dir / "llm-backends-policy.yaml"))
+    paths.append(str(_pp.root / "configs" / "llm-backends-policy.yaml"))
 
     try:
         import yaml
