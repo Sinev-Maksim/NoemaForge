@@ -14,8 +14,9 @@ in the repo continuously; the *Release* is the audited, verifiable checkpoint.
 ## Release steps
 
 ```bash
-# 1. Confirm the evidence chain is consistent (CI-equivalent, from the git index):
-python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index
+# 1. Generate + confirm the evidence chain (pre-release, from the working tree):
+python ci/regen_evidence.py
+python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree
 #    -> ok=true, hash_mismatches=0
 
 # 2. Build the signed release manifest (0.33.0+ tooling):
@@ -43,8 +44,8 @@ gh release create vX.Y.Z dist/release-manifest.json SHA256SUMS MANIFEST.json \
 ```bash
 # Download the release assets, then:
 noema release verify release-manifest.json --root <extracted-release>
-# or, without the CLI:
-python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index
+# or, without the CLI (the archive ships the evidence files, so hash them on disk):
+python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree
 ```
 
 A release whose `verify` step fails must not be installed. `noema upgrade run` performs this

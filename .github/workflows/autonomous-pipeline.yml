@@ -11,13 +11,15 @@ jobs:
   validate-claude-push:
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       branch: ${{ steps.info.outputs.branch }}
       changed_count: ${{ steps.info.outputs.changed_count }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.11'
 
@@ -193,15 +195,23 @@ jobs:
   # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
-    if: github.actor == 'Sinev-Maksim'
+    # Self-hosted runner safety (public repo): this job runs on the maintainer's
+    # own Windows machine, so it must only ever fire for trusted, in-repo pushes.
+    # Defense in depth — three independent guards:
+    #   1. the workflow `on:` has no pull_request/pull_request_target trigger, so
+    #      fork PRs cannot reach it (a fork cannot push to this repo's branches);
+    #   2. event_name == 'push' makes that explicit and survives a future trigger add;
+    #   3. the actor allowlist restricts it to the maintainer even among collaborators.
+    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim'
     runs-on: [self-hosted, Windows, codex]
     timeout-minutes: 45
     permissions:
       contents: read
       issues: write
       pull-requests: write
-    env:
-      GITHUB_TOKEN: ${{ github.token }}
+    # No job-level GITHUB_TOKEN: the Codex CLI step runs without a sandbox
+    # (see below), so the token is scoped to exactly the steps that call the
+    # GitHub API. The model process must never inherit a write-scoped token.
     steps:
       - name: Check usage-limit pause marker
         id: gate
@@ -249,6 +259,8 @@ jobs:
         if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 10
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           $archive = Join-Path $env:RUNNER_TEMP 'codex-source.zip'
@@ -303,6 +315,8 @@ jobs:
         if: steps.gate.outputs.paused != 'true'
         shell: pwsh
         timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
           Set-Location -LiteralPath $env:CODEX_WORKTREE
@@ -344,6 +358,25 @@ jobs:
           Invoke-WebRequest -Uri $compareUrl -Headers $headers -OutFile $diffPath
           $diff = Get-Item -LiteralPath $diffPath
           Write-Host "Downloaded diff.patch ($($diff.Length) bytes)"
+
+          # Token diet: strip generated-evidence blocks from the prompt diff and
+          # cap it. Logic lives in ci/filter_review_diff.py (regression-locked by
+          # noemaforge/tests/test_review_diff_filter.py) so future evidence path
+          # variants never silently enter the model prompt.
+          $summary = & python (Join-Path $env:CODEX_WORKTREE 'ci/filter_review_diff.py') $diffPath
+          Write-Host $summary
+          if ("$summary" -match 'evidence_only=1') {
+            "CODEX_DIFF_EMPTY=1" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+            Write-Host "Diff contains only generated evidence files — Codex review will be skipped."
+          }
+
+          # Pre-flight validation digest: the Codex step runs in an enforced
+          # read-only sandbox and cannot execute local commands, so the standard
+          # read-only validations run here (non-model step) and the results are
+          # embedded into the review prompt as trusted CI output.
+          $digestPath = Join-Path $env:CODEX_WORKTREE 'preflight_digest.txt'
+          & python (Join-Path $env:CODEX_WORKTREE 'ci/review_preflight.py') $diffPath $env:CODEX_WORKTREE $digestPath
+          "CODEX_DIGEST_PATH=$digestPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Run Codex CLI review
         id: codex
@@ -388,6 +421,13 @@ jobs:
           # Verify CODEX_WORKTREE is set and exists before trying to use it.
           if (-not $env:CODEX_WORKTREE -or -not (Test-Path -LiteralPath $env:CODEX_WORKTREE)) {
             Write-SkipReview "CODEX_WORKTREE env var is missing or directory does not exist: '$env:CODEX_WORKTREE'."
+            exit 0
+          }
+          if ($env:CODEX_DIFF_EMPTY -eq '1') {
+            # Evidence-only push (regenerated manifests/checksums): nothing for the
+            # model to review and the premerge evidence gate covers it — skip the
+            # Codex call entirely to save usage-limit tokens.
+            Write-SkipReview "The diff contains only regenerated evidence files (MANIFEST/SHA256SUMS), which the premerge evidence gate verifies bit-exactly. No code to review."
             exit 0
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
@@ -467,6 +507,11 @@ jobs:
             $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
           }
 
+          $digestText = ''
+          if ($env:CODEX_DIGEST_PATH -and (Test-Path -LiteralPath $env:CODEX_DIGEST_PATH)) {
+            $digestText = Get-Content -LiteralPath $env:CODEX_DIGEST_PATH -Raw
+          }
+
           $prompt = @(
             "You are reviewing a Claude Code branch in NoemaForge."
             "Base branch: origin/$(if ($env:CODEX_BASE_BRANCH) { $env:CODEX_BASE_BRANCH } else { 'release/0.32.2-hardening' })"
@@ -475,7 +520,8 @@ jobs:
             ""
             "Review strictly against the gates from .codex/instructions.md included below."
             "Inspect the branch changes from diff.patch included below."
-            "If local command execution is unavailable, use the inline content below and the GitHub connector as read-only fallback."
+            "You run in an enforced read-only sandbox: local command execution is expected to be unavailable."
+            "Do not report the unavailability of local commands as a finding — the pre-executed validation digest below carries the standard read-only check results (trusted CI output); use it plus the inline content and the GitHub connector."
             "Return a concise GitHub-ready Markdown review."
             "Write the entire review in English (all GitHub-facing text in this repository is English-only)."
             "Start with exactly one verdict line:"
@@ -486,6 +532,11 @@ jobs:
             "Include sections for Summary, Blocking Issues, and Optimizations."
             "Do not modify files or push commits in this workflow run."
             "Use read-only inspection only."
+            ""
+            "Pre-executed validation digest (trusted CI output from ci/review_preflight.py):"
+            '```text'
+            $digestText
+            '```'
             ""
             "Review gates from .codex/instructions.md:"
             '```markdown'
@@ -503,6 +554,14 @@ jobs:
           # process never launched (exit stayed 0 from the prior command, no output).
           # --skip-git-repo-check is required because the worktree is an extracted
           # archive, not a git repository.
+          # Sandbox: enforced read-only (the .codex/instructions.md review
+          # contract requires technically read-only execution — a prompt
+          # instruction is not a security boundary; Codex review on PR #87).
+          # The Windows sandbox helper cannot exec child commands under the
+          # runner service account, so local command execution is expected to
+          # be unavailable; the pre-flight digest embedded in the prompt
+          # provides the validation results instead. GITHUB_TOKEN is also kept
+          # out of this step's environment as defense in depth.
           $prompt | & $codex exec `
             -s read-only `
             --skip-git-repo-check `
@@ -584,7 +643,7 @@ jobs:
 
       - name: Upload review artifact
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: codex-review-${{ github.sha }}
           path: |
@@ -595,7 +654,7 @@ jobs:
       - name: Post review as PR comment
         if: always()
         continue-on-error: true
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const fs = require('fs');
@@ -684,13 +743,16 @@ jobs:
     needs: codex-review
     if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: ubuntu-latest
+    permissions:
+      contents: read      # list branches/commits
+      actions: write      # createWorkflowDispatch -> qa-version-bump
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           fetch-depth: 50
 
       - name: Count recent reviewed pushes and maybe bump version
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             // Count commits on codex/* branches in last 24h

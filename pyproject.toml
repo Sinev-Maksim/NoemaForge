@@ -1,0 +1,30 @@
+# Metadata and optional-dependency extras only.
+# The runtime stays 100% stdlib; nothing here changes that.
+# Accidental "pip install ." is safe: packages=[] means nothing gets packaged.
+
+[project]
+name = "noemaforge"
+dynamic = ["version"]
+description = "Local-first AI operating environment — privacy-first, artifact-driven"
+requires-python = ">=3.11"
+readme = "README.md"
+license = {file = "LICENSE"}
+
+[project.optional-dependencies]
+# What CI installs ad hoc today
+dev = ["pytest", "pyyaml"]
+# Optional import in noemaforge/src/vstore.py
+vector = ["numpy"]
+# Optional import in noemaforge/src/webgateway.py
+gateway = ["httpx"]
+
+[tool.setuptools]
+# Explicitly empty — this repo is run from a checkout, not installed
+packages = []
+
+[tool.setuptools.dynamic]
+version = {file = "VERSION"}
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

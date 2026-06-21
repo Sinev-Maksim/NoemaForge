@@ -71,6 +71,52 @@ deny-by-default policy — local credentials, redaction-before-egress,
 cost/rate ceilings, explicit operator opt-in. Nothing leaves the machine by
 default.
 
+## 0.33.3 — agent-OS maturation (strategic, post-0.32.x)
+
+Promote NoemaForge from a set of **validation-contract runtimes** to a live,
+governed multi-agent OS. Validated against the codebase, this milestone is
+largely *maturation and enforcement* of subsystems that already exist as
+contract validators — not greenfield — organised into nine tracks. The
+task-level breakdown, with effort tiers and the existing foundation noted per
+item, is in the canonical
+[`TODO.md`](../noemaforge/docs/TODO.md#0333-strategic-roadmap-post-032x).
+
+- **Agent governance** — Admin stays the only user-facing authority; specialists
+  return results to Admin and cannot terminate conversations. Formal agent
+  lifecycle states and an explicit handoff protocol (ownership, reasoning trace,
+  confidence) on the existing task-workflow runtime and RoleFlow backlog.
+- **Multi-model consensus** — fusion (parallel independent reasoning), a judge
+  framework (answer scoring, hallucination/assumption detection) and debate mode,
+  on the role-tournament scorer and the Sense/Critic governance backlog.
+- **Context engineering** — a live context-budget manager (token accounting,
+  memory prioritization, retrieval ranking), a compression pipeline (summarization,
+  dedup, fact extraction) and context quality metrics — promoting the
+  memory-budgeted and topic-adjacent retrieval contracts.
+- **Evaluation framework** — internal SWE-bench / GAIA / AgentBench-inspired
+  benchmarks and a regression harness over routing, memory, tools and artifacts,
+  extending the AAT suite's LLM tier.
+- **Artifact-centric workflows** — every generation pipeline emits artifacts; a
+  unified artifact registry with lineage (creator, inputs, generation chain),
+  promoting the artifact-registry-table contract and the in-chat artifact cards.
+- **Sandbox & security** — per-agent sandbox execution, capability-based
+  permissions, tool allowlists and resource quotas (RAM/CPU/GPU/network), hardening
+  the existing ToolProxy capability tokens, `caps`/allowlist policy and `sandbox`
+  rlimits.
+- **Runtime intelligence** — dynamic model routing made cost-, latency- and
+  quality-aware, extending the product model-routing surface and the 0.33.2 cost
+  ceilings.
+- **Observability** — agent execution traces, workflow replay, decision auditing,
+  failure classification and a runtime dashboard, maturing the
+  trace-observability-evaluation design and the telemetry dashboard.
+- **Production readiness** — formal release process, a Stable/LTS channel, a
+  migration framework with upgrade rollback, and an automated UAT suite —
+  formalising `noema release` / `publish-evidence`, `noema upgrade` rollback and
+  the AAT / U-004 track.
+
+Sequencing: 0.33.3 follows 0.33.0–0.33.2, and several tracks (sandbox, hybrid-LLM
+routing, AAT) share foundations with earlier milestones and advance incrementally
+rather than as one big-bang release.
+
 ## Cross-cutting tracks
 
 ### Artifact-driven acceptance (AAT) suite

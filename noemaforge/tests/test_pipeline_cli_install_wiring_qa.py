@@ -52,7 +52,7 @@ class PipelineCliInstallWiringQATests(unittest.TestCase):
         self.assertIn("contracts/pipeline_cli_install_wiring.schema.json", pack["refs"])
         self.assertIn("src/pipeline_cli_install_wiring_runtime.py", pack["refs"])
         self.assertIn("bin/noemaforge", pack["refs"])
-        self.assertIn("install_noemaforge_0.32.1_mvp.sh", pack["refs"])
+        self.assertIn("install_noemaforge_mvp.sh", pack["refs"])
         pipeline = entries.get("pipeline:firstboot-model-selection:0.32.1")
         self.assertIsNotNone(pipeline)
         self.assertIn(f"eval-pack:{PACK_ID}:0.32.1", pipeline["eval_pack_refs"])

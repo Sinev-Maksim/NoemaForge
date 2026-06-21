@@ -257,12 +257,18 @@ def _docs_report(payload: Dict[str, Any], *, project_root: Path, package_root: P
         "offline aggregate contract",
     ]
     reports: List[Dict[str, Any]] = []
+    satisfied = False
     for path in docs:
-        text = load_text(path) if path.exists() else ""
+        exists = path.exists()
+        text = load_text(path) if exists else ""
         missing = [token for token in tokens if token and token not in text]
-        if missing:
-            failures.append(f"docs_tokens_missing:{_display_path(path)}:{','.join(missing)}")
-        reports.append({"path": _display_path(path), "ok": not missing, "missing": missing})
+        if exists and not missing:
+            satisfied = True
+        reports.append({"path": _display_path(path), "ok": exists and not missing, "missing": missing, "exists": exists})
+    # Documented in >=1 existing canonical doc, not every candidate (legacy/alt paths).
+    if not satisfied:
+        owner = str(payload.get("id") or "policy")
+        failures.append(f"docs_tokens_missing:{owner}:{','.join(t for t in tokens if t)}")
     return {"failures": failures, "reports": reports}
 
 

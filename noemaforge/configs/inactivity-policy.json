@@ -1,7 +1,7 @@
 {
   "apiVersion": "noemaforge.inactivity/v1",
   "kind": "InactivityPolicy",
-  "version": "0.32.2",
+  "version": "0.33.0",
   "mode": "manual_only",
   "next_idle_action": "none",
   "allowed_modes": [

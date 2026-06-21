@@ -185,6 +185,17 @@ Admin routing maps request families to pipeline IDs such as `dev_pipeline_member
 - Model Evolution is a measured lab flow with baseline, mutation plan, scorecard and rollback gate.
 - Media generation and camera/mask paths remain explicit/manual until a backend adapter is selected.
 
+##### Frontend DOM trust boundary
+
+Both packaged dashboards treat every Admin GUI or snapshot API field as
+untrusted display data. `templates/pipeline-dashboard/app.js` and
+`templates/ui-dashboard/app.js` construct dynamic views with DOM APIs and
+`textContent`; they do not parse API-fed HTML. Interactive controls receive
+listeners and attributes directly, and artifact navigation accepts only HTTP(S)
+URLs on the localhost control-plane origin. This boundary preserves the Admin
+GUI's localhost-only role without trusting persisted task, event, path, model,
+or pipeline metadata as markup.
+
 
 ##### Direct Dev Team GUI edits
 

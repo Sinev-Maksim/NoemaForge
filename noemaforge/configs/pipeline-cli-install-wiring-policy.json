@@ -21,7 +21,7 @@
       },
       {
         "id": "promoted_installer",
-        "ref": "install_noemaforge_0.32.1_mvp.sh",
+        "ref": "install_noemaforge_mvp.sh",
         "role": "apply_step"
       },
       {
@@ -117,7 +117,7 @@
       "tests/test_pipeline_cli_install_wiring_performance.py",
       "prelaunch/governance/pipeline_cli_install_wiring.example.json",
       "setup.sh",
-      "install_noemaforge_0.32.1_mvp.sh",
+      "install_noemaforge_mvp.sh",
       "bin/noemaforge",
       "docs/README.md",
       "docs/TODO.md",

@@ -421,5 +421,40 @@ class TestJobManagerPersistenceRoundtrip(unittest.TestCase):
         self.assertIn(j2["job_id"], all_ids)
 
 
+class TestJobManagerJobIdTraversalGuard(unittest.TestCase):
+    """A crafted or corrupt job_id must never read/write outside jobs_dir."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.jm = JobManager(Path(self._td.name))
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def test_safe_job_file_rejects_separators_and_parent_refs(self) -> None:
+        for bad in ("../evil", "a/b", "a\\b", "..", ".", "/abs", ""):
+            with self.subTest(job_id=bad):
+                self.assertIsNone(self.jm._safe_job_file(bad))
+
+    def test_safe_job_file_accepts_plain_id(self) -> None:
+        path = self.jm._safe_job_file("job_abc123")
+        self.assertIsNotNone(path)
+        self.assertEqual(path.parent.resolve(), Path(self._td.name).resolve())  # type: ignore[union-attr]
+
+    def test_read_job_file_cannot_escape_jobs_dir(self) -> None:
+        # Plant a readable file one level above jobs_dir; a "../"-style job_id
+        # would resolve to it without the guard.
+        planted = Path(self._td.name).parent / "planted_job.json"
+        planted.write_text(json.dumps({"job_id": "planted", "secret": True}), encoding="utf-8")
+        try:
+            self.assertIsNone(self.jm._read_job_file("../planted_job"))
+        finally:
+            planted.unlink()
+
+    def test_write_job_file_rejects_unsafe_id(self) -> None:
+        with self.assertRaises(ValueError):
+            self.jm._write_job_file({"job_id": "../escape"})
+
+
 if __name__ == "__main__":
     unittest.main()
