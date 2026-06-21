@@ -313,7 +313,7 @@ def _result_has_runtime_error(result: Dict[str, Any]) -> str:
 
 
 def _pids_for_backend(modelstore_id: str) -> List[int]:
-    sock = f"/run/noemaforge/llm/backends/{modelstore_id}.sock"
+    sock = str(_pp.llm_backends_dir / f"{modelstore_id}.sock")
     try:
         cp = subprocess.run(["pgrep", "-f", sock], text=True, capture_output=True, timeout=5)
     except Exception:
@@ -669,7 +669,7 @@ def systemctl(*args: str) -> int:
 
 
 def start_gguf_backend(modelstore_id: str) -> Tuple[bool, str, str]:
-    sock = f"/run/noemaforge/llm/backends/{modelstore_id}.sock"
+    sock = str(_pp.llm_backends_dir / f"{modelstore_id}.sock")
     if runtime_safety is not None:
         ok_safe, reason, meta = runtime_safety.validate_modelstore_backend(DEFAULT_MODELSTORE, modelstore_id)
         if not ok_safe:
@@ -747,7 +747,7 @@ def stop_gguf_backend(modelstore_id: str) -> None:
         _kill_backend_processes(modelstore_id, kill_signal())
     _ACTIVE_BACKENDS.discard(modelstore_id)
     try:
-        os.unlink(f"/run/noemaforge/llm/backends/{modelstore_id}.sock")
+        os.unlink(str(_pp.llm_backends_dir / f"{modelstore_id}.sock"))
     except Exception:
         pass
 
