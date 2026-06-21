@@ -63,9 +63,21 @@ periodically so older reviews do not rot in comment threads.
   curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
   they can produce malformed `<option value=…>` values and break locale selection.
   (Codex #5)
-- [ ] **Frontend session restore narrows to `selected_mode`** — either restore
+- [x] **Frontend session restore narrows to `selected_mode`** — either restore
   `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
-  code comment that claims full history restore. (Codex #5)
+  code comment that claims full history restore. (Codex #5) _(S · opus — DONE/verified
+  against current code: `startup()` in `noemaforge/templates/pipeline-dashboard/app.js`
+  restores `sess.session.messages` (`renderConversation(sess.session)`) and
+  `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
+  addressed.)_
+- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+  `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
+  byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
+  both as a `!restoredFromSession` fallback *and* again unconditionally, so the
+  dashboard-state conversation can clobber the session-restored conversation despite the
+  "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
+  and make the dashboard-state render a true fallback (keep persona/artifacts loading
+  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
