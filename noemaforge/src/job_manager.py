@@ -137,6 +137,11 @@ class JobManager:
         """
         if not job_id:
             return None
+        # Defense-in-depth: reject path separators / parent refs up front so a
+        # crafted job_id can never escape jobs_dir, before (and independent of)
+        # the resolve() parent check below.
+        if "/" in job_id or "\\" in job_id or job_id in (".", ".."):
+            return None
         candidate = self._dir / f"{job_id}.json"
         try:
             if candidate.resolve().parent != self._dir.resolve():
@@ -161,8 +166,8 @@ class JobManager:
         self._write_json_atomic(self._jobs_file, data)
 
     def _read_job_file(self, job_id: str) -> Optional[Dict[str, Any]]:
-        path = self._dir / f"{job_id}.json"
-        if not path.exists():
+        path = self._safe_job_file(job_id)
+        if path is None or not path.exists():
             return None
         try:
             return json.loads(path.read_text(encoding="utf-8"))
@@ -170,7 +175,11 @@ class JobManager:
             return None
 
     def _write_job_file(self, job: Dict[str, Any]) -> None:
-        path = self._dir / f"{job['job_id']}.json"
+        path = self._safe_job_file(str(job.get("job_id") or ""))
+        if path is None:
+            raise ValueError(
+                f"refusing to write job file for unsafe job_id: {job.get('job_id')!r}"
+            )
         self._write_json_atomic(path, job)
 
     @staticmethod

@@ -51,12 +51,8 @@
     "helpers/noemaforge-reboot-safe",
     "noemaforge/tools/ops/noemaforge-op-common.sh",
     "noemaforge/tools/ops/noemaforge-op-llm-stop.sh",
-    "TODO.md",
-    "noemaforge/TODO.md",
     "docs/backlog/ROADMAP_AND_TODO.md",
     "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
-    "CHANGELOG.md",
-    "RELEASE_NOTES.md",
     "docs/history/CHANGELOG.md",
     "noemaforge/docs/history/CHANGELOG.md"
   ]

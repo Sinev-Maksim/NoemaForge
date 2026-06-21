@@ -77,3 +77,16 @@ noemaforge_*.tar.gz
 PyYAML/
 PyYAML.egg-info/
 pytest/
+
+# Claude agent worktrees (session-local, never tracked)
+.claude/
+
+# Release evidence — generated only at pre-release (publish-evidence.yml), never tracked on dev/release branches
+MANIFEST.json
+MANIFEST.json.sha256
+MANIFEST.sha256
+SHA256SUMS
+SHA256SUMS.sha256
+noemaforge/docs/MANIFEST.json
+noemaforge/docs/MANIFEST.json.sha256
+noemaforge/checksums/SHA256SUMS

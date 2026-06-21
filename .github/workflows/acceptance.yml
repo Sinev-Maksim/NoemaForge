@@ -45,6 +45,15 @@ jobs:
       - name: Install test deps
         run: pip install pytest pyyaml --quiet
 
+      # Release evidence is a PRE-RELEASE concern (owner directive 2026-06-14):
+      # it is not generated or checked on PR trees. Only on non-PR events
+      # (release/** pushes, dispatch) do we regenerate it so the release-tier
+      # checksum_validation AAT case can run; on pull_request the evidence is
+      # absent and that case reports "skipped (release-tier)".
+      - name: Regenerate evidence (release-tier only)
+        if: github.event_name != 'pull_request'
+        run: python ci/regen_evidence.py
+
       - name: Run acceptance harness
         run: bash ci/run_acceptance.sh results
 

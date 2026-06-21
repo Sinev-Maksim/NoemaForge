@@ -1,0 +1,4 @@
+# Release evidence (MANIFEST.json / SHA256SUMS and sidecars) is no longer
+# tracked: it is generated only at pre-release by publish-evidence.yml and is
+# gitignored on dev/release branches (owner directive 2026-06-14). There is
+# therefore nothing to merge, and the previous `merge=ours` entries are gone.

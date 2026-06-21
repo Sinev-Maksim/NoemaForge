@@ -71,7 +71,7 @@ class MachineLocalDefaultsRuntimeTests(unittest.TestCase):
             self.assertIn("EnvironmentFile=-/etc/default/noemaforge-firstboot", text, service)
 
     def test_installer_installs_default_examples_without_overwriting_local_files(self) -> None:
-        installer = (PROJECT_ROOT / "install_noemaforge_0.32.1_mvp.sh").read_text(encoding="utf-8")
+        installer = (PROJECT_ROOT / "install_noemaforge_mvp.sh").read_text(encoding="utf-8")
         self.assertIn("install_default_once()", installer)
         self.assertIn('[[ -e "$(target "$rel")" ]] && return 0', installer)
         self.assertIn("/etc/default/noemaforge-recovery", installer)

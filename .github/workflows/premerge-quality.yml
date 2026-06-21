@@ -31,10 +31,10 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
@@ -164,48 +164,13 @@ jobs:
           fi
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
-      # ── 8. Release manifest/checksum evidence ────────────────────────────
-      # Skipped for PRs into `main`: the release→main consolidation merges many
-      # branches at once, so the cumulative SHA256SUMS/MANIFEST is regenerated on the
-      # release branch, not re-verified at the main boundary (the merge-ref recompute
-      # is also prone to transient staleness). Evidence stays gated on release-branch PRs.
-      - name: Release manifest/checksum evidence gate
-        if: github.base_ref != 'main'
-        run: |
-          set +e
-          out=$(python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index 2>&1)
-          code=$?
-          echo "$out"
-          if [ "$code" -eq 0 ]; then
-            echo "PASS: release manifest/checksum evidence is consistent"
-            exit 0
-          fi
-          # This step verifies release EVIDENCE consistency (SHA256SUMS / MANIFEST.json),
-          # not code correctness. A failure here is typically NOT a code defect.
-          echo "::error title=Release evidence stale (not a code defect)::SHA256SUMS/MANIFEST mismatch - regenerate checksums or update this branch from release/0.32.2-hardening. See the job summary for the exact files."
-          {
-            echo "## Release manifest/checksum evidence gate FAILED"
-            echo ""
-            echo "The committed release evidence (\`SHA256SUMS\`, \`noemaforge/checksums/SHA256SUMS\`, \`MANIFEST.json\`) does not match the current tracked file set. **This is an evidence-consistency check, not a code defect** - the code gates (py_compile, JSON/YAML, versions) are reported separately above."
-            echo ""
-            echo "### Most likely cause"
-            echo "- a tracked file changed without regenerating the checksums, **or**"
-            echo "- this branch is **behind / diverged from** \`release/0.32.2-hardening\`. PRs are checked as the head **merged with base**, so once the base advances (e.g. after another PR merges) a stale branch produces an inconsistent merged \`SHA256SUMS\`."
-            echo ""
-            echo "### Fix"
-            echo "1. Update the branch from \`release/0.32.2-hardening\` (merge or rebase)."
-            echo "2. Regenerate the manifests/checksums and commit them."
-            echo "3. Push; this gate re-runs."
-            echo ""
-            echo "<details><summary>Reported mismatches (machine output)</summary>"
-            echo ""
-            echo '```json'
-            echo "$out"
-            echo '```'
-            echo ""
-            echo "</details>"
-          } >> "$GITHUB_STEP_SUMMARY"
-          exit 1
+      # ── 8. (removed) Release manifest/checksum evidence ──────────────────
+      # Release evidence (MANIFEST/SHA256SUMS) is a PRE-RELEASE concern only:
+      # it is not tracked, not regenerated and not verified on dev/PR branches
+      # (owner directive 2026-06-14). The evidence is generated and verified
+      # solely at release time by publish-evidence.yml (tag/dispatch), which
+      # assembles it into the signed release bundle. This removes the recurring
+      # cross-PR checksum churn entirely.
 
       # ── 9. Shell syntax check (bash -n) ───────────────────────────────────
       - name: Shell syntax check (bash -n) on .sh files

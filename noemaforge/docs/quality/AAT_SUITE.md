@@ -42,7 +42,7 @@ diffing against it proves the published evidence was not altered after the run.
 
 | Case | Tier | Proves | Gating |
 |------|------|--------|--------|
-| `checksum_validation` | 10-integrity | MANIFEST/SHA256SUMS + `.sha256` sidecars match the tracked files (via the canonical git-index verifier) | **yes** |
+| `checksum_validation` | 10-integrity | MANIFEST/SHA256SUMS + `.sha256` sidecars match the working-tree files (via the verifier) | release-tier |
 | `install_dry_run` | 20-install | setup dry-run captured on a POSIX host | evidence-only |
 | `no_hidden_autostart` | 30-safety | no unexpected LLM/media processes after boot | nightly (target) |
 | `model_warmup_modes` | 30-safety | default startup stays safe/manual; heavy path only on explicit action | nightly (target) |
@@ -50,7 +50,7 @@ diffing against it proves the published evidence was not altered after the run.
 | `toolproxy_isolation` | 40-toolproxy | gateway is unix-socket only (no remote egress); `exec` is a bounded allowlist; enforcement on | **yes** |
 | `contract_epoch_immutability` | 50-epochs | canonical hash stable under key reordering; an explicit revision changes it (anchored to the live epoch id) | **yes** |
 | `telemetry_privacy` | 60-telemetry | no raw secret/PII markers in stored artifacts (via the shipped `sense_privacy_runtime` filter) | **yes** |
-| `signed_manifest_verification` | 70-release | policy mandates signed provenance (detached sig + key fingerprint, no plaintext keys); provenance record binds the manifest subject hash | **yes** |
+| `signed_manifest_verification` | 70-release | policy mandates signed provenance (detached sig + key fingerprint, no plaintext keys); provenance record binds the manifest subject hash | release-tier |
 
 `pending` cases reserve their tier and appear in `summary.json` as `pending` until
 their implementation slice lands. The process exit code is non-zero **only** when an
@@ -75,10 +75,12 @@ python ci/acceptance_runner.py results
 python -m pytest ci/acceptance -q
 ```
 
-> Integrity verification uses **git-index (canonical, LF) blob hashes**, matching how
-> `SHA256SUMS` is generated, so results are platform-independent. The verifier
-> enumerates the working tree, so run against a clean checkout (CI or a `git worktree`);
-> a development tree with untracked artifacts reports extra files by design.
+> The `checksum_validation` and `signed_manifest_verification` cases are **release-tier**:
+> the evidence (`MANIFEST.json` / `SHA256SUMS`) is generated at pre-release only
+> (`publish-evidence.yml`), so they report `skip` on dev/PR trees where it is absent and
+> run on a release tree — or a clean `git worktree` after `python ci/regen_evidence.py`.
+> Verification hashes the **working tree** (`--hash-source working-tree`), the same files
+> `regen_evidence.py` wrote, so the two are consistent by construction.
 
 ## CI
 

@@ -1,34 +1,153 @@
 # TODO
 
+## Effort / model routing legend
+
+_Every open item carries an effort tier and the Claude model recommended to execute
+it (owner directive 2026-06-11). The orchestrator session (Fable/Opus) plans and
+reviews; lower tiers are delegated to cheaper-model subagents. Stats and
+recalibration: [`Claude_stats.md`](../../Claude_stats.md) at the project root._
+
+| Tag | Meaning | Executor |
+|---|---|---|
+| `S` | mechanical, ≤2 files, clear spec | **Haiku 4.5** subagent |
+| `M` | localized feature/fix + tests | **Sonnet 4.6** subagent |
+| `L` | cross-file design/refactor, CI/architecture | **Opus 4.8** (or orchestrator) |
+| `XL` | umbrella track, multiple PRs | **Fable 5** orchestrates, mixed executors |
+| `target-gated` | needs the production target host | any (blocked on hardware access) |
+| `obsolete` / `shipped` | stale entry kept for traceability | tick or drop on next sweep |
+
+Auto-escalation: if a delegated tier fails twice (tests/review), it escalates one
+tier up (S→M→L) and the miss is logged in `Claude_stats.md`.
+
 ## Optimizations
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
 
+_2026-06-17 hygiene sweep: items checked below were verified already implemented against current code — Codex #33 (sandbox `rlimits_available()` + run-meta flag), #42 (`contextlib` is a module-level import), #35 (`composite_pair_scoring._norm()` strips/lowercases `family`/`runtime`; `_load_candidates()` raises a clear `ValueError` for non-object entries)._
+
+**Broad-pytest validator-class follow-up (found during 2026-06-17 night watch).**
+~26 `*_qa.py` tests (`test_policy_summary_and_docs_record_completed_item` /
+`*_are_discoverable` / `*_capture_*_boundary`) fail because the src policy
+validators (e.g. `validate_stateful_admin_gui_policy` -> `_docs_report` at
+`noemaforge/src/stateful_admin_gui_runtime.py:329-355`, and `_resolve_refs:81-98`)
+check doc refs/tokens at non-existent locations (`project_root/TODO.md`,
+`/CHANGELOG.md`, `/RELEASE_NOTES.md`, and policy `refs` like `"TODO.md"`) instead
+of the canonical `noemaforge/docs/**` (`docs/TODO.md`, `docs/history/CHANGELOG.md`).
+`_docs_report` reads a missing file as empty text, so it reports
+`docs_tokens_missing` for every non-existent path. Each of the ~26 validators has
+its own `_docs_report`. The premerge release guard calls these with
+`include_docs=False`, so the *release* is not gated by `_docs_report` — only the
+QA tests are. **Recommended (needs owner sign-off; shared release-validator
+change):** (a) make each `_docs_report` require tokens only in EXISTING canonical
+docs and fail only when no existing canonical doc carries them (mirrors the Class A
+test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`/
+`CHANGELOG.md` to canonical `docs/TODO.md`/`docs/history/CHANGELOG.md`. Verify with
+a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
+touches release-gating logic across ~26 files + configs)_
+
+- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
+- [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
+- [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku — DONE: explicit Test-Path guard exits 2 with a FAIL message)_
+- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
+**Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
+Codex review is handled **before the PR merges** — each suggestion is either applied on
+the branch or recorded here with its `Codex #PR` tag. Harvest sweeps are repeated
+periodically so older reviews do not rot in comment threads.
+
+### Harvest 2026-06-11 (review back-sweep #5–#85)
+
+- [x] **Replace smart quotes in the dashboard locale option template** — 5 literal
+  curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
+  they can produce malformed `<option value=…>` values and break locale selection.
+  (Codex #5)
+- [ ] **Frontend session restore narrows to `selected_mode`** — either restore
+  `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
+  code comment that claims full history restore. (Codex #5)
+- [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
+  verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
+- [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
+  `env_description` parameter and quote `echo "$response"`. (Codex #11)
+- [x] **`brainui.py` path containment** — prefer
+  `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
+  string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
+- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31)
+- [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
+  (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
+  `_write_job_file` through the guard (read returns None, write raises) so no job-file
+  IO can escape `jobs_dir`. `prune_terminal()` already uses `_safe_job_file` and is not
+  wired into a periodic path, so no extra serialization needed. (Codex #37)
+- [x] **`sandbox.py`** — move the `contextlib` import used by `rlimits_available()`
+  to module top level. (Codex #42)
+- [x] **Create `docs/architecture/system-context.md`** or drop the dangling
+  "Now (this PR)" reference in `ARCHITECTURE_LEGIBILITY_ROADMAP.md:87`. (Codex #48)
+- [x] **Add a mixed-case wiki-path regression test** locking the portable
+  (codepoint) hub-index ordering of `ci/wiki_check.py`. DONE:
+  `noemaforge/tests/test_wiki_check_index_order.py` drives `wiki_pages()` over a
+  temp mixed-case tree and asserts codepoint order (uppercase < lowercase),
+  explicitly `!=` case-folded order, so a regression to case-insensitive sorting
+  fails the gate. (Codex #83)
+
+### Broad pytest run-to-completion + failure triage 2026-06-16
+
+_The developer-host unit suite (`python -m pytest noemaforge/tests`) used to abort
+at collection (3 import errors) so no test bodies ran and downstream failures were
+invisible. Full classified findings:
+[`uat/BROAD-PYTEST-0.33.0-FINDINGS.md`](uat/BROAD-PYTEST-0.33.0-FINDINGS.md).
+After the isolation fix the suite runs end-to-end: 1947 passed / 199 failed / 40
+skipped / 164 subtests passed. The 199 are pre-existing (unmasked, not caused).
+First landed on `release/0.32.2-hardening` (PR #104); this is the port._
+
+- [x] **Order-independent broad collection + execution** via a single shared
+  `noemaforge/tests/conftest.py` (pre-import real runtime leaves; restore the
+  baseline before each module import and after each test). Removes the
+  `orchestration_state`/`platform_paths` "unknown location" `ImportError` class
+  (down to 0); no runtime changes, no per-test edits. _(L · opus — DONE)_
+- [x] **Cross-platform interpreter in subprocess tests** — `test_admin_control_plane_03112`,
+  `test_admin_gui_evolution_03112`, `test_multimodal_shards_03112` defaulted the
+  hardcoded `/usr/bin/python3` to `sys.executable` (override `NOEMAFORGE_TEST_PYTHON`). _(S · haiku — DONE)_
+- [x] **POSIX/bash entrypoint tests (D2)** — DONE (#107): rewrote the five CLI tests to the Python entrypoint via a shared `_cli_bridge`; `test_autostart_policy_03103` + D3 runtime cases skip-with-reason. Was: `test_code_qa_0310`, `test_pipeline_p1_03021`,
+  `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
+  `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
+  marked as bypassing the bash wrapper (limited coverage; wrapper validated on the Debian target / CI).
+  `test_autostart_policy_03103` (`.sh` ops scripts) → documented skip-with-reason. _(M · sonnet)_
+- [x] **Root-doc layout drift (Class A, ~48 FileNotFoundError)** — DONE (#108): filtered the candidate read loops to existing paths across 42 `*_qa.py`. Was: tests open repo-root
+  `CHANGELOG.md` (27) / `TODO.md`; canonical docs live under `noemaforge/docs/`. Point tests at the
+  canonical paths or add root shims. _(M · sonnet)_
+- [ ] **Docs/policy content-assertion drift (Class B, 127 AssertionError)** — "discoverable"/
+  "capture"/"policy_validates" source-guard tests vs current docs/policies; triage per track. _(L · opus — umbrella)_
+- [ ] **Runtime shells out to POSIX scripts (D3)** — `admin_runtime.py` pipeline exec spawns
+  `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
+  skip-with-reason at the test layer. _(L · opus — 0.33.1)_
+
 - [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
-- [ ] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
-- [ ] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
-- [ ] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
-- [ ] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
+- [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
+- [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
+- [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
+- [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
 - [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
-- [ ] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
+- [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
 
 _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
-- [ ] Add Hermes-style SKILL.md parser as quarantine-only import.
-- [ ] Add SkillProposal schema with SSR/QA review status.
-- [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events.
-- [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing.
-- [ ] Add provider-runtime-resolver design doc.
-- [ ] Add profile isolation contract for config/memory/sessions/gateway tokens.
-- [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack.
-- [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch.
-- [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial.
-- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A)
-- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B)
-- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0)
+- [ ] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet)_
+- [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
+- [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
+- [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
+- [ ] Add provider-runtime-resolver design doc. _(L · opus — 0.33.2 foundation design)_
+- [ ] Add profile isolation contract for config/memory/sessions/gateway tokens. _(M · sonnet)_
+- [ ] Add skill-bundle concept mapped to NoemaForge RolePack/WorkflowPack. _(M · sonnet)_
+- [ ] Add marketplace import policy: inspect → quarantine → scan → Pipeline_RFC → epoch. _(M · sonnet)_
+- [ ] Add Hermes benchmark cases to eval suite: memory recall, skill reuse, gateway command, cron delivery, safe tool denial. _(M · sonnet)_
+- [ ] Add `noema upgrade` — proper version upgrade from GitHub (NOT first-run install): GitHub-native file fetch, with a fail-safe (download the release archive, replace files by extension/path) that by default never touches user/machine-changed state (`context.md`, config, memory, sessions, gateway tokens, data roots); dry-run diff + rollback; verify the signed manifest first. (see reference/ARCHITECTURE_LEGIBILITY_ROADMAP.md §A) _(L · opus — partially shipped via noema upgrade #60/#61; re-scope first)_
+- [ ] Add version/file proposal back to GitHub (contribution path): open a PR via the GitHub API when a token is present; tokenless fallback = a portable signed proposal bundle (patch + provenance) via relay / "create PR" deep link, so a contributor without a GitHub account can still propose. (§B) _(L · opus)_
+- [ ] Add collaborative-development readiness (architectural legibility layer): `CONTRIBUTING`/`CODE_OF_CONDUCT`/`SECURITY` + issue/PR templates; `docs/architecture/` index linked from README; ADRs; `control-plane.openapi.yaml`; ToolProxy capability-token schema + deny-by-default policy; `noema doctor` readiness matrix; generated capability/epoch catalog; CI `pr-gate`/`release-gate`. (research milestones 1–6; doc-layer in 0.32.2, code in 0.33.0) _(XL · fable-orchestrated umbrella)_
 
 ## 0.33.x forward roadmap (added 2026-06-09)
 
@@ -36,13 +155,13 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 
 ### Version milestones
 
-- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on
+- [ ] **0.33.1 — full system independence.** NoemaForge must run completely the same on _(XL · fable-orchestrated umbrella — phased plan merged in #76)_
   *nix (Linux), macOS and Windows: parity for paths, service/process management, sockets,
   exec/sandbox, display-safety and the Admin GUI launcher across all three OS families
   (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
   Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
   Linux / macOS / Windows.
-- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local
+- [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local _(XL · fable-orchestrated umbrella)_
   models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
   deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
@@ -50,19 +169,245 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
 
 ### Cross-cutting tasks (any 0.33.x)
 
-- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer
+- [ ] **Hardening — non-engineer experience.** Harden the product for non-engineer _(XL · fable-orchestrated umbrella — 0.33.0 fixpack is slice 1)_
   operators: one-button install/run, plain-language errors with guided recovery, no
   terminal or YAML required for the happy path, GUI-first flows and safe defaults so a
   non-technical user cannot foot-gun the system.
-- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to
+- [ ] **Documentation & project WIKI rewrite.** Bring all docs and the GitHub WIKI up to _(L · opus — includes B2 remaining docs merge)_
   date with the latest state (noema CLI, AAT suite, OpenSSF Scorecard, security/governance
   front page, scenario pack); rewrite stale pages; keep README v2 as the narrative landing.
-- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review
+- [ ] **PR review-comment fixups.** Systematically address actionable GitHub review _(ongoing · S · haiku per sweep)_
   comments (Codex / CodeRabbit / Copilot) on open PRs, fold recurring nits back into this
   TODO, and clear each PR's review thread before requesting merge.
-- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and
+- [ ] **More pro-active Copilot review usage.** Lean on GitHub Copilot review (and _(S · human action — repo Settings toggle, not codeable)_
   CodeRabbit) for routine review to reduce Codex token consumption — request Copilot as a
   reviewer on each `claude/*` PR; reserve Codex for higher-value / contested reviews.
+
+## 0.33.3 strategic roadmap (post-0.32.x)
+
+_Strategic agent-OS maturation track requested 2026-06-16; milestone summary in
+[`docs/ROADMAP.md`](../../docs/ROADMAP.md). **Validated against the codebase**: most
+items mature an existing **validation-contract runtime** into a live, enforced
+system (the foundation is noted per item) rather than greenfield work. Each track is
+an XL umbrella decomposed into the L/M slices below; sequence after the 0.33.0–0.33.2
+milestones. Items with no existing anchor are tagged `new`. Cross-checked 2026-06-16
+against the "Agentic Orchestration Hardening" proposal — its genuinely-new items (task
+contract, context packet + handoff scoring, role distinctiveness, empty-output=failure,
+artifact relevance, automatic skill extraction) are folded into the tracks below; the
+rest duplicated this roadmap, the Hermes skill track, or existing primitives
+(`production_ai_contracts` gates, `sandbox.py`, member-cell batons)._
+
+### Agent governance _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Admin-driven orchestration model** — Admin is the only user-facing authority;
+  specialist agents return results to Admin and cannot directly terminate
+  conversations. _(L · opus — builds on `admin_runtime.py` + the RoleFlow/orchestration_graph backlog in `release.json` consolidated_architecture_backlog)_
+- [ ] **Agent lifecycle states** — `task_created → task_assigned → task_in_progress →
+  task_review → task_completed → task_archived`. _(L · opus — formalise on `task_workflow_runtime.py` add/edit/prioritize/block/complete + `task_governance`)_
+- [ ] **Task contract per request** — convert each user request into a structured
+  contract: goal, owner, expected artifact, success criteria, failure conditions.
+  _(L · opus — formalise on the existing `production_ai_contracts.evaluate_gate` primitive)_
+- [ ] **Explicit agent handoff protocol** — ownership tracking, reasoning trace and
+  confidence propagation, plus a compact **context packet** (goal, constraints,
+  completed work, known failures, next action) instead of passing the full
+  conversation, and **handoff quality scoring** (completeness, relevance, context
+  preservation). _(L · opus — `new` protocol on the member-cell baton model; reasoning trace shares the Observability trace layer below)_
+- [ ] **Role distinctiveness checks** — flag specialist personas producing
+  near-identical outputs or duplicated responsibilities. _(M · sonnet — `new`; directly addresses the UAT indistinct-personas finding U-003/D-009)_
+
+### Multi-model consensus _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Fusion-style execution mode** — parallel execution by multiple LLMs,
+  independent reasoning paths, final adjudication layer. _(L · opus — extends `role_tournament.py` parallel eval + `composite_pair_scoring`)_
+- [ ] **Judge-model framework** — score answers, detect hallucinations and
+  unsupported assumptions. _(L · opus — promotes the Sense/Critic governance backlog: Slop_Score, Critic_Stack, Detection_Verdict, Honesty Protocol)_
+- [ ] **Debate mode** — pro/con reasoning, adversarial validation, consensus
+  generation. _(L · opus — `new`, layered on the judge framework)_
+
+### Context engineering _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Context budget manager** — token accounting, memory prioritization,
+  retrieval ranking. _(L · opus — promote `memory_budgeted_retrieval_runtime.py` + `topic_adjacent_retrieval_runtime.py` contracts to a live manager)_
+- [ ] **Context compression pipeline** — conversation summarization, semantic
+  deduplication, fact extraction. _(L · opus — builds on `knowledge/extraction_pipeline.py` + session history; summarization is `new`)_
+- [ ] **Context quality metrics** — relevance, freshness, trust scores. _(M · sonnet — new scoring layer over the retrieval runtimes)_
+
+### Evaluation framework _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Internal SWE-bench-inspired benchmark.** _(L · opus — new harness; seed from the AAT LLM tier + Hermes benchmark cases)_
+- [ ] **Internal GAIA-inspired benchmark.** _(L · opus — new)_
+- [ ] **Internal AgentBench-inspired benchmark.** _(L · opus — new)_
+- [ ] **Regression testing framework** — agent routing, memory retrieval, tool
+  execution, artifact generation; per-run checks `tests_passed` / `artifact_exists` /
+  `artifact_relevant` / `admin_returned`. _(L · opus — extend the AAT harness `ci/acceptance_runner.py`)_
+- [ ] **Automatic skill extraction** — mine reusable skills from successful, repeated
+  execution traces. _(L · opus — `new`; complements the Hermes skill-import track, which only imports skills)_
+
+### Artifact-centric workflows _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Every generation pipeline produces artifact outputs** — document, report,
+  spreadsheet, presentation, code archive; an **empty output directory is treated as
+  failed execution** (a meaningful artifact or an explicit failure report, never a
+  silent no-op). _(M · sonnet — wire `pipeline_runtime.py` outputs to artifacts; in-chat cards already exist, U-001/U-005; the failure-report rule extends U-002)_
+- [ ] **Unified artifact registry.** _(L · opus — promote `artifact_registry_table_runtime.py` contract to a live registry)_
+- [ ] **Artifact lineage tracking** — creator, source inputs, generation chain.
+  _(L · opus — extend the artifact-registry-table (outputs/reviews/graph patches) + `provenance_record`)_
+- [ ] **Artifact relevance scoring** — validate that generated files answer the
+  original user request. _(M · sonnet — `new`; consumes the judge-model scores)_
+
+### Sandbox & security _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Per-agent sandbox execution.** _(L · opus — scope `sandbox.py` per agent)_
+- [ ] **Capability-based permissions.** _(M · sonnet — mostly exists: ToolProxy capability tokens + deny-by-default policy; enforce per agent)_
+- [ ] **Tool allowlist system.** _(M · sonnet — extend the existing allowlist policy/`caps.py`)_
+- [ ] **Resource quotas** — RAM, CPU, GPU, network. _(L · opus — RAM/CPU exist via `sandbox.py` rlimits; GPU/network quotas are `new`)_
+
+### Runtime intelligence _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Dynamic model routing.** _(L · opus — extend the product model-routing surface `admin_gui_routes/model_routes.py` + `runtime_policy`; distinct from the Claude-dev routing in `Claude_stats.md`)_
+- [ ] **Cost-aware model selection.** _(L · opus — reuse the 0.33.2 cost/rate ceilings)_
+- [ ] **Latency-aware routing.** _(M · sonnet — new signal)_
+- [ ] **Quality-aware routing.** _(M · sonnet — new signal; consumes judge-model scores)_
+
+### Observability _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Agent execution traces.** _(L · opus — mature the `trace-observability-evaluation-gates` wiki design + `seclog.py`)_
+- [ ] **Workflow replay.** _(L · opus — new, on top of traces + the artifact registry)_
+- [ ] **Decision auditing.** _(M · sonnet — extend the audit/remediation runtime + `team_scorecards.py`)_
+- [ ] **Failure classification.** _(M · sonnet — new taxonomy over traces)_
+- [ ] **Runtime dashboard.** _(L · opus — promote the alpha `telemetry_dashboard` to a live observability dashboard)_
+
+### Production readiness _(XL · fable-orchestrated umbrella)_
+
+- [ ] **Formal release process.** _(M · sonnet — formalise `noema release` pack/attest/sign/verify + `publish-evidence.yml`)_
+- [ ] **Stable/LTS channel.** _(L · opus — new; current `release.json` channel is pre-alpha)_
+- [ ] **Migration framework.** _(L · opus — new, generalised from `noema upgrade`)_
+- [ ] **Upgrade rollback support.** _(M · sonnet — extend `noema upgrade --verify-only` + rollback artifacts)_
+- [ ] **Automated UAT suite.** _(L · opus — largely the AAT track + the U-004 all-pipeline test/demo mode; cross-ref the AAT cross-cutting task)_
+
+## Accepted optimization decisions (2026-06-10 analysis review)
+
+_The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
+decision below is a committed work item for the 0.33.x cycle (not an optional nit).
+Restored 2026-06-11: this section was added by PR #82 but got lost in the #86
+release→main conflict resolution; statuses updated on restore._
+
+### A. Process / CI
+
+- [x] **A1 — evidence generation moves to CI on dev branches.** Done (this PR):
+  `ci/regen_evidence.py` is the single generator; the premerge gate regenerates
+  and verifies the merged tree (stale-evidence failures abolished); the new
+  `evidence-refresh.yml` workflow keeps committed copies current on `release/**`
+  after merges. Branches no longer commit regenerated evidence.
+- [x] **A2 — docs-hygiene gate joins premerge-quality.** Done in PR #85:
+  pre-existing reds cleared (`context.md` legacy host name, CONTRIBUTING/SECURITY
+  allowlist, three broken registry wiki refs) and the gate wired as step 11.
+- [x] **A3 — p0-status-ledger concurrency dedupe.** Done in the quickwins-t1 PR (queue duplicates instead of cancelling; issues trigger preserved). The workflow runs twice per
+  push and the concurrency group cancels the older run, leaving misleading
+  CANCELLED check entries; dedupe triggers or set `cancel-in-progress` with a
+  per-ref group so only one run per push remains.
+- [ ] **A4 — version-agnostic installer.** Replace per-release
+  `install/uninstall_noemaforge_<ver>_mvp.sh` pairs with a single
+  `install_noemaforge_mvp.sh` reading the VERSION SoT; archive the stale 0.32.1
+  pair. Also closes the pre-existing red contract check
+  `setup_does_not_delegate_to_current_installer` (no 0.33.0 installer exists).
+- [x] **A5 — refresh CLAUDE.md.** Done in the quickwins-t2 PR (new base branch, A1 evidence lifecycle, English-only rule, routing protocol, canonical task sources). Working base is `release/0.33.0-dev`; drop the
+  completed 0.32.2 P0 list and stale PR refs; point at the UAT defect register
+  and the canonical TODO/roadmap as task sources; record the English-only
+  GitHub-communication rule.
+
+### B. Tree canonicalization (single source under the package root)
+
+- [x] **B1 — systemd:** `noemaforge/systemd/` is the only unit tree; newer
+  root-tree units merged in, root tree removed, installers/audit/boot-mode
+  re-pointed, config refs verified against the contract resolvers. Done in
+  PR #81 (and re-asserted in the #86 sync merge).
+- [x] **B2 (wiki slice):** `noemaforge/docs/wiki/` is the canonical wiki; the
+  drifted project-root mirror was removed, dumps extracted into standalone
+  articles, hub + integrity gate + GitHub Wiki auto-publish added. Done in PR #80.
+- [ ] **B2 (remaining docs):** merge the remaining drifted `docs/` ↔
+  `noemaforge/docs/` pairs (i18n, architecture, reference, onboarding, …) into
+  the package tree, make the project-root `docs/` a generated mirror or remove
+  it, and re-point referencing paths in JSON/configs the same way as B1.
+
+### C. Code health (refactor-as-you-touch; no big-bang)
+
+- [ ] **Split `admin_gui_server.py` before the GUI fixpack grows it** (~2.2k
+  lines, ~119 endpoint references in one handler): route table + modules per
+  area (session, jobs, pipelines, model-selection). First slice of the fixpack.
+- [ ] **Modularize the dashboard frontend** (`templates/pipeline-dashboard/app.js`)
+  and add a small reusable card/progress/artifact component set — precondition
+  for the raw-JSON-rendering defects (D-001/D-004/D-006).
+- [ ] **Desktop app shell (accepted direction).** The GUI must feel like an
+  application window, not a browser tab, via the lightest path: `noemaforge
+  dashboard app` launcher using Chromium-family `--app=` mode with plain-browser
+  fallback, plus a PWA manifest (`display: standalone`) for installability.
+  Zero new mandatory dependencies; pywebview stays an optional future extra.
+  ADR: `wiki/architecture/desktop-app-shell.md`.
+- [x] **Replace deprecated `datetime.utcnow()` — caps.py slice done in the quickwins-t1 PR (8 call sites, Z-format preserved, naive-token back-compat); repo-wide pass (55 files) still open as below.** Original item:** (8× in `caps.py`, then repo-wide)
+  with timezone-aware `datetime.now(UTC)`; py3.12+ deprecates utcnow and CI on
+  3.11 masks it.
+- [x] **Add a minimal `pyproject.toml` — done in the quickwins-t2 PR (dynamic version from the VERSION SoT, dev/vector/gateway extras, packages=[]).** Original item:** (metadata + extras: `dev` = pytest/pyyaml,
+  `vector` = numpy, `gateway` = httpx) without changing the stdlib-only runtime
+  posture; tooling deps are currently undeclared anywhere.
+- [ ] **Wire targeted contract-test shards into CI and burn down pre-existing
+  reds.** premerge runs `py_compile` only, so contract tests rot silently:
+  legacy refs to root `TODO.md`/`CHANGELOG.md`/`RELEASE_NOTES.md` in
+  machine-local-defaults policy, stale installer delegation, and the
+  `test_pr_release_artifacts` snapshot tests (hardcoded file counts) that fail
+  on any live tree. Add bounded test shards to premerge/acceptance and fix the
+  reds (make snapshot tests dynamic).
+- [ ] **Nightly coverage run** (coverage.py over the bounded shards) to expose
+  dead zones — src:test line ratio is ~3.4:1 with GUI/pipeline runtime suspected
+  under-covered.
+- [ ] **Manifest `generated_at` freshness vs A1 idempotency** (CodeRabbit #99).
+  `MANIFEST.json.generated_at` is not bumped by `ci/regen_evidence.py`, so it can
+  look stale after a file-set change. Bumping it to `now()` per regen would break
+  the idempotency the premerge regen-then-verify gate and `regen_evidence --check`
+  rely on (committed vs fresh regen would always differ). If a trustworthy
+  timestamp is wanted, derive `generated_at` **deterministically from the
+  release/commit metadata** (stable per commit), not from wall-clock regen time.
+- [x] **Complete the 0.33.0 version promotion.** DONE (#110): bumped 22 configs, `release.json`, the `bin/noemaforge` echo and the audit script to 0.33.0 and collapsed `PROMOTED_BASELINE` into `SOT_VERSION`. Was: `RUNTIME_VERSION`/`VERSION` files
+  are 0.33.0 but the bump is half-done: ~22 `noemaforge/configs/*.json` `version`
+  fields, the `bin/noemaforge` `echo`, `tools/prep/noemaforge-first-run-audit.sh`
+  `VERSION=`, and root `release.json`/`MANIFEST.json` metadata are still `0.32.2`.
+  `test_version_03200_qa.py` already splits the two invariants (`SOT_VERSION` =
+  dynamic canonical-VERSION check, `PROMOTED_BASELINE` = `0.32.2` for those
+  non-canonical surfaces); finishing the task = bump the baseline surfaces to the
+  SoT and collapse `PROMOTED_BASELINE` into `SOT_VERSION`. **First investigate**
+  whether each config `version` is the release version or an independent schema
+  version before bumping, and sweep for other tests pinning `0.32.2` to avoid
+  cascade. Own PR, not bundled with feature work (surfaced by Codex on #96).
+
+### E. Supply chain
+
+- [x] **Harden security automation and dependency updates.** GitHub Actions are
+  SHA-pinned and tracked by weekly Dependabot updates; root Python metadata is
+  covered by grouped `pip` updates. Semgrep CE now uploads pinned, local-rule
+  SARIF results, while GitHub CodeQL default setup remains the authoritative
+  CodeQL lane without a conflicting advanced workflow.
+- [x] **Audit and fix frontend DOM/XSS findings (22 baseline findings).** Audited
+  all 14 `pipeline-dashboard` and 8 legacy `ui-dashboard` findings from final
+  baseline run `27829681354`. API-fed task, job, artifact, pipeline, project,
+  event, telemetry, and path values were real trust-boundary inputs; several
+  empty/constant or already-escaped templates were scanner false positives.
+  Both dashboards now construct the DOM with `createElement`, `textContent`,
+  safe attributes, and event listeners. Artifact links additionally reject
+  non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
+  both renderers with hostile payloads and verify literal text plus preserved
+  controls. Remaining `insecure-innerhtml` sinks in these components: 0.
+- [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
+  raw-query construction path and parameterize or constrain active inputs.
+- [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
+  hardened parsing at every untrusted or externally supplied XML boundary.
+- [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
+  Prove fixed argv/environment allowlists or remove tainted command construction.
+
+The open counts above are Semgrep baseline findings, not confirmed
+vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
+artifact SHA-256 `63efafc90c7fc8cccfe77f08177b4bd6fe6f002dd781f14572910e60ac8b90d8`,
+SARIF SHA-256 `7e0923536c76b715e9f3e1ad69480ddd450f2b5c7423dd1a3535b9db23819346`,
+retained through 2026-06-26.
 
 ## 0.32.2 target-host UAT findings → admin-gui-prod-readiness-fixpack (added 2026-06-10)
 
@@ -74,63 +419,65 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
-- [ ] **D-003** Deterministic glossary answers for known system states: Admin must explain
+- [x] **D-003** Deterministic glossary answers for known system states: Admin must explain _(M · sonnet)_
   `degraded_selected`, `selected=N` and other dashboard terms from a grounded glossary in
-  the user's language — never hallucinate them as filenames.
-- [ ] **U-002** No silent no-ops: every user command produces at least one visible
+  the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
+  in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
+  path (`test_admin_state_glossary.py`).
+- [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
-- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input
+- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
-- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage
+- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
   to artifacts/logs (text-only is acceptable for MVP).
-- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API
+- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet)_
   already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
   result cards with open/download/copy actions; readable failure message on error.
 
 ### P1 — comprehension and persona UX
 
-- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for
+- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet)_
   state terms, full model names on hover, internally consistent progress numbers, and a
   "Latest plan" that reflects the actually applied run (no stale `normal` after a real
   `full_composite`).
-- [ ] **U-003** Distinct personas with an explicit selector: observably different
+- [ ] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — persona routing + prompt design)_
   behavior/tone/scope per persona, switch logged in chat, completion offers
   stay / return-to-Admin / switch.
-- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on
+- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku)_
   launch the chat shows the switch and the persona greets with next steps.
-- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button
+- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet)_
   label change + "next message runs as N-step cycle" notice + iteration progress), or are
   disabled with a warning where unsupported.
 
 ### P2 — presentation polish and guards
 
-- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw
+- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku)_
   JSON only behind Details/Debug.
-- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection
+- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku)_
   status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
   no raw JSON in the default view.
-- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback +
+- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — offline renderer, no CDN allowed)_
   error if rendering fails; source behind debug).
-- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short
+- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku)_
   interval prompts start-new / continue-existing / cancel; existing runs visible.
 
 ### Runtime / ops follow-ups (0.33.x)
 
-- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure
+- [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure _(target-gated · M · sonnet for log analysis)_
   observed during the composite first-start window (plan-only oneshot; `reset-failed` was
   applied on host but is not a fix); add a regression check.
-- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model
+- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
-- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs
+- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
   do not stop the batch by default.
-- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
+- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
-- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator
+- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
   starts the localhost dashboard) in the operator guide.
 
 ## 0.32.2 release-hardening checkpoints
@@ -298,7 +645,7 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P1 — PR #2 reviewability (manual action)
 
-- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.)
+- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.) _(obsolete — 0.32.2-era PR #2 housekeeping)_
 
 ## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
 
@@ -411,7 +758,7 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   `save_message()` called `append_message` twice, doubling session message
   count and halving the effective 500-message window.
 
-- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent
+- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verify and tick)_
   unbounded growth of the job index. Blocked until task-11
   (`claude/task-11-wire-preflight`) merges to release.
 
@@ -422,14 +769,14 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   Note: job_id uses second-precision timestamps so sub-second uniqueness is
   tracked separately in task-16.
 
-- [ ] **Add `_run_preflight()` exception reporting mode** — currently any
+- [ ] **Add `_run_preflight()` exception reporting mode** — currently any _(S · haiku)_
   exception in PreflightSuite is silently swallowed and returns None.
   Add a `_preflight_warning` field to `/api/health` output when preflight
   raises. Blocked until task-10/11 merge.
 
 Target-host required items:
 
-- [ ] **SHA256SUMS regeneration** after all PR branches merge.
+- [ ] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
@@ -1184,8 +1531,8 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 
 ### Day 1 — repository hygiene (partial — needs Linux / target host for shell validation)
 
-- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on the target host to verify all shell scripts pass syntax check.
-- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on the target host.
+- [ ] Run `find . -name '*.sh' -type f -exec bash -n {} \;` on the target host to verify all shell scripts pass syntax check. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Run `noemaforge/tools/prep/noemaforge-version-audit.sh --root . --expected 0.32.2 --strict-all` on the target host. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 - [x] Check `noemaforge/configs/llm-backends-policy.yaml` and `noemaforge/configs/role-catalog.yaml` for stale version strings (0.31.13.alpha, 0.29.10, 0.29.11) and update if found. — Both files clean, no stale strings (2026-05-28).
 - [x] Audit `noemaforge/src/dataset_inventory.py` and `noemaforge/src/vault_reorg.py` for any hardcoded RUNTIME_VERSION assignments outside `noemaforge_version.py`. — Both clean (2026-05-28).
 - [x] Verify `.gitignore` has `__pycache__/` and `*.pyc` exclusions (and add them if missing). — Created full `.gitignore` (2026-05-28).
@@ -1193,21 +1540,21 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
 ### Day 3 — frontend UX (partial — needs live GUI on the target host)
 
 - [x] Add explicit mode confirmation message in chat after user picks a model-selection mode: "Mode selected: normal / full / full_composite N". — Implemented in app.js sendAdmin() (2026-05-28).
-- [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI).
-- [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive.
+- [ ] Verify user message is appended exactly once and not duplicated after page refresh (needs manual smoke on live GUI). _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Manual smoke: `noemaforge dashboard start`, open `http://127.0.0.1:8765/`, send a message, refresh page, verify messages and selected mode both survive. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ### Day 4 — duplicate-safe jobs (partial — needs target-host smoke)
 
 - [x] Cancel marker wired in `job_cancel()`: status set to `cancel_requested`; `.cancel` sentinel file written to `jobs_dir` for subprocess polling (2026-05-28). Remaining: long-running runtime scripts (`noemaforge first-start`) must read the sentinel file — needs the target host.
-- [ ] Manual smoke on the target host: send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times.
-- [ ] Manual smoke on the target host: click Vault re-inventory twice rapidly and confirm one job, not two.
+- [ ] Manual smoke on the target host: send two identical `/api/model-selection/continue` requests back-to-back and confirm the same `job_id` is returned both times. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Manual smoke on the target host: click Vault re-inventory twice rapidly and confirm one job, not two. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ### Day 5 — release validation (target host required)
 
-- [ ] Run full test suite on the target host: `python -m unittest discover noemaforge/tests/` and record pass/fail counts.
-- [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`.
-- [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`.
-- [ ] Target-machine validation checklist (all on the target host):
+- [ ] Run full test suite on the target host: `python -m unittest discover noemaforge/tests/` and record pass/fail counts. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Regenerate SHA256SUMS after all branches are merged to `release/0.32.2-hardening`: `bash noemaforge/bootstrap/make-checksums.sh`. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Create clean release archive: `tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' -czf noemaforge-0.32.2.tar.gz noemaforge/ && sha256sum noemaforge-0.32.2.tar.gz > noemaforge-0.32.2.tar.gz.sha256`. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
+- [ ] Target-machine validation checklist (all on the target host): _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
   - Admin GUI stays alive during first-start `--dry-run --keep-display`.
   - Admin chat responds to smalltalk/help without launching a pipeline.
   - Mode switch persists and is visible after browser refresh.
@@ -1216,7 +1563,7 @@ Items below are DoD requirements from the Cursor Implementation Briefs (Days 1�
   - Page refresh restores message history and active job state.
   - Job stop/cancel leaves no stale active jobs.
   - Gateway, ToolProxy and main llama backend smoke pass or return clear blocked status.
-- [ ] Issue explicit GO/NO-GO merge decision in `noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md` after all above targets pass.
+- [ ] Issue explicit GO/NO-GO merge decision in `noemaforge/docs/release/RELEASE_VALIDATION_CHECKLIST_0.32.2.md` after all above targets pass. _(target-gated · 0.32.2-era checklist — superseded by the docs/uat campaign where executed)_
 
 ## Started in this workspace
 

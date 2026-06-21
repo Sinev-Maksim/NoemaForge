@@ -21,7 +21,9 @@ from pathlib import Path
 
 PACKAGE = Path(__file__).resolve().parents[2]
 ROOT = PACKAGE / "noemaforge"
-PYTHON = os.environ.get("NOEMAFORGE_TEST_PYTHON", "/usr/bin/python3")
+# Use the interpreter running the tests so the suite is cross-platform; allow an
+# explicit override. The previous default "/usr/bin/python3" failed on Windows.
+PYTHON = os.environ.get("NOEMAFORGE_TEST_PYTHON") or sys.executable
 
 
 def test_multimodal_scan_excludes_non_head_gguf_shards(tmp_path):

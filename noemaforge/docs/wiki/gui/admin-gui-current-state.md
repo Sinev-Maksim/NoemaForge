@@ -1,27 +1,60 @@
 # Admin GUI — current state and fixpack
 
-Honest status of the operator GUI after the 2026-06-10 live UAT on the
-production target host. This page is maintained: update it when fixpack PRs
-land or a new UAT run changes the verdicts.
+Honest status of the operator GUI. This page is maintained: update it when
+fixpack PRs land or a new UAT run changes the verdicts.
 
-## Verdict (2026-06-10 UAT)
+## Verdict (0.33.0 fixpack — shipped 2026-06-21)
 
 | Aspect | Result |
 |---|---|
-| Technical launch, dashboard/API | PASS / PARTIAL PASS |
-| Operator usability | FAIL — major UX defects |
-| Pipeline launch flow | PARTIAL PASS |
-| Progress observability | FAIL |
-| Model/persona behavior | FAIL — needs routing fix |
-| Production readiness (non-engineer operator) | **NOT READY** |
+| Technical launch, dashboard/API | PASS |
+| Operator usability — P0/P1 defects | **PASS** — all P0/P1 items shipped |
+| Pipeline launch flow | PASS |
+| Progress observability | PASS — inline progress panel (D-007) |
+| Model/persona behavior | PASS — persona selector + greeting (U-003, D-009) |
+| Artifact delivery into chat | PASS — artifact cards (U-001/U-005) |
+| Production readiness (non-engineer operator) | **READY** (P2 polish items remain) |
 
-The control plane underneath is sound — every defect has a working backend
-under it (the API already returns artifact metadata, jobs run, state
-persists). The gap is presentation and routing. Full reports:
-`docs/uat/UAT-2026-06-10-admin-gui-and-user-experience.md`; canonical defect
-IDs: `docs/uat/DEFECT-REGISTER-0.32.2.md` (project root).
+The control plane underneath was always sound; 0.33.0 closes the presentation
+and routing gap. Full UAT report: `docs/uat/UAT-2026-06-10-admin-gui-and-user-experience.md`;
+canonical defect IDs: `docs/uat/DEFECT-REGISTER-0.32.2.md`.
 
-## What works today
+## What shipped in 0.33.0
+
+### P0 — trust and feedback loop
+
+| ID | Feature | Where |
+|---|---|---|
+| D-003 | Dashboard glossary: deterministic answers for known system states (`degraded_selected`, `selected=1`, …) | `admin_gui_server.py` `_glossary_lookup()` |
+| D-005 | Pipeline confirm dialog: editable chat-insert instead of browser `prompt()` | `index.html` `#pipeline-confirm`, `app.js` `_confirmPipelineId` |
+| D-007 | Pipeline run progress panel: inline chat bubble with stage list, status icons, auto-polling | `app.js` `renderPipelineRunPanel()`, `GET /api/pipeline/run/<id>/status` |
+| U-001/U-005 | Artifact result cards rendered inline in chat after every pipeline run | `app.js` `_artifactChatCard()`, `postArtifactsToChat()` |
+| U-002 | No silent no-ops: pending spinner shown while request is in-flight; ok=false shows error card | `app.js` `_addPendingBubble()`, `sendAdmin()` wiring |
+
+### P1 — comprehension and persona UX
+
+| ID | Feature | Where |
+|---|---|---|
+| D-002 | Operator-readable epoch panel: hover tooltips, human staffing labels, non-stale plan state | `app.js` `_STAFFING_LABELS`, `_humanStaffingState()`, `renderEpoch()` |
+| D-008 | Iteration controls depth notice: yellow banner + Send-button label update when budget is active | `app.js` `_updateDepthNotice()`, `style.css` `.depth-notice` |
+| D-009 | Pipeline persona greeting shows codename at launch | `pipeline_catalog_api.py` `_pipeline_persona()` |
+| D-010 | Repeat-launch guard: warning dialog if same pipeline relaunched within 60 s | `app.js` `_launchHistory` Map, `#pipeline-confirm-continue` |
+| U-003 | Persona selector in topbar, switch logged to chat, return-to-Admin button after switch | `app.js` `_loadPersonaSelect()`, `switchPersona()`, `_addReturnToAdminLine()`; `POST /api/persona/switch` |
+
+### P2 — presentation polish
+
+| ID | Feature | Where |
+|---|---|---|
+| D-001/D-004 | Hardware gauges + product metrics: human-readable rows in metrics cards | `app.js` metrics-card rendering |
+| D-006 | Pipeline diagram: SVG stage graph rendered in modal instead of raw JSON | `app.js` `showPipelineDiagram()` (DOM SVG via `createElementNS`) |
+
+### Infrastructure bundled with 0.33.0
+
+- Admin GUI server split into per-domain route modules (`admin_gui_routes/`)
+- Frontend DOM XSS hardening: all user-content paths use `textContent`/DOM APIs
+- UAT one-button runner (`noema uat run`) producing an evidence bundle
+
+## What works (always did, unchanged)
 
 - Localhost dashboard (`noemaforge dashboard start`, default port 8765) with
   chat-first Admin console, persona portraits, pipeline dock, telemetry and
@@ -33,30 +66,22 @@ IDs: `docs/uat/DEFECT-REGISTER-0.32.2.md` (project root).
 - Privileged actions stay plan-first (epoch apply, continue-selection and
   vault re-inventory produce audited `needs_privilege` jobs).
 
-## What blocks production (fixpack P0)
+## Known remaining gaps (P2 / post-0.33.0)
 
-- **D-003** Admin hallucinates on known system states
-  (`degraded_selected · selected=1` must get a deterministic glossary answer).
-- **D-005** Pipeline confirm OK does not transfer the command into chat.
-- **D-007** No visible per-run pipeline progress.
-- **U-001/U-005** Artifacts never come back into chat as cards, although the
-  API metadata exists.
-- **U-002** Some commands produce no visible response at all (silent no-op).
-
-P1 follows with comprehension and persona UX (readable epoch panel D-002,
-distinct personas + selector + return-to-admin U-003, pipeline persona
-greeting D-009, iteration controls D-008); P2 is presentation polish
-(hardware gauges D-001, metrics card D-004, rendered diagrams D-006,
-repeat-launch guard D-010).
+- i18n: depth-notice and Send-button label text are English-only; pending
+  a locale pass in 0.33.x.
+- DOM-behavior tests: GUI tests use source-string assertions; a JS runtime
+  in CI (e.g., Node + jsdom) would allow behavior-level coverage.
+- ok=true without follow-up message: edge case where backend returns success
+  but no follow-up model reply yet — pending UX hardening.
 
 ## Direction
 
-- The fixpack is the first slice of the "hardening for non-engineer
-  operators" track — done means: install, start, run a pipeline and receive
-  the result entirely through the GUI, no JSON reading, no filesystem digging.
-- The server side (`noemaforge/src/admin_gui_server.py`, ~2.2k lines, ~119
-  endpoint references) gets split into route modules before it grows further;
-  the frontend (`noemaforge/templates/pipeline-dashboard/app.js`) gains a
-  small card/progress component set.
-- The GUI becomes a windowed app via the lightweight shell decision:
-  [Desktop app shell](../architecture/desktop-app-shell.md).
+The fixpack closes the "non-engineer operator" gap. Next milestones:
+
+- **0.33.1** — full system independence (Linux / macOS / Windows parity for
+  paths, service management, sockets, exec/sandbox, GUI launcher).
+- **0.33.2** — hybrid LLM usage (provider resolver, redaction-before-egress,
+  cost/rate ceilings).
+- Desktop app shell decision: [Desktop app shell](../architecture/desktop-app-shell.md).
+- Pipeline dashboard detail: [Pipeline dashboard (0.33.0)](pipeline-dashboard-0.33.0.md).

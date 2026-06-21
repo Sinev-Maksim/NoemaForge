@@ -68,8 +68,8 @@ the governance boundary; screenshot/gif slots reserved for a live capture).
 NoemaForge's claims are **checkable from this repository**, not taken on faith:
 
 - **Acceptance evidence** — [`docs/quality/UAT_SCENARIOS_0.32.2.md`](noemaforge/docs/quality/UAT_SCENARIOS_0.32.2.md): per-feature acceptance tests with explicit pass criteria + a verification record.
-- **Signed provenance** — `MANIFEST.json` + `SHA256SUMS` (+ `.sha256` sidecars); run
-  `python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index` → `ok=true`.
+- **Signed provenance** — `MANIFEST.json` + `SHA256SUMS` (+ `.sha256` sidecars), generated at
+  pre-release; run `python ci/regen_evidence.py && python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree` → `ok=true`.
 - **Verifiable releases** — `noema release verify <manifest> --root <dir>` against the
   [release-manifest schema](noemaforge/schemas/release-manifest.schema.json); see [`RELEASING.md`](noemaforge/docs/release/RELEASING.md).
 - **Deny-by-default, guarded in CI** — `noema policy test` fails if any `default allow := false` policy is weakened.
@@ -104,7 +104,7 @@ Full claim → proof mapping is the [Public verifiability](#public-verifiability
 
 | Claim | Verify it via |
 |---|---|
-| **Signed, reproducible provenance** | `MANIFEST.json` + `SHA256SUMS` (+ `.sha256` sidecars). Run `python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index` → `ok=true`. |
+| **Signed, reproducible provenance** | `MANIFEST.json` + `SHA256SUMS` (+ `.sha256` sidecars), generated at pre-release. Run `python ci/regen_evidence.py && python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree` → `ok=true`. |
 | **Verifiable releases** | `noema release verify <manifest> --root <dir>` against `noemaforge/schemas/release-manifest.schema.json`. See [`docs/operations/release-verification.md`](noemaforge/docs/operations/release-verification.md). |
 | **Deny-by-default isolation** | `noemaforge/policies/*.rego`, CI-guarded by **`noema policy test`**. |
 | **No hidden autostart / privilege** | Admin API binds `127.0.0.1`; privileged actions are plan-only `sudo` commands (always `--keep-display`). See [`docs/security/local-only-admin.md`](noemaforge/docs/security/local-only-admin.md). |

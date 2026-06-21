@@ -115,15 +115,26 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
     detail: Dict[str, Any] = {}
     ok = True
 
-    # 1. canonical blob hashes (git-index), same source as SHA256SUMS.
-    try:
-        index = _git_index_hashes()
-    except Exception as exc:  # noqa: BLE001
-        index = {}
-        detail["index_error"] = str(exc)
-        ok = False
+    # Release-tier: the generated evidence (MANIFEST/SHA256SUMS) is not tracked
+    # or generated on dev/PR trees (owner directive 2026-06-14) — it is produced
+    # only at pre-release. When it is absent, report a skip instead of a failure
+    # so this case gates releases without blocking day-to-day PRs.
+    if not (REPO / "MANIFEST.json").exists() or not (REPO / "SHA256SUMS").exists():
+        tier.mkdir(parents=True, exist_ok=True)
+        _write_json(tier / "checksum_validation.json", {
+            "status": "skip",
+            "reason": "release-tier: evidence is generated at pre-release only",
+        })
+        return {
+            "name": "checksum_validation",
+            "status": "skip",
+            "tier": "10-integrity",
+            "detail": {"reason": "release-tier evidence absent on this tree"},
+        }
 
-    # 2. each .sha256 sidecar must match the artifact it NAMES. The target is parsed
+    # 2. each .sha256 sidecar must match the artifact it NAMES, hashed from the
+    #    working tree (the same source as SHA256SUMS — evidence is generated on
+    #    disk at pre-release, not committed). The target is parsed
     #    from the sidecar body ("<hash>  <path>") rather than a hardcoded mapping, so the
     #    check always follows the declared target and can never verify the wrong artifact.
     #    (The top-level SHA256SUMS itself is covered by the authoritative verifier in step 3.)
@@ -155,11 +166,12 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
                 except ValueError:
                     target_rel = named
                 entry["target"] = target_rel
-                if target_rel not in index:
-                    entry["status"] = "target_untracked"
+                target_path = REPO / target_rel
+                if not target_path.is_file():
+                    entry["status"] = "target_missing"
                     ok = False
                 else:
-                    actual = index[target_rel]
+                    actual = _sha256_file(target_path)
                     entry.update(recorded=recorded, actual=actual)
                     entry["status"] = "ok" if recorded == actual else "mismatch"
                     ok = ok and recorded == actual
@@ -169,7 +181,7 @@ def case_checksum_validation(results: Path) -> Dict[str, Any]:
     # 3. authoritative manifest/checksum verifier (the same gate CI uses).
     try:
         proc = subprocess.run(
-            [sys.executable, str(VERIFIER), "--summary", "--hash-source", "git-index"],
+            [sys.executable, str(VERIFIER), "--summary", "--hash-source", "working-tree"],
             cwd=str(REPO),
             capture_output=True,
             text=True,
@@ -383,6 +395,21 @@ def case_signed_manifest_verification(results: Path) -> Dict[str, Any]:
     tier = results / "70-release"
     detail: Dict[str, Any] = {}
     ok = True
+
+    # Release-tier: the manifest this case binds is generated only at pre-release
+    # (owner directive 2026-06-14). Skip when absent so dev/PR runs stay green.
+    if not (REPO / "MANIFEST.json").exists():
+        tier.mkdir(parents=True, exist_ok=True)
+        _write_json(tier / "provenance-verify.json", {
+            "status": "skip",
+            "reason": "release-tier: evidence is generated at pre-release only",
+        })
+        return {
+            "name": "signed_manifest_verification",
+            "status": "skip",
+            "tier": "70-release",
+            "detail": {"reason": "release-tier evidence absent on this tree"},
+        }
     try:
         policy = json.loads((REPO / "noemaforge" / "configs" / "release-provenance-policy.json").read_text(encoding="utf-8"))
         pol = policy.get("policy", {}) or {}
@@ -409,9 +436,10 @@ def case_signed_manifest_verification(results: Path) -> Dict[str, Any]:
             isinstance(rec.get("sha256"), str) and len(rec.get("sha256", "")) == 64
             and rec.get("bytes", 0) > 0 and rec.get("path") == "MANIFEST.json"
         )
-        # On an LF checkout the working-tree subject hash equals the published digest;
-        # recorded as evidence (not gated) because a CRLF checkout legitimately differs in
-        # raw bytes — canonical (git-index) hash equality is covered by checksum_validation.
+        # subject_match compares the working-tree hash of MANIFEST.json against its
+        # .sha256 sidecar; recorded as evidence (not gated). The evidence is generated on
+        # this same checkout, so the authoritative file-hash equality is covered by
+        # checksum_validation (also working-tree).
         subject_match = record_well_formed and rec.get("sha256") == recorded
         detail = {
             "signing_mandated": signing_mandated,

@@ -19,7 +19,12 @@ import json, os, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-CLI = ROOT / 'bin' / 'noemaforge'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _cli_bridge import noemaforge_cli  # noqa: E402
+
+# Integration tests for the bin/noemaforge bash CLI; call the underlying
+# Python entrypoints directly (cross-platform). Bypasses the bash wrapper,
+# which is validated on the Debian target host and in CI.
 
 def run_cmd(*args: str, state: Path, persona_state: Path | None = None) -> dict:
     env = os.environ.copy()
@@ -27,7 +32,7 @@ def run_cmd(*args: str, state: Path, persona_state: Path | None = None) -> dict:
     env['NOEMAFORGE_PIPELINE_STATE'] = str(state)
     if persona_state:
         env['NOEMAFORGE_PERSONA_STATE'] = str(persona_state)
-    out = subprocess.check_output([str(CLI), *args], text=True, env=env)
+    out = subprocess.check_output(noemaforge_cli(ROOT, *args), text=True, env=env)
     return json.loads(out)
 
 def test_context_lint_compact_queue_metrics(tmp_path: Path) -> None:
@@ -53,10 +58,10 @@ def test_template_append_requires_approval_and_can_write_local_catalog(tmp_path:
     out = tmp_path / 'pipelines.local.json'
     src.write_text('{"name":"T","nodes":[{"name":"Webhook"}],"connections":{}}', encoding='utf-8')
     env = os.environ.copy(); env['NOEMAFORGE_ROOT'] = str(ROOT); env['NOEMAFORGE_PIPELINE_STATE'] = str(state)
-    subprocess.check_call([str(CLI), 'pipeline', 'template-import', str(src), '--pipeline-id', 'pytest_import', '--out', str(draft)], env=env)
-    denied = subprocess.run([str(CLI), 'pipeline', 'template-append', str(draft), '--out', str(out)], env=env, text=True, stdout=subprocess.PIPE)
+    subprocess.check_call(noemaforge_cli(ROOT, 'pipeline', 'template-import', str(src), '--pipeline-id', 'pytest_import', '--out', str(draft)), env=env)
+    denied = subprocess.run(noemaforge_cli(ROOT, 'pipeline', 'template-append', str(draft), '--out', str(out)), env=env, text=True, stdout=subprocess.PIPE)
     assert denied.returncode == 1
-    appended = subprocess.check_output([str(CLI), 'pipeline', 'template-append', str(draft), '--approve', '--out', str(out)], env=env, text=True)
+    appended = subprocess.check_output(noemaforge_cli(ROOT, 'pipeline', 'template-append', str(draft), '--approve', '--out', str(out)), env=env, text=True)
     doc = json.loads(appended)
     assert doc['ok'] is True
     assert 'pytest_import' in json.loads(out.read_text(encoding='utf-8'))
@@ -69,7 +74,12 @@ def test_persona_doctor_and_dashboard_state(tmp_path: Path) -> None:
     assert doc['invariant']['max_active_llms'] == 1
     dash = tmp_path / 'dashboard.json'
     env = os.environ.copy(); env['NOEMAFORGE_ROOT'] = str(ROOT); env['NOEMAFORGE_PIPELINE_STATE'] = str(state); env['NOEMAFORGE_PERSONA_STATE'] = str(persona_state)
-    subprocess.check_call([str(CLI), 'dashboard', 'state', '--out', str(dash)], env=env)
+    # dashboard 'state' routes through tools/prep/noemaforge-dashboard.sh (bash);
+    # call the same pipeline_runtime entrypoint directly (cross-platform).
+    subprocess.check_call([sys.executable, str(ROOT / 'src' / 'pipeline_runtime.py'),
+                           '--root', str(ROOT), '--state', str(state),
+                           'dashboard-state', '--persona-state', str(persona_state),
+                           '--out', str(dash)], env=env)
     data = json.loads(dash.read_text(encoding='utf-8'))
     assert data['runtime']['max_active_llms'] == 1
     assert 'metrics' in data

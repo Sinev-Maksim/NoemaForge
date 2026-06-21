@@ -51,6 +51,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
 import production_ai_contracts
+import admin_gui_routes
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
@@ -293,6 +294,31 @@ def tail_text(path: Path, limit: int = 4096) -> str:
 class AdminGuiHandler(BaseHTTPRequestHandler):
     server: "AdminGuiServer"  # type: ignore[assignment]
 
+    # Explicit dispatch tables (path -> route handler) assembled once from the
+    # per-area admin_gui_routes modules.  do_GET/do_POST consult these for the
+    # simple single-call endpoints, then fall through to the special-case
+    # branches below (prefix matches and routes with inline request validation).
+    # Built lazily on first request so test stubs can import the class without a
+    # populated table; cached on the class to avoid rebuilding per request.
+    _GET_ROUTES: "Optional[Dict[str, Any]]" = None
+    _POST_ROUTES: "Optional[Dict[str, Any]]" = None
+
+    @classmethod
+    def _get_route_table(cls) -> Dict[str, Any]:
+        if cls._GET_ROUTES is None:
+            cls._GET_ROUTES = admin_gui_routes.get_routes()
+        return cls._GET_ROUTES
+
+    @classmethod
+    def _post_route_table(cls) -> Dict[str, Any]:
+        if cls._POST_ROUTES is None:
+            cls._POST_ROUTES = admin_gui_routes.post_routes()
+        return cls._POST_ROUTES
+
+    def _route_path(self) -> str:
+        """Return the request path without query string (urlparse(self.path).path)."""
+        return urlparse(self.path).path
+
     def log_message(self, fmt: str, *args: Any) -> None:
         sys.stderr.write("[noemaforge-admin-gui] " + fmt % args + "\n")
 
@@ -355,41 +381,16 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
         path = urlparse(self.path).path
         try:
-            if path == "/api/health":
-                self._send_json(self.server.health())
-                return
-            if path in {"/api/state", "/api/gui/state"}:
-                self._send_json(self.server.gui_state())
-                return
-            if path in {"/api/dashboard", "/api/dashboard/state"}:
-                self._send_json(self.server.dashboard_api())
-                return
-            if path == "/api/locales":
-                self._send_json(self.server.locales())
-                return
-            if path == "/api/epoch/status":
-                self._send_json(self.server.epoch_status())
-                return
-            if path == "/api/runtime/status":
-                self._send_json(self.server.runtime_status())
-                return
-            if path == "/api/runtime/observer-cards":
-                self._send_json(self.server.runtime_observer_cards())
-                return
-            if path == "/api/runtime/device-policy":
-                self._send_json(self.server.device_policy())
-                return
-            if path == "/api/telemetry/status":
-                self._send_json(self.server.telemetry_status())
-                return
-            if path == "/api/usecases":
-                self._send_json(self.server.usecases())
-                return
-            if path == "/api/public-showcase/scenario":
-                self._send_json(self.server.public_showcase_scenario())
-                return
-            if path == "/api/code-evolution/status":
-                self._send_json(self.server.code_evolution_status())
+            # Explicit GET route table: simple single-call endpoints
+            # (health/state/dashboard/locales/epoch-status/runtime/telemetry/
+            # usecases/showcase/code-evolution-status, conversation, tasks,
+            # inactivity, jobs list+stream, persona current/catalog, artifacts
+            # open, pipelines catalog).  Checked before the special-case
+            # branches below so exact matches still win over the startswith
+            # prefixes (same effective ordering as the original if-chain).
+            route = self._get_route_table().get(path)
+            if route is not None:
+                route(self)
                 return
 
             if path == "/api/events":
@@ -418,16 +419,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 session_id = str((query.get("session_id") or ["default"])[0])[:128]
                 self._send_json(self.server.session_current(session_id))
                 return
-            if path == "/api/conversation/current":
-                self._send_json(self.server.conversation_current())
-                return
-            if path == "/api/conversation/history":
-                self._send_json(self.server.conversation_history())
-                return
-            if path == "/api/artifacts/open":
-                query = parse_qs(urlparse(self.path).query)
-                self._send_json(self.server.artifact_open(str((query.get("path") or [""])[0])))
-                return
             if path == "/api/artifacts/download":
                 query = parse_qs(urlparse(self.path).query)
                 payload = self.server.artifact_download_payload(str((query.get("path") or [""])[0]))
@@ -443,24 +434,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(data)
                 return
-            if path == "/api/tasks":
-                self._send_json(self.server.tasks_list())
-                return
-            if path == "/api/inactivity/status":
-                self._send_json(self.server.inactivity_status())
-                return
-            if path == "/api/jobs":
-                self._send_json(self.server.jobs_list())
-                return
-            if path == "/api/jobs/stream":
-                self._send_sse(self.server.job_stream_events())
-                return
-            if path == "/api/persona/current":
-                self._send_json(self.server.persona_current())
-                return
-            if path == "/api/persona/catalog":
-                self._send_json(self.server.persona_catalog_api())
-                return
             if path.startswith("/api/persona/fallback-avatar/"):
                 name = safe_id(path.rsplit("/", 1)[-1].replace(".svg", "")) + ".svg"
                 candidate = (self.server.data_root / "personas" / "avatars" / "fallback" / name).resolve()
@@ -468,9 +441,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     self._send_bytes(candidate.read_bytes(), "image/svg+xml")
                 else:
                     self._send_json({"ok": False, "error": "fallback avatar not found"}, status=404)
-                return
-            if path == "/api/pipelines/catalog":
-                self._send_json(self.server.pipeline_catalog_api())
                 return
             if path.startswith("/api/pipelines/"):
                 parts = path.split("/")
@@ -488,6 +458,15 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             if path.startswith("/api/jobs/"):
                 job_id = unquote(path.rsplit("/", 1)[-1])
                 self._send_json(self.server.job_get(job_id))
+                return
+            if path.startswith("/api/pipeline/run/"):
+                # /api/pipeline/run/<run_id>/status
+                parts = path.strip("/").split("/")
+                if len(parts) >= 5 and parts[4] == "status":
+                    run_id = unquote(parts[3])
+                    self._send_json(self.server.pipeline_run_status(run_id))
+                    return
+                self._send_json({"ok": False, "error": "unknown pipeline run API path"}, status=404)
                 return
             self._serve_static(path)
         except Exception as exc:  # pragma: no cover - server safety net
@@ -507,20 +486,6 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
             self._send_json({"ok": False, "error": str(exc)}, status=400)
             return
         try:
-            if path in {"/api/admin/message", "/api/admin/ask", "/api/admin/start", "/api/conversation/message"}:
-                text = str(body.get("message") or body.get("text") or body.get("prompt") or "")
-                self._send_json(self.server.admin_message(
-                    text,
-                    execute=bool(body.get("execute")) or path == "/api/admin/start",
-                    prepare_media=bool(body.get("prepare_media", True)),
-                    allow_degraded=bool(body.get("allow_degraded", False)),
-                    apply=bool(body.get("apply", False)),
-                    locale=str(body.get("locale") or body.get("lang") or ""),
-                    max_steps=int(body.get("max_steps") or 0),
-                    time_budget_minutes=int(body.get("time_budget_minutes") or 0),
-                    until_stop=bool(body.get("until_stop", False)),
-                ))
-                return
             if path == "/api/session/mode":
                 try:
                     composite_top_n = int(body.get("composite_top_n") or 0)
@@ -532,97 +497,22 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     composite_top_n=composite_top_n,
                 ))
                 return
-            if path == "/api/conversation/reset":
-                self._send_json(self.server.conversation_reset())
-                return
-            if path == "/api/tasks/create":
-                self._send_json(self.server.task_create(body))
-                return
-            if path in {"/api/tasks/update", "/api/tasks/edit"}:
-                self._send_json(self.server.task_update(body))
-                return
-            if path == "/api/tasks/block":
-                self._send_json(self.server.task_block(body))
-                return
-            if path == "/api/tasks/complete":
-                self._send_json(self.server.task_complete(body))
-                return
-            if path == "/api/tasks/prioritize":
-                self._send_json(self.server.task_prioritize(body))
-                return
-            if path == "/api/admin/modify-pipeline":
-                self._send_json(self.server.modify_pipeline(
-                    str(body.get("pipeline") or body.get("pipeline_id") or "public_mwp"),
-                    add_stage=str(body.get("add_stage") or ""),
-                    after=str(body.get("after") or ""),
-                    before=str(body.get("before") or ""),
-                    description=str(body.get("description") or ""),
-                    team=str(body.get("team") or ""),
-                    apply=bool(body.get("apply", False)),
-                    create=bool(body.get("create", False)),
-                ))
-                return
-            if path in {"/api/pipeline/run", "/api/pipelines/start"}:
-                self._send_json(self.server.pipeline_run(str(body.get("pipeline") or body.get("pipeline_id") or "public_mwp"), str(body.get("request") or "GUI pipeline request"), allow_degraded=bool(body.get("allow_degraded", False))))
-                return
-            if path == "/api/pipeline/approve":
-                self._send_json(self.server.pipeline_action("approve", str(body.get("run_id") or ""), body))
-                return
-            if path == "/api/pipeline/advance":
-                self._send_json(self.server.pipeline_action("advance", str(body.get("run_id") or ""), body))
-                return
-            if path == "/api/model-evolution/run":
-                self._send_json(self.server.model_evolution(str(body.get("request") or "GUI model evolution"), target_role=str(body.get("target_role") or "dev.work/dev"), apply=bool(body.get("apply", False))))
-                return
-            # --- Code-evolution (autonomous self-improvement loop) ----------
-            if path == "/api/code-evolution/propose":
-                self._send_json(self.server.code_evolution_propose())
-                return
-            if path == "/api/code-evolution/status":
-                self._send_json(self.server.code_evolution_status())
-                return
-            if path in {"/api/model-selection/plan", "/api/model-selection/apply"}:
-                self._send_json(self.server.model_selection(
-                    str(body.get("request") or body.get("message") or "GUI model selection"),
-                    mode=str(body.get("mode") or "normal"),
-                    scope=str(body.get("scope") or "active runtime"),
-                    composite_top_n=int(body.get("composite_top_n") or body.get("n") or 0),
-                    apply=bool(body.get("apply", False)) or path.endswith("/apply"),
-                ))
-                return
-            if path == "/api/model-selection/continue":
-                self._send_json(self.server.model_selection_continue(body))
-                return
-            if path == "/api/epoch/apply":
-                self._send_json(self.server.epoch_apply(body))
-                return
-            if path == "/api/vault/reinventory":
-                self._send_json(self.server.vault_reinventory())
-                return
-            if path == "/api/workflow/stop":
-                self._send_json(self.server.workflow_stop(str(body.get("reason") or "operator_requested_stop")))
-                return
-            if path == "/api/runtime/device-policy":
-                self._send_json(self.server.device_policy_set(str(body.get("policy") or body.get("mode") or "auto")))
-                return
-            if path == "/api/pipelines/draft":
-                self._send_json(self.server.pipeline_draft(body))
+            # Explicit POST route table: simple single-call endpoints
+            # (admin/message family, conversation/reset, tasks/*, pipeline/draft/
+            # run/approve/advance, modify-pipeline, model-evolution/run,
+            # model-selection plan/apply/continue, epoch/apply, vault/reinventory,
+            # code-evolution propose/status, runtime/device-policy, workflow/stop,
+            # dev-team/*).  Checked after the inline /api/session/mode branch
+            # (which keeps its composite_top_n validation) and before the
+            # /api/jobs/<id>/cancel prefix + /api/shutdown special cases, so the
+            # effective dispatch order is unchanged from the original if-chain.
+            route = self._post_route_table().get(path)
+            if route is not None:
+                route(self, body)
                 return
             if path.startswith("/api/jobs/") and path.endswith("/cancel"):
                 job_id = unquote(path.split("/")[-2])
                 self._send_json(self.server.job_cancel(job_id))
-                return
-            if path == "/api/dev-team/run":
-                self._send_json(self.server.dev_team_run(str(body.get("request") or "GUI dev-team task"), allow_degraded=bool(body.get("allow_degraded", False))))
-                return
-            if path == "/api/dev-team/write-file":
-                self._send_json(self.server.dev_team_write_file(project=str(body.get("project") or ""), rel_path=str(body.get("path") or ""), content=str(body.get("content") or ""), apply=bool(body.get("apply", False))))
-                return
-            if path == "/api/dev-team/replace":
-                self._send_json(self.server.dev_team_replace(project=str(body.get("project") or ""), rel_path=str(body.get("path") or ""), old=str(body.get("old") or ""), new=str(body.get("new") or ""), once=bool(body.get("once", True)), apply=bool(body.get("apply", False))))
-                return
-            if path == "/api/dev-team/set-version":
-                self._send_json(self.server.dev_team_set_version(project=str(body.get("project") or ""), version=str(body.get("version") or ""), apply=bool(body.get("apply", False))))
                 return
             if path == "/api/shutdown":
                 self.server.record_system_event("shutdown", {"reason": body.get("reason") or "operator"})
@@ -820,15 +710,16 @@ class AdminGuiServer(ThreadingHTTPServer):
             "root": str(self.root),
             "state": str(self.state),
             "api": [
-                "/api/admin/message", "/api/events", "/api/conversation/current", "/api/conversation/history",
-                "/api/admin/message", "/api/session/current", "/api/session/mode", "/api/conversation/current", "/api/conversation/history",
+                "/api/admin/message", "/api/events",
+                "/api/conversation/current", "/api/conversation/history",
+                "/api/session/current", "/api/session/mode",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
                 "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
-                "/api/vault/reinventory", "/api/session/current", "/api/session/mode", "/api/events",
+                "/api/vault/reinventory",
                 "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
         }
@@ -1037,6 +928,27 @@ class AdminGuiServer(ThreadingHTTPServer):
         path = self.root / portrait if portrait else Path("/missing")
         portrait_url = "/" + portrait.lstrip("/") if portrait and path.exists() else self.fallback_avatar_url(str(p.get("role_key") or persona_name))
         return {"ok": True, "version": RUNTIME_VERSION, "active_persona": persona_name, "persona": p, "portrait_url": portrait_url, "fallback": not (portrait and path.exists())}
+
+    def persona_switch(self, name: str) -> Dict[str, Any]:
+        name = str(name or "").strip()[:64] or "Admin"
+        prev_conv = self._conversation()
+        prev = str(prev_conv.get("active_persona") or "Admin")
+        p = self.persona_for_name(name)
+        portrait = str(p.get("portrait") or "")
+        portrait_path = self.root / portrait if portrait else Path("/missing")
+        portrait_url = "/" + portrait.lstrip("/") if portrait and portrait_path.exists() else self.fallback_avatar_url(str(p.get("role_key") or name))
+        if prev == name:
+            return {"ok": True, "version": RUNTIME_VERSION, "active_persona": name, "persona": p, "portrait_url": portrait_url, "switch_line": None}
+        codename = str(p.get("codename") or name)
+        switch_line = f"-- смена персоны с {prev} на {name} ({codename}) --"
+        self.save_message(
+            "system", switch_line,
+            persona=name,
+            intent="persona_switch",
+            system_event=True,
+            raw={"from": prev, "to": name, "codename": codename},
+        )
+        return {"ok": True, "version": RUNTIME_VERSION, "active_persona": name, "persona": p, "portrait_url": portrait_url, "switch_line": switch_line, "from": prev}
 
     # --- tasks/jobs ------------------------------------------------------------------
     def task_store_file(self) -> Path:
@@ -1595,6 +1507,28 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "job": job, "suggested_command": command, "privileged_runner_command": job.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": artifacts}
 
     # --- pipeline catalog ------------------------------------------------------------
+    _TEAM_PERSONA_MAP: Dict[str, tuple] = {
+        "development_evolution_team": ("dev.work_solution_architect", "Дедал"),
+        "public_onboarding_team": ("operator.admin_administrator", "Атлас"),
+        "book_team": ("writing.story_writer", "Сирин"),
+        "release_team": ("operator.admin_administrator", "Атлас"),
+        "knowledge_graph_team": ("knowledge.vault_researcher", "Мнемозина"),
+        "media_team": ("operator.admin_administrator", "Атлас"),
+        "model_evolution_team": ("operator.admin_administrator", "Атлас"),
+    }
+
+    @classmethod
+    def _pipeline_persona(cls, team: str, group: str) -> tuple:
+        if team in cls._TEAM_PERSONA_MAP:
+            return cls._TEAM_PERSONA_MAP[team]
+        low = team.lower()
+        if any(x in low for x in ["dev", "code", "qa", "test"]): return ("dev.work_dev", "Гефест")
+        if any(x in low for x in ["model", "epoch", "evolution"]): return ("operator.admin_administrator", "Атлас")
+        if any(x in low for x in ["media", "music", "voice", "video"]): return ("operator.admin_administrator", "Атлас")
+        if any(x in low for x in ["vault", "knowledge", "research"]): return ("knowledge.vault_researcher", "Мнемозина")
+        if any(x in low for x in ["writing", "book", "story"]): return ("writing.story_writer", "Сирин")
+        return ("operator.admin_administrator", "Атлас")
+
     def pipeline_catalog_api(self) -> Dict[str, Any]:
         pipelines = self._read_json(self.root / "configs" / "pipelines.json", {})
         media = self._read_json(self.root / "configs" / "media-pipeline-catalog.json", {})
@@ -1608,11 +1542,13 @@ class AdminGuiServer(ThreadingHTTPServer):
             if any(x in low for x in ["media", "music", "voice", "photo", "video", "camera", "mask", "image"]): group = "Media"
             if any(x in low for x in ["vault", "inventory", "dataset"]): group = "Vault"
             if any(x in low for x in ["scary", "safety", "sr", "ssr", "governance"]): group = "Governance"
-            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": p.get("team", "") if isinstance(p, dict) else ""})
+            team = p.get("team", "") if isinstance(p, dict) else ""
+            persona_key, persona_codename = self._pipeline_persona(team, group)
+            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "persona": persona_key, "persona_codename": persona_codename})
         for p in media.get("pipelines", []) if isinstance(media, dict) else []:
             pid = p.get("id")
             if pid:
-                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", "")})
+                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
         groups = sorted(set(i["group"] for i in items))
         return {"ok": True, "version": RUNTIME_VERSION, "pipelines": items, "groups": groups, "new_pipeline_supported": "draft_only"}
 
@@ -1741,10 +1677,15 @@ class AdminGuiServer(ThreadingHTTPServer):
         low = text.lower().strip()
         conv = self._conversation()
         budget = {"max_steps": max_steps, "time_budget_minutes": time_budget_minutes, "until_stop": until_stop, "stop_on_no_further_improvement": True}
-        if any(k in low for k in ["что значит", "объясни usecase", "объясни сценар", "help", "справк"]):
+        glossary_terms = list(self._DASHBOARD_GLOSSARY.keys())
+        _is_glossary_query = (
+            any(k in low for k in ["что значит", "объясни usecase", "объясни сценар", "help", "справк", "what is", "what does", "explain"])
+            or any(t in low or t.replace("_", " ") in low for t in glossary_terms)
+        )
+        if _is_glossary_query:
             reply = self.explain_usecase(text, locale)
-            self.save_message("admin", reply, persona="Admin", locale=locale, intent="help")
-            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "usecase_help", "artifacts": []}
+            self.save_message("admin", reply, persona="Admin", locale=locale, intent="glossary_help")
+            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "glossary_help", "artifacts": []}
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
@@ -1927,7 +1868,71 @@ class AdminGuiServer(ThreadingHTTPServer):
             return f"Hello. I am the local NoemaForge Admin. I am running in safe GUI/control-plane mode; current main model: {model}."
         return f"I am here. This looks like a conversational message rather than a NoemaForge command. Current main model: {model}."
 
+    # --- dashboard glossary (D-003) --------------------------------------------------
+    _DASHBOARD_GLOSSARY: Dict[str, Dict[str, str]] = {
+        "degraded_selected": {
+            "ru": "degraded_selected означает, что подбор модели завершился в деградированном режиме: не все измерения оценки были доступны (например, прошли только fast-тесты), но кандидат всё равно выбран. Выбор валиден, однако уверенность ниже, чем при полном composite-прогоне. Рекомендуется повторить full_composite при следующей возможности.",
+            "en": "degraded_selected means the model selection completed in degraded mode — not all evaluation dimensions were available (e.g. only fast-model tests ran), but a candidate was still chosen. The selection is valid but lower-confidence than a full composite run. Re-run full_composite when the environment is stable.",
+        },
+        "selected": {
+            "ru": "selected=N (например, selected=4) — это composite_top_n: количество лучших моделей, объединяемых в финальном ответе. N=1 значит одна модель; N>1 включает ансамблевый режим. Выше N → выше качество, выше задержка.",
+            "en": "selected=N (e.g. selected=4) is the composite_top_n — the number of top models combined in the final answer. N=1 means single-model mode; N>1 enables ensemble mode. Higher N improves quality but increases latency.",
+        },
+        "staffing_state": {
+            "ru": "staffing_state — статус турнира моделей: idle (нет активного подбора), running (модели оцениваются прямо сейчас), awaiting_approval (кандидат выбран, ожидает epoch apply от оператора).",
+            "en": "staffing_state is the model-tournament status: idle (no active selection), running (models being evaluated now), awaiting_approval (candidate chosen, waiting for operator epoch apply).",
+        },
+        "pass_rate": {
+            "ru": "pass_rate — доля задач оценки, которые модель решила верно (0.0–1.0). Выше — лучше. Основной сигнал качества модели.",
+            "en": "pass_rate is the fraction of evaluation tasks the model answered correctly (0.0–1.0). Higher is better. The primary model quality signal.",
+        },
+        "json_parse_rate": {
+            "ru": "json_parse_rate — доля ответов модели, которые валидно парсятся как JSON (0.0–1.0). 1.0 означает стопроцентный structured-output. Нужен для pipeline-compatible моделей.",
+            "en": "json_parse_rate is the fraction of model outputs that parse as valid JSON (0.0–1.0). 1.0 = all outputs valid JSON. Required for pipeline-compatible models.",
+        },
+        "quality_score": {
+            "ru": "quality_score — агрегированный балл качества: объединяет pass_rate, json_parse_rate, задержку и другие измерения в одно число (0.0–1.0). Используется для финального ранжирования кандидатов.",
+            "en": "quality_score is the composite quality score aggregating pass_rate, json_parse_rate, latency, and other dimensions into one number (0.0–1.0). Used for final candidate ranking.",
+        },
+        "avg_latency_s": {
+            "ru": "avg_latency_s — среднее время ответа модели в секундах при оценке. Меньше — быстрее. Учитывается при composite-scoring рядом с качеством.",
+            "en": "avg_latency_s is the average model response time in seconds during evaluation. Lower is faster. Factored into composite scoring alongside quality.",
+        },
+        "selection_score": {
+            "ru": "selection_score — итоговый composite-балл, по которому ранжируются кандидаты на роль main_model. Включает quality_score, задержку и штрафы.",
+            "en": "selection_score is the final composite score used to rank model candidates for the main_model role. Includes quality_score, latency, and penalties.",
+        },
+        "failed_tasks": {
+            "ru": "failed_tasks — количество задач оценки, которые модель не решила. Используется вместе с pass_rate для диагностики слабых мест.",
+            "en": "failed_tasks is the count of evaluation tasks the model failed to answer correctly. Used alongside pass_rate to diagnose weak spots.",
+        },
+        "no_further_improvement_found": {
+            "ru": "no_further_improvement_found — честное завершение optimization-цикла: бюджет исчерпан без нахождения безопасного улучшения. Текущая модель уже на оптимуме для текущего eval-набора.",
+            "en": "no_further_improvement_found is a clean cycle exit: the budget was exhausted without finding a safe improvement. The current model is already at or near the optimum for the current evaluation suite.",
+        },
+        "composite_top_n": {
+            "ru": "composite_top_n — количество моделей, объединяемых в ансамбль. Совпадает с selected=N. N=1: одна модель. N=4: топ-4 модели объединяются с adjudication-слоем.",
+            "en": "composite_top_n is the number of models combined in the ensemble. Same as selected=N. N=1: single model. N=4: top-4 models with an adjudication layer.",
+        },
+        "main_model": {
+            "ru": "main_model — активная LLM, используемая для большинства Admin-ответов. Меняется только после epoch apply с одобрения оператора.",
+            "en": "main_model is the active LLM used for most Admin responses. Only changed after an epoch apply approved by the operator.",
+        },
+    }
+
+    def _glossary_lookup(self, text: str, locale: str) -> Optional[str]:
+        """Return a grounded definition if the text asks about a known dashboard term."""
+        low = text.lower()
+        lang = "ru" if locale.startswith("ru") or re.search(r"[А-Яа-яЁё]", text) else "en"
+        for term, defs in self._DASHBOARD_GLOSSARY.items():
+            if term in low or term.replace("_", " ") in low:
+                return defs.get(lang) or defs.get("ru")
+        return None
+
     def explain_usecase(self, text: str, locale: str) -> str:
+        glossary_hit = self._glossary_lookup(text, locale)
+        if glossary_hit:
+            return glossary_hit
         low = text.lower()
         if "dev" in low and ("модель" in low or "model" in low or "оптим" in low):
             return "Оптимизируй модель для Dev Team — это отбор runtime-модели для ролей разработки. NoemaForge тестирует модели из Vault, сравнивает pass_rate/json_parse_rate/quality/latency, создаёт candidate-selection-plan, model-selection-decision и rollback-plan. Эпоха не меняется без отдельного approve/apply."
@@ -1937,7 +1942,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             return "Глубина улучшения задаёт бюджет: N шагов, M минут или until-stop. Цикл может завершиться честным no_further_improvement_found, если безопасного улучшения больше нет."
         if "подбор" in low or "continue" in low:
             return "Продолжить подбор моделей — создать continuation job/plan: сколько моделей протестировано, сколько failed, сколько осталось и какую команду надо выполнить для продолжения. Защита от дублей включается через job/idempotency key."
-        return "Это справка по usecase NoemaForge. Спроси, например: 'что значит оптимизируй модель для dev team', 'что значит эволюция модели', 'что значит 10 шагов улучшения'."
+        return "Это справка по usecase NoemaForge. Спроси, например: 'что значит degraded_selected', 'что значит selected=4', 'что значит pass_rate', 'что значит оптимизируй модель для dev team'."
 
     def pipeline_run(self, pipeline: str, request: str, *, allow_degraded: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("pipeline")
@@ -1960,6 +1965,36 @@ class AdminGuiServer(ThreadingHTTPServer):
         if body.get("note"): cmd.extend(["--note", str(body["note"])])
         if body.get("allow_degraded"): cmd.append("--allow-degraded")
         return run_json(cmd, env=self.env(), timeout=120)
+
+    def pipeline_run_status(self, run_id: str) -> Dict[str, Any]:
+        if not run_id:
+            return {"ok": False, "error": "run_id required"}
+        cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "show", run_id]
+        raw = run_json(cmd, env=self.env(), timeout=30)
+        manifest = raw.get("manifest") or {}
+        if isinstance(manifest, str):
+            try:
+                import json as _json
+                manifest = _json.loads(manifest)
+            except Exception:
+                manifest = {}
+        pipeline_def = manifest.get("pipeline") or {}
+        stages = list(pipeline_def.get("stages") or [])
+        current_stage = str(raw.get("current_stage") or manifest.get("current_stage") or "")
+        stage_states: List[Dict[str, str]] = []
+        if not current_stage:
+            stage_states = [{"stage": s, "state": "pending"} for s in stages]
+        else:
+            found_current = False
+            for s in stages:
+                if s == current_stage:
+                    stage_states.append({"stage": s, "state": "active"})
+                    found_current = True
+                elif not found_current:
+                    stage_states.append({"stage": s, "state": "completed"})
+                else:
+                    stage_states.append({"stage": s, "state": "pending"})
+        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": raw.get("artifacts") or [], "error": raw.get("error")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]

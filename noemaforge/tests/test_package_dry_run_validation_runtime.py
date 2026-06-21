@@ -86,7 +86,7 @@ class PackageDryRunValidationRuntimeTests(unittest.TestCase):
 
         def fake_script(path: Path | str) -> str:
             text = Path(path).read_text(encoding="utf-8")
-            if str(path).endswith("uninstall_noemaforge_0.32.1_mvp.sh"):
+            if str(path).endswith("uninstall_noemaforge_mvp.sh"):
                 return text + "\nrm -rf /opt/noemaforge\n"
             return text
 

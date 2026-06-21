@@ -20,7 +20,8 @@ this hub; merges to `main` auto-publish this tree to the GitHub Wiki.
 | Article | What it covers |
 |---|---|
 | [System overview](architecture/system-overview.md) | The current architecture: services, sockets, invariants, epochs, roles, operator surfaces |
-| [Admin GUI — current state](gui/admin-gui-current-state.md) | Honest GUI status after the 2026-06-10 target-host UAT, fixpack P0/P1/P2 |
+| [Admin GUI — current state](gui/admin-gui-current-state.md) | GUI status and 0.33.0 fixpack results: all P0/P1 items shipped, operator-ready |
+| [Pipeline dashboard (0.33.0)](gui/pipeline-dashboard-0.33.0.md) | New GUI features shipped in 0.33.0: artifact cards, progress panel, persona selector, diagrams |
 | [Desktop app shell decision](architecture/desktop-app-shell.md) | Accepted lightweight path to a windowed-app experience (app-mode launcher + PWA) |
 | [noema CLI](operations/noema-cli.md) | The operator front door: start / doctor / release / upgrade / policy / catalog |
 | [Acceptance testing (AAT)](qa/acceptance-testing-aat.md) | The artifact-driven acceptance suite: shipped CI tier, pending target/LLM/GUI tiers |
@@ -37,6 +38,7 @@ this hub; merges to `main` auto-publish this tree to the GitHub Wiki.
 - [Mender Update Module placeholder](edge/mender-module-model-update-readme.md)
 - [RAUC Bundle Notes](edge/rauc-bundle-notes.md)
 - [NoemaForge Evolve Lab Roadmap](evolve/evolve-lab-roadmap.md)
+- [Repository hardening (public repo)](governance/repository-hardening.md)
 - [Evaluation, Observability, and Team Metrics](metrics/eval-observability-metrics.md)
 - [Self-test resource metrics](metrics/selftest-resource-metrics.md)
 - [Testbench and regression metrics](metrics/testbench-and-regression-metrics.md)

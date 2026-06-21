@@ -30,35 +30,61 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: "3.11"
 
-      - name: Assemble acceptance-evidence bundle
+      # Evidence is generated HERE (pre-release), not tracked on dev branches
+      # (owner directive 2026-06-14). Generate the manifests/checksums from the
+      # release tree and VERIFY them BEFORE assembling the bundle: the bundle
+      # directory and the verification report must not exist in the working tree
+      # while the verifier walks it, or they would count as files absent from the
+      # just-generated MANIFEST.json and fail the gate.
+      - name: Generate and verify release evidence
         run: |
           set -uo pipefail
+          python ci/regen_evidence.py || { echo '::error title=regen_evidence failed::could not generate release evidence'; exit 1; }
+
+          # Write the report OUTSIDE the repo tree (RUNNER_TEMP) so neither it nor
+          # the bundle pollutes the working-tree file set the verifier enumerates.
+          # This is the SOLE release-evidence verification point, so a verifier
+          # failure FAILS the workflow — never publish unverified evidence.
+          report="${RUNNER_TEMP}/verification-report.json"
+          python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree \
+            > "$report" 2>"${RUNNER_TEMP}/verification-report.err" || true
+          python -c "import json,sys; d=json.load(open('$report')); sys.exit(0 if d.get('ok') else 1)" \
+            || { echo '::error title=Release evidence verification failed::see verification-report.json'; cat "$report"; cat "${RUNNER_TEMP}/verification-report.err"; exit 1; }
+
+      - name: Assemble acceptance-evidence bundle
+        run: |
+          set -euo pipefail
           out="acceptance-evidence"
           mkdir -p "$out"
 
-          # 1. Provenance chain (signed manifests + checksums).
-          for f in VERSION MANIFEST.json MANIFEST.json.sha256 SHA256SUMS SHA256SUMS.sha256 docs/release.json; do
-            [ -f "$f" ] && cp "$f" "$out/" || true
-          done
-          [ -f noemaforge/checksums/SHA256SUMS ] && cp noemaforge/checksums/SHA256SUMS "$out/package-SHA256SUMS" || true
+          # 1. Machine-readable verification report (generated before this dir existed).
+          cp "${RUNNER_TEMP}/verification-report.json" "$out/"
 
-          # 2. Machine-readable verification report (the manifest/checksum evidence gate).
-          python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index \
-            > "$out/verification-report.json" 2>"$out/verification-report.err" || true
+          # 2. Provenance chain — the COMPLETE eight-file evidence set. All eight are
+          #    untracked, so the release artifact must carry the full set; the package
+          #    and docs manifests are renamed to avoid colliding with the root files.
+          cp VERSION "$out/"
+          cp docs/release.json "$out/"
+          for f in MANIFEST.json MANIFEST.json.sha256 MANIFEST.sha256 SHA256SUMS SHA256SUMS.sha256; do
+            cp "$f" "$out/"
+          done
+          cp noemaforge/checksums/SHA256SUMS "$out/package-SHA256SUMS"
+          cp noemaforge/docs/MANIFEST.json "$out/docs-MANIFEST.json"
+          cp noemaforge/docs/MANIFEST.json.sha256 "$out/docs-MANIFEST.json.sha256"
 
           # 3. Capability catalog (declared contracts), if the generator is present on this ref.
           if [ -f noemaforge/src/noema_catalog.py ]; then
             python noemaforge/src/noema_catalog.py --json --out "$out/capability-catalog.json" || true
           fi
 
-          # 4. Acceptance scenarios + the verification record.
+          # 4. Acceptance scenarios.
           [ -f noemaforge/docs/quality/UAT_SCENARIOS_0.32.2.md ] && cp noemaforge/docs/quality/UAT_SCENARIOS_0.32.2.md "$out/" || true
 
           # 5. A small index so the bundle is self-describing.
@@ -71,13 +97,13 @@ jobs:
             echo "Contents:"
             ( cd "$out" && ls -1 )
             echo ""
-            echo "Verify locally: python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source git-index  (expect ok=true)"
+            echo "Verify locally: python ci/regen_evidence.py && python noemaforge/src/manifest_checksum_exclusion_runtime.py --summary --hash-source working-tree  (expect ok=true)"
           } > "$out/INDEX.md"
 
           echo "=== bundle ==="; ls -la "$out"
 
       - name: Upload acceptance-evidence artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: acceptance-evidence
           path: acceptance-evidence/
@@ -85,7 +111,7 @@ jobs:
           if-no-files-found: error
 
       - name: Attest build provenance (best-effort)
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@ef244123eb79f2f7a7e75d99086184180e6d0018 # v1
         continue-on-error: true
         with:
           subject-path: 'acceptance-evidence/**'
