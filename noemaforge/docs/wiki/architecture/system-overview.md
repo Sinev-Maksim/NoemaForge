@@ -56,8 +56,13 @@ explicit approval`); nothing mutates production weights automatically.
 
 - **Admin GUI** — localhost dashboard (`noemaforge dashboard start`, default
   `http://127.0.0.1:8765/`); chat-first console with persona portraits,
-  pipeline dock, telemetry cards and job panel. Current maturity and known
-  defects: [Admin GUI current state](../gui/admin-gui-current-state.md).
+  pipeline dock, telemetry cards, job panel, and (since 0.33.0) inline artifact
+  cards, pipeline progress panel, glossary answers, repeat-launch guard,
+  persona selector with in-chat switch, iteration-depth notice, and SVG pipeline
+  diagrams. Full status and shipped feature list:
+  [Admin GUI current state](../gui/admin-gui-current-state.md);
+  pipeline dashboard details:
+  [Pipeline dashboard (0.33.0)](../gui/pipeline-dashboard-0.33.0.md).
 - **`noema` CLI** — the friendly front door (start / doctor / release /
   upgrade / policy / catalog): [noema CLI](../operations/noema-cli.md).
 - **`noemaforge` CLI** — the full control plane (first-start, smoke, selftest,
