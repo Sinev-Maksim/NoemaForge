@@ -626,13 +626,13 @@ def dispatch_domain(domain: str) -> Dict[str, Any]:
 
     try:
         if domain == "SELF_IMPROVE":
-            p = subprocess.run(["/usr/bin/python3", "/opt/noemaforge/src/surgeon_auto.py"], capture_output=True, text=True)
+            p = subprocess.run([sys.executable, str(_pp.root / "src" / "surgeon_auto.py")], capture_output=True, text=True)
             ok = p.returncode == 0
         elif domain == "SECURITY":
-            p = subprocess.run(["/usr/bin/python3", "/opt/noemaforge/src/scary_sweep.py"], capture_output=True, text=True)
+            p = subprocess.run([sys.executable, str(_pp.root / "src" / "scary_sweep.py")], capture_output=True, text=True)
             ok = p.returncode == 0
         elif domain == "PLANNED":
-            p = subprocess.run(["/usr/bin/python3", "/opt/noemaforge/src/planned_sweep.py"], capture_output=True, text=True)
+            p = subprocess.run([sys.executable, str(_pp.root / "src" / "planned_sweep.py")], capture_output=True, text=True)
             ok = p.returncode == 0
         else:
             ok = True
