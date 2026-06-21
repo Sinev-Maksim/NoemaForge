@@ -84,5 +84,7 @@ def check_output(args: List[str]) -> Tuple[int, str]:
         return 0, out.decode("utf-8", errors="replace")
     except subprocess.CalledProcessError as exc:
         return int(exc.returncode), (exc.output or b"").decode("utf-8", errors="replace")
+    except OSError:
+        return SERVICE_MANAGER_UNAVAILABLE, "service_manager_not_available"
     except Exception as exc:
         return 1, repr(exc)
