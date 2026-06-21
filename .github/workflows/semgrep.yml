@@ -42,10 +42,10 @@ jobs:
           persist-credentials: false
 
       # Scan only source languages present in the repository with pinned local rules.
-      # django subprocess-injection is excluded as a false positive: uat_runtime.py
-      # validates pipeline_id against an allowlist before subprocess.run(), but Semgrep
-      # 1.166.0 taint analysis cannot see the guard. Inline `# nosemgrep` does not
-      # suppress taint findings, so the rule must be excluded at the scan level.
+      # The django subprocess-injection rule stays ACTIVE repo-wide so real injections
+      # are caught. Its one historical hit (uat_runtime.py) is fixed at the source —
+      # pipeline_id is regex-validated to a safe token before subprocess.run — with a
+      # single scoped inline `# nosemgrep` at that line, instead of killing the rule.
       - name: Run Semgrep CE
         run: >-
           semgrep scan
@@ -60,7 +60,6 @@ jobs:
           --exclude-rule semgrep-rules.python.lang.correctness.tempfile.tempfile-without-flush
           --exclude-rule semgrep-rules.python.lang.best-practice.open-never-closed
           --exclude-rule semgrep-rules.javascript.browser.security.insecure-document-method
-          --exclude-rule semgrep-rules.python.django.security.injection.command.subprocess-injection
           --severity ERROR
           --sarif
           --output semgrep.sarif

@@ -30,6 +30,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -43,6 +44,11 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from noemaforge_version import RUNTIME_VERSION  # noqa: E402
+
+# pipeline_id reaches both a subprocess argv and a filesystem path (the bundle's
+# per-pipeline directory), so it must be a constrained token. Enforced at the call
+# site in _run_pipeline as defense-in-depth, independent of the caller's allowlist.
+_SAFE_PIPELINE_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 
 
 def _now() -> str:
@@ -71,6 +77,14 @@ def _run_pipeline(
     timeout: int,
 ) -> Dict[str, Any]:
     """Run one pipeline as a subprocess; collect its artifacts into the bundle."""
+    # Hard guard: reject any pipeline_id that is not a safe token before it is used in
+    # the subprocess argv or the bundle path, and carry forward the regex-match result
+    # so the value is provably sanitized at the source (fixing the injection rather than
+    # suppressing the scanner). This also blocks path traversal in out_dir below.
+    match = _SAFE_PIPELINE_ID.fullmatch(pipeline_id)
+    if match is None:
+        raise ValueError(f"unsafe pipeline_id: {pipeline_id!r}")
+    pipeline_id = match.group(0)
     run_id = f"uat_{pipeline_id}_{int(time.time())}"
     cmd = [
         sys.executable, str(package_root / "src" / "pipeline_runtime.py"),
@@ -90,9 +104,11 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        # pipeline_id is allowlist-validated against the catalog before _run_pipeline
-        # is called (uat_run() lines 164-170); shell=False (list cmd); no injection.
-        proc = subprocess.run(  # nosemgrep
+        # pipeline_id/run_id are regex-validated safe tokens (see _SAFE_PIPELINE_ID)
+        # and shell=False (list cmd), so there is no shell to inject into. Scoped,
+        # code-backed suppression for the framework-mismatched django taint rule — this
+        # replaces the repo-wide --exclude-rule, so injection detection stays live.
+        proc = subprocess.run(  # nosemgrep: python.django.security.injection.command.subprocess-injection
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
         )
