@@ -285,6 +285,68 @@ rest duplicated this roadmap, the Hermes skill track, or existing primitives
 - [ ] **Upgrade rollback support.** _(M · sonnet — extend `noema upgrade --verify-only` + rollback artifacts)_
 - [ ] **Automated UAT suite.** _(L · opus — largely the AAT track + the U-004 all-pipeline test/demo mode; cross-ref the AAT cross-cutting task)_
 
+## Loop-Aware Role Runtime + Evolver (strategic increment, added 2026-06-18)
+
+_LoopLM/Ouro latent-loop model support + an external Admin exit-gate loop + 25 runtime-actor
+roles (not personas) + the **Evolver** role for controlled self-improvement. Full design:
+[`reference/LOOP_AWARE_ROLE_RUNTIME_AND_EVOLVER.md`](reference/LOOP_AWARE_ROLE_RUNTIME_AND_EVOLVER.md).
+XL · fable-orchestrated umbrella; sequence after the 0.33.0-0.33.2 line. Extends/unifies the
+0.33.3 Agent-governance / Multi-model-consensus / Evaluation-framework / Sandbox-&-security
+umbrellas — the connective contract under them, not a parallel track. Two levels of "thinking",
+never conflated: internal latent loop (in-model) vs external agent loop (between actors)._
+
+- [ ] **L1 — Role registry v1 (25 runtime actors).** Single `RoleContract` (role_id, role_type,
+  permissions, cannot, inputs, outputs, loop_awareness, stop_conditions, audit); register all 25
+  roles across Orchestration / Execution / Quality / Repair&Safety / Evolution; drop the
+  "personas differ only by tone" model. _(L · opus)_
+- [ ] **L2 — LoopLM capability schema in the model manifest.** `architecture.type: loop_lm` +
+  latent_loop / early_exit / weight_tied_recurrence; `loop` (min/max/default_policy/
+  configurable_threshold/telemetry_supported); registry classes (standard_transformer /
+  reasoning_cot_model / loop_lm / tool_agent_model); `fallback.run_as_standard_transformer` +
+  `loop_control: unavailable`; `task_affinity` strong(reasoning/math/logic/code_repair/multi_hop)
+  / weak(factual_recall/fresh_news/long_context_retrieval). Rule: LoopLM does not replace
+  retrieval. _(M · sonnet)_
+- [ ] **L3 — Loop type taxonomy.** Fix the 8 loop types (token / cot / agent / repair / eval /
+  latent / evolution / training); forbid calling an external agent_loop "latent reasoning"; every
+  trace records loop_type + model_architecture + external_iteration + latent_loop_observed.
+  _(M · sonnet)_
+- [ ] **L4 — Admin as the external exit gate.** Per-step decision set + stop_conditions
+  (quality / iterations / surgeon-passes / reviewer-passes / cost / latency / no_progress);
+  "good enough" is a terminal outcome; adaptive compute policy by difficulty; anti-loop
+  protection (same_answer_detector, novelty score, no-progress stop, loop_budget, logged stop
+  reason). _(L · opus)_
+- [ ] **L5 — Backend adapter contract for latent-loop models.** supports_loop_depth /
+  exit_threshold / early_exit / loop_telemetry; Admin modes fast/balanced/deep map to loop
+  control when supported; degrade to standard mode + mark `loop_control: unavailable` when not.
+  _(M · sonnet)_
+- [ ] **L6 — LoopLM telemetry + evaluation.** Per-answer loop_steps_used / early_exit /
+  exit_confidence; latency + quality by loop depth; `possible_exit_gate_collapse` warning;
+  benchmark split (memory / reasoning / math / logic / multi_hop / code_repair / artifact);
+  compare LoopLM vs a same-size standard model; measure degradation above the trained loop range.
+  _(M · sonnet)_
+- [ ] **L7 — Surgeon: loop-aware repair actor.** Inputs (task_context / manifest / backend_logs /
+  loop_telemetry / judge_report / test_failures / previous_attempts); repairs manifest /
+  thresholds / routing / adapter / telemetry / export-pipeline / release-config + code / configs /
+  pipelines / exports; structured `surgeon_report` (diagnosis / patch / risk / rollback /
+  requires_judge / requires_release_manager); minimal-viable-incision; right to STOP
+  (architectural, no telemetry, no rollback, worsens stability). _(L · opus)_
+- [ ] **L8 — Evolver v1 (controlled self-improvement).** role_type system_improvement; propose
+  policy / role / routing changes; cannot modify prod / bypass surgeon-judge / change weights
+  outside a training pipeline; `evolution_proposal` schema; promotion flow Evolver -> Policy
+  Designer -> Experiment Runner -> Judge -> Surgeon -> Security Gatekeeper -> Release Manager ->
+  Admin approval. _(L · opus)_
+- [ ] **L9 — Experiment Runner + Memory/Librarian.** Controlled arms (standard /
+  standard+Admin-loop / LoopLM-only / LoopLM+Admin-loop / LoopLM+Surgeon); metrics (quality /
+  factual / reasoning / artifact-validity / test-pass / latency / VRAM / cost / iterations /
+  rollback-rate); Memory stores operational lessons + Surgeon cases + Evolver proposals/outcomes +
+  LoopLM-performance-by-task-type. _(L · opus)_
+- [ ] **L10 — Judge/Reviewer split + security/release gate.** Reviewer = substantive,
+  Judge = formal structured verdict (score / blocking / non-blocking / recommended_next_actor +
+  looplm_assessment); every Evolver change + Surgeon patch passes the gate (no apply without test
+  evidence + judge verdict + rollback plan + release note); Release Manager cross-checks README /
+  roadmap / wiki / manifests / version-headers / registry / API-UI. Common contracts: role split,
+  unified `loop_context` object, per-loop + Surgeon diagnostics. _(M · sonnet)_
+
 ## Accepted optimization decisions (2026-06-10 analysis review)
 
 _The 2026-06-10 full-version analysis was reviewed and accepted by the owner. Each
