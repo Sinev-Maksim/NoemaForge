@@ -26,6 +26,28 @@ class TestAvailableNonLinux(unittest.TestCase):
         self.assertFalse(result)
 
 
+class TestAvailableLinuxNoSystemd(unittest.TestCase):
+    """Linux host where systemctl is absent (e.g. non-systemd distro or container)."""
+
+    def setUp(self):
+        service_manager._cached_available = None
+
+    def tearDown(self):
+        service_manager._cached_available = None
+
+    def test_unavailable_when_systemctl_not_found(self):
+        with unittest.mock.patch.object(sys, "platform", "linux"):
+            with unittest.mock.patch("subprocess.call", side_effect=FileNotFoundError("systemctl")):
+                result = service_manager.available()
+        self.assertFalse(result)
+
+    def test_unavailable_when_systemctl_returns_nonzero(self):
+        with unittest.mock.patch.object(sys, "platform", "linux"):
+            with unittest.mock.patch("subprocess.call", return_value=1):
+                result = service_manager.available()
+        self.assertFalse(result)
+
+
 class TestCallUnavailable(unittest.TestCase):
     def setUp(self):
         service_manager._cached_available = None

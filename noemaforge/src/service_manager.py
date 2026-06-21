@@ -4,8 +4,8 @@
 File: noemaforge/src/service_manager.py
 Zone: runtime/platform
 Version: tracks the VERSION source of truth (noemaforge_version.RUNTIME_VERSION)
-Purpose: Cross-platform service-manager abstraction (0.33.1 system-independence
-         foundation). Thin wrapper so callers do not call systemctl directly:
+Purpose: Cross-platform service-manager abstraction. Thin wrapper so callers
+         do not call systemctl directly:
          - Linux + systemd: delegates to systemctl.
          - All other platforms (macOS, Windows, Linux without systemd): returns
            SERVICE_MANAGER_UNAVAILABLE / empty results without crashing so that
@@ -29,7 +29,12 @@ _cached_available: bool | None = None
 
 
 def available() -> bool:
-    """Return True if systemctl is reachable on this host."""
+    """Return True if systemctl is reachable on this host.
+
+    Probes ``systemctl --version`` (exit 0 = present).  This guards against
+    the most common non-systemd Linux scenario (command not found / rc != 0).
+    Full D-Bus / systemd unit-manager health probing is out of scope here.
+    """
     global _cached_available
     if _cached_available is not None:
         return _cached_available
