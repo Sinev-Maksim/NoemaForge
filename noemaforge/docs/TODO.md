@@ -68,8 +68,8 @@ periodically so older reviews do not rot in comment threads.
   code comment that claims full history restore. (Codex #5)
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
-- [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
-  `env_description` parameter and quote `echo "$response"`. (Codex #11)
+- [x] **`.github/scripts/setup-environments.sh`** — drop the unused
+  `env_description` parameter and quote `echo "$response"`. (Codex #11) _(S · opus — DONE: removed the `local env_description=$2` binding + the ignored 2nd call arg (kept descriptions as inline comments); quoted `echo "$response"` in the error-message substitution; `bash -n` clean)_
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
