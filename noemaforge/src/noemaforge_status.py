@@ -38,9 +38,9 @@ DEFAULT_DATASET = Path(
     os.environ.get("NOEMAFORGE_ROLE_EVAL_DATASET", str(DEFAULT_ROOT / "datasets" / "role_eval_cases"))
 )
 SOCKETS = {
-    "gateway": Path("/run/noemaforge/llm/gateway.sock"),
-    "main_backend": Path("/run/noemaforge/llm/backends/main.sock"),
-    "toolproxy": Path("/run/noemaforge/toolproxy.sock"),
+    "gateway": _pp.llm_gateway_socket,
+    "main_backend": _pp.llm_main_backend_socket,
+    "toolproxy": _pp.toolproxy_socket,
 }
 SERVICES = ["noemaforge-llm-gateway.service", "noemaforge-toolproxy.service", "noemaforge-llama@main.service"]
 TIMERS = ["noemaforge-modelscan.timer", "noemaforge-llm-backends-manager.timer"]

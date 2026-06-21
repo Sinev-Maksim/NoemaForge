@@ -71,6 +71,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import yaml
 
 from seclog import append as sel_append
+import service_manager as _svcmgr
 
 import epoch
 import model_installer_plan
@@ -89,9 +90,9 @@ MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root
 REGISTRY_PATH = os.environ.get("NOEMAFORGE_MODEL_REGISTRY", os.path.join(MODELSTORE_ROOT, "model_registry.json"))
 SCORECARDS_DIR = os.environ.get("NOEMAFORGE_MODEL_SCORECARDS", str(_pp.data_root / "model_scorecards"))
 TEAM_SCORECARDS_DIR = os.environ.get("NOEMAFORGE_TEAM_SCORECARDS", str(_pp.data_root / "team_scorecards"))
-GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", "/run/noemaforge/llm/gateway.sock")
+GATEWAY_SOCKET = os.environ.get("NOEMAFORGE_LLM_GATEWAY_SOCKET", str(_pp.llm_gateway_socket))
 
-BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
+BACKENDS_SOCK_DIR = str(_pp.llm_backends_dir)
 
 # "Evaluation surface" (who we care about when routing models)
 # Keep explicit to avoid exploding complexity.
@@ -448,9 +449,9 @@ def _wait_sock(path: str, timeout_sec: float = 25.0) -> bool:
 def _start_backend(model_id: str) -> Tuple[bool, str]:
     unit = f"noemaforge-llama@{model_id}.service"
     try:
-        p = subprocess.run(["/usr/bin/systemctl", "start", unit], capture_output=True, text=True)
-        if p.returncode != 0:
-            return False, (p.stderr or p.stdout or "").strip()[:2000]
+        rc, out = _svcmgr.check_output(["start", unit])
+        if rc != 0:
+            return False, out.strip()[:2000]
     except Exception as e:
         return False, repr(e)
 
