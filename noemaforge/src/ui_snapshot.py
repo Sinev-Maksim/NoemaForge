@@ -93,6 +93,8 @@ try:  # pragma: no cover
 except Exception:  # pragma: no cover
     profile_manager = None  # type: ignore
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 
 SCHEMA = "noemaforge.ui.snapshot/v1"
 
@@ -242,8 +244,8 @@ def _posix_to_host_path(state_root: str, p: str) -> str:
     p = str(p or "").strip()
     if not p:
         return p
-    if p.startswith("/var/lib/noemaforge"):
-        rel = p[len("/var/lib/noemaforge") :].lstrip("/")
+    if p.startswith(str(_pp.data_root)):
+        rel = p[len(str(_pp.data_root)) :].lstrip("/")
         parts = [x for x in rel.split("/") if x]
         return os.path.join(state_root, *parts)
     if not os.path.isabs(p):
@@ -275,22 +277,22 @@ def resolve_paths(*, state_root: str, configs_dir: str) -> Dict[str, str]:
     # TaskQueue DB
     tq_pol = _safe_load_yaml(os.path.join(configs_dir, "taskqueue-policy.yaml"))
     tq_sql = tq_pol.get("sqlite") if isinstance(tq_pol.get("sqlite"), dict) else {}
-    tq_db = str((tq_sql or {}).get("path") or "/var/lib/noemaforge/taskqueue/taskqueue.sqlite")
+    tq_db = str((tq_sql or {}).get("path") or str(_pp.data_root / "taskqueue" / "taskqueue.sqlite"))
     taskqueue_db = _posix_to_host_path(state_root, tq_db)
 
     # SEL/WORM segments
-    sel_segments_dir = _posix_to_host_path(state_root, "/var/lib/noemaforge/sel/segments")
+    sel_segments_dir = _posix_to_host_path(state_root, str(_pp.data_root / "sel" / "segments"))
 
     # Telemetry
     obs_pol = _safe_load_yaml(os.path.join(configs_dir, "observability-policy.yaml"))
     st = obs_pol.get("storage") if isinstance(obs_pol.get("storage"), dict) else {}
-    base = str((st or {}).get("base_dir") or "/var/lib/noemaforge/telemetry")
+    base = str((st or {}).get("base_dir") or str(_pp.data_root / "telemetry"))
     tele_base = _posix_to_host_path(state_root, base)
     files = (st or {}).get("files") if isinstance((st or {}).get("files"), dict) else {}
     llm_calls = os.path.join(tele_base, str((files or {}).get("llm_calls") or "llm_calls.jsonl"))
     tool_calls = os.path.join(tele_base, str((files or {}).get("tool_calls") or "tool_calls.jsonl"))
 
-    projects_dir = _posix_to_host_path(state_root, "/var/lib/noemaforge/projects")
+    projects_dir = _posix_to_host_path(state_root, str(_pp.data_root / "projects"))
 
     return {
         "state_root": state_root,

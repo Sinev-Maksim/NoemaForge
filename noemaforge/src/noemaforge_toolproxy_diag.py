@@ -38,7 +38,7 @@ def jprint(doc: dict[str, Any], pretty: bool = True) -> None:
     print(json.dumps(doc, ensure_ascii=False, indent=2 if pretty else None, sort_keys=False))
 
 
-def send_toolproxy(req: dict[str, Any], sock_path: str = "/run/noemaforge/toolproxy.sock") -> dict[str, Any]:
+def send_toolproxy(req: dict[str, Any], sock_path: str = str(_pp.toolproxy_socket)) -> dict[str, Any]:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     s.settimeout(180)
     try:
@@ -65,7 +65,7 @@ def _import_caps():
     candidates = []
     if root:
         candidates.append(str(Path(root) / "src"))
-    candidates.extend(["/opt/noemaforge/src", str(Path(__file__).resolve().parent)])
+    candidates.extend([str(_pp.root / "src"), str(Path(__file__).resolve().parent)])
     for c in candidates:
         if c and c not in sys.path:
             sys.path.insert(0, c)
@@ -116,14 +116,14 @@ def test_llm_chat(tokens_dir: str = DEFAULT_TOKENS_DIR) -> dict[str, Any]:
 
 def diag_report(test_llm: bool = False, tokens_dir: str = DEFAULT_TOKENS_DIR) -> dict[str, Any]:
     report: dict[str, Any] = {
-        "socket": stat_path("/run/noemaforge/toolproxy.sock"),
+        "socket": stat_path(str(_pp.toolproxy_socket)),
         "service_active": sh(["systemctl", "is-active", "noemaforge-toolproxy.service"]).strip(),
         "service_enabled": sh(["systemctl", "is-enabled", "noemaforge-toolproxy.service"]).strip(),
-        "sel_dir": stat_path("/var/lib/noemaforge/sel"),
-        "sel_segments_dir": stat_path("/var/lib/noemaforge/sel/segments"),
+        "sel_dir": stat_path(str(_pp.data_root / "sel")),
+        "sel_segments_dir": stat_path(str(_pp.data_root / "sel" / "segments")),
         "cap_tokens_dir": stat_path(tokens_dir),
-        "tool_registry": stat_path("/opt/noemaforge/configs/tool-registry.yaml"),
-        "tool_policy": stat_path("/opt/noemaforge/configs/tool-policy.yaml"),
+        "tool_registry": stat_path(str(_pp.root / "configs" / "tool-registry.yaml")),
+        "tool_policy": stat_path(str(_pp.root / "configs" / "tool-policy.yaml")),
         "recent_errors": sh(["bash", "-lc", "journalctl -u noemaforge-toolproxy.service -n 80 -l --no-pager | grep -Ei 'TOOLPROXY|PermissionError|llm_gateway|cap_missing|tool_unknown|policy|deny|error' || true"], timeout=20),
     }
     if test_llm:
