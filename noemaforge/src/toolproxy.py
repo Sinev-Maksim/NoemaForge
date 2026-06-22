@@ -2240,7 +2240,10 @@ def _roadmap_export(cfg: Dict[str, Any], epoch_dir: str, args: Dict[str, Any]) -
 # *define* so the module imports and the test suite collects; the AF_UNIX gateway is
 # started only on the Linux target (guarded at the call site below), so a harmless
 # concrete fallback base keeps import-safety without changing Unix behaviour.
-_UnixStreamServerBase = getattr(socketserver, "UnixStreamServer", socketserver.TCPServer)
+# The capability is captured once at import so the class base and the runtime guard
+# always agree, even if socketserver.UnixStreamServer is injected later (e.g. a stub).
+_HAS_UNIX_STREAM_SERVER = hasattr(socketserver, "UnixStreamServer")
+_UnixStreamServerBase = socketserver.UnixStreamServer if _HAS_UNIX_STREAM_SERVER else socketserver.TCPServer
 
 
 class ThreadedUnixServer(socketserver.ThreadingMixIn, _UnixStreamServerBase):
@@ -3415,7 +3418,7 @@ def serve(cfg_path: str) -> int:
     except FileNotFoundError:
         pass
 
-    if not hasattr(socketserver, "UnixStreamServer"):
+    if not _HAS_UNIX_STREAM_SERVER:
         raise RuntimeError(
             "ToolProxy AF_UNIX gateway requires a Unix platform "
             "(socketserver.UnixStreamServer is unavailable on this OS)."
