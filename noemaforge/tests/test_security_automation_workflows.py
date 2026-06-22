@@ -17,7 +17,6 @@ EXCLUDED_RULES = {
     "semgrep-rules.python.lang.correctness.tempfile.tempfile-without-flush",
     "semgrep-rules.python.lang.best-practice.open-never-closed",
     "semgrep-rules.javascript.browser.security.insecure-document-method",
-    "semgrep-rules.python.django.security.injection.command.subprocess-injection",
 }
 
 
