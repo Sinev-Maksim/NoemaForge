@@ -664,6 +664,14 @@ def stat_is_socket(path: str) -> bool:
 
 
 def systemctl(*args: str) -> int:
+    """Run ``systemctl <args>`` and return its exit code.
+
+    systemd is a Linux-production surface (the LLM backends run as systemd units).
+    Off Linux — or anywhere ``systemctl`` is absent — this is N/A: it returns 127
+    (command-not-found) instead of raising, so the start/stop/kill backend flows
+    degrade gracefully rather than crash. Target-only by design (0.33.1 service
+    management; Codex #34).
+    """
     try:
         return subprocess.call(["systemctl", *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except Exception:
