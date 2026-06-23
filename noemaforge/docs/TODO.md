@@ -189,6 +189,29 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
   deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
   cost/rate ceilings, and explicit operator opt-in (nothing leaves the machine by default).
+- [ ] **0.34 — GameDev-ready: NoemaForge Simulation Framework (NSF) + Demo Worlds.** Turn _(XL · fable-orchestrated umbrella)_
+  NoemaForge into an "open-source platform for building impossible games through community
+  contributions and AI-assisted development." A new **NSF** tier (time / resources / factions /
+  events / entropy / logistics / politics; classical GOAP / Utility / Behaviour-Tree AI in the
+  critical loop, LLMs only for text / chronicles / lore / reports), the artifact-as-everything
+  content model (`Faction.yaml`, `Policy.yaml`, `District.yaml`, `Incident.yaml`, `Lore.md`, …),
+  the emergent loop (player action → policy artifact → simulation → incident → history → new
+  policy), sim-domain agent roles (Architect / Economist / Lore-Keeper / Balance-Analyst / QA /
+  Integrator / Historian), an Automated Balance Sandbox ("run 100 years" pre-merge) and World
+  Regression Testing. Showcase via **Demo World #1 — Arcology Governance Simulator** (a vertical
+  slice, NOT a game product; reuses the Epoch System as snapshots, multi-LLM governance, and
+  artifact lineage = "git for the world"). Full design:
+  [`reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md`](reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md) §A.
+- [ ] **0.35 — Artifact exchange (GitHub-first → decentralized P2P).** Formalize artifact _(XL · fable-orchestrated umbrella)_
+  submit / review / validate / distribute as a first-class contract. **Phase 1 (GitHub
+  substrate):** PR-based submission, mandatory agent review gates, the Balance Sandbox as a merge
+  gate, signed-manifest provenance, and the inspect → quarantine → scan → Pipeline_RFC → epoch
+  import/export policy — reusing the §B tokenless **signed proposal bundle** so account-less
+  contributors can propose (folds in the existing "version/file proposal" + "marketplace import
+  policy" items above). **Phase 2 (P2P):** decentralized exchange with no central GitHub — the
+  signed portable bundle is the wire format over relay / DHT, with capability-scoped peer trust
+  and epoch-bound integration (same contract, different transport). Full design:
+  [`reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md`](reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md) §B.
 
 ### Cross-cutting tasks (any 0.33.x)
 
