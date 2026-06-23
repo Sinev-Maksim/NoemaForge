@@ -50,7 +50,7 @@ touches release-gating logic across ~26 files + configs)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
 - [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku — DONE: explicit Test-Path guard exits 2 with a FAIL message)_
-- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
+- [x] **`role_tournament.py` backend-stop — target-only, degrades off Linux.** DONE: `systemctl()` and `_pids_for_backend` (pgrep) already `try/except`-degrade (return 127 / `[]` off Linux) and are now marked target-only by docstring; a first-class `service_manager` abstraction stays in the 0.33.1 phase. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
 - [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
 **Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
 Codex review is handled **before the PR merges** — each suggestion is either applied on
@@ -63,13 +63,25 @@ periodically so older reviews do not rot in comment threads.
   curly quotes still present in `noemaforge/templates/pipeline-dashboard/app.js`;
   they can produce malformed `<option value=…>` values and break locale selection.
   (Codex #5)
-- [ ] **Frontend session restore narrows to `selected_mode`** — either restore
+- [x] **Frontend session restore narrows to `selected_mode`** — either restore
   `sess.session.messages` / `selected_composite_top_n` on startup too, or narrow the
-  code comment that claims full history restore. (Codex #5)
+  code comment that claims full history restore. (Codex #5) _(S · opus — DONE/verified
+  against current code: `startup()` in `noemaforge/templates/pipeline-dashboard/app.js`
+  restores `sess.session.messages` (`renderConversation(sess.session)`) and
+  `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
+  addressed.)_
+- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+  `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
+  byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
+  both as a `!restoredFromSession` fallback *and* again unconditionally, so the
+  dashboard-state conversation can clobber the session-restored conversation despite the
+  "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
+  and make the dashboard-state render a true fallback (keep persona/artifacts loading
+  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
-- [ ] **`.github/scripts/setup-environments.sh`** — drop the unused
-  `env_description` parameter and quote `echo "$response"`. (Codex #11)
+- [x] **`.github/scripts/setup-environments.sh`** — drop the unused
+  `env_description` parameter and quote `echo "$response"`. (Codex #11) _(S · opus — DONE: removed the `local env_description=$2` binding + the ignored 2nd call arg (kept descriptions as inline comments); quoted `echo "$response"` in the error-message substitution; `bash -n` clean)_
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
@@ -139,7 +151,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
 - [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
-- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
+- [x] **`role_tournament.py` backend-stop — target-only, degrades off Linux.** DONE: `systemctl()` and `_pids_for_backend` (pgrep) already `try/except`-degrade (return 127 / `[]` off Linux) and are now marked target-only by docstring; a first-class `service_manager` abstraction stays in the 0.33.1 phase. (Codex #34)
 - [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)

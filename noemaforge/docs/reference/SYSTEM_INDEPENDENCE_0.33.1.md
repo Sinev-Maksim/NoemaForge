@@ -34,9 +34,9 @@ crashing or silently misbehaving.
 | Surface | Hits / files | Disposition |
 |---|---|---|
 | Existing platform guards (`os.name`/`sys.platform`/`platform.system`) | 11 / 5 | ✅ keep + extend the pattern |
-| Unix-only module imports (`resource`/`fcntl`/`pwd`/`grp`) | 5 / 5 | guard each with `try/except ImportError` + capability flag |
-| Unix signals (`SIGKILL`/`SIGTERM`) | 19 / 6 | use `getattr(signal, "SIGKILL", signal.SIGTERM)`; route process-kill through one helper |
-| `systemctl` / systemd | 367 / 153 | **biggest item** — most are unit/doc refs; the *code* callers need a service-manager abstraction that degrades off Linux |
+| Unix-only module imports (`resource`/`fcntl`/`pwd`/`grp`) | 5 / 5 | ✅ guarded; `toolproxy` `UnixStreamServer` import-time fallback (#153). Full suite **collects on Windows** (2460 tests, 0 errors). |
+| Unix signals (`SIGKILL`/`SIGTERM`) | 19 / 6 | ✅ centralized in `process_group_runner.kill_signal()` (#116); Unix-only `killpg` paths degrade. |
+| `systemctl` / systemd | 367 / 153 | **biggest item** — most are unit/doc refs. Code callers already degrade gracefully (`try/except` → 127), e.g. `role_tournament.systemctl()`/`pgrep`, now marked target-only (#34). A first-class `service_manager` abstraction is still pending. |
 | Hardcoded `/run` `/opt` `/var` paths | 208 / 57 | route through `platform_paths`; keep Linux install layout as the Linux default only |
 | `AF_UNIX` / `.sock` | 59 / 20 | socket paths via `platform_paths`; verify Win10+ AF_UNIX or fall back to loopback TCP |
 | Unix privilege (`runuser`/`polkit`/`pkexec`) | 50 / 2 | abstract escalation; `N/A` with clear messaging off Linux |

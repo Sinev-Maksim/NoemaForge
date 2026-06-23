@@ -63,5 +63,27 @@ class UATRuntimeTests(unittest.TestCase):
             shutil.rmtree(out, ignore_errors=True)
 
 
+    def test_run_pipeline_rejects_unsafe_pipeline_id(self) -> None:
+        # The injection / path-traversal guard: a pipeline_id carrying shell or path
+        # metacharacters must be rejected before it can reach the subprocess argv or
+        # the bundle path — the finding is fixed at the source, not suppressed.
+        bundle = Path(tempfile.mkdtemp(prefix="nf_uat_guard_"))
+        try:
+            for bad in ("../evil", "a;rm -rf /", "a b", "a/b", "a|b", "$(x)", "-flag", ""):
+                with self.subTest(pipeline_id=bad):
+                    with self.assertRaises(ValueError):
+                        uat_runtime._run_pipeline(
+                            bad, package_root=PACKAGE_ROOT, bundle=bundle,
+                            env={}, request="x", dry_run=True, timeout=5,
+                        )
+        finally:
+            shutil.rmtree(bundle, ignore_errors=True)
+
+    def test_safe_pipeline_id_accepts_catalog_shape(self) -> None:
+        for good in ("public_mwp", "dev-pipeline.member_cells", "a", "X9_-."):
+            with self.subTest(pipeline_id=good):
+                self.assertIsNotNone(uat_runtime._SAFE_PIPELINE_ID.fullmatch(good))
+
+
 if __name__ == "__main__":
     unittest.main()
