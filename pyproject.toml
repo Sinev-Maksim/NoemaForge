@@ -11,8 +11,14 @@ readme = "README.md"
 license = {file = "LICENSE"}
 
 [project.optional-dependencies]
-# What CI installs ad hoc today
-dev = ["pytest", "pyyaml"]
+# Dependencies required to collect and run the repository test suite.
+# Keep this in sync with noemaforge/tests imports so target-host UAT can
+# bootstrap from a clean venv with `python -m pip install -e ".[dev]"`.
+dev = [
+    "pytest",
+    "pyyaml",
+    "jsonschema",
+]
 # Optional import in noemaforge/src/vstore.py
 vector = ["numpy"]
 # Optional import in noemaforge/src/webgateway.py
