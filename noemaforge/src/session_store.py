@@ -49,6 +49,15 @@ class SessionStore:
         clean = "".join(ch if ch.isalnum() or ch in "._-" else "-" for ch in str(session_id or "default"))[:96] or "default"
         return self.root / f"{clean}.json"
 
+    @staticmethod
+    def _normalize_preserve_extra(session: Dict[str, Any]) -> Dict[str, Any]:
+        """Normalize required session fields without dropping custom extension keys."""
+        original = dict(session or {})
+        normalized = normalize_session_record(original)
+        for key, value in original.items():
+            normalized.setdefault(key, value)
+        return normalized
+
     def _write_atomic(self, path: Path, payload: Dict[str, Any]) -> None:
         """Write payload as JSON to path atomically via a tmp-then-replace.
 
@@ -94,10 +103,10 @@ class SessionStore:
             path = self._session_path(session_id)
             if path.exists():
                 try:
-                    return normalize_session_record(json.loads(path.read_text(encoding="utf-8")))
+                    return self._normalize_preserve_extra(json.loads(path.read_text(encoding="utf-8")))
                 except Exception:
                     pass
-            session = normalize_session_record({"session_id": session_id})
+            session = self._normalize_preserve_extra({"session_id": session_id})
             self._write_atomic(path, session)
             self._append_event("session.created", session)
             return session
@@ -110,7 +119,7 @@ class SessionStore:
         'session.saved' here would double every event in session-events.jsonl.
         """
         with self._lock:
-            normalized = normalize_session_record(session)
+            normalized = self._normalize_preserve_extra(session)
             self._write_atomic(self._session_path(normalized["session_id"]), normalized)
             return normalized
 

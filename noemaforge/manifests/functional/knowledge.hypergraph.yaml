@@ -55,7 +55,7 @@ workflows:
 boundaries:
 - Prep metadata is separate from ontology.
 - Claims without provenance are not publishable.
-- Knowledge core relations boundary: Canonical knowledge relations are frozen as typed links among Source, Passage, Claim, Entity, Concept, Conflict, Trail, TaskContext, Decision and Artifact; publication gates for Passage, Claim, Conflict and Concept must emit auto_publish, review or quarantine decisions before retrieval can treat objects as published.
+- "Knowledge core relations boundary: Canonical knowledge relations are frozen as typed links among Source, Passage, Claim, Entity, Concept, Conflict, Trail, TaskContext, Decision and Artifact; publication gates for Passage, Claim, Conflict and Concept must emit auto_publish, review or quarantine decisions before retrieval can treat objects as published."
 success_signals:
 - every claim has machine-resolvable address
 - grounded answers cite graph-backed provenance

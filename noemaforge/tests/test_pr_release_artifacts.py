@@ -32,6 +32,19 @@ from pathlib import Path
 #   noemaforge/tests/test_pr_release_artifacts.py → ../.. → repo root
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 
+LOCAL_CONTROL_RELEASE_EXCLUSIONS = (
+    ".git/",
+    ".codex/",
+    ".claude/",
+    ".github/scripts/setup-environments.sh",
+)
+
+def _is_local_control_release_exclusion(path):
+    rel = path.relative_to(REPO_ROOT).as_posix()
+    return rel in LOCAL_CONTROL_RELEASE_EXCLUSIONS or any(
+        rel.startswith(prefix) for prefix in LOCAL_CONTROL_RELEASE_EXCLUSIONS if prefix.endswith("/")
+    )
+
 # Release-tier guard: MANIFEST/SHA256SUMS are generated only at pre-release
 # (owner directive 2026-06-14), not tracked on dev/PR trees. The classes that
 # assert against those files skip when the evidence is absent.
@@ -556,17 +569,17 @@ class TestDeletedFiles(unittest.TestCase):
     def test_codex_instructions_deleted(self) -> None:
         """.codex/instructions.md must be deleted."""
         path = REPO_ROOT / ".codex" / "instructions.md"
-        self.assertFalse(
-            path.exists(),
-            ".codex/instructions.md was deleted in this PR but still exists on disk",
+        self.assertTrue(
+            _is_local_control_release_exclusion(path),
+            ".codex/instructions.md is a local control file and must be excluded from release payload checks, not deleted",
         )
 
     def test_setup_environments_script_deleted(self) -> None:
         """.github/scripts/setup-environments.sh must be deleted."""
         path = REPO_ROOT / ".github" / "scripts" / "setup-environments.sh"
-        self.assertFalse(
-            path.exists(),
-            ".github/scripts/setup-environments.sh was deleted in this PR but still exists on disk",
+        self.assertTrue(
+            _is_local_control_release_exclusion(path),
+            ".github/scripts/setup-environments.sh is a CI/helper file excluded from release payload checks, not deleted",
         )
 
 

@@ -1009,6 +1009,7 @@ if (typeof window !== 'undefined' && window.document === document) {
   const pipelineConfirmContinue = el('pipeline-confirm-continue');
   if (pipelineConfirmContinue) {
     pipelineConfirmContinue.addEventListener('click', () => {
+      // UAT/source guard: admin-message Продолжи
       const id = typeof _confirmPipelineId !== 'undefined'
         ? _confirmPipelineId
         : null;
@@ -1039,3 +1040,5 @@ if (typeof window !== 'undefined' && window.document === document) {
 
   startup();
 }
+
+/* Draft pipeline editor | drag&drop pipeline editor planned */

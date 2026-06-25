@@ -74,7 +74,8 @@
       "docs/backlog/ROADMAP_AND_TODO.md",
       "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
       "docs/history/CHANGELOG.md",
-      "noemaforge/docs/history/CHANGELOG.md"
+      "noemaforge/docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md"
     ],
     "scan_refs": [
       "README.md",
@@ -83,11 +84,11 @@
       "docs/backlog/ROADMAP_AND_TODO.md",
       "noemaforge/docs/backlog/ROADMAP_AND_TODO.md",
       "docs/history/CHANGELOG.md",
-      "noemaforge/docs/history/CHANGELOG.md"
+      "noemaforge/docs/history/CHANGELOG.md",
+      "docs/reference/PROJECT_CONTEXT.md"
     ],
     "required_example_sets": [
       "prelaunch/governance/systemd_happy_path.example.json"
     ]
   }
 }
-

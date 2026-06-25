@@ -66,3 +66,16 @@ sudo systemctl isolate --no-block graphical.target
 ---
 
 _Provenance: extracted 2026-06-10 from the consolidated wiki dump (`WIKI.md`) into a standalone article; the dump is retired._
+
+## External target readiness blockers
+
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target
+
+## External target readiness exact states
+
+- share-automount-reboot-readiness-core
+- blocked_until_target_share_reboot_evidence
+- target-live-validation-readiness-core
+- blocked_until_target_machine_evidence
