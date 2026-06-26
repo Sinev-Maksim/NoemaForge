@@ -133,6 +133,68 @@ def enrich_artifact_cards(items: Optional[Iterable[Dict[str, Any]]]) -> List[Dic
     return [enrich_artifact_card(item) for item in (items or []) if isinstance(item, dict)]
 
 
+RUN_ROOT_ARTIFACTS = (
+    "manifest.json",
+    "README.md",
+    "decisions.md",
+    "project_context_snapshot.md",
+    "toolproxy_stage_bindings.json",
+)
+RUN_ARTIFACT_DIRS = ("outputs", "context_packets", "reviews", "logs")
+RUN_ARTIFACT_SUFFIXES = {".json", ".md", ".txt", ".log", ".yaml", ".yml", ".csv"}
+
+
+def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict[str, Any]]:
+    """Expose useful files inside a pipeline run directory as GUI artifact cards."""
+    root = Path(str(run_dir or "")).expanduser()
+    if not run_dir or not root.exists() or not root.is_dir():
+        return []
+    cards: List[Dict[str, Any]] = [{
+        "type": "run_dir",
+        "status": status,
+        "label": "run_dir",
+        "path": str(root),
+        "open_command": "ls -lah " + str(root),
+    }]
+    seen = {str(root.resolve())}
+
+    def add_file(path: Path, kind: str) -> None:
+        try:
+            if not path.is_file():
+                return
+            size = path.stat().st_size
+            diagnostic_zero = size == 0 and ("diagnostic" in path.name.lower() or kind == "logs")
+            if size == 0 and not diagnostic_zero:
+                return
+            resolved = str(path.resolve())
+            if resolved in seen:
+                return
+            seen.add(resolved)
+            rel = path.relative_to(root).as_posix()
+            cards.append({
+                "type": f"pipeline_{kind}",
+                "status": status,
+                "label": rel,
+                "path": str(path),
+                "size": size,
+                "open_command": "cat " + str(path),
+                "diagnostic": diagnostic_zero,
+            })
+        except OSError:
+            return
+
+    for name in RUN_ROOT_ARTIFACTS:
+        add_file(root / name, "run_file")
+    for dirname in RUN_ARTIFACT_DIRS:
+        base = root / dirname
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*"), key=lambda item: item.as_posix()):
+            if path.suffix.lower() in RUN_ARTIFACT_SUFFIXES:
+                add_file(path, dirname)
+    return enrich_artifact_cards(cards)
+
+
 def _service_state(result: Dict[str, Any]) -> str:
     stdout = str(result.get("stdout") or "").strip()
     if stdout == "active":
@@ -729,6 +791,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     def health(self) -> Dict[str, Any]:
+        fingerprint = self.source_fingerprint()
         return {
             "ok": True,
             "version": RUNTIME_VERSION,
@@ -736,6 +799,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             "inside_gui_supported": True,
             "root": str(self.root),
             "state": str(self.state),
+            **fingerprint,
             "api": [
                 "/api/admin/message", "/api/events",
                 "/api/conversation/current", "/api/conversation/history",
@@ -749,6 +813,26 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/vault/reinventory",
                 "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
+        }
+
+    def source_fingerprint(self) -> Dict[str, Any]:
+        cli_path = shutil.which("noemaforge") or str(self.root / "bin" / "noemaforge")
+        install_path = str(Path(cli_path).resolve().parents[1]) if cli_path and Path(cli_path).exists() and len(Path(cli_path).resolve().parents) > 1 else ""
+        git_head = ""
+        git_branch = ""
+        try:
+            git_head = subprocess.check_output(["git", "rev-parse", "--short=12", "HEAD"], cwd=str(self.root), text=True, stderr=subprocess.DEVNULL, timeout=3).strip()
+        except Exception:
+            pass
+        try:
+            git_branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=str(self.root), text=True, stderr=subprocess.DEVNULL, timeout=3).strip()
+        except Exception:
+            pass
+        return {
+            "cli_path": cli_path,
+            "install_path": install_path,
+            "git_head": git_head,
+            "git_branch": git_branch,
         }
 
     # --- event log -----------------------------------------------------------------
@@ -1378,10 +1462,35 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
         main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
         main_model_dir = self.modelstore_dir / "models" / "main"
-        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
-        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "device_policy": self.device_policy().get("policy")}
+        manifest_path = main_model_dir / "noemaforge-model.json"
+        legacy_manifest_path = main_model_dir / "brainos-model.json"
+        main_manifest = self._read_json(manifest_path, {}) or self._read_json(legacy_manifest_path, {})
+        model_link = main_model_dir / "model.gguf"
+        model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+        model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+        manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
+        active_model_ready = bool(model_name and model_realpath and manifest_exists)
+        active_model = {
+            "state": "ready" if active_model_ready else "missing",
+            "model_id": model_name,
+            "model_realpath": model_realpath,
+            "manifest_path": str(manifest_path if manifest_path.exists() else legacy_manifest_path),
+            "manifest_exists": manifest_exists,
+            "selection_required": not active_model_ready,
+            "message": "" if active_model_ready else "Model selection required: run model selection and refresh/apply epoch.",
+        }
+        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy")}
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
+
+    def model_selection_required_status(self) -> Dict[str, Any]:
+        runtime = self.runtime_status()
+        active_model = runtime.get("active_model") if isinstance(runtime.get("active_model"), dict) else {}
+        return {
+            "required": bool(runtime.get("model_selection_required")),
+            "active_model": active_model,
+            "message": active_model.get("message") or "Model selection required: run model selection and refresh/apply epoch.",
+        }
 
     def runtime_observer_cards(self) -> Dict[str, Any]:
         runtime = self.runtime_status()
@@ -1452,9 +1561,13 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
 
     def epoch_status(self) -> Dict[str, Any]:
         main_model_dir = self.modelstore_dir / "models" / "main"
-        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
+        manifest_path = main_model_dir / "noemaforge-model.json"
+        legacy_manifest_path = main_model_dir / "brainos-model.json"
+        main_manifest = self._read_json(manifest_path, {}) or self._read_json(legacy_manifest_path, {})
         model_link = main_model_dir / "model.gguf"
         model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+        model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+        manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
         status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
         staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
         decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
@@ -1466,7 +1579,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 break
         latest_plan = self._read_json(latest_msel / "candidate-selection-plan.json", {}) if latest_msel else {}
         latest_decision = self._read_json(latest_msel / "model-selection-decision.json", {}) if latest_msel else {}
-        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan)}
+        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(manifest_path if manifest_path.exists() else legacy_manifest_path), "selection_required": not bool(model_name and model_realpath and manifest_exists)}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan), "model_selection_required": not bool(model_name and model_realpath and manifest_exists), "operator_action": "" if bool(model_name and model_realpath and manifest_exists) else "Run model selection, then refresh/apply epoch."}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("model-selection")
@@ -1667,12 +1780,9 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         stdout = result.get("stdout") if isinstance(result, dict) else {}
         run_dir = stdout.get("run_dir") if isinstance(stdout, dict) else ""
         run_id = stdout.get("run_id") if isinstance(stdout, dict) else ""
-        artifacts = []
-        if run_dir:
-            artifacts.append({
-                "type": "run_dir", "status": stdout.get("status", "created") if isinstance(stdout, dict) else "created",
-                "label": "run_dir", "path": str(run_dir), "open_command": "ls -lah " + str(run_dir),
-            })
+        artifacts = stdout.get("artifacts") if isinstance(stdout, dict) and isinstance(stdout.get("artifacts"), list) else []
+        if not artifacts and run_dir:
+            artifacts = promote_run_artifacts(str(run_dir), status=stdout.get("status", "created") if isinstance(stdout, dict) else "created")
         persona = self._pipeline_persona(pipeline_id)
         if locale == "ru":
             reply = f"Запускаю pipeline {pipeline_id} по стандартному сценарию. Run: {run_id or 'создан/ожидает подтверждения'}."
@@ -1730,7 +1840,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             convo = self.conversational_admin_reply(text, locale)
             reply = convo["reply"]
             self.save_message("admin", reply, persona=conv.get("active_persona", "Admin"), locale=locale, intent="conversation")
-            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "conversation_backend": convo["backend"], "artifacts": []}
+            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "conversation_backend": convo["backend"], "model_selection_required": convo.get("backend") == "model_selection_required", "artifacts": []}
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "--state", str(self.state), "--evolution-state", str(self.evolution_state), "message", "--message", text, "--json"]
         if execute: cmd.append("--execute")
         if prepare_media: cmd.append("--prepare-media")
@@ -1859,6 +1969,13 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         llm_reply = self.try_llm_admin_reply(text, locale)
         if llm_reply:
             return {"reply": llm_reply, "backend": "llm_chat"}
+        try:
+            model_status = self.model_selection_required_status()
+            if model_status.get("required"):
+                message = model_status.get("message") or "Model selection required: run model selection and refresh/apply epoch."
+                return {"reply": message, "backend": "model_selection_required"}
+        except Exception:
+            pass
         return {"reply": self.fallback_conversation_reply(text, locale), "backend": "deterministic_fallback"}
 
     def try_llm_admin_reply(self, text: str, locale: str) -> str:
@@ -1880,7 +1997,10 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
     def fallback_conversation_reply(self, text: str, locale: str) -> str:
         """Deterministic conversational fallback used when the local LLM chat path is unavailable."""
         runtime = self.runtime_status()
-        model = (runtime.get("main_manifest") or {}).get("model_id") or (runtime.get("main_manifest") or {}).get("name") or "main"
+        active_model = runtime.get("active_model") if isinstance(runtime.get("active_model"), dict) else {}
+        if runtime.get("model_selection_required"):
+            return "Требуется выбор модели: активная main-модель не выбрана или отсутствует manifest. Запустите model selection и затем refresh/apply epoch." if locale == "ru" else "Model selection required: no active main model or model manifest is available. Run model selection, then refresh/apply epoch."
+        model = (runtime.get("main_manifest") or {}).get("model_id") or (runtime.get("main_manifest") or {}).get("name") or active_model.get("model_id") or "main"
         low = str(text or "").lower().strip()
         if locale == "ru":
             if any(x in low for x in ["привет", "здрав", "hello", "hi"]):
@@ -1973,6 +2093,9 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         return "Это справка по usecase NoemaForge. Спроси, например: 'что значит degraded_selected', 'что значит selected=4', 'что значит pass_rate', 'что значит оптимизируй модель для dev team'."
 
     def pipeline_run(self, pipeline: str, request: str, *, allow_degraded: bool) -> Dict[str, Any]:
+        model_status = self.model_selection_required_status()
+        if model_status.get("required"):
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "model_selection_required", "reply": model_status.get("message"), "model_selection_required": True, "active_model": model_status.get("active_model"), "operator_action": "Run model selection, then refresh/apply epoch.", "artifacts": []}
         trace_id = production_ai_contracts.new_trace_id("pipeline")
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "run", pipeline, "--request", request, "--trace-id", trace_id]
         if allow_degraded:
@@ -1981,6 +2104,13 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         env["NOEMAFORGE_TRACE_ID"] = trace_id
         result = run_json(cmd, env=env, timeout=180)
         result["trace_id"] = trace_id
+        stdout = result.get("stdout") if isinstance(result.get("stdout"), dict) else {}
+        if isinstance(stdout, dict):
+            run_dir = str(stdout.get("run_dir") or "")
+            promoted = promote_run_artifacts(run_dir, status=str(stdout.get("status") or "created"))
+            if promoted:
+                stdout["artifacts"] = promoted
+                result["artifacts"] = promoted
         self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result, trace_id=trace_id)
         return result
 
@@ -2022,7 +2152,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                     stage_states.append({"stage": s, "state": "completed"})
                 else:
                     stage_states.append({"stage": s, "state": "pending"})
-        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": raw.get("artifacts") or [], "error": raw.get("error")}
+        promoted = promote_run_artifacts(str(raw.get("run_dir") or ""), status=str(raw.get("status") or "created"))
+        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "error": raw.get("error")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]
@@ -2231,5 +2362,3 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

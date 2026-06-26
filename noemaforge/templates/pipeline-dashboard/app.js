@@ -21,6 +21,8 @@ let pendingAction = null;
 let pipelineCatalog = [];
 let pipelineFilter = 'All';
 let jobStream = null;
+let activeWorkPollTimer = null;
+let activeRunIds = new Set();
 let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
@@ -276,6 +278,9 @@ function _updatePipelineRunPanel(panel, status){
   const stageStates = Array.isArray(status.stage_states) ? status.stage_states : [];
   const statusLine = panel.querySelector('.pipeline-run-status');
   if(statusLine) statusLine.textContent = `Status: ${status.status || '—'}`;
+  if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
+    activeRunIds.delete(String(panel.dataset.runId || ''));
+  }
   stageStates.forEach(({stage, state}) => {
     const li = Array.from(panel.querySelectorAll('.pipeline-run-stage')).find(n => n.dataset.stage === stage);
     if(!li) return;
@@ -292,9 +297,11 @@ function _updatePipelineRunPanel(panel, status){
   }
 }
 function renderPipelineRunPanel(result){
-  const runId = result.run_id || (result.raw && result.raw.run_id) || '';
+  const stdout = result.raw && result.raw.stdout ? result.raw.stdout : {};
+  const runId = result.run_id || (result.raw && result.raw.run_id) || stdout.run_id || '';
   const pipelineId = ((result.route || {}).pipeline_id) || '';
-  const initialStatus = (result.raw && result.raw.status) || result.status || 'ready_for_admin_approval';
+  const initialStatus = (result.raw && result.raw.status) || stdout.status || result.status || 'ready_for_admin_approval';
+  if(runId && !['completed','done','failed','cancelled'].includes(String(initialStatus).toLowerCase())) activeRunIds.add(String(runId));
   const catalogInfo = pipelineById(pipelineId);
   const stages = Array.isArray(catalogInfo.stages) ? catalogInfo.stages : [];
   const panel = document.createElement('div');
@@ -527,13 +534,14 @@ function _fmtProductMetrics(prod){
 }
 async function refreshTelemetry(){
   try{
-    const st = await api('/api/telemetry/status');
+    const [st, health] = await Promise.all([api('/api/telemetry/status'), api('/api/health')]);
     el('hardware-status').textContent = 'ok';
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
     el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
     el('hardware-metrics').textContent = _fmtHardware(st.hardware);
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
-    el('runtime-metrics').textContent = JSON.stringify({device_policy:st.runtime?.device_policy, sockets:st.runtime?.sockets, model:st.runtime?.main_manifest?.model_id || st.runtime?.main_manifest?.name || 'main'}, null, 2);
+    el('runtime-fingerprint').textContent = JSON.stringify({version:health.version, root:health.root, state:health.state, git_head:health.git_head, git_branch:health.git_branch, cli_path:health.cli_path, install_path:health.install_path}, null, 2);
+    el('runtime-metrics').textContent = JSON.stringify({device_policy:st.runtime?.device_policy, sockets:st.runtime?.sockets, active_model:st.runtime?.active_model, model_selection_required:st.runtime?.model_selection_required, missing_main_model_manifest:st.runtime?.missing_main_model_manifest}, null, 2);
     el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
@@ -561,7 +569,8 @@ async function cancelJob(jobId){
 }
 function renderJobs(jobs){
   const list = jobs || [];
-  el('job-summary').textContent = `${list.filter(j=>CANCELLABLE_JOB_STATES.has(j.status)).length} active`;
+  const activeJobs = list.filter(j=>CANCELLABLE_JOB_STATES.has(j.status));
+  el('job-summary').textContent = `${activeJobs.length} active`;
   const container = el('jobs');
   if(!list.length){ showMuted(container, 'No jobs.'); return; }
   replaceWithNodes(container, list.slice(-6).reverse().map(j => {
@@ -585,6 +594,26 @@ async function refreshJobs(){
     const st = await api('/api/jobs');
     renderJobs(st.jobs || []);
   }catch(e){ showMuted(el('jobs'), 'jobs unavailable'); }
+}
+async function refreshActivePipelineRuns(){
+  const ids = Array.from(activeRunIds).filter(Boolean);
+  await Promise.allSettled(ids.map(async runId => {
+    const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+    document.querySelectorAll('.pipeline-run-panel').forEach(panel => {
+      if(String(panel.dataset.runId || '') === String(runId)) _updatePipelineRunPanel(panel, status);
+    });
+    if(Array.isArray(status.artifacts) && status.artifacts.length) renderArtifacts(status.artifacts);
+  }));
+}
+async function refreshActiveWork(){
+  await Promise.allSettled([refreshJobs(), refreshTelemetry(), refreshEpoch(false), refreshActivePipelineRuns()]);
+}
+function startActiveWorkPolling(){
+  if(activeWorkPollTimer) return;
+  activeWorkPollTimer = setInterval(async () => {
+    const activeJobs = Number(String(el('job-summary')?.textContent || '').match(/^\d+/)?.[0] || 0);
+    if(activeJobs > 0 || activeRunIds.size > 0) await refreshActiveWork();
+  }, 3000);
 }
 function connectJobProgressStream(){
   if(jobStream || typeof EventSource === 'undefined') return;
@@ -922,6 +951,7 @@ async function startup(){
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
   _updateDepthNotice();
   connectJobProgressStream();
+  startActiveWorkPolling();
   // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
   setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
 }
