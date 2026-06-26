@@ -34,13 +34,10 @@ def validate_safe_sync(source: Path, target: Path) -> Dict[str, Any]:
     protected: List[str] = []
     for rel in PROTECTED_BINARIES:
         target_path = target / rel
-        source_path = source / rel
         if target_path.exists():
             protected.append(rel)
             if not _is_executable(target_path):
                 errors.append(f"protected_binary_not_executable:{target_path}")
-            if not source_path.exists():
-                errors.append(f"protected_binary_would_be_lost:{rel}")
     for rel in REQUIRED_EXECUTABLES:
         target_path = target / rel
         source_path = source / rel

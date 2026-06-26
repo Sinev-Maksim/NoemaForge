@@ -299,7 +299,7 @@ function _updatePipelineRunPanel(panel, status){
 function renderPipelineRunPanel(result){
   const stdout = result.raw && result.raw.stdout ? result.raw.stdout : {};
   const runId = result.run_id || (result.raw && result.raw.run_id) || stdout.run_id || '';
-  const pipelineId = ((result.route || {}).pipeline_id) || '';
+  const pipelineId = ((result.route || {}).pipeline_id) || result.pipeline_id || (result.raw && result.raw.pipeline_id) || stdout.pipeline_id || '';
   const initialStatus = (result.raw && result.raw.status) || stdout.status || result.status || 'ready_for_admin_approval';
   if(runId && !['completed','done','failed','cancelled'].includes(String(initialStatus).toLowerCase())) activeRunIds.add(String(runId));
   const catalogInfo = pipelineById(pipelineId);

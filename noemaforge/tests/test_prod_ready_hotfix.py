@@ -124,7 +124,7 @@ class ProdReadyHotfixTests(unittest.TestCase):
             self.assertEqual("/opt/noemaforge/bin/noemaforge", health["cli_path"])
             self.assertIn("install_path", health)
 
-    def test_safe_opt_sync_preserves_local_llama_server_and_aborts_if_source_would_lose_backend(self) -> None:
+    def test_safe_opt_sync_preserves_local_llama_server_when_source_lacks_backend(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             base = Path(td)
             source = base / "src"
@@ -134,16 +134,23 @@ class ProdReadyHotfixTests(unittest.TestCase):
             _executable(target / "bin" / "llama-server")
 
             report = osg.validate_safe_sync(source, target)
-            self.assertFalse(report["ok"])
-            self.assertIn("protected_binary_would_be_lost:bin/llama-server", report["errors"])
-
-            _executable(source / "bin" / "noemaforge-llama-start")
-            _executable(source / "bin" / "llama-server")
-            report = osg.validate_safe_sync(source, target)
             self.assertTrue(report["ok"], report["errors"])
             cmd = osg.rsync_command(source, target)
             self.assertIn("/bin/llama-server", cmd)
             self.assertIn("/bin/noemaforge-llama-start", cmd)
+
+    def test_safe_opt_sync_aborts_when_protected_backend_missing_from_target(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source = base / "src"
+            target = base / "opt" / "noemaforge"
+            _executable(source / "bin" / "noemaforge")
+            _executable(source / "bin" / "noemaforge-llama-start")
+            _executable(source / "bin" / "llama-server")
+
+            report = osg.validate_safe_sync(source, target)
+            self.assertFalse(report["ok"])
+            self.assertIn("required_executable_missing_or_not_executable:bin/llama-server", report["errors"])
 
 
 if __name__ == "__main__":

@@ -210,6 +210,12 @@ class TestRenderPipelineRunPanelExists(unittest.TestCase):
         self.assertIn("pipelineById", body)
         self.assertIn("stages", body)
 
+    def test_render_reads_pipeline_id_from_stdout(self):
+        m = re.search(r'function renderPipelineRunPanel\(result\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertIn("stdout.pipeline_id", body)
+
     def test_render_creates_stage_list(self):
         m = re.search(r'function renderPipelineRunPanel\(result\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
         self.assertIsNotNone(m)
