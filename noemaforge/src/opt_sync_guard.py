@@ -15,11 +15,17 @@ from typing import Any, Dict, List, Sequence
 PROTECTED_BINARIES = (
     "bin/llama-server",
     "bin/noemaforge-llama-start",
+    "bin/llama-server-cpu",
+    "bin/llama-server-cuda",
 )
 REQUIRED_EXECUTABLES = (
     "bin/noemaforge",
     "bin/noemaforge-llama-start",
     "bin/llama-server",
+)
+REAL_BACKEND_EXECUTABLES = (
+    "bin/llama-server-cpu",
+    "bin/llama-server-cuda",
 )
 
 
@@ -49,12 +55,21 @@ def validate_safe_sync(source: Path, target: Path) -> Dict[str, Any]:
             candidate = source_path
         if not _is_executable(candidate):
             errors.append(f"required_executable_missing_or_not_executable:{rel}")
+    real_backend_candidates: List[str] = []
+    for rel in REAL_BACKEND_EXECUTABLES:
+        target_path = target / rel
+        if _is_executable(target_path):
+            real_backend_candidates.append(rel)
+    if not real_backend_candidates:
+        errors.append("real_backend_missing_or_not_executable:bin/llama-server-cpu|bin/llama-server-cuda")
     return {
         "ok": not errors,
         "source": str(source),
         "target": str(target),
         "protected_binaries": protected,
         "required_executables": list(REQUIRED_EXECUTABLES),
+        "real_backend_executables": list(REAL_BACKEND_EXECUTABLES),
+        "available_real_backends": real_backend_candidates,
         "errors": errors,
     }
 
@@ -68,6 +83,10 @@ def rsync_command(source: Path, target: Path) -> List[str]:
         "/bin/llama-server",
         "--exclude",
         "/bin/noemaforge-llama-start",
+        "--exclude",
+        "/bin/llama-server-cpu",
+        "--exclude",
+        "/bin/llama-server-cuda",
         f"{source.resolve()}/",
         f"{target.resolve()}/",
     ]

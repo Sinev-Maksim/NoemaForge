@@ -141,7 +141,10 @@ RUN_ROOT_ARTIFACTS = (
     "toolproxy_stage_bindings.json",
 )
 RUN_ARTIFACT_DIRS = ("outputs", "context_packets", "reviews", "logs")
-RUN_ARTIFACT_SUFFIXES = {".json", ".md", ".txt", ".log", ".yaml", ".yml", ".csv"}
+RUN_ARTIFACT_SUFFIXES = {".json", ".md", ".txt", ".log", ".yaml", ".yml", ".csv", ".pdf", ".epub", ".docx", ".html", ".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+FINAL_ARTIFACT_SUFFIXES = {".md", ".txt", ".pdf", ".epub", ".docx", ".html", ".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+MEDIA_ARTIFACT_SUFFIXES = {".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+FINAL_NAME_PREFIXES = ("final", "result", "answer", "report", "book", "article", "draft", "export")
 
 
 def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict[str, Any]]:
@@ -149,13 +152,25 @@ def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict
     root = Path(str(run_dir or "")).expanduser()
     if not run_dir or not root.exists() or not root.is_dir():
         return []
-    cards: List[Dict[str, Any]] = [{
+    manifest = {}
+    try:
+        loaded_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        manifest = loaded_manifest if isinstance(loaded_manifest, dict) else {}
+    except Exception:
+        manifest = {}
+    pipeline_id = str(manifest.get("pipeline_id") or root.name).lower()
+    final_cards: List[Dict[str, Any]] = []
+    support_cards: List[Dict[str, Any]] = []
+    debug_cards: List[Dict[str, Any]] = []
+    run_dir_card = {
         "type": "run_dir",
         "status": status,
         "label": "run_dir",
         "path": str(root),
         "open_command": "ls -lah " + str(root),
-    }]
+        "primary": False,
+        "debug": True,
+    }
     seen = {str(root.resolve())}
 
     def add_file(path: Path, kind: str) -> None:
@@ -171,7 +186,17 @@ def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict
                 return
             seen.add(resolved)
             rel = path.relative_to(root).as_posix()
-            cards.append({
+            stem = path.stem.lower()
+            suffix = path.suffix.lower()
+            in_outputs = rel.startswith("outputs/")
+            is_media = suffix in MEDIA_ARTIFACT_SUFFIXES
+            is_book_article = any(token in pipeline_id for token in ("book", "article", "writing", "story"))
+            looks_final = (
+                in_outputs
+                and suffix in FINAL_ARTIFACT_SUFFIXES
+                and (stem.startswith(FINAL_NAME_PREFIXES) or is_media or (is_book_article and any(token in stem for token in ("book", "article", "draft", "export"))))
+            )
+            card = {
                 "type": f"pipeline_{kind}",
                 "status": status,
                 "label": rel,
@@ -179,7 +204,16 @@ def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict
                 "size": size,
                 "open_command": "cat " + str(path),
                 "diagnostic": diagnostic_zero,
-            })
+                "primary": looks_final,
+                "debug": kind in {"context_packets", "logs"} or diagnostic_zero,
+            }
+            if looks_final:
+                card["type"] = "pipeline_final_artifact"
+                final_cards.append(card)
+            elif kind in {"context_packets", "logs"}:
+                debug_cards.append(card)
+            else:
+                support_cards.append(card)
         except OSError:
             return
 
@@ -192,7 +226,9 @@ def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict
         for path in sorted(base.rglob("*"), key=lambda item: item.as_posix()):
             if path.suffix.lower() in RUN_ARTIFACT_SUFFIXES:
                 add_file(path, dirname)
-    return enrich_artifact_cards(cards)
+    ordered = final_cards + support_cards + debug_cards
+    ordered.append(run_dir_card)
+    return enrich_artifact_cards(ordered)
 
 
 def _service_state(result: Dict[str, Any]) -> str:
@@ -235,6 +271,8 @@ def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
     device_policy = str(policy.get("policy") or policy or "auto")
+    if isinstance(policy, dict) and policy:
+        device_policy = f"{policy.get('policy', 'auto')} / gpu={policy.get('gpu_policy', 'explicit_on_demand')} / pending={bool(policy.get('pending_apply', False))}"
     return [
         {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
         {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_GATEWAY_SOCKET)},
@@ -807,7 +845,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
-                "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
+                "/api/persona/current", "/api/persona/rules", "/api/telemetry/status", "/api/runtime/status",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
                 "/api/vault/reinventory",
@@ -1039,6 +1077,41 @@ class AdminGuiServer(ThreadingHTTPServer):
         path = self.root / portrait if portrait else Path("/missing")
         portrait_url = "/" + portrait.lstrip("/") if portrait and path.exists() else self.fallback_avatar_url(str(p.get("role_key") or persona_name))
         return {"ok": True, "version": RUNTIME_VERSION, "active_persona": persona_name, "persona": p, "portrait_url": portrait_url, "fallback": not (portrait and path.exists())}
+
+    def persona_rules(self) -> Dict[str, Any]:
+        current = self.persona_current()
+        persona = current.get("persona") if isinstance(current.get("persona"), dict) else {}
+        role_key = str(persona.get("role_key") or current.get("active_persona") or "Admin")
+        safety = persona.get("safety") if isinstance(persona.get("safety"), dict) else {}
+        rules = {
+            "current_persona": current.get("active_persona") or "Admin",
+            "role": role_key,
+            "codename": persona.get("codename") or current.get("active_persona") or "Admin",
+            "description": persona.get("description") or "",
+            "allowed_actions": [
+                "normal dialogue",
+                "explicit pipeline commands only",
+                "task/job/status review",
+                "plan-first model selection and epoch actions",
+            ],
+            "output_rules": [
+                "keep GUI answers operator-readable",
+                "show artifacts as cards when available",
+                "ask clarification when routing is ambiguous",
+            ],
+            "command_routing_rules": [
+                "continue dialogue stays conversational unless a clarification is pending",
+                "pipeline starts require an explicit pipeline id/name or a pipeline card click",
+                "privileged or heavy runtime actions require operator approval",
+            ],
+            "model_behavior": {
+                "llm_mode": "switchable",
+                "max_active_llms": safety.get("max_active_llms", 1),
+                "degraded": "deterministic fallback is used when local LLM chat is unavailable",
+            },
+            "raw_persona": persona,
+        }
+        return {"ok": True, "version": RUNTIME_VERSION, "rules": rules}
 
     def persona_switch(self, name: str) -> Dict[str, Any]:
         name = str(name or "").strip()[:64] or "Admin"
@@ -1723,16 +1796,27 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
     # --- GUI intent helpers ---------------------------------------------------------
     def _explicit_control_request(self, low: str) -> bool:
         """Return True when the user is asking the GUI to run or open a NoemaForge action."""
-        control_verbs = [
-            "запусти", "запуск", "запустить", "открой", "покажи", "проведи", "создай",
-            "доработай", "оптимизируй", "переключи", "продолжи", "инвентар",
-            "run", "start", "open", "execute", "launch", "continue", "inventory",
+        pipeline_verbs = [
+            "запусти", "запуск", "запустить", "стартуй", "выполни",
+            "run", "start", "execute", "launch",
         ]
+        action_verbs = [
+            "открой", "покажи", "проведи", "создай", "доработай", "оптимизируй", "переключи", "инвентар",
+            "open", "show", "create", "optimize", "inventory",
+        ]
+        continue_verbs = ["продолжи", "возобнов", "continue", "resume"]
         control_terms = [
             "pipeline", "пайп", "public_mwp", "evolution", "model evolution", "model-selection",
             "model selection", "dev team", "vault", "epoch", "media", "mask", "video", "book",
         ]
-        return any(v in low for v in control_verbs) or any(t in low for t in control_terms)
+        has_term = any(t in low for t in control_terms)
+        if any(v in low for v in pipeline_verbs) and has_term:
+            return True
+        if any(v in low for v in action_verbs) and has_term:
+            return True
+        if any(v in low for v in continue_verbs) and any(t in low for t in ["model selection", "подбор модели", "подбор моделей", "выбор модели", "отбор модели", "отбор моделей"]):
+            return True
+        return False
 
     def _detect_pipeline_id(self, text: str) -> str:
         """Detect an explicit pipeline id/name mentioned by the operator."""
@@ -1808,6 +1892,69 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             self._save_conversation(conv)
         return doc
 
+    def _pending_clarification(self) -> Dict[str, Any]:
+        conv = self._conversation()
+        payload = conv.get("pending_payload") if conv.get("pending_intent") == "pipeline_clarification" and isinstance(conv.get("pending_payload"), dict) else {}
+        return payload or {}
+
+    def _set_pending_clarification(self, run_id: str, pipeline_id: str, question: str) -> bool:
+        conv = self._conversation()
+        previous = conv.get("pending_payload") if conv.get("pending_intent") == "pipeline_clarification" and isinstance(conv.get("pending_payload"), dict) else {}
+        conv["pending_intent"] = "pipeline_clarification"
+        conv["pending_payload"] = {"run_id": run_id, "pipeline_id": pipeline_id, "question": question, "created_at": now_iso()}
+        self._save_conversation(conv)
+        return previous.get("run_id") != run_id or previous.get("pipeline_id") != pipeline_id or previous.get("question") != question
+
+    def _clarification_question_from(self, doc: Dict[str, Any]) -> str:
+        for key in ("clarification_question", "question"):
+            value = str(doc.get(key) or "").strip()
+            if value:
+                return value
+        questions = doc.get("questions")
+        if isinstance(questions, list):
+            return "\n".join(str(q) for q in questions if str(q).strip()).strip()
+        return ""
+
+    def _clear_pending_clarification(self) -> None:
+        conv = self._conversation()
+        conv["pending_intent"] = None
+        conv["pending_payload"] = {}
+        self._save_conversation(conv)
+
+    def _handle_pending_clarification(self, text: str, locale: str) -> Dict[str, Any]:
+        pending = self._pending_clarification()
+        run_id = str(pending.get("run_id") or "")
+        pipeline_id = str(pending.get("pipeline_id") or "")
+        payload = {"note": text, "clarification": text, "operator_reply": text}
+        try:
+            action_result = self.pipeline_action("advance", run_id, payload)
+        except Exception as exc:
+            action_result = {"ok": False, "error": str(exc)}
+        action_stdout = action_result.get("stdout") if isinstance(action_result, dict) else None
+        runtime_failed = isinstance(action_stdout, dict) and action_stdout.get("ok") is False
+        forwarded = bool(isinstance(action_result, dict) and action_result.get("ok") and not runtime_failed)
+        if forwarded:
+            self._clear_pending_clarification()
+            reply = f"Принял уточнение для pipeline {pipeline_id or run_id} и передал его в run {run_id}: {text}" if locale == "ru" else f"Clarification accepted for pipeline {pipeline_id or run_id} and forwarded to run {run_id}: {text}"
+        else:
+            stdout_error = action_stdout.get("error") if isinstance(action_stdout, dict) else ""
+            error = str(stdout_error or action_result.get("error") or action_result.get("stderr") or action_result) if isinstance(action_result, dict) else str(action_result)
+            reply = f"Не удалось передать уточнение в pipeline {pipeline_id or run_id} / run {run_id}: {error}" if locale == "ru" else f"Failed to forward clarification to pipeline {pipeline_id or run_id} / run {run_id}: {error}"
+        doc = {
+            "ok": forwarded,
+            "version": RUNTIME_VERSION,
+            "mode": "pipeline_clarification_response",
+            "reply": reply,
+            "run_id": run_id,
+            "pipeline_id": pipeline_id,
+            "route": {"id": "pipeline_clarification", "intent": "pipeline_clarification", "pipeline_id": pipeline_id, "run_id": run_id},
+            "artifacts": [],
+            "forwarded": forwarded,
+            "action": {"type": "pipeline_action", "action": "advance", "run_id": run_id, "payload": payload, "result": action_result},
+        }
+        self.save_message("admin", reply, persona="Admin", locale=locale, intent="pipeline_clarification", raw=doc)
+        return doc
+
     # --- action wrappers -------------------------------------------------------------
     def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False) -> Dict[str, Any]:
         locale = locale or ("ru" if re.search(r"[А-Яа-яЁё]", text) else "en")
@@ -1827,6 +1974,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        if self._pending_clarification():
+            return self._handle_pending_clarification(text, locale)
         gui_action = self._detect_gui_action(text)
         if gui_action:
             result = self._route_gui_action(gui_action, text, locale)
@@ -2111,6 +2260,23 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             if promoted:
                 stdout["artifacts"] = promoted
                 result["artifacts"] = promoted
+            run_id = str(stdout.get("run_id") or "")
+            pipeline_id = str(stdout.get("pipeline_id") or pipeline)
+            status = str(stdout.get("status") or "")
+            question = self._clarification_question_from(stdout)
+            needs_clarification = bool(stdout.get("clarification_required") or stdout.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
+            result.setdefault("run_id", run_id)
+            result.setdefault("pipeline_id", pipeline_id)
+            result.setdefault("status", status)
+            result.setdefault("route", {"id": "pipeline", "intent": "pipeline_run", "pipeline_id": pipeline_id})
+            result.setdefault("reply", f"Pipeline {pipeline_id} started. Run: {run_id or 'created'}.")
+            if needs_clarification:
+                question = question or "Уточните параметры для продолжения pipeline."
+                result["clarification_required"] = True
+                result["questions"] = [question]
+                result["reply"] = question
+                self._set_pending_clarification(run_id, pipeline_id, question)
+                self.save_message("admin", question, persona=self._pipeline_persona(pipeline_id), intent="pipeline_clarification", artifacts=promoted, raw=result, trace_id=trace_id)
         self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result, trace_id=trace_id)
         return result
 
@@ -2128,7 +2294,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if not run_id:
             return {"ok": False, "error": "run_id required"}
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "show", run_id]
-        raw = run_json(cmd, env=self.env(), timeout=30)
+        result = run_json(cmd, env=self.env(), timeout=30)
+        raw = result.get("stdout") if isinstance(result.get("stdout"), dict) else result
         manifest = raw.get("manifest") or {}
         if isinstance(manifest, str):
             try:
@@ -2153,7 +2320,15 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 else:
                     stage_states.append({"stage": s, "state": "pending"})
         promoted = promote_run_artifacts(str(raw.get("run_dir") or ""), status=str(raw.get("status") or "created"))
-        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "error": raw.get("error")}
+        status = str(raw.get("status") or "")
+        question = self._clarification_question_from(raw)
+        needs_clarification = bool(raw.get("clarification_required") or raw.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
+        if needs_clarification:
+            question = question or "Уточните параметры для продолжения pipeline."
+            pending_changed = self._set_pending_clarification(run_id, str(raw.get("pipeline_id") or ""), question)
+            if pending_changed:
+                self.save_message("admin", question, persona=self._pipeline_persona(str(raw.get("pipeline_id") or "")), intent="pipeline_clarification", raw=raw)
+        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "error": raw.get("error") or result.get("stderr")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]

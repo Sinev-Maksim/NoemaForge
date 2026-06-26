@@ -26,6 +26,7 @@ let activeRunIds = new Set();
 let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
+let postedArtifactKeys = new Set();
 let lastEventIndex = 0;
 // server_epoch detects server restarts even when rotation_count stays 0.
 // rotation_count detects in-process log rotations.
@@ -271,15 +272,41 @@ function _artifactChatCard(a){
 function postArtifactsToChat(artifacts){
   if(!Array.isArray(artifacts) || !artifacts.length) return;
   const chatLog = el('chat-log');
-  artifacts.forEach(a => chatLog.appendChild(_artifactChatCard(a)));
+  artifacts.forEach(a => {
+    const key = [artifactPath(a), a.label || '', a.type || ''].join('|');
+    if(postedArtifactKeys.has(key)) return;
+    postedArtifactKeys.add(key);
+    chatLog.appendChild(_artifactChatCard(a));
+  });
   chatLog.scrollTop = chatLog.scrollHeight;
 }
 function _updatePipelineRunPanel(panel, status){
   const stageStates = Array.isArray(status.stage_states) ? status.stage_states : [];
   const statusLine = panel.querySelector('.pipeline-run-status');
   if(statusLine) statusLine.textContent = `Status: ${status.status || '—'}`;
+  const currentLine = panel.querySelector('.pipeline-run-current');
+  if(currentLine) currentLine.textContent = `Current stage: ${status.current_stage || '—'}`;
   if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
     activeRunIds.delete(String(panel.dataset.runId || ''));
+  }
+  const stageList = panel.querySelector('.pipeline-run-stages');
+  if(stageList && stageStates.length){
+    const known = new Set(Array.from(stageList.querySelectorAll('.pipeline-run-stage')).map(n => n.dataset.stage));
+    stageStates.forEach(({stage}) => {
+      if(!known.has(stage)){
+        const li = document.createElement('li');
+        li.dataset.stage = stage;
+        li.className = 'pipeline-run-stage pending';
+        const icon = document.createElement('span');
+        icon.className = 'stage-icon';
+        icon.textContent = '○';
+        const label = document.createElement('span');
+        label.textContent = stage;
+        li.appendChild(icon);
+        li.appendChild(label);
+        stageList.appendChild(li);
+      }
+    });
   }
   stageStates.forEach(({stage, state}) => {
     const li = Array.from(panel.querySelectorAll('.pipeline-run-stage')).find(n => n.dataset.stage === stage);
@@ -295,15 +322,24 @@ function _updatePipelineRunPanel(panel, status){
     errDiv.innerHTML = '';
     errors.forEach(ev => { const d = document.createElement('div'); d.className = 'pipeline-run-error-line'; d.textContent = `✗ ${ev.stage || '?'}: ${(ev.data && ev.data.error) || ev.type}`; errDiv.appendChild(d); });
   }
+  if(status.clarification_required && Array.isArray(status.questions) && status.questions.length){
+    addMessage('Admin', status.questions.join('\n'));
+  }
+  if(Array.isArray(status.artifacts) && status.artifacts.length){
+    renderArtifacts(status.artifacts);
+    postArtifactsToChat(status.artifacts);
+  }
 }
 function renderPipelineRunPanel(result){
   const stdout = result.raw && result.raw.stdout ? result.raw.stdout : {};
-  const runId = result.run_id || (result.raw && result.raw.run_id) || stdout.run_id || '';
-  const pipelineId = ((result.route || {}).pipeline_id) || result.pipeline_id || (result.raw && result.raw.pipeline_id) || stdout.pipeline_id || '';
-  const initialStatus = (result.raw && result.raw.status) || stdout.status || result.status || 'ready_for_admin_approval';
+  const directStdout = result.stdout && typeof result.stdout === 'object' ? result.stdout : {};
+  const runId = result.run_id || (result.raw && result.raw.run_id) || stdout.run_id || directStdout.run_id || '';
+  const pipelineId = ((result.route || {}).pipeline_id) || result.pipeline_id || (result.raw && result.raw.pipeline_id) || stdout.pipeline_id || directStdout.pipeline_id || '';
+  const initialStatus = (result.raw && result.raw.status) || stdout.status || directStdout.status || result.status || 'ready_for_admin_approval';
+  const currentStage = result.current_stage || stdout.current_stage || directStdout.current_stage || '';
   if(runId && !['completed','done','failed','cancelled'].includes(String(initialStatus).toLowerCase())) activeRunIds.add(String(runId));
   const catalogInfo = pipelineById(pipelineId);
-  const stages = Array.isArray(catalogInfo.stages) ? catalogInfo.stages : [];
+  const stages = Array.isArray(result.stages) && result.stages.length ? result.stages : (Array.isArray(catalogInfo.stages) ? catalogInfo.stages : []);
   const panel = document.createElement('div');
   panel.className = 'bubble System pipeline-run-panel';
   panel.dataset.runId = runId;
@@ -329,6 +365,10 @@ function renderPipelineRunPanel(result){
   statusLine.className = 'pipeline-run-status muted';
   statusLine.textContent = `Status: ${initialStatus}`;
   panel.appendChild(statusLine);
+  const currentLine = document.createElement('div');
+  currentLine.className = 'pipeline-run-current muted';
+  currentLine.textContent = `Current stage: ${currentStage || (stages[0] || '—')}`;
+  panel.appendChild(currentLine);
   // Stage list
   const stageList = document.createElement('ol');
   stageList.className = 'pipeline-run-stages';
@@ -369,6 +409,7 @@ function renderPipelineRunPanel(result){
   const chatLog = el('chat-log');
   chatLog.appendChild(panel);
   chatLog.scrollTop = chatLog.scrollHeight;
+  if(runId) refreshActivePipelineRuns();
 }
 function absorbResult(result){
   latestRaw = result || {};
@@ -602,7 +643,6 @@ async function refreshActivePipelineRuns(){
     document.querySelectorAll('.pipeline-run-panel').forEach(panel => {
       if(String(panel.dataset.runId || '') === String(runId)) _updatePipelineRunPanel(panel, status);
     });
-    if(Array.isArray(status.artifacts) && status.artifacts.length) renderArtifacts(status.artifacts);
   }));
 }
 async function refreshActiveWork(){
@@ -634,6 +674,12 @@ function connectJobProgressStream(){
 }
 async function refreshInactivity(){ try{ const st = await api('/api/inactivity/status'); el('inactivity-status').textContent = st.idle_human || '—'; el('inactivity').textContent = `policy=${st.policy?.mode || 'manual'} · next=${st.policy?.next_idle_action || 'none'} · status=${st.status}`; }catch(e){} }
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
+async function showPersonaRules(){
+  try{
+    const st = await api('/api/persona/rules');
+    showModal('Persona rules', st.rules || st);
+  }catch(e){ addMessage('Admin', `Persona rules error: ${String(e)}`, 'error'); }
+}
 async function pollEvents(){
   // Poll /api/events with deduplication by index — only fetch rows after lastEventIndex.
   // Reset lastEventIndex=0 when server restarts (server_epoch changes) or when the
@@ -761,8 +807,25 @@ async function loadPipelines(){
     renderPipelines();
   }catch(e){ showMuted(el('pipeline-list'), 'Pipeline catalog unavailable.'); }
 }
+async function runPipelineDirect(id, request){
+  if(!id) return;
+  try{
+    _launchHistory.set(id, Date.now());
+    const result = await api('/api/pipeline/run', {pipeline:id, request:request || `Запусти ${id} по стандартному сценарию`, allow_degraded:true});
+    result.mode ||= 'pipeline_run';
+    result.route ||= {id:'pipeline', intent:'pipeline_run', pipeline_id:id};
+    result.pipeline_id ||= id;
+    absorbResult(result);
+    await refreshActiveWork();
+  }catch(e){ addMessage('Admin', `Pipeline start error: ${String(e)}`, 'error'); }
+}
 function startPipeline(id){
   const info = pipelineById(id);
+  const missingRequired = Array.isArray(info.required_parameters) ? info.required_parameters.filter(p => !p.default && !p.value) : [];
+  if(!missingRequired.length){
+    runPipelineDirect(id, `Запусти ${id} по стандартному сценарию`);
+    return;
+  }
   const codename = info.persona_codename || 'Атлас';
   const isRepeat = _launchHistory.has(id) && (Date.now() - _launchHistory.get(id)) < _REPEAT_WINDOW_MS;
   _confirmPipelineId = id;
@@ -772,7 +835,7 @@ function startPipeline(id){
   el('pipeline-confirm-persona').textContent = `→ Persona: ${codename}`;
   el('pipeline-confirm-repeat').classList.toggle('hidden', !isRepeat);
   el('pipeline-confirm-continue').classList.toggle('hidden', !isRepeat);
-  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию`;
+  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию\n\nMissing: ${missingRequired.join(', ')}`;
 
   el('pipeline-confirm').classList.remove('hidden');
   el('pipeline-confirm-req').focus();
@@ -983,6 +1046,7 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('epoch-apply').addEventListener('click', applyEpoch);
   el('selection-continue').addEventListener('click', continueSelection);
   el('vault-reinventory').addEventListener('click', reinventoryVault);
+  el('persona-rules')?.addEventListener('click', showPersonaRules);
   el('workflow-stop').addEventListener('click', stopWorkflow);
   el('depth-steps').addEventListener('input', _updateDepthNotice);
   el('depth-minutes').addEventListener('input', _updateDepthNotice);
@@ -1026,14 +1090,8 @@ if (typeof window !== 'undefined' && window.document === document) {
 
     _closePipelineConfirm();
 
-    if (!req) return;
-
-    if (id && typeof _launchHistory !== 'undefined') {
-      _launchHistory.set(id, Date.now());
-    }
-
-    el('admin-message').value = req;
-    el('admin-message').focus();
+    if (!req || !id) return;
+    runPipelineDirect(id, req);
   });
 
   const pipelineConfirmContinue = el('pipeline-confirm-continue');
@@ -1048,8 +1106,7 @@ if (typeof window !== 'undefined' && window.document === document) {
 
       if (!id) return;
 
-      el('admin-message').value = `Продолжи ${id} по текущему сценарию`;
-      el('admin-message').focus();
+      runPipelineDirect(id, `Продолжи ${id} по текущему сценарию`);
     });
   }
 

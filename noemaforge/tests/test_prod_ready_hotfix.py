@@ -132,12 +132,15 @@ class ProdReadyHotfixTests(unittest.TestCase):
             _executable(source / "bin" / "noemaforge")
             _executable(target / "bin" / "noemaforge-llama-start")
             _executable(target / "bin" / "llama-server")
+            _executable(target / "bin" / "llama-server-cpu")
 
             report = osg.validate_safe_sync(source, target)
             self.assertTrue(report["ok"], report["errors"])
             cmd = osg.rsync_command(source, target)
             self.assertIn("/bin/llama-server", cmd)
             self.assertIn("/bin/noemaforge-llama-start", cmd)
+            self.assertIn("/bin/llama-server-cpu", cmd)
+            self.assertIn("bin/llama-server-cpu", report["available_real_backends"])
 
     def test_safe_opt_sync_aborts_when_protected_backend_missing_from_target(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -151,6 +154,33 @@ class ProdReadyHotfixTests(unittest.TestCase):
             report = osg.validate_safe_sync(source, target)
             self.assertFalse(report["ok"])
             self.assertIn("required_executable_missing_or_not_executable:bin/llama-server", report["errors"])
+
+    def test_safe_opt_sync_wrapper_exists_but_real_backends_missing_is_not_ok(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source = base / "src"
+            target = base / "opt" / "noemaforge"
+            _executable(source / "bin" / "noemaforge")
+            _executable(target / "bin" / "noemaforge-llama-start")
+            _executable(target / "bin" / "llama-server")
+
+            report = osg.validate_safe_sync(source, target)
+            self.assertFalse(report["ok"])
+            self.assertIn("real_backend_missing_or_not_executable:bin/llama-server-cpu|bin/llama-server-cuda", report["errors"])
+
+    def test_safe_opt_sync_source_real_backend_does_not_mask_missing_target_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            base = Path(td)
+            source = base / "src"
+            target = base / "opt" / "noemaforge"
+            _executable(source / "bin" / "noemaforge")
+            _executable(source / "bin" / "llama-server-cpu")
+            _executable(target / "bin" / "noemaforge-llama-start")
+            _executable(target / "bin" / "llama-server")
+
+            report = osg.validate_safe_sync(source, target)
+            self.assertFalse(report["ok"])
+            self.assertIn("real_backend_missing_or_not_executable:bin/llama-server-cpu|bin/llama-server-cuda", report["errors"])
 
 
 if __name__ == "__main__":

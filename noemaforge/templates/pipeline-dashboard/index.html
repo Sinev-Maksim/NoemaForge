@@ -37,6 +37,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
         <label class="check"><input id="admin-execute" type="checkbox" checked /> <span id="label-execute">выполнить</span></label>
         <label class="check"><input id="admin-prepare-media" type="checkbox" checked /> <span id="label-media-plan">медиа-план</span></label>
         <label class="device-policy" title="Switch active persona"><span id="persona-select-label">Persona</span> <select id="persona-select" title="Active persona"></select></label>
+        <button id="persona-rules" class="ghost">Rules</button>
         <label class="device-policy">Device <select id="device-policy"><option value="auto">auto</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></label>
         <button id="gui-shutdown" class="ghost">Выключить GUI</button>
       </div>
@@ -139,7 +140,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       <label for="pipeline-confirm-req" style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
       <textarea id="pipeline-confirm-req" rows="4" style="width:100%;resize:vertical"></textarea>
       <div class="epoch-actions" style="margin-top:12px">
-        <button id="pipeline-confirm-ok">Start new — insert into chat</button>
+        <button id="pipeline-confirm-ok">Start pipeline</button>
         <button id="pipeline-confirm-continue" class="ghost hidden">Continue existing</button>
         <button id="pipeline-confirm-cancel" class="ghost">Cancel</button>
       </div>
