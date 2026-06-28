@@ -576,10 +576,20 @@ function _fmtRuntimeState(runtime){
   const policy = rt.device_policy || {};
   const sockets = rt.sockets || {};
   const active = rt.active_model || {};
-  const socketRows = Object.entries(sockets).slice(0, 6).map(([path, present]) => `  ${path}: ${present ? 'present' : 'missing'}`);
+  const requiredSockets = [
+    '/run/noemaforge/llm/gateway.sock',
+    '/run/noemaforge/llm/backends/main.sock',
+    '/run/brainos/llm/gateway.sock',
+  ];
+  const socketPaths = [...new Set([...requiredSockets, ...Object.keys(sockets)])];
+  const socketRows = socketPaths.map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
   return [
     'Device policy',
     _metricRow('  Policy:', policy.policy || policy.mode || '—'),
+    _metricRow('  Pending apply:', policy.pending_apply),
+    _metricRow('  Applies on:', policy.applies_on),
+    _metricRow('  Updated at:', policy.updated_at),
+    _metricRow('  Note:', policy.note),
     _metricRow('  GPU allowed:', policy.gpu_allowed),
     _metricRow('  Max active LLMs:', policy.max_active_llms),
     '',
@@ -589,6 +599,10 @@ function _fmtRuntimeState(runtime){
     'Active model',
     _metricRow('  State:', active.state || (rt.model_selection_required ? 'missing' : '—')),
     _metricRow('  Model:', active.model_id || active.name || '—'),
+    _metricRow('  Manifest exists:', active.manifest_exists),
+    _metricRow('  Manifest path:', active.manifest_path),
+    _metricRow('  Model realpath:', active.model_realpath),
+    _metricRow('  Selection required:', active.selection_required ?? rt.model_selection_required),
     _metricRow('  Message:', active.message || '—'),
   ].join('\n');
 }
