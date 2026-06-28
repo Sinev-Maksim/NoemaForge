@@ -28,7 +28,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
       <div class="title-block">
-        <p class="eyebrow" id="version-line">NoemaForge / 0.32.2</p>
+        <p class="eyebrow" id="version-line">NoemaForge / loading</p>
         <h1 id="app-title">NoemaForge Admin Chat</h1>
         <p class="muted" id="persona-line"><span id="persona-active-label">Активная персона</span>: <strong id="active-persona">Admin</strong></p>
       </div>
@@ -60,9 +60,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     </section>
 
     <section class="metrics-row">
-      <section class="card compact-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre></section>
-      <section class="card compact-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><div id="runtime-observer-cards" class="observer-cards"></div><pre id="runtime-fingerprint">loading…</pre><pre id="runtime-metrics">loading…</pre></section>
-      <section class="card compact-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
+      <section class="card compact-card hardware-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre><div class="info-card software-card"><div class="mini-title">Software</div><pre id="software-metrics">loading…</pre></div></section>
+      <section class="card compact-card runtime-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><div id="runtime-observer-cards" class="observer-cards"></div><pre id="runtime-metrics">loading…</pre></section>
+      <section class="card compact-card product-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
     </section>
 
     <section class="layout">

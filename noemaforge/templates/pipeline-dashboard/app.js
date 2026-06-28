@@ -555,6 +555,43 @@ function _fmtHardware(hw){
   return lines.join('\n');
 }
 function _metricRow(label, value){ return `${label.padEnd(22)} ${value != null && value !== '' ? String(value) : '—'}`; }
+function _na(value){
+  const text = value == null ? '' : String(value).trim();
+  return text || 'not available';
+}
+function _fmtSoftware(health){
+  const h = health || {};
+  return [
+    _metricRow('Version:', _na(h.version)),
+    _metricRow('Root:', _na(h.root)),
+    _metricRow('State:', _na(h.state)),
+    _metricRow('Git branch:', _na(h.git_branch)),
+    _metricRow('Git head:', _na(h.git_head)),
+    _metricRow('CLI path:', _na(h.cli_path)),
+    _metricRow('Install path:', _na(h.install_path)),
+  ].join('\n');
+}
+function _fmtRuntimeState(runtime){
+  const rt = runtime || {};
+  const policy = rt.device_policy || {};
+  const sockets = rt.sockets || {};
+  const active = rt.active_model || {};
+  const socketRows = Object.entries(sockets).slice(0, 6).map(([path, present]) => `  ${path}: ${present ? 'present' : 'missing'}`);
+  return [
+    'Device policy',
+    _metricRow('  Policy:', policy.policy || policy.mode || '—'),
+    _metricRow('  GPU allowed:', policy.gpu_allowed),
+    _metricRow('  Max active LLMs:', policy.max_active_llms),
+    '',
+    'Sockets',
+    socketRows.length ? socketRows.join('\n') : '  not available',
+    '',
+    'Active model',
+    _metricRow('  State:', active.state || (rt.model_selection_required ? 'missing' : '—')),
+    _metricRow('  Model:', active.model_id || active.name || '—'),
+    _metricRow('  Message:', active.message || '—'),
+  ].join('\n');
+}
 function _fmtProductMetrics(prod){
   if (!prod) return '—';
   const ms = prod.model_selection || {};
@@ -576,13 +613,16 @@ function _fmtProductMetrics(prod){
 async function refreshTelemetry(){
   try{
     const [st, health] = await Promise.all([api('/api/telemetry/status'), api('/api/health')]);
+    const apiVersion = health.version || st.version || '';
+    const mismatch = st.version && health.version && st.version !== health.version;
+    el('version-line').textContent = mismatch ? `NoemaForge / version mismatch: API ${health.version} telemetry ${st.version}` : `NoemaForge / ${apiVersion || 'not available'}`;
     el('hardware-status').textContent = 'ok';
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
     el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
     el('hardware-metrics').textContent = _fmtHardware(st.hardware);
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
-    el('runtime-fingerprint').textContent = JSON.stringify({version:health.version, root:health.root, state:health.state, git_head:health.git_head, git_branch:health.git_branch, cli_path:health.cli_path, install_path:health.install_path}, null, 2);
-    el('runtime-metrics').textContent = JSON.stringify({device_policy:st.runtime?.device_policy, sockets:st.runtime?.sockets, active_model:st.runtime?.active_model, model_selection_required:st.runtime?.model_selection_required, missing_main_model_manifest:st.runtime?.missing_main_model_manifest}, null, 2);
+    el('software-metrics').textContent = _fmtSoftware(health);
+    el('runtime-metrics').textContent = _fmtRuntimeState(st.runtime);
     el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
