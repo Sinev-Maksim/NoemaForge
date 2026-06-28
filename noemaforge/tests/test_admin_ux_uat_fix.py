@@ -220,6 +220,40 @@ class PersonaAndPolicyTests(unittest.TestCase):
             card = [c for c in srv.runtime_status()["observer_cards"] if c["id"] == "device-policy"][0]
             self.assertIn("gpu=", card["state"])
 
+    def test_runtime_degraded_status_exposes_readonly_staffing_summary(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            (srv.bootstrap_dir / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "degraded_selected",
+                "warnings": ["below threshold"],
+                "degraded_roles": ["writer"],
+                "unstaffed_roles": ["critic"],
+                "thresholds": {"quality": 0.7},
+                "selected_model_ids": ["local-main"],
+            }), encoding="utf-8")
+            (srv.bootstrap_dir / "firstboot-status.json").write_text(json.dumps({
+                "checks": ["staffing_degraded"],
+                "next_actions": ["continue model selection"],
+            }), encoding="utf-8")
+
+            status = srv.runtime_degraded_status()
+
+            self.assertTrue(status["degraded_readonly"]["active"])
+            self.assertEqual("degraded_selected", status["degraded_readonly"]["state"])
+            self.assertEqual("degraded_selected", status["staffing"]["staffing_state"])
+            self.assertEqual(["local-main"], status["staffing"]["selected_model_ids"])
+            self.assertEqual(["staffing_degraded"], status["checks"])
+
+    def test_pipeline_action_allow_degraded_appends_flag(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            with mock.patch.object(ags, "run_json", return_value={"ok": True}) as run_json:
+                result = srv.pipeline_action("advance", "run_1", {"next": True, "allow_degraded": True, "note": "approved"})
+
+            self.assertTrue(result["ok"])
+            cmd = run_json.call_args.args[0]
+            self.assertIn("--allow-degraded", cmd)
+
 
 class FrontendSourceGuards(unittest.TestCase):
     def test_pipeline_card_runs_api_directly(self) -> None:
@@ -276,6 +310,29 @@ class FrontendSourceGuards(unittest.TestCase):
         css = (ROOT / "templates" / "pipeline-dashboard" / "style.css").read_text(encoding="utf-8")
         self.assertIn("minmax(340px,1.6fr)", css)
         self.assertIn(".product-card", css)
+
+    def test_degraded_decision_panel_source_guards(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        self.assertIn("Continue in degraded mode", src)
+        self.assertIn("/api/pipeline/advance", src)
+        self.assertIn("allow_degraded:true", src)
+        self.assertIn("ready_for_admin_approval", src)
+        self.assertIn("/api/pipeline/run/${encodeURIComponent(runId)}/status", src)
+        self.assertIn("Work toward normal mode", src)
+        self.assertIn("normal-mode recovery", src)
+        self.assertIn("Show degraded details", src)
+        self.assertIn("/api/runtime/degraded", src)
+        self.assertIn("degraded_readonly", src)
+        self.assertIn("staffing_state", src)
+        self.assertIn("selected_model_ids", src)
+
+    def test_degraded_panel_does_not_show_raw_json_by_default(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        start = src.index("function _renderDegradedSummary")
+        end = src.index("async function _continuePipelineDegraded", start)
+        main_panel = src[start:end]
+        self.assertNotIn("JSON.stringify", main_panel)
+        self.assertIn("showModal('Degraded details'", src)
 
 
 if __name__ == "__main__":
