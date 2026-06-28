@@ -68,6 +68,28 @@ class AdminUxRoutingTests(unittest.TestCase):
             self.assertEqual("conversation", result["mode"])
             pipeline_run.assert_not_called()
 
+    def test_continue_dialogue_uses_natural_fallback_even_without_model(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            with mock.patch.object(srv, "save_message"), mock.patch.object(srv, "pipeline_run") as pipeline_run:
+                result = srv.admin_message("Продолжи диалог", execute=False, prepare_media=False, allow_degraded=False, apply=False)
+            self.assertEqual("conversation", result["mode"])
+            self.assertEqual("deterministic_continue", result["conversation_backend"])
+            self.assertIn("Продолжаю диалог", result["reply"])
+            self.assertFalse(result["model_selection_required"])
+            pipeline_run.assert_not_called()
+
+    def test_capabilities_query_returns_help_even_without_model(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            with mock.patch.object(srv, "save_message"), mock.patch.object(srv, "pipeline_run") as pipeline_run:
+                result = srv.admin_message("Что ты умеешь?", execute=False, prepare_media=False, allow_degraded=False, apply=False)
+            self.assertEqual("conversation", result["mode"])
+            self.assertEqual("deterministic_capabilities", result["conversation_backend"])
+            self.assertIn("Могу вести диалог", result["reply"])
+            self.assertFalse(result["model_selection_required"])
+            pipeline_run.assert_not_called()
+
     def test_explicit_book_pipeline_command_routes_to_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             srv = _server(Path(td))
@@ -220,6 +242,32 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn('id="persona-rules"', html)
         self.assertIn("/api/persona/rules", src)
         self.assertIn("showPersonaRules", src)
+
+    def test_telemetry_blocks_are_readable_not_raw_json(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        self.assertIn('id="software-metrics"', html)
+        self.assertIn("function _fmtSoftware", src)
+        self.assertIn("Git branch:", src)
+        self.assertIn("'not available'", src)
+        self.assertIn("function _fmtRuntimeState", src)
+        self.assertIn("'Device policy'", src)
+        self.assertIn("'Sockets'", src)
+        self.assertIn("'Active model'", src)
+        self.assertNotIn("runtime-fingerprint", html)
+        self.assertNotIn("JSON.stringify({device_policy:", src)
+
+    def test_header_version_comes_from_health(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        self.assertNotIn("NoemaForge / 0.32.2", html)
+        self.assertIn("version mismatch", src)
+        self.assertIn("health.version", src)
+
+    def test_product_metrics_gets_wider_grid_track(self) -> None:
+        css = (ROOT / "templates" / "pipeline-dashboard" / "style.css").read_text(encoding="utf-8")
+        self.assertIn("minmax(340px,1.6fr)", css)
+        self.assertIn(".product-card", css)
 
 
 if __name__ == "__main__":

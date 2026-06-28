@@ -2113,8 +2113,56 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         # treated as chat too, but commands are excluded above.
         return True
 
+    def _capabilities_query(self, low: str) -> bool:
+        return any(token in low for token in (
+            "что ты умеешь",
+            "что умеешь",
+            "твои возможности",
+            "своих возможностях",
+            "возможност",
+            "help",
+            "capabilities",
+            "what can you do",
+        ))
+
+    def _continue_dialogue_query(self, low: str) -> bool:
+        if any(token in low for token in ("model selection", "подбор модели", "подбор моделей", "выбор модели", "отбор модели", "отбор моделей")):
+            return False
+        return any(token in low for token in (
+            "продолжи диалог",
+            "продолжи",
+            "continue dialogue",
+            "continue conversation",
+        ))
+
+    def capabilities_reply(self, locale: str) -> str:
+        if locale == "ru":
+            return (
+                "Я локальный Admin NoemaForge. Могу вести диалог, объяснять состояние системы, "
+                "показывать runtime/device policy, задачи, jobs и артефакты, запускать только явно "
+                "выбранные pipeline, помогать с Dev Team, model selection, epoch-планами, Vault "
+                "re-inventory и model evolution. Тяжёлые, привилегированные и apply-действия требуют "
+                "явного действия оператора."
+            )
+        return (
+            "I am the local NoemaForge Admin. I can continue dialogue, explain system state, show "
+            "runtime/device policy, tasks, jobs and artifacts, run only explicitly selected pipelines, "
+            "and help with Dev Team, model selection, epoch plans, Vault re-inventory and model "
+            "evolution. Heavy, privileged and apply actions require explicit operator action."
+        )
+
+    def continue_dialogue_reply(self, locale: str) -> str:
+        if locale == "ru":
+            return "Продолжаю диалог. Уточни, что именно разобрать дальше: состояние системы, артефакты, задачи, pipeline или следующий шаг по текущей теме."
+        return "Continuing the dialogue. Tell me what to inspect next: system state, artifacts, tasks, a pipeline, or the next step in the current topic."
+
     def conversational_admin_reply(self, text: str, locale: str) -> Dict[str, str]:
         """Return an LLM-backed smalltalk reply when available, otherwise deterministic fallback."""
+        low = str(text or "").lower().strip()
+        if self._capabilities_query(low):
+            return {"reply": self.capabilities_reply(locale), "backend": "deterministic_capabilities"}
+        if self._continue_dialogue_query(low):
+            return {"reply": self.continue_dialogue_reply(locale), "backend": "deterministic_continue"}
         llm_reply = self.try_llm_admin_reply(text, locale)
         if llm_reply:
             return {"reply": llm_reply, "backend": "llm_chat"}
