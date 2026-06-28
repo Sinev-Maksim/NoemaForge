@@ -624,6 +624,14 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     composite_top_n=composite_top_n,
                 ))
                 return
+            if path.startswith("/api/pipeline/run/") and path.endswith("/reply"):
+                parts = path.strip("/").split("/")
+                if len(parts) >= 5:
+                    run_id = unquote(parts[3])
+                    self._send_json(self.server.pipeline_stage_reply(run_id, body))
+                    return
+                self._send_json({"ok": False, "error": "unknown pipeline reply API path"}, status=404)
+                return
             # Explicit POST route table: simple single-call endpoints
             # (admin/message family, conversation/reset, tasks/*, pipeline/draft/
             # run/approve/advance, modify-pipeline, model-evolution/run,
@@ -2370,11 +2378,124 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if body.get("allow_degraded"): cmd.append("--allow-degraded")
         return run_json(cmd, env=self.env(), timeout=120)
 
+    def _run_lookup_diagnostics(self, run_id: str) -> Dict[str, Any]:
+        searched = [
+            str((self.state / "runs" / run_id).resolve()),
+            str((self.state / "pipeline.db").resolve()),
+            str((self.state / "pipeline_runtime.db").resolve()),
+        ]
+        return {
+            "run_id": run_id,
+            "state_root": str(self.state),
+            "searched_paths": searched,
+            "registry_hint": "Pipeline runs must be created through pipeline_runtime.py or /api/pipeline/run so the SQLite registry can resolve them.",
+        }
+
+    @staticmethod
+    def _stage_output_quality(path: Path) -> Dict[str, Any]:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            text = ""
+        stripped = text.strip()
+        exists = path.exists()
+        placeholders = ("Status: pending", "Decision:\n\nRisk:", "Next handoff:")
+        has_placeholder = any(token in text for token in placeholders)
+        tiny = len(stripped) < 80
+        pending = "status: pending" in text.casefold()
+        return {
+            "path": str(path),
+            "exists": exists,
+            "size_bytes": path.stat().st_size if exists else 0,
+            "tiny": tiny,
+            "looks_placeholder": (has_placeholder and len(stripped) < 260) or pending,
+            "pending": pending,
+        }
+
+    @staticmethod
+    def _stage_persona(stage: str) -> str:
+        mapping = {
+            "architecture_clarification": "Architect",
+            "development": "Developer",
+            "unit_testing": "QA",
+            "integration_testing": "Integrator",
+            "optimization": "Optimizer",
+            "review": "Reviewer",
+            "merge_plan": "Release Manager",
+        }
+        return mapping.get(str(stage or ""), "Pipeline")
+
+    def _stage_handoff_from_status(self, raw: Dict[str, Any], run_id: str, current_stage: str, status: str) -> Optional[Dict[str, Any]]:
+        if str(status or "").lower() not in {"active", "in_progress", "running"}:
+            return None
+        run_dir_value = str(raw.get("run_dir") or "")
+        if not run_dir_value:
+            return None
+        run_dir = Path(run_dir_value)
+        output_path = run_dir / "outputs" / f"{safe_id(current_stage)}.md"
+        quality = self._stage_output_quality(output_path)
+        if quality["exists"] and not quality["tiny"] and not quality["looks_placeholder"] and not quality["pending"]:
+            return None
+        pipeline_id = str(raw.get("pipeline_id") or "")
+        persona = self._stage_persona(current_stage)
+        questions = [
+            f"{persona}: provide the real output or operator decision for stage `{current_stage}`.",
+            "What decision, risk, and next handoff should be recorded before continuing?",
+        ]
+        reason_bits = []
+        if not quality["exists"]:
+            reason_bits.append("missing output")
+        if quality["tiny"]:
+            reason_bits.append("tiny output")
+        if quality["looks_placeholder"] or quality["pending"]:
+            reason_bits.append("placeholder/pending output")
+        reason = ", ".join(reason_bits) or "stage output is not ready"
+        key = f"stage_handoff_v2:{run_id}:{current_stage}:{quality.get('size_bytes', 0)}:{reason.replace(' ', '_')}"
+        return {
+            "run_id": run_id,
+            "pipeline_id": pipeline_id,
+            "current_stage": current_stage,
+            "persona": persona,
+            "message": f"{persona} handoff required for `{current_stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
+            "suggested_actions": ["Reply / Provide decision", "Continue stage", "Skip stage", "Refresh status"],
+            "questions": questions,
+            "handoff_version": key,
+            "output_quality": quality,
+        }
+
+    def pipeline_stage_reply(self, run_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        if not run_id:
+            return {"ok": False, "error": "run_id required"}
+        status = self.pipeline_run_status(run_id)
+        if not status.get("ok"):
+            return {"ok": False, "error": status.get("error") or "run not found", "diagnostics": status.get("diagnostics") or self._run_lookup_diagnostics(run_id)}
+        stage = safe_id(str(body.get("stage") or status.get("current_stage") or ""), "stage")
+        message = str(body.get("message") or "").strip()
+        action = str(body.get("action") or "reply").strip() or "reply"
+        if not message:
+            return {"ok": False, "error": "message required", "run_id": run_id, "stage": stage}
+        run_dir = Path(str(status.get("run_dir") or ""))
+        if not run_dir.exists():
+            return {"ok": False, "error": "run directory not found", "diagnostics": self._run_lookup_diagnostics(run_id)}
+        ts = now_iso()
+        decisions = run_dir / "decisions.md"
+        with decisions.open("a", encoding="utf-8") as fh:
+            fh.write(f"\n## {ts} - operator reply for {stage}\n\n- Action: `{action}`\n- Message: {message}\n")
+        inputs_dir = run_dir / "stage_inputs"
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        jsonl = inputs_dir / f"{stage}-operator-replies.jsonl"
+        rec = {"ts": ts, "run_id": run_id, "pipeline_id": status.get("pipeline_id"), "stage": stage, "action": action, "message": message}
+        with jsonl.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
+        return {"ok": True, "version": RUNTIME_VERSION, "run_id": run_id, "stage": stage, "decisions_path": str(decisions), "stage_input_path": str(jsonl)}
+
     def pipeline_run_status(self, run_id: str) -> Dict[str, Any]:
         if not run_id:
             return {"ok": False, "error": "run_id required"}
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "show", run_id]
         result = run_json(cmd, env=self.env(), timeout=30)
+        if not result.get("ok"):
+            return {"ok": False, "version": RUNTIME_VERSION, "run_id": run_id, "error": result.get("stderr") or result.get("stdout") or "run not found", "diagnostics": self._run_lookup_diagnostics(run_id)}
         raw = result.get("stdout") if isinstance(result.get("stdout"), dict) else result
         manifest = raw.get("manifest") or {}
         if isinstance(manifest, str):
@@ -2403,12 +2524,17 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         status = str(raw.get("status") or "")
         question = self._clarification_question_from(raw)
         needs_clarification = bool(raw.get("clarification_required") or raw.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
+        stage_handoff = self._stage_handoff_from_status(raw, run_id, current_stage, status)
+        if stage_handoff:
+            needs_clarification = True
+            question = stage_handoff["questions"][0]
         if needs_clarification:
             question = question or "Уточните параметры для продолжения pipeline."
             pending_changed = self._set_pending_clarification(run_id, str(raw.get("pipeline_id") or ""), question)
             if pending_changed:
-                self.save_message("admin", question, persona=self._pipeline_persona(str(raw.get("pipeline_id") or "")), intent="pipeline_clarification", raw=raw)
-        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "error": raw.get("error") or result.get("stderr")}
+                persona = (stage_handoff or {}).get("persona") or self._pipeline_persona(str(raw.get("pipeline_id") or ""))
+                self.save_message("admin", question, persona=persona, intent="pipeline_clarification", raw=raw)
+        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": "stage_handoff_required" if stage_handoff else raw.get("waiting_reason"), "stage_handoff": stage_handoff, "error": raw.get("error") or result.get("stderr")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]

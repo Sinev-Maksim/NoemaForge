@@ -27,6 +27,7 @@ let pipelineEditorState = {pipeline_id:'', title:'', description:'', stages:[]};
 let publicShowcaseScenario = null;
 let latestArtifacts = [];
 let postedArtifactKeys = new Set();
+let postedStageHandoffKeys = new Set();
 let lastEventIndex = 0;
 // server_epoch detects server restarts even when rotation_count stays 0.
 // rotation_count detects in-process log rotations.
@@ -280,6 +281,103 @@ function postArtifactsToChat(artifacts){
   });
   chatLog.scrollTop = chatLog.scrollHeight;
 }
+function _stageHandoffKey(handoff){
+  if(!handoff) return '';
+  return [handoff.run_id || '', handoff.current_stage || '', handoff.handoff_version || 'stage_handoff_v2'].join('|');
+}
+function postStageHandoffToChat(handoff){
+  const key = _stageHandoffKey(handoff);
+  if(!key || postedStageHandoffKeys.has(key)) return;
+  postedStageHandoffKeys.add(key);
+  const persona = handoff.persona || 'Pipeline';
+  const questions = Array.isArray(handoff.questions) ? handoff.questions : [];
+  addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'));
+}
+async function _replyStageHandoff(panel, handoff, input, messageNode){
+  const runId = String(handoff?.run_id || panel.dataset.runId || '');
+  const text = String(input.value || '').trim();
+  if(!runId){ messageNode.textContent = 'Missing run_id; cannot reply.'; return; }
+  if(!text){ messageNode.textContent = 'Reply is empty.'; return; }
+  messageNode.textContent = 'Saving operator reply...';
+  try{
+    await api(`/api/pipeline/run/${encodeURIComponent(runId)}/reply`, {stage:handoff.current_stage, message:text, action:'reply'});
+    input.value = '';
+    messageNode.textContent = 'Reply saved.';
+    const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+    _updatePipelineRunPanel(panel, status);
+  }catch(e){
+    messageNode.textContent = `Reply error: ${e.message || String(e)}`;
+  }
+}
+async function _advanceStageHandoff(panel, handoff, mode, button, messageNode){
+  const runId = String(handoff?.run_id || panel.dataset.runId || '');
+  if(!runId){ messageNode.textContent = 'Missing run_id; cannot advance.'; return; }
+  button.disabled = true;
+  const skip = mode === 'skip';
+  messageNode.textContent = skip ? 'Skipping stage after explicit operator click...' : 'Continuing stage after explicit operator click...';
+  try{
+    const result = await api('/api/pipeline/advance', {run_id:runId, next:skip, allow_degraded:true, note:skip ? `operator skipped ${handoff.current_stage || 'stage'} from stage handoff` : `operator continued ${handoff.current_stage || 'stage'} from stage handoff`});
+    messageNode.textContent = result.ok === false ? `Advance rejected: ${result.error || result.reason || 'unknown error'}` : (skip ? 'Stage skipped.' : 'Stage continue recorded.');
+    const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+    _updatePipelineRunPanel(panel, status);
+  }catch(e){
+    messageNode.textContent = `Advance error: ${e.message || String(e)}`;
+  }finally{
+    button.disabled = false;
+  }
+}
+async function _refreshStageHandoff(panel, button, messageNode){
+  const runId = String(panel.dataset.runId || '');
+  if(!runId){ messageNode.textContent = 'Missing run_id; cannot refresh.'; return; }
+  button.disabled = true;
+  try{
+    const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+    _updatePipelineRunPanel(panel, status);
+    messageNode.textContent = 'Status refreshed.';
+  }catch(e){
+    messageNode.textContent = `Refresh error: ${e.message || String(e)}`;
+  }finally{
+    button.disabled = false;
+  }
+}
+function _renderStageHandoff(panel, handoff){
+  let box = panel.querySelector('.stage-handoff-panel');
+  if(!handoff){
+    if(box) box.remove();
+    return;
+  }
+  postStageHandoffToChat(handoff);
+  if(!box){
+    box = document.createElement('div');
+    box.className = 'stage-handoff-panel';
+    const title = makeNode('b', 'stage-handoff-title');
+    const msg = makeNode('p', 'muted stage-handoff-message');
+    const qs = makeNode('ul', 'stage-handoff-questions');
+    const input = document.createElement('textarea');
+    input.className = 'stage-handoff-reply';
+    input.rows = 3;
+    input.placeholder = 'Operator reply or decision';
+    const actions = makeNode('div', 'stage-handoff-actions');
+    const reply = makeNode('button', 'small', 'Reply / Provide decision');
+    const cont = makeNode('button', 'ghost small', 'Continue stage');
+    const skip = makeNode('button', 'ghost small', 'Skip stage');
+    const refresh = makeNode('button', 'ghost small', 'Refresh status');
+    const status = makeNode('div', 'stage-handoff-status muted');
+    reply.addEventListener('click', () => _replyStageHandoff(panel, box._handoff, input, status));
+    cont.addEventListener('click', () => _advanceStageHandoff(panel, box._handoff, 'continue', cont, status));
+    skip.addEventListener('click', () => _advanceStageHandoff(panel, box._handoff, 'skip', skip, status));
+    refresh.addEventListener('click', () => _refreshStageHandoff(panel, refresh, status));
+    actions.append(reply, cont, skip, refresh);
+    box.append(title, msg, qs, input, actions, status);
+    const refreshBtn = panel.querySelector('.pipeline-run-refresh');
+    panel.insertBefore(box, refreshBtn || null);
+  }
+  box._handoff = handoff;
+  box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
+  box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
+  const qs = box.querySelector('.stage-handoff-questions');
+  qs.replaceChildren(...(Array.isArray(handoff.questions) ? handoff.questions : []).map(q => makeNode('li', '', q)));
+}
 const _DEGRADED_APPROVAL_STATUSES = new Set(['ready_for_admin_approval','waiting_for_admin','needs_admin_approval','approval_required']);
 function _isDegradedApprovalStatus(status){ return _DEGRADED_APPROVAL_STATUSES.has(String(status || '').toLowerCase()); }
 function _asList(value){
@@ -424,7 +522,8 @@ function _updatePipelineRunPanel(panel, status){
     errDiv.innerHTML = '';
     errors.forEach(ev => { const d = document.createElement('div'); d.className = 'pipeline-run-error-line'; d.textContent = `✗ ${ev.stage || '?'}: ${(ev.data && ev.data.error) || ev.type}`; errDiv.appendChild(d); });
   }
-  if(status.clarification_required && Array.isArray(status.questions) && status.questions.length){
+  _renderStageHandoff(panel, status.stage_handoff || null);
+  if(!status.stage_handoff && status.clarification_required && Array.isArray(status.questions) && status.questions.length){
     addMessage('Admin', status.questions.join('\n'));
   }
   if(Array.isArray(status.artifacts) && status.artifacts.length){
@@ -512,6 +611,7 @@ function renderPipelineRunPanel(result){
   const chatLog = el('chat-log');
   chatLog.appendChild(panel);
   chatLog.scrollTop = chatLog.scrollHeight;
+  _renderStageHandoff(panel, result.stage_handoff || stdout.stage_handoff || directStdout.stage_handoff || null);
   _ensureDegradedApprovalPanel(panel, {status:initialStatus});
   if(runId) refreshActivePipelineRuns();
 }
@@ -523,7 +623,8 @@ function absorbResult(result){
   if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); _updatePersonaSelect(personaSwitch.to); if(personaSwitch.to && personaSwitch.to !== 'Admin') _addReturnToAdminLine(); }
   if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '');
   else if(result.ok === false) addMessage('Admin', `Error: ${htmlEscape(result.error || 'unknown error')}`, 'error');
-  if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
+  if(result.stage_handoff) postStageHandoffToChat(result.stage_handoff);
+  else if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
   if(Array.isArray(result.artifacts)){ renderArtifacts(result.artifacts); postArtifactsToChat(result.artifacts); }
   if(Array.isArray(result.internal_events)) renderInternal(result.internal_events);
   if(result.mode === 'pipeline_run' || route.intent === 'pipeline_run') renderPipelineRunPanel(result);

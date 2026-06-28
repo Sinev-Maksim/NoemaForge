@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import contextlib
+import io
 import sys
 import tempfile
 import threading
@@ -14,6 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import admin_gui_server as ags  # noqa: E402
+import pipeline_runtime  # noqa: E402
 
 
 APP_JS = ROOT / "templates" / "pipeline-dashboard" / "app.js"
@@ -127,6 +130,63 @@ class AdminUxRoutingTests(unittest.TestCase):
 
 
 class PipelineStatusAndArtifactTests(unittest.TestCase):
+    def _pipeline_cli(self, argv: list[str]) -> dict:
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = pipeline_runtime.main(argv)
+        self.assertEqual(0, rc)
+        return json.loads(buf.getvalue())
+
+    def test_real_pipeline_runtime_run_placeholder_stage_returns_handoff_and_reply_files(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            run = self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "run", "evolution",
+                "--request", "UAT stage handoff",
+                "--run-id", "run_stage_handoff_v2",
+                "--allow-degraded",
+            ])
+            self.assertEqual("run_stage_handoff_v2", run["run_id"])
+            srv = _server(tmp)
+            srv.state = state
+
+            visible = srv.pipeline_run_status("run_stage_handoff_v2")
+            self.assertTrue(visible["ok"])
+            self.assertEqual("intake", visible["current_stage"])
+
+            self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "advance", "run_stage_handoff_v2",
+                "--next",
+                "--allow-degraded",
+            ])
+            status = srv.pipeline_run_status("run_stage_handoff_v2")
+
+            self.assertTrue(status["ok"])
+            self.assertEqual("architecture_clarification", status["current_stage"])
+            self.assertTrue(status["clarification_required"])
+            self.assertEqual("stage_handoff_required", status["waiting_reason"])
+            self.assertTrue(status["questions"])
+            handoff = status["stage_handoff"]
+            self.assertEqual("Architect", handoff["persona"])
+            self.assertEqual("run_stage_handoff_v2", handoff["run_id"])
+
+            reply = srv.pipeline_stage_reply("run_stage_handoff_v2", {
+                "stage": "architecture_clarification",
+                "message": "Operator decision: keep local-first handoff explicit.",
+                "action": "reply",
+            })
+
+            self.assertTrue(reply["ok"])
+            decisions = Path(reply["decisions_path"]).read_text(encoding="utf-8")
+            jsonl = Path(reply["stage_input_path"]).read_text(encoding="utf-8")
+            self.assertIn("Operator decision: keep local-first handoff explicit.", decisions)
+            self.assertIn("Operator decision: keep local-first handoff explicit.", jsonl)
+
     def test_pipeline_run_status_uses_stdout_shape(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
@@ -171,6 +231,16 @@ class PipelineStatusAndArtifactTests(unittest.TestCase):
             self.assertEqual("run_2", history["pending_payload"]["run_id"])
             self.assertEqual("book", history["pending_payload"]["pipeline_id"])
             self.assertTrue(any("Какую тему раскрыть?" in msg["text"] for msg in history["messages"]))
+
+    def test_pipeline_run_status_missing_run_includes_diagnostics(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            status = srv.pipeline_run_status("missing_run")
+            self.assertFalse(status["ok"])
+            self.assertEqual("missing_run", status["diagnostics"]["run_id"])
+            self.assertIn("state_root", status["diagnostics"])
+            self.assertTrue(status["diagnostics"]["searched_paths"])
+            self.assertIn("registry", status["diagnostics"]["registry_hint"])
 
     def test_promote_final_artifacts_before_context_and_run_dir(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -333,6 +403,16 @@ class FrontendSourceGuards(unittest.TestCase):
         main_panel = src[start:end]
         self.assertNotIn("JSON.stringify", main_panel)
         self.assertIn("showModal('Degraded details'", src)
+
+    def test_stage_handoff_frontend_source_guards(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        self.assertIn("stage_handoff", src)
+        self.assertIn("postedStageHandoffKeys", src)
+        self.assertIn("Reply / Provide decision", src)
+        self.assertIn("Continue stage", src)
+        self.assertIn("Skip stage", src)
+        self.assertIn("/api/pipeline/run/${encodeURIComponent(runId)}/reply", src)
+        self.assertIn("allow_degraded:true", src)
 
 
 if __name__ == "__main__":
