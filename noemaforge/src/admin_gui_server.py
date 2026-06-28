@@ -845,7 +845,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
-                "/api/persona/current", "/api/persona/rules", "/api/telemetry/status", "/api/runtime/status",
+                "/api/persona/current", "/api/persona/rules", "/api/telemetry/status", "/api/runtime/status", "/api/runtime/degraded",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
                 "/api/vault/reinventory",
@@ -1555,6 +1555,38 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy")}
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
+
+    def runtime_degraded_status(self) -> Dict[str, Any]:
+        staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
+        firstboot_status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
+        state = str(staff.get("staffing_state") or staff.get("state") or "unknown") if isinstance(staff, dict) else "unknown"
+        active = state in {"degraded_selected", "unstaffed", "malformed"}
+        degraded_readonly = {
+            "active": active,
+            "state": state,
+            "mode": "degraded_readonly" if active else "normal",
+            "path": str(self.bootstrap_dir / "firstboot-staffing-summary.json"),
+        }
+        staffing = {
+            "staffing_state": state,
+            "warnings": staff.get("warnings") if isinstance(staff, dict) else [],
+            "degraded_roles": staff.get("degraded_roles") if isinstance(staff, dict) else [],
+            "unstaffed_roles": staff.get("unstaffed_roles") if isinstance(staff, dict) else [],
+            "thresholds": staff.get("thresholds") if isinstance(staff, dict) else {},
+            "selected_model_ids": staff.get("selected_model_ids") if isinstance(staff, dict) else [],
+            "selected_model_count": staff.get("selected_model_count") if isinstance(staff, dict) else 0,
+        }
+        checks = firstboot_status.get("checks") if isinstance(firstboot_status, dict) else []
+        next_actions = firstboot_status.get("next_actions") if isinstance(firstboot_status, dict) else []
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "degraded_readonly": degraded_readonly,
+            "staffing": staffing,
+            "checks": checks if isinstance(checks, list) else [],
+            "next_actions": next_actions if isinstance(next_actions, list) else [],
+            "source": "bootstrap_firstboot_summary",
+        }
 
     def model_selection_required_status(self) -> Dict[str, Any]:
         runtime = self.runtime_status()

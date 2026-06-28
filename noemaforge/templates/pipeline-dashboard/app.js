@@ -280,6 +280,108 @@ function postArtifactsToChat(artifacts){
   });
   chatLog.scrollTop = chatLog.scrollHeight;
 }
+const _DEGRADED_APPROVAL_STATUSES = new Set(['ready_for_admin_approval','waiting_for_admin','needs_admin_approval','approval_required']);
+function _isDegradedApprovalStatus(status){ return _DEGRADED_APPROVAL_STATUSES.has(String(status || '').toLowerCase()); }
+function _asList(value){
+  if(Array.isArray(value)) return value.filter(v => v != null && String(v).trim() !== '').map(v => String(v));
+  if(value == null || value === '') return [];
+  return [String(value)];
+}
+function _summaryLine(label, value){
+  const line = document.createElement('div');
+  line.className = 'degraded-summary-line';
+  const k = makeNode('span', 'degraded-summary-key', label);
+  const v = makeNode('span', 'degraded-summary-value', Array.isArray(value) ? (value.length ? value.join(', ') : '—') : (value == null || value === '' ? '—' : String(value)));
+  line.append(k, v);
+  return line;
+}
+function _renderDegradedSummary(target, data){
+  const degraded = data?.degraded_readonly || {};
+  const staffing = data?.staffing || {};
+  const warnings = _asList(staffing.warnings);
+  const checks = _asList(data?.checks).slice(0, 4);
+  const nextActions = _asList(data?.next_actions).slice(0, 4);
+  const rows = [
+    _summaryLine('degraded_readonly', `${degraded.active ? 'active' : 'inactive'} · ${degraded.state || 'unknown'} · ${degraded.mode || 'normal'}`),
+    _summaryLine('summary path', degraded.path || '—'),
+    _summaryLine('staffing_state', staffing.staffing_state || 'unknown'),
+    _summaryLine('warnings', warnings.slice(0, 4)),
+    _summaryLine('degraded_roles', _asList(staffing.degraded_roles).slice(0, 8)),
+    _summaryLine('unstaffed_roles', _asList(staffing.unstaffed_roles).slice(0, 8)),
+    _summaryLine('thresholds', Object.keys(staffing.thresholds || {}).length ? Object.entries(staffing.thresholds).map(([k,v]) => `${k}=${v}`).slice(0, 6) : []),
+    _summaryLine('selected_model_ids', _asList(staffing.selected_model_ids).slice(0, 8)),
+  ];
+  if(checks.length) rows.push(_summaryLine('health checks', checks));
+  if(nextActions.length) rows.push(_summaryLine('next_actions', nextActions));
+  replaceWithNodes(target, rows);
+}
+async function _continuePipelineDegraded(panel, button, messageNode){
+  const runId = String(panel.dataset.runId || '');
+  if(!runId){ messageNode.textContent = 'Missing run_id; cannot continue.'; return; }
+  button.disabled = true;
+  messageNode.textContent = 'Submitting explicit degraded approval...';
+  try{
+    const result = await api('/api/pipeline/advance', {run_id:runId, next:true, allow_degraded:true, note:'explicit operator approval from dashboard degraded panel'});
+    messageNode.textContent = result.ok === false ? `Advance rejected: ${result.error || result.reason || 'unknown error'}` : 'Pipeline continued in degraded mode.';
+    addMessage('Admin', messageNode.textContent);
+    const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
+    _updatePipelineRunPanel(panel, status);
+    await refreshActiveWork();
+  }catch(e){
+    messageNode.textContent = `Degraded continue error: ${e.message || String(e)}`;
+  }finally{
+    button.disabled = false;
+  }
+}
+async function _workTowardNormalMode(messageNode){
+  messageNode.textContent = 'Creating normal-mode recovery plan...';
+  try{
+    const {mode, composite_top_n} = selectionModePayload();
+    const result = await api('/api/model-selection/continue', {mode, composite_top_n, recovery:'normal-mode recovery'});
+    absorbResult(result);
+    messageNode.textContent = 'Normal-mode recovery job/plan created. Use the exact operator command from the job card; the dashboard did not fake normal mode.';
+    addMessage('Admin', messageNode.textContent);
+    await refreshJobs();
+  }catch(e){
+    messageNode.textContent = `Normal-mode recovery error: ${e.message || String(e)}`;
+  }
+}
+async function _ensureDegradedApprovalPanel(panel, status){
+  let approval = panel.querySelector('.degraded-approval-panel');
+  if(!_isDegradedApprovalStatus(status.status)){
+    if(approval) approval.remove();
+    return;
+  }
+  if(approval) return;
+  approval = document.createElement('div');
+  approval.className = 'degraded-approval-panel';
+  approval.dataset.loaded = 'false';
+  const title = makeNode('b', '', 'Degraded/Admin approval required');
+  const explain = makeNode('p', 'muted', 'This run is waiting at an admin approval boundary. The host is degraded-readonly, so continuing is a deliberate operator decision.');
+  const summary = makeNode('div', 'degraded-summary');
+  summary.append(makeNode('p', 'muted', 'Loading degraded details...'));
+  const msg = makeNode('div', 'degraded-panel-message muted');
+  const actions = makeNode('div', 'degraded-panel-actions');
+  const cont = makeNode('button', 'small', 'Continue in degraded mode');
+  cont.addEventListener('click', () => _continuePipelineDegraded(panel, cont, msg));
+  const normal = makeNode('button', 'ghost small', 'Work toward normal mode');
+  normal.title = 'normal-mode recovery action';
+  normal.addEventListener('click', () => _workTowardNormalMode(msg));
+  const details = makeNode('button', 'ghost small', 'Show degraded details');
+  details.addEventListener('click', () => showModal('Degraded details', approval._degradedDetails || {status:'not loaded'}));
+  actions.append(cont, normal, details);
+  approval.append(title, explain, summary, actions, msg);
+  const refresh = panel.querySelector('.pipeline-run-refresh');
+  panel.insertBefore(approval, refresh || null);
+  try{
+    const data = await api('/api/runtime/degraded');
+    approval._degradedDetails = data;
+    _renderDegradedSummary(summary, data);
+    approval.dataset.loaded = 'true';
+  }catch(e){
+    msg.textContent = `Degraded details unavailable: ${e.message || String(e)}`;
+  }
+}
 function _updatePipelineRunPanel(panel, status){
   const stageStates = Array.isArray(status.stage_states) ? status.stage_states : [];
   const statusLine = panel.querySelector('.pipeline-run-status');
@@ -329,6 +431,7 @@ function _updatePipelineRunPanel(panel, status){
     renderArtifacts(status.artifacts);
     postArtifactsToChat(status.artifacts);
   }
+  _ensureDegradedApprovalPanel(panel, status);
 }
 function renderPipelineRunPanel(result){
   const stdout = result.raw && result.raw.stdout ? result.raw.stdout : {};
@@ -409,6 +512,7 @@ function renderPipelineRunPanel(result){
   const chatLog = el('chat-log');
   chatLog.appendChild(panel);
   chatLog.scrollTop = chatLog.scrollHeight;
+  _ensureDegradedApprovalPanel(panel, {status:initialStatus});
   if(runId) refreshActivePipelineRuns();
 }
 function absorbResult(result){

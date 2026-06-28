@@ -43,6 +43,10 @@ def runtime_status(handler: Any) -> None:
     handler._send_json(handler.server.runtime_status())
 
 
+def runtime_degraded(handler: Any) -> None:
+    handler._send_json(handler.server.runtime_degraded_status())
+
+
 def runtime_observer_cards(handler: Any) -> None:
     handler._send_json(handler.server.runtime_observer_cards())
 
@@ -93,6 +97,7 @@ def get_routes() -> Dict[str, Any]:
         "/api/dashboard/state": dashboard,
         "/api/locales": locales,
         "/api/runtime/status": runtime_status,
+        "/api/runtime/degraded": runtime_degraded,
         "/api/runtime/observer-cards": runtime_observer_cards,
         "/api/runtime/device-policy": device_policy,
         "/api/telemetry/status": telemetry_status,
