@@ -36,7 +36,8 @@
     "stages": [
       "intake",
       "architecture_clarification",
-      "development",
+      "development_plan",
+      "development_execute",
       "unit_testing",
       "integration_testing",
       "optimization",
@@ -2553,7 +2554,8 @@
     "stages": [
       "intake",
       "architecture_clarification",
-      "development",
+      "development_plan",
+      "development_execute",
       "code_analyser_visualiser",
       "qa",
       "integration_testing",

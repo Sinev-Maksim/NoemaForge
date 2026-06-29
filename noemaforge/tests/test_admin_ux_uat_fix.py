@@ -21,6 +21,8 @@ import pipeline_runtime  # noqa: E402
 
 APP_JS = ROOT / "templates" / "pipeline-dashboard" / "app.js"
 INDEX_HTML = ROOT / "templates" / "pipeline-dashboard" / "index.html"
+VERIFY_ALL = ROOT / "tools" / "ops" / "verify-all-pipelines-local.sh"
+ADMIN_GUI = ROOT / "src" / "admin_gui_server.py"
 
 
 def _server(tmp: Path) -> ags.AdminGuiServer:
@@ -186,6 +188,238 @@ class PipelineStatusAndArtifactTests(unittest.TestCase):
             jsonl = Path(reply["stage_input_path"]).read_text(encoding="utf-8")
             self.assertIn("Operator decision: keep local-first handoff explicit.", decisions)
             self.assertIn("Operator decision: keep local-first handoff explicit.", jsonl)
+
+    def test_pipeline_catalog_discovery_includes_known_pipelines(self) -> None:
+        catalog = pipeline_runtime.load_pipeline_catalog(ROOT)
+        for pipeline_id in ["public_mwp", "evolution", "book", "knowledge_graph", "release_prep", "persona_evolution", "image.metadata_and_caption"]:
+            self.assertIn(pipeline_id, catalog)
+
+    def test_dotted_media_pipeline_id_is_launchable_and_status_resolves(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            created = self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "run", "image.metadata_and_caption",
+                "--request", "dotted id smoke",
+                "--allow-degraded",
+            ])
+            srv = _server(tmp)
+            srv.state = state
+            status = srv.pipeline_run_status(created["run_id"])
+        self.assertEqual("image.metadata_and_caption", status["pipeline_id"])
+        self.assertEqual(created["run_id"], status["run_id"])
+        self.assertIn("image.metadata_and_caption", created["run_id"])
+        self.assertEqual("mvp", status["current_stage"])
+
+    def test_placeholder_output_quality_detection(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            path = Path(td) / "placeholder.md"
+            path.write_text("# intake\n\nStatus: pending\n\nDecision:\n\nRisk:\n\nNext handoff:\n", encoding="utf-8")
+            quality = pipeline_runtime.stage_output_quality(path)
+        self.assertTrue(quality["looks_placeholder"])
+        self.assertTrue(quality["pending"])
+
+    def test_reply_changes_operator_reply_state_and_handoff_version(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "run", "evolution",
+                "--request", "reply state test",
+                "--run-id", "run_reply_state",
+                "--allow-degraded",
+            ])
+            self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "advance", "run_reply_state", "--next", "--allow-degraded"])
+            srv = _server(tmp)
+            srv.state = state
+            before = srv.pipeline_run_status("run_reply_state")
+            before_version = before["stage_handoff"]["handoff_version"]
+            reply = srv.pipeline_stage_reply("run_reply_state", {"stage": "architecture_clarification", "message": "operator decision", "action": "reply"})
+            after = srv.pipeline_run_status("run_reply_state")
+        self.assertEqual("operator_reply_recorded", reply["operator_reply_state"]["state"])
+        self.assertEqual("operator_reply_recorded", after["operator_reply_state"]["state"])
+        self.assertNotEqual(before_version, after["stage_handoff"]["handoff_version"])
+
+    def test_continue_without_worker_returns_actionable_blocker_not_fake_success(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "run", "evolution", "--request", "blocker test", "--run-id", "run_blocker", "--allow-degraded"])
+            self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "advance", "run_blocker", "--next", "--allow-degraded"])
+            result = self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "advance", "run_blocker", "--allow-degraded", "--note", "continue without worker"])
+        self.assertFalse(result["ok"])
+        self.assertTrue(result["blocked_missing_worker"])
+        self.assertEqual("blocked_missing_worker", result["actionable_blocker"]["state"])
+
+    def test_skip_stage_records_explicit_skip(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "run", "book", "--request", "skip test", "--run-id", "run_skip", "--allow-degraded"])
+            result = self._pipeline_cli(["--root", str(ROOT), "--state", str(state), "advance", "run_skip", "--skip", "--allow-degraded", "--note", "operator skip"])
+            skip_path = Path(result["skip_record"]["path"])
+            self.assertTrue(result["skipped_by_operator"])
+            self.assertTrue(skip_path.exists())
+            self.assertEqual("skipped_by_operator", json.loads(skip_path.read_text(encoding="utf-8"))["state"])
+
+    def test_admin_env_passes_selection_refresh_mapping_to_pipeline_runtime(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            refresh_dir = tmp / "selection-refresh"
+            mapping_path = refresh_dir / "refreshed-role-mapping.json"
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "NOEMAFORGE_SELECTION_REFRESH_DIR": str(refresh_dir),
+                    "NOEMAFORGE_REFRESHED_ROLE_MAPPING": str(mapping_path),
+                },
+            ):
+                env = srv.env()
+        self.assertEqual(str(refresh_dir), env["NOEMAFORGE_SELECTION_REFRESH_DIR"])
+        self.assertEqual(str(mapping_path), env["NOEMAFORGE_REFRESHED_ROLE_MAPPING"])
+
+    def test_all_pipeline_verifier_source_covers_catalog_and_completed_placeholder_failure(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn("/api/pipelines/catalog", src)
+        self.assertIn("known = {\"public_mwp\", \"evolution\", \"book\", \"knowledge_graph\", \"release_prep\", \"persona_evolution\"}", src)
+        self.assertIn("create_response", src)
+        self.assertIn("completed pipeline has placeholder outputs", src)
+        self.assertIn("2 * int(stage_counts.get(pipeline_id)", src)
+        self.assertIn("NOEMAFORGE_SELECTION_REFRESH_DIR", src)
+        self.assertIn("noemaforge-selection-refresh-preserve", src)
+
+    def test_all_pipeline_verifier_uses_strict_acceptance_semantics(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn('"triage_ok": False', src)
+        self.assertIn('"acceptance_ok": False', src)
+        self.assertIn('report["ok"] = report["acceptance_ok"]', src)
+        self.assertIn('report["blocking_pipelines"] = []', src)
+        self.assertIn('"hang_or_loop_count": 0', src)
+        self.assertIn('"completed_degraded_scope_count": 0', src)
+        self.assertIn('"blocked_backend_required_count": 0', src)
+        self.assertIn('"excluded_from_prod_scope_count": 0', src)
+        self.assertIn('elif verdict == "COMPLETED_DEGRADED_PLAN_PACKAGE":', src)
+        self.assertIn('elif verdict == "DEGRADED_PLAN_ONLY_DEFERRED":', src)
+        self.assertIn('elif verdict == "OUT_OF_PROD_SCOPE":', src)
+        self.assertIn('degraded-plan-only pipeline did not produce a real final_degraded_plan_package.json artifact', src)
+        self.assertIn('"verdict": "DEGRADED_PLAN_ONLY_DEFERRED"', src)
+        self.assertIn('elif verdict in {"FAIL_ACTIONABLY", "BLOCKED_WORKER_CANNOT_EXECUTE", "BLOCKED_BACKEND_REQUIRED"}:', src)
+        self.assertIn('elif verdict == "BLOCKED_MISSING_WORKER":', src)
+        self.assertIn('"BLOCKED_WORKER_CANNOT_EXECUTE"', src)
+        self.assertIn('elif verdict == "INCOMPLETE":', src)
+        self.assertIn('elif verdict == "HANG_OR_LOOP":', src)
+        self.assertIn('counts["hang_or_loop_count"] += 1', src)
+        self.assertIn('elif verdict in {"COMPLETED_WITH_PLACEHOLDER", "PLACEHOLDER_OUTPUT"}:', src)
+        self.assertIn('"blocking_pipelines": []', src)
+        self.assertIn('"remediation_backlog": []', src)
+        self.assertIn('"acceptance_failure_count"', src)
+        self.assertIn('report["acceptance_failure_count"] = (', src)
+        self.assertIn('counts["fail_actionably_count"]', src)
+        self.assertIn('+ counts["placeholder_count"]', src)
+        self.assertIn('+ counts["blocked_missing_worker_count"]', src)
+        self.assertIn('report.get("verify_scope") != "degraded"', src)
+        self.assertIn('report["triage_ok"] = not report.get("failures") and counts["unknown_count"] == 0', src)
+        self.assertIn('entry["verdict"] = "HANG_OR_LOOP"', src)
+        self.assertIn('mark_hang_or_loop(report, entry, "max iteration count exceeded", status)', src)
+        self.assertIn('"status_history"', src)
+        self.assertIn('"worker_resolution"', src)
+        self.assertIn('"output_quality"', src)
+        self.assertNotIn('mark_hang_or_loop(report, entry, "max iteration count exceeded", status)\\n        fail(', src)
+
+    def test_all_pipeline_verifier_unwraps_runtime_stdout_payload(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn("def unwrap_runtime_payload(response):", src)
+        self.assertIn('isinstance(response.get("stdout"), dict)', src)
+        self.assertIn('return response["stdout"], wrapper_metadata', src)
+        self.assertIn("payload, wrapper_metadata = unwrap_runtime_payload(status)", src)
+        self.assertIn('payload.get("actionable_blocker")', src)
+        self.assertIn('payload.get("worker_resolution")', src)
+        self.assertIn('payload.get("output_quality") or payload.get("stage_output_quality") or {}', src)
+        self.assertIn('payload.get("stage_progress_changed")', src)
+        self.assertIn('payload.get("last_worker_execution_state")', src)
+        self.assertIn('payload.get("produced_output")', src)
+
+    def test_all_pipeline_verifier_nested_stdout_actionable_blocker_stops_loop(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        continue_idx = src.index("continued_payload, continued_wrapper_metadata = unwrap_runtime_payload(continued)")
+        blocker_idx = src.index('if continued_payload.get("actionable_blocker"):', continue_idx)
+        verdict_idx = src.index('entry["verdict"] = classify_actionable(continued_payload)', blocker_idx)
+        break_idx = src.index("break", verdict_idx)
+        hang_idx = src.index('mark_hang_or_loop(report, entry, "continue after reply did not progress', continue_idx)
+        self.assertLess(break_idx, hang_idx)
+        self.assertIn('entry["actionable_blocker"] = continued_payload.get("actionable_blocker")', src)
+        self.assertIn('continued_snapshot = status_snapshot(continued)', src)
+
+    def test_all_pipeline_verifier_nested_blocker_is_triaged_acceptance_failure(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn('if code == "adapter_required_for_pipeline":', src)
+        self.assertIn('def adapter_policy_requires_backend(policy):', src)
+        self.assertIn('def policy_only_verdict(policy, scope):', src)
+        self.assertIn('DETERMINISTIC_LOCAL_STAGE_CAPABILITIES = {', src)
+        self.assertIn('pipeline_scope == "adapter_required" and adapter_policy_requires_backend(policy or {})', src)
+        self.assertIn('"verdict": "ADAPTER_REQUIRED_DEFERRED"', src)
+        self.assertIn('required_adapter = str((policy or {}).get("required_adapter")', src)
+        self.assertIn('required_capability = str((policy or {}).get("required_capability")', src)
+        self.assertIn('"stage_capabilities": (policy or {}).get("stage_capabilities") or []', src)
+        self.assertIn('"backend_required_capabilities": (policy or {}).get("backend_required_capabilities") or []', src)
+        self.assertIn('"required_adapter": required_adapter', src)
+        self.assertIn('"required_capability": required_capability', src)
+        self.assertNotIn('str(policy.get("scope") or "") == "adapter_required":\n        entry["verdict"] = "BLOCKED_WORKER_CANNOT_EXECUTE"', src)
+        self.assertIn('if code == "blocked_worker_cannot_execute":', src)
+        self.assertIn('return "BLOCKED_WORKER_CANNOT_EXECUTE"', src)
+        self.assertIn('return "BLOCKED_BACKEND_REQUIRED"', src)
+        self.assertIn('elif verdict == "ADAPTER_REQUIRED_DEFERRED":', src)
+        self.assertIn('elif verdict in {"FAIL_ACTIONABLY", "BLOCKED_WORKER_CANNOT_EXECUTE", "BLOCKED_BACKEND_REQUIRED"}:', src)
+        self.assertIn('counts["blocked_backend_required_count"] += 1', src)
+        self.assertIn('report["acceptance_ok"] = report["acceptance_failure_count"] == 0 and not report.get("failures")', src)
+        self.assertIn('report["triage_ok"] = not report.get("failures") and counts["unknown_count"] == 0', src)
+        self.assertIn('raise SystemExit(2)', src)
+
+    def test_all_pipeline_verifier_backend_blocker_remediation_is_precise(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn('def append_remediation(report, entry, action):', src)
+        self.assertIn('backend required: configure {required_adapter} and grant {required_capability}', src)
+        self.assertIn('adapter_required: configure {required_adapter} and grant {required_capability}', src)
+        branch_idx = src.index('if verdict == "BLOCKED_BACKEND_REQUIRED":')
+        precise_idx = src.index('append_acceptance_failure(report, entry, "")', branch_idx)
+        generic_idx = src.index('append_acceptance_failure(report, entry, "pipeline failed actionably; triage is mapped but prod acceptance failed")', branch_idx)
+        self.assertLess(precise_idx, generic_idx)
+
+    def test_all_pipeline_verifier_hang_or_loop_requires_no_actionable_blocker(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        actionable_idx = src.index('actionable = bool(continued_payload.get("actionable_blocker") or status2.get("actionable_blocker"))')
+        hang_guard_idx = src.index("if not (progressed or changed_version or became_real or explicit_skip or actionable):", actionable_idx)
+        hang_mark_idx = src.index('mark_hang_or_loop(report, entry, "continue after reply did not progress', hang_guard_idx)
+        self.assertLess(actionable_idx, hang_guard_idx)
+        self.assertLess(hang_guard_idx, hang_mark_idx)
+
+    def test_all_pipeline_verifier_counters_separate_loop_and_actionable_failures(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        fail_count_idx = src.index('elif verdict in {"FAIL_ACTIONABLY", "BLOCKED_WORKER_CANNOT_EXECUTE", "BLOCKED_BACKEND_REQUIRED"}:')
+        hang_count_idx = src.index('elif verdict == "HANG_OR_LOOP":')
+        self.assertIn('counts["fail_actionably_count"] += 1', src[fail_count_idx:hang_count_idx])
+        self.assertIn('counts["blocked_backend_required_count"] += 1', src[fail_count_idx:hang_count_idx])
+        self.assertIn('counts["hang_or_loop_count"] += 1', src[hang_count_idx:])
+        self.assertIn('if verdict == "COMPLETED_REAL_OUTPUT":', src)
+        self.assertIn('counts["completed_real_count"] += 1', src)
+        self.assertIn('counts["fail_actionably_count"]', src)
+        self.assertIn('+ counts["placeholder_count"]', src)
+        self.assertIn('+ counts["blocked_missing_worker_count"]', src)
+
+    def test_all_pipeline_verifier_exit_2_is_triaged_acceptance_failure(self) -> None:
+        src = VERIFY_ALL.read_text(encoding="utf-8")
+        self.assertIn('if report["acceptance_ok"]:', src)
+        self.assertIn('if report["triage_ok"]:', src)
+        self.assertIn('raise SystemExit(2)', src)
+        self.assertIn('if [[ "$audit_rc" -eq 2 ]]; then', src)
+        self.assertIn('exit 2', src)
+        self.assertNotIn('PASS_WAITING', src)
+        self.assertNotIn('PASS_COMPLETED', src)
 
     def test_pipeline_run_status_uses_stdout_shape(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -409,10 +643,21 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn("stage_handoff", src)
         self.assertIn("postedStageHandoffKeys", src)
         self.assertIn("Reply / Provide decision", src)
-        self.assertIn("Continue stage", src)
-        self.assertIn("Skip stage", src)
+        self.assertIn("Continue after reply", src)
+        self.assertIn("Skip stage explicitly", src)
         self.assertIn("/api/pipeline/run/${encodeURIComponent(runId)}/reply", src)
         self.assertIn("allow_degraded:true", src)
+        self.assertIn("stage_progress", src)
+        self.assertIn("operator_reply_state", src)
+        self.assertIn("actionable_blocker", src)
+
+    def test_pipeline_status_exposes_worker_progress_contract(self) -> None:
+        src = ADMIN_GUI.read_text(encoding="utf-8")
+        self.assertIn("last_worker_execution_state", src)
+        self.assertIn("stable_status_hash", src)
+        self.assertIn("stage_progress_changed", src)
+        self.assertIn("output_path", src)
+        self.assertIn("output_quality", src)
 
 
 if __name__ == "__main__":

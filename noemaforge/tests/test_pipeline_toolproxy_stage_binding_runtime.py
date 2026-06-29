@@ -45,8 +45,8 @@ class PipelineToolProxyStageBindingRuntimeTests(unittest.TestCase):
         self.assertTrue(summary["exec_sandbox_guard"])
         self.assertTrue(summary["public_readmostly_guard"])
 
-    def test_evolution_development_allows_write_and_worktree_with_approval(self) -> None:
-        binding = pr.build_toolproxy_stage_binding("evolution", "development", "ask_before_write")
+    def test_evolution_development_plan_allows_write_and_worktree_with_approval(self) -> None:
+        binding = pr.build_toolproxy_stage_binding("evolution", "development_plan", "ask_before_write")
         self.assertTrue(binding["capability_token_required"])
         self.assertTrue(binding["approval_required"])
         self.assertFalse(binding["network_allowed"])
@@ -77,7 +77,8 @@ class PipelineToolProxyStageBindingRuntimeTests(unittest.TestCase):
             binding_path = run_dir / "toolproxy_stage_bindings.json"
             self.assertTrue(binding_path.exists())
             bindings = json.loads(binding_path.read_text(encoding="utf-8"))
-            self.assertIn("development", bindings)
+            self.assertIn("development_plan", bindings)
+            self.assertIn("development_execute", bindings)
             sidecar = Path(packet_paths[0]).with_suffix(".json")
             packet = json.loads(sidecar.read_text(encoding="utf-8"))
             self.assertIn("toolproxy_stage_binding", packet)

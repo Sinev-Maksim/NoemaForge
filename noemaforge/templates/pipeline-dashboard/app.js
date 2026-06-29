@@ -316,8 +316,9 @@ async function _advanceStageHandoff(panel, handoff, mode, button, messageNode){
   const skip = mode === 'skip';
   messageNode.textContent = skip ? 'Skipping stage after explicit operator click...' : 'Continuing stage after explicit operator click...';
   try{
-    const result = await api('/api/pipeline/advance', {run_id:runId, next:skip, allow_degraded:true, note:skip ? `operator skipped ${handoff.current_stage || 'stage'} from stage handoff` : `operator continued ${handoff.current_stage || 'stage'} from stage handoff`});
-    messageNode.textContent = result.ok === false ? `Advance rejected: ${result.error || result.reason || 'unknown error'}` : (skip ? 'Stage skipped.' : 'Stage continue recorded.');
+    const result = await api('/api/pipeline/advance', {run_id:runId, next:false, skip:skip, allow_degraded:true, note:skip ? `operator skipped ${handoff.current_stage || 'stage'} from stage handoff` : `operator continued ${handoff.current_stage || 'stage'} from stage handoff`});
+    const blocker = result.actionable_blocker || {};
+    messageNode.textContent = result.ok === false ? `Advance rejected: ${blocker.message || result.error || result.reason || 'unknown error'}` : (skip ? 'Stage skipped explicitly.' : 'Stage continue recorded.');
     const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
     _updatePipelineRunPanel(panel, status);
   }catch(e){
@@ -359,22 +360,27 @@ function _renderStageHandoff(panel, handoff){
     input.placeholder = 'Operator reply or decision';
     const actions = makeNode('div', 'stage-handoff-actions');
     const reply = makeNode('button', 'small', 'Reply / Provide decision');
-    const cont = makeNode('button', 'ghost small', 'Continue stage');
-    const skip = makeNode('button', 'ghost small', 'Skip stage');
+    const cont = makeNode('button', 'ghost small', 'Continue after reply');
+    const skip = makeNode('button', 'ghost small', 'Skip stage explicitly');
     const refresh = makeNode('button', 'ghost small', 'Refresh status');
     const status = makeNode('div', 'stage-handoff-status muted');
+    const meta = makeNode('div', 'stage-handoff-meta muted');
     reply.addEventListener('click', () => _replyStageHandoff(panel, box._handoff, input, status));
     cont.addEventListener('click', () => _advanceStageHandoff(panel, box._handoff, 'continue', cont, status));
     skip.addEventListener('click', () => _advanceStageHandoff(panel, box._handoff, 'skip', skip, status));
     refresh.addEventListener('click', () => _refreshStageHandoff(panel, refresh, status));
     actions.append(reply, cont, skip, refresh);
-    box.append(title, msg, qs, input, actions, status);
+    box.append(title, msg, qs, meta, input, actions, status);
     const refreshBtn = panel.querySelector('.pipeline-run-refresh');
     panel.insertBefore(box, refreshBtn || null);
   }
   box._handoff = handoff;
   box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
   box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
+  const replyState = handoff.operator_reply_state || {};
+  const quality = handoff.output_quality || {};
+  const actions = Array.isArray(handoff.next_actions || handoff.suggested_actions) ? (handoff.next_actions || handoff.suggested_actions).join(' · ') : '—';
+  box.querySelector('.stage-handoff-meta').textContent = `Output: ${quality.quality || (quality.exists ? 'placeholder' : 'missing')} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${actions}`;
   const qs = box.querySelector('.stage-handoff-questions');
   qs.replaceChildren(...(Array.isArray(handoff.questions) ? handoff.questions : []).map(q => makeNode('li', '', q)));
 }
@@ -486,6 +492,30 @@ function _updatePipelineRunPanel(panel, status){
   if(statusLine) statusLine.textContent = `Status: ${status.status || '—'}`;
   const currentLine = panel.querySelector('.pipeline-run-current');
   if(currentLine) currentLine.textContent = `Current stage: ${status.current_stage || '—'}`;
+  let metaLine = panel.querySelector('.pipeline-run-contract');
+  if(!metaLine){
+    metaLine = document.createElement('div');
+    metaLine.className = 'pipeline-run-contract muted';
+    const stageListAnchor = panel.querySelector('.pipeline-run-stages');
+    panel.insertBefore(metaLine, stageListAnchor || panel.querySelector('.pipeline-run-refresh'));
+  }
+  const progress = status.stage_progress || {};
+  const replyState = status.operator_reply_state || {};
+  const quality = status.stage_output_quality || {};
+  const blocker = status.actionable_blocker || {};
+  const nextActions = Array.isArray(status.next_actions) && status.next_actions.length ? status.next_actions.join(' · ') : '—';
+  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${nextActions}`;
+  let blockerLine = panel.querySelector('.pipeline-run-blocker');
+  if(blocker && blocker.message){
+    if(!blockerLine){
+      blockerLine = document.createElement('div');
+      blockerLine.className = 'pipeline-run-blocker';
+      panel.insertBefore(blockerLine, panel.querySelector('.pipeline-run-refresh'));
+    }
+    blockerLine.textContent = `Blocker: ${blocker.message}`;
+  }else if(blockerLine){
+    blockerLine.remove();
+  }
   if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
     activeRunIds.delete(String(panel.dataset.runId || ''));
   }

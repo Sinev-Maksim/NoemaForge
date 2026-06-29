@@ -69,6 +69,7 @@ TRACE_COVERAGE_ADMIN_GUI_JOBS_ANCHORS = (
 
 import production_ai_contracts
 import admin_gui_routes
+import selection_refresh_runtime as selection_refresh
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
@@ -734,6 +735,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         env["NOEMAFORGE_MODELSTORE_DIR"] = str(self.modelstore_dir)
         env["NOEMAFORGE_GATEWAY_SOCKET"] = str(self.llm_gateway_socket)
         env["NOEMAFORGE_MAIN_BACKEND_SOCKET"] = str(self.llm_main_backend_socket)
+        for key in ("NOEMAFORGE_SELECTION_REFRESH_DIR", "NOEMAFORGE_REFRESHED_ROLE_MAPPING"):
+            value = os.environ.get(key)
+            if value:
+                env[key] = value
         if locale:
             env["NOEMAFORGE_LANG"] = locale
         return env
@@ -1798,11 +1803,14 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             if any(x in low for x in ["scary", "safety", "sr", "ssr", "governance"]): group = "Governance"
             team = p.get("team", "") if isinstance(p, dict) else ""
             persona_key, persona_codename = self._pipeline_team_persona(team, group)
-            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "persona": persona_key, "persona_codename": persona_codename})
+            policy = selection_refresh.pipeline_scope_policy({"id": pid, **p}, pipeline_id=str(pid)) if isinstance(p, dict) else {}
+            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "pipeline_scope_policy": policy, "pipeline_scope": policy.get("scope"), "persona": persona_key, "persona_codename": persona_codename})
         for p in media.get("pipelines", []) if isinstance(media, dict) else []:
             pid = p.get("id")
             if pid:
-                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
+                spec = {"id": pid, "stages": [p.get("stage", "prepared")], "permission_mode": "plan_only", "source_catalog": "media-pipeline-catalog"}
+                policy = selection_refresh.pipeline_scope_policy(spec, pipeline_id=str(pid))
+                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "pipeline_scope_policy": policy, "pipeline_scope": policy.get("scope"), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
         groups = sorted(set(i["group"] for i in items))
         return {"ok": True, "version": RUNTIME_VERSION, "pipelines": items, "groups": groups, "new_pipeline_supported": "draft_only"}
 
@@ -2342,6 +2350,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         result = run_json(cmd, env=env, timeout=180)
         result["trace_id"] = trace_id
         stdout = result.get("stdout") if isinstance(result.get("stdout"), dict) else {}
+        run_id = ""
         if isinstance(stdout, dict):
             run_dir = str(stdout.get("run_dir") or "")
             promoted = promote_run_artifacts(run_dir, status=str(stdout.get("status") or "created"))
@@ -2365,6 +2374,18 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 result["reply"] = question
                 self._set_pending_clarification(run_id, pipeline_id, question)
                 self.save_message("admin", question, persona=self._pipeline_persona(pipeline_id), intent="pipeline_clarification", artifacts=promoted, raw=result, trace_id=trace_id)
+        if not result.get("ok") or not run_id:
+            raw_error = result.get("stderr") or result.get("stdout") or result.get("error") or "pipeline runtime did not return run_id"
+            result.setdefault("error", str(raw_error))
+            result["diagnostics"] = {
+                "endpoint": "/api/pipeline/run",
+                "pipeline_id": pipeline,
+                "state_root": str(self.state),
+                "raw_error": raw_error,
+                "returncode": result.get("returncode"),
+                "stdout": result.get("stdout"),
+                "stderr": result.get("stderr"),
+            }
         self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result, trace_id=trace_id)
         return result
 
@@ -2373,6 +2394,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             return {"ok": False, "error": "run_id required"}
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), action, run_id]
         if action == "advance" and body.get("next", True): cmd.append("--next")
+        if action == "advance" and body.get("skip"): cmd.append("--skip")
         if body.get("status"): cmd.extend(["--status", str(body["status"])])
         if body.get("note"): cmd.extend(["--note", str(body["note"])])
         if body.get("allow_degraded"): cmd.append("--allow-degraded")
@@ -2410,7 +2432,37 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "tiny": tiny,
             "looks_placeholder": (has_placeholder and len(stripped) < 260) or pending,
             "pending": pending,
+            "quality": "missing" if not exists else ("placeholder" if ((has_placeholder and len(stripped) < 260) or pending or tiny) else "real"),
         }
+
+    @staticmethod
+    def _operator_reply_state(run_dir: Path, stage: str) -> Dict[str, Any]:
+        path = run_dir / "stage_inputs" / f"{safe_id(stage)}-operator-replies.jsonl"
+        latest: Dict[str, Any] = {}
+        count = 0
+        if path.exists():
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                if isinstance(rec, dict):
+                    count += 1
+                    latest = rec
+        return {"state": "operator_reply_recorded" if latest else "waiting_for_operator_reply", "reply_count": count, "latest": latest, "path": str(path)}
+
+    @staticmethod
+    def _skip_state(run_dir: Path, stage: str) -> Dict[str, Any]:
+        path = run_dir / "stage_inputs" / f"{safe_id(stage)}-skip.json"
+        if not path.exists():
+            return {"skipped": False, "state": "", "path": str(path)}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+            if isinstance(data, dict):
+                return {**data, "skipped": True, "path": str(path), "state": "skipped_by_operator"}
+        except Exception:
+            pass
+        return {"skipped": True, "state": "skipped_by_operator", "path": str(path), "parse_error": True}
 
     @staticmethod
     def _stage_persona(stage: str) -> str:
@@ -2434,7 +2486,11 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         run_dir = Path(run_dir_value)
         output_path = run_dir / "outputs" / f"{safe_id(current_stage)}.md"
         quality = self._stage_output_quality(output_path)
+        reply_state = self._operator_reply_state(run_dir, current_stage)
+        skip_state = self._skip_state(run_dir, current_stage)
         if quality["exists"] and not quality["tiny"] and not quality["looks_placeholder"] and not quality["pending"]:
+            return None
+        if skip_state.get("skipped"):
             return None
         pipeline_id = str(raw.get("pipeline_id") or "")
         persona = self._stage_persona(current_stage)
@@ -2450,17 +2506,20 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if quality["looks_placeholder"] or quality["pending"]:
             reason_bits.append("placeholder/pending output")
         reason = ", ".join(reason_bits) or "stage output is not ready"
-        key = f"stage_handoff_v2:{run_id}:{current_stage}:{quality.get('size_bytes', 0)}:{reason.replace(' ', '_')}"
+        reply_suffix = f"reply_{reply_state.get('reply_count', 0)}"
+        key = f"stage_handoff_v2:{run_id}:{current_stage}:{quality.get('size_bytes', 0)}:{reason.replace(' ', '_')}:{reply_suffix}"
         return {
             "run_id": run_id,
             "pipeline_id": pipeline_id,
             "current_stage": current_stage,
             "persona": persona,
             "message": f"{persona} handoff required for `{current_stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
-            "suggested_actions": ["Reply / Provide decision", "Continue stage", "Skip stage", "Refresh status"],
+            "suggested_actions": ["Reply / Provide decision", "Continue after reply", "Skip stage explicitly", "Refresh status"],
+            "next_actions": ["reply" if reply_state["state"] == "waiting_for_operator_reply" else "continue_after_reply", "skip_stage_explicitly", "refresh_status"],
             "questions": questions,
             "handoff_version": key,
             "output_quality": quality,
+            "operator_reply_state": reply_state,
         }
 
     def pipeline_stage_reply(self, run_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
@@ -2469,7 +2528,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         status = self.pipeline_run_status(run_id)
         if not status.get("ok"):
             return {"ok": False, "error": status.get("error") or "run not found", "diagnostics": status.get("diagnostics") or self._run_lookup_diagnostics(run_id)}
-        stage = safe_id(str(body.get("stage") or status.get("current_stage") or ""), "stage")
+        stage = safe_id(str(body.get("stage") or status.get("current_stage") or "stage"))
         message = str(body.get("message") or "").strip()
         action = str(body.get("action") or "reply").strip() or "reply"
         if not message:
@@ -2487,7 +2546,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         rec = {"ts": ts, "run_id": run_id, "pipeline_id": status.get("pipeline_id"), "stage": stage, "action": action, "message": message}
         with jsonl.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
-        return {"ok": True, "version": RUNTIME_VERSION, "run_id": run_id, "stage": stage, "decisions_path": str(decisions), "stage_input_path": str(jsonl)}
+        return {"ok": True, "version": RUNTIME_VERSION, "run_id": run_id, "stage": stage, "decisions_path": str(decisions), "stage_input_path": str(jsonl), "operator_reply_state": {"state": "operator_reply_recorded", "reply_count": self._operator_reply_state(run_dir, stage).get("reply_count", 1)}}
 
     def pipeline_run_status(self, run_id: str) -> Dict[str, Any]:
         if not run_id:
@@ -2522,19 +2581,60 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                     stage_states.append({"stage": s, "state": "pending"})
         promoted = promote_run_artifacts(str(raw.get("run_dir") or ""), status=str(raw.get("status") or "created"))
         status = str(raw.get("status") or "")
+        run_dir = Path(str(raw.get("run_dir") or ""))
+        output_path = run_dir / "outputs" / f"{safe_id(current_stage)}.md" if current_stage else Path("")
+        stage_output_quality = self._stage_output_quality(output_path) if current_stage and str(raw.get("run_dir") or "") else {"quality": "missing", "exists": False}
+        operator_reply_state = self._operator_reply_state(run_dir, current_stage) if current_stage and str(raw.get("run_dir") or "") else {"state": "waiting_for_operator_reply", "reply_count": 0}
+        skip_state = self._skip_state(run_dir, current_stage) if current_stage and str(raw.get("run_dir") or "") else {"skipped": False}
+        if skip_state.get("skipped"):
+            operator_reply_state = {"state": "skipped_by_operator", "reply_count": operator_reply_state.get("reply_count", 0), "skip": skip_state}
         question = self._clarification_question_from(raw)
         needs_clarification = bool(raw.get("clarification_required") or raw.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
         stage_handoff = self._stage_handoff_from_status(raw, run_id, current_stage, status)
         if stage_handoff:
             needs_clarification = True
             question = stage_handoff["questions"][0]
+            operator_reply_state = stage_handoff.get("operator_reply_state") or operator_reply_state
+        actionable_blocker = None
+        for ev in reversed(raw.get("events") or []):
+            payload = ev.get("payload") if isinstance(ev, dict) else {}
+            if isinstance(payload, dict) and (
+                payload.get("code") == "blocked_missing_worker"
+                or payload.get("state") in {"blocked_missing_worker", "blocked_backend_required"}
+                or str(payload.get("code") or "").startswith("backend_required_for_")
+            ):
+                actionable_blocker = payload
+                break
+        waiting_reason = raw.get("waiting_reason")
+        if actionable_blocker:
+            waiting_reason = str(actionable_blocker.get("status") or actionable_blocker.get("state") or "blocked_missing_worker")
+        elif stage_handoff:
+            waiting_reason = "stage_handoff_required" if operator_reply_state.get("state") != "operator_reply_recorded" else "ready_to_continue_after_reply"
+        stage_progress = {
+            "current_stage": current_stage,
+            "state": "skipped_by_operator" if skip_state.get("skipped") else (waiting_reason if actionable_blocker else ("ready_to_continue_after_reply" if operator_reply_state.get("state") == "operator_reply_recorded" and stage_handoff else ("pending_placeholder" if stage_handoff else ("produced_output" if stage_output_quality.get("quality") == "real" else status)))),
+            "stage_index": (stages.index(current_stage) + 1) if current_stage in stages else 0,
+            "stage_count": len(stages),
+        }
+        last_worker_execution_state = raw.get("last_worker_execution_state") if isinstance(raw.get("last_worker_execution_state"), dict) else {"state": "not_started"}
+        stable_status_hash = raw.get("stable_status_hash")
+        stage_progress_changed = bool(raw.get("stage_progress_changed") or last_worker_execution_state.get("state") in {"executed", "blocked_worker_cannot_execute"})
+        next_actions = []
+        if actionable_blocker:
+            next_actions = ["register real stage output", "skip stage explicitly", "refresh status"]
+        elif stage_handoff and operator_reply_state.get("state") == "operator_reply_recorded":
+            next_actions = ["continue after reply", "skip stage explicitly", "refresh status"]
+        elif stage_handoff:
+            next_actions = ["reply / provide decision", "skip stage explicitly", "refresh status"]
+        elif status == "ready_for_admin_approval":
+            next_actions = ["continue in degraded/admin-approved mode", "work toward normal mode", "refresh status"]
         if needs_clarification:
             question = question or "Уточните параметры для продолжения pipeline."
             pending_changed = self._set_pending_clarification(run_id, str(raw.get("pipeline_id") or ""), question)
             if pending_changed:
                 persona = (stage_handoff or {}).get("persona") or self._pipeline_persona(str(raw.get("pipeline_id") or ""))
                 self.save_message("admin", question, persona=persona, intent="pipeline_clarification", raw=raw)
-        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": "stage_handoff_required" if stage_handoff else raw.get("waiting_reason"), "stage_handoff": stage_handoff, "error": raw.get("error") or result.get("stderr")}
+        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "pipeline_scope_policy": pipeline_def.get("pipeline_scope_policy") or {}, "pipeline_scope": (pipeline_def.get("pipeline_scope_policy") or {}).get("scope") or pipeline_def.get("pipeline_scope"), "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": waiting_reason, "stage_handoff": stage_handoff, "stage_progress": stage_progress, "stage_progress_changed": stage_progress_changed, "stable_status_hash": stable_status_hash, "last_worker_execution_state": last_worker_execution_state, "operator_reply_state": operator_reply_state, "stage_output_quality": stage_output_quality, "output_path": raw.get("output_path") or stage_output_quality.get("path"), "output_quality": raw.get("output_quality") or stage_output_quality, "worker_resolution": last_worker_execution_state.get("worker_resolution") or raw.get("worker_resolution") or {}, "next_actions": next_actions, "actionable_blocker": actionable_blocker, "error": raw.get("error") or result.get("stderr")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]
