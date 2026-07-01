@@ -118,7 +118,7 @@ STAMPS_DIR = str(_pp.data_root / "taskqueue/stamps")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -186,7 +186,7 @@ def _stamp_age_sec(group_key: str) -> Optional[float]:
         if not os.path.exists(p):
             return None
         st = os.stat(p)
-        now = dt.datetime.utcnow().timestamp()
+        now = dt.datetime.now(dt.UTC).replace(tzinfo=None).timestamp()
         return max(0.0, float(now) - float(st.st_mtime))
     except Exception:
         return None
@@ -862,7 +862,7 @@ def claim_next_task(
 
     lease_sec = _claim_lease_sec(policy)
     now = _nowz()
-    lease_until = (dt.datetime.utcnow() + dt.timedelta(seconds=int(lease_sec))).isoformat() + "Z"
+    lease_until = (dt.datetime.now(dt.UTC).replace(tzinfo=None) + dt.timedelta(seconds=int(lease_sec))).isoformat() + "Z"
 
     # Optional invite checker (spine-only).
     try:

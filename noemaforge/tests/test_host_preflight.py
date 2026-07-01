@@ -25,6 +25,7 @@ from __future__ import annotations
 # AutoDoc: refreshed 2026-04-11 (manual)
 # === End NoemaForge Autodoc File Header ===
 import importlib.util, os, tempfile, unittest
+from pathlib import Path
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 mod_path = os.path.join(ROOT, 'bootstrap', 'noemaforge-host-preflight.py')
 spec = importlib.util.spec_from_file_location('noemaforge_host_preflight', mod_path)
@@ -38,11 +39,12 @@ class HostPreflightTests(unittest.TestCase):
             os.makedirs(os.path.join(td, 'src'), exist_ok=True)
             os.makedirs(os.path.join(td, 'configs'), exist_ok=True)
             os.makedirs(os.path.join(td, 'offline-apt', 'aptrepo'), exist_ok=True)
-            open(os.path.join(td, 'src', 'noemaforge-llm-gateway.go'), 'w').write('package main')
-            open(os.path.join(td, 'configs', 'voice-backends-policy.yaml'), 'w').write('enabled: false\n')
-            open(os.path.join(td, 'configs', 'tts-backends-policy.yaml'), 'w').write('enabled: false\n')
-            open(os.path.join(td, 'configs', 'discord-bridge-policy.yaml'), 'w').write('enabled: false\n')
-            open(os.path.join(td, 'offline-apt', 'aptrepo', 'Packages'), 'w').write('Package: demo\n')
+            root = Path(td)
+            (root / 'src' / 'noemaforge-llm-gateway.go').write_text('package main', encoding='utf-8')
+            (root / 'configs' / 'voice-backends-policy.yaml').write_text('enabled: false\n', encoding='utf-8')
+            (root / 'configs' / 'tts-backends-policy.yaml').write_text('enabled: false\n', encoding='utf-8')
+            (root / 'configs' / 'discord-bridge-policy.yaml').write_text('enabled: false\n', encoding='utf-8')
+            (root / 'offline-apt' / 'aptrepo' / 'Packages').write_text('Package: demo\n', encoding='utf-8')
             rep = mod.collect_report(td)
             self.assertTrue(rep['checks']['seed_exists'])
             self.assertTrue(rep['checks']['gateway_source'])

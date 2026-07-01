@@ -130,7 +130,7 @@ EVAL_SURFACE: List[Tuple[str, str]] = [
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -148,7 +148,7 @@ def _nowz() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _ts_id() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -17,6 +17,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 from __future__ import annotations
 
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -63,6 +64,25 @@ class ProductionGuiInstallerRuntimeTests(unittest.TestCase):
         self.assertIn("Do not enable this service directly", service)
         self.assertIn("OnBootSec=3min", timer)
         self.assertIn("WantedBy=timers.target", timer)
+
+    def test_installer_dry_run_reports_preflight_and_preserves_modes(self) -> None:
+        script = PROJECT_ROOT / "install_noemaforge_mvp.sh"
+        result = subprocess.run(
+            [str(script), "--dry-run", "--rootfs", "/tmp/noemaforge-install-test", "--with-share", "/mnt/noemaforge-share"],
+            cwd=str(PROJECT_ROOT),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn("debian_13_trixie_compatible=check", result.stdout)
+        self.assertIn("required_dirs=/opt/noemaforge /var/lib/noemaforge /mnt/noemaforge-share", result.stdout)
+        self.assertIn("state_clobber_policy=preserve_existing_state", result.stdout)
+        self.assertIn("destructive_delete_requires=explicit_operator_approval", result.stdout)
+        self.assertIn("systemd_update=explicit_recoverable_units", result.stdout)
+        self.assertIn("ensure-dir /opt/noemaforge mode=dir-preserve-existing", result.stdout)
 
 
 if __name__ == "__main__":

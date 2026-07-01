@@ -74,7 +74,7 @@ OUT_DIR = os.path.join(BASE, "packets", "planned")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -92,7 +92,7 @@ def _nowz() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _today() -> str:
-    return dt.datetime.utcnow().strftime("%Y-%m-%d")
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y-%m-%d")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -117,7 +117,7 @@ def sweep() -> str:
     day = _today()
     ok = bool(sel_verify(day))
 
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     out = os.path.join(OUT_DIR, f"{ts}_planned.md")
 
     txt = [

@@ -135,7 +135,7 @@ def _mean(vals: List[float]) -> float:
 #   - act, by_kind, by_sev, con, created, cutoff, h, hist, key, kind, mtta, mttr
 # === End NoemaForge Autodoc Function Header ===
 def incident_snapshot(*, db_path: str = INCIDENTS_DB, window_hours: int = 24) -> Dict[str, Any]:
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     cutoff = now - dt.timedelta(hours=max(1, int(window_hours)))
 
     if not os.path.exists(db_path):

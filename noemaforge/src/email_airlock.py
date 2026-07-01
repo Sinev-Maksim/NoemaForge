@@ -93,7 +93,7 @@ def parse_eml(path: str) -> Dict[str, Any]:
 
 def build_safe_summary(path: str, *, quarantine_root: str = DEFAULT_QUARANTINE_ROOT, summary_root: str = DEFAULT_SUMMARY_ROOT) -> Dict[str, Any]:
     parsed = parse_eml(path)
-    digest = hashlib.sha256(open(path, 'rb').read()).hexdigest()
+    digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
     incident_id = f'email-{uuid.uuid4().hex[:12]}'
     incident_dir = os.path.join(quarantine_root, incident_id)
     os.makedirs(incident_dir, exist_ok=True)

@@ -62,13 +62,17 @@ def send_toolproxy(req: dict[str, Any], sock_path: str = "/run/noemaforge/toolpr
 
 def _import_caps():
     root = os.environ.get("NOEMAFORGE_ROOT")
-    candidates = []
+    preferred = []
     if root:
-        candidates.append(str(Path(root) / "src"))
-    candidates.extend(["/opt/noemaforge/src", str(Path(__file__).resolve().parent)])
-    for c in candidates:
-        if c and c not in sys.path:
-            sys.path.insert(0, c)
+        preferred.append(str(Path(root) / "src"))
+    preferred.append(str(Path(__file__).resolve().parent))
+    for c in reversed([p for p in preferred if p]):
+        if c in sys.path:
+            sys.path.remove(c)
+        sys.path.insert(0, c)
+    opt_src = "/opt/noemaforge/src"
+    if opt_src not in sys.path:
+        sys.path.append(opt_src)
     import caps  # type: ignore
     return caps
 

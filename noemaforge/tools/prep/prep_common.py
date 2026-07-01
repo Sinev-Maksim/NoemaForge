@@ -82,7 +82,7 @@ from typing import Any, Dict, Iterable, Optional, Tuple
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def nowz() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===

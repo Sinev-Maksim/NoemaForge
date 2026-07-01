@@ -84,7 +84,7 @@ CFG = str(_pp.root / "configs/memsentinel.yaml")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -144,7 +144,7 @@ DEFAULT_POLICY = {
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _now() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -492,7 +492,7 @@ def _write_runtime_mode() -> None:
 def _sel_tail(max_lines: int = 200) -> str:
     """Return last N lines of today's SEL segment (best-effort)."""
     try:
-        day = dt.datetime.utcnow().strftime("%Y-%m-%d")
+        day = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y-%m-%d")
         sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", str(_pp.data_root / "sel/segments"))
         p = os.path.join(sel_dir, f"{day}.jsonl")
         if not os.path.exists(p):
@@ -640,7 +640,7 @@ def collect(pol: Dict[str, Any], *, mode: str, unit: str = "", requested_level: 
 
     report: Dict[str, Any] = {
         "schema": "noemaforge.bootdoctor.report/v1",
-        "ts": dt.datetime.utcnow().isoformat() + "Z",
+        "ts": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "mode": mode,
         "level": level,
         "boot_id": _boot_id(),
