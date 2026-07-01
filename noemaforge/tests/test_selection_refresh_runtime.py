@@ -253,7 +253,7 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
         inventory = [
             {"model_id": "no-backend", "capabilities": ["dev_plan"], "backend_status": "unavailable"},
             {"model_id": "needs-adapter", "capabilities": ["dev_plan"], "adapter_status": "required"},
-            {"model_id": "missing-capability", "capabilities": ["text_plan"], "backend_status": "available", "adapter_status": "available"},
+            {"model_id": "missing-capability", "capabilities": ["unrelated"], "backend_status": "available", "adapter_status": "available"},
         ]
 
         mapping = srr.build_role_selection_mapping(
@@ -266,6 +266,129 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
         self.assertIn("adapter_required", states)
         self.assertIn("insufficient_capability", states)
         self.assertLessEqual(states, srr.VALID_SELECTION_STATES)
+
+    def test_required_degraded_taxonomy_is_complete(self) -> None:
+        required = {
+            "valid_selected",
+            "operator_confirmation_required",
+            "adapter_required",
+            "backend_unavailable",
+            "insufficient_capability",
+            "degraded_selected",
+            "degraded_plan_only",
+            "blocked_missing_worker",
+            "blocked_backend_required",
+            "blocked_placeholder_output",
+            "out_of_prod_scope",
+        }
+        self.assertEqual(required, srr.VALID_SELECTION_STATES)
+
+    def test_persisted_role_mapping_has_actionable_degraded_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            source = Path(td) / "old"
+            out = Path(td) / "refreshed"
+            selection_fixture(source)
+
+            srr.refresh_selection_artifacts(source, out)
+            mapping = json.loads((out / "refreshed-role-mapping.json").read_text(encoding="utf-8"))
+            role = mapping["roles"]["dev.work/solution_architect"]
+
+            for field in ["selection_state", "degraded_reason", "required_capability", "required_adapter", "next_actions", "evidence"]:
+                self.assertIn(field, role)
+            self.assertIn("valid_selected", mapping["valid_selection_states"])
+            self.assertIn("blocked_placeholder_output", mapping["valid_selection_states"])
+            self.assertEqual("valid_selected", role["selection_state"])
+            self.assertIsInstance(role["next_actions"], list)
+            self.assertIsInstance(role["evidence"], dict)
+
+    def test_single_role_degraded_fallback_for_partial_planning_candidate(self) -> None:
+        inventory = [
+            {
+                "model_id": "partial-planner",
+                "capabilities": ["text_plan"],
+                "backend_status": "available",
+                "adapter_status": "available",
+                "pass_rate": 0.9,
+                "json_parse_rate": 0.8,
+                "quality_score": 0.8,
+            }
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+        )
+        role = mapping["roles"]["dev.work/solution_architect"]
+
+        self.assertEqual("degraded_selected", role["selection_state"])
+        self.assertEqual("partial-planner", role["chosen"]["model_id"])
+        self.assertEqual("partial_capability_coverage_for_plan_review_audit_handoff", role["degraded_reason"])
+        self.assertIn("text_review", role["evidence"]["missing_capabilities"])
+        self.assertTrue(role["next_actions"])
+        self.assertGreater(role["chosen"]["score"], 0.0)
+
+    def test_execution_role_never_uses_degraded_selected_for_partial_candidate(self) -> None:
+        inventory = [
+            {
+                "model_id": "partial-executor",
+                "capabilities": ["dev_plan"],
+                "backend_status": "available",
+                "adapter_status": "available",
+                "pass_rate": 1.0,
+                "json_parse_rate": 1.0,
+                "quality_score": 1.0,
+            }
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/dev": srr.ROLE_REQUIREMENTS["dev.work/dev"]},
+        )
+        role = mapping["roles"]["dev.work/dev"]
+
+        self.assertEqual("insufficient_capability", role["selection_state"])
+        self.assertNotEqual("degraded_selected", role["chosen"]["selection_state"])
+        self.assertEqual(0.0, role["chosen"]["score"])
+
+    def test_degraded_selection_scores_by_metrics_coverage_latency_and_diversity(self) -> None:
+        inventory = [
+            {
+                "model_id": "slow-low-coverage",
+                "capabilities": ["text_plan"],
+                "backend_status": "available",
+                "adapter_status": "available",
+                "pass_rate": 0.6,
+                "json_parse_rate": 0.6,
+                "quality_score": 0.6,
+                "avg_latency_ms": 6000,
+                "fairness_diversity_score": 0.0,
+            },
+            {
+                "model_id": "balanced-degraded",
+                "capabilities": ["text_plan", "text_review"],
+                "backend_status": "available",
+                "adapter_status": "available",
+                "pass_rate": 0.8,
+                "json_parse_rate": 0.9,
+                "quality_score": 0.85,
+                "avg_latency_ms": 900,
+                "fairness_diversity_score": 0.4,
+            },
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+        )
+        role = mapping["roles"]["dev.work/solution_architect"]
+
+        self.assertEqual("degraded_selected", role["selection_state"])
+        self.assertEqual("balanced-degraded", role["chosen"]["model_id"])
+        rationale = role["chosen"]["scoring_rationale"]
+        self.assertEqual(0.72, rationale["degraded_score_multiplier"])
+        self.assertIn("capability_coverage_ratio", rationale)
+        self.assertIn("fairness_diversity_score", rationale)
+        self.assertGreater(rationale["base_score"], 0.0)
 
     def test_epoch_switch_requires_operator_confirmation(self) -> None:
         inventory = [{
