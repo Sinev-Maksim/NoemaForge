@@ -157,7 +157,7 @@ def _env_bool(name: str, default: bool) -> bool:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _today() -> str:
-    return _dt.datetime.utcnow().strftime("%Y-%m-%d")
+    return _dt.datetime.now(_dt.UTC).replace(tzinfo=None).strftime("%Y-%m-%d")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -365,7 +365,7 @@ def append(event: Dict[str, Any]) -> Dict[str, Any]:
     if "evt_id" not in event:
         event["evt_id"] = str(uuid.uuid4())
     if "ts" not in event:
-        event["ts"] = _dt.datetime.utcnow().isoformat() + "Z"
+        event["ts"] = _dt.datetime.now(_dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
     payload = json.dumps(event, ensure_ascii=False, separators=(",", ":"))
     payload_bytes = payload.encode("utf-8")
@@ -546,7 +546,7 @@ def seal(day: Optional[str] = None) -> Dict[str, Any]:
     seal_obj = {
         "ok": True,
         "day": day,
-        "sealed_at": _dt.datetime.utcnow().isoformat() + "Z",
+        "sealed_at": _dt.datetime.now(_dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "segment_last_hash": last_hash,
         "events": int(count),
         "anchor_prev": prev_anchor,

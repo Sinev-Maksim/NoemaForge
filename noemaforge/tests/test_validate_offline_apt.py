@@ -25,6 +25,7 @@ from __future__ import annotations
 # AutoDoc: refreshed 2026-04-11 (manual)
 # === End NoemaForge Autodoc File Header ===
 import importlib.util, gzip, os, tempfile, unittest
+from pathlib import Path
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 mod_path = os.path.join(ROOT, 'tools', 'prep', 'validate_offline_apt.py')
 spec = importlib.util.spec_from_file_location('validate_offline_apt', mod_path)
@@ -37,7 +38,7 @@ class ValidateOfflineAptTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix='noemaforge-offline-apt-') as td:
             with gzip.open(os.path.join(td, 'Packages.gz'), 'wt', encoding='utf-8') as f:
                 f.write('Package: demo\n')
-            open(os.path.join(td, 'demo_1.0_amd64.deb'), 'wb').write(b'not-a-real-deb')
+            Path(td, 'demo_1.0_amd64.deb').write_bytes(b'not-a-real-deb')
             rep = mod.validate_repo(td)
             self.assertTrue(rep['ok'])
             self.assertGreaterEqual(rep['deb_count'], 1)

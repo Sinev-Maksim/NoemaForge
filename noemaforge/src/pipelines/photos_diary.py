@@ -105,7 +105,7 @@ SUPPORTED_EXT = {".jpg", ".jpeg", ".png", ".heic", ".webp"}
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===

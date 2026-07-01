@@ -72,7 +72,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -201,7 +201,7 @@ def llm_metrics(
     percentiles: Optional[List[int]] = None,
 ) -> Dict[str, Any]:
     pct = percentiles or [50, 95]
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     cutoff = now - dt.timedelta(hours=max(1, int(window_hours)))
 
     calls = 0

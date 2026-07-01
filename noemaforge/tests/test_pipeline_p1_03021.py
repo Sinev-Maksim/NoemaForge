@@ -68,8 +68,11 @@ def test_prometheus_metrics_and_task_contexts_are_canonical(tmp_path: Path) -> N
     created = run_cmd('pipeline', 'run', 'public_mwp', '--task-id', 'p1metrics', '--request', 'metrics', state=state)
     run_id = created['run_id']
     conn = pipeline_runtime.db_connect(state)
-    assert conn.execute('SELECT count(*) FROM task_contexts WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
-    assert conn.execute('SELECT count(*) FROM stage_states WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
+    try:
+        assert conn.execute('SELECT count(*) FROM task_contexts WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
+        assert conn.execute('SELECT count(*) FROM stage_states WHERE run_id=?', (run_id,)).fetchone()[0] >= 1
+    finally:
+        pipeline_runtime.close_db_connection(conn)
     env = os.environ.copy(); env['NOEMAFORGE_ROOT'] = str(ROOT); env['NOEMAFORGE_PIPELINE_STATE'] = str(state)
     prom = subprocess.check_output(noemaforge_cli(ROOT, 'pipeline', 'metrics', '--format', 'prometheus'), text=True, env=env)
     assert 'noemaforge_pipeline_runs_total' in prom

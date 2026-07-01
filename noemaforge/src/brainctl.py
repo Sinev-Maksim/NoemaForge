@@ -1359,7 +1359,7 @@ def cmd_hwscan(args: argparse.Namespace) -> int:
     if bool(getattr(args, "write", False)):
         outbox = str(getattr(args, "outbox_dir", "") or "/workspace/outbox/hwscan")
         os.makedirs(outbox, exist_ok=True)
-        ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        ts = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
         p = os.path.join(outbox, f"hwscan-{ts}-{fp[:12]}.json")
         with open(p, "w", encoding="utf-8") as f:
             json.dump(out, f, ensure_ascii=False, indent=2)
@@ -2366,7 +2366,7 @@ def main(argv: list[str]) -> int:
                 roles_to_consider=roles,
                 top_k=int(getattr(args, "top_k", 2)),
             )
-            rid = f"plan-{dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}"
+            rid = f"plan-{dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime('%Y%m%dT%H%M%SZ')}"
             req = model_installer_plan.make_prestart_request(
                 request_id=rid,
                 created_by={"actor_type": "system", "actor_id": "brainctl_models_plan"},
@@ -3056,7 +3056,7 @@ def cmd_webgw_policy_draft(args: argparse.Namespace) -> int:
         out_dir = str(getattr(args, "requests_dir", DEFAULT_REQUESTS_DIR))
     os.makedirs(out_dir, exist_ok=True)
 
-    stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     rid = f"webgw-policy-{stamp}"
     out_req = os.path.join(out_dir, f"{rid}.prestart-request.yaml")
 
@@ -3068,7 +3068,7 @@ def cmd_webgw_policy_draft(args: argparse.Namespace) -> int:
         "apiVersion": "noemaforge.prestart/v1",
         "kind": "PreStartChangeRequest",
         "request_id": rid,
-        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        "created_at": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "created_by": {"actor_type": "human", "channel": "webgw-policy"},
         "status": "draft",
         "track": "policy",
@@ -3625,7 +3625,7 @@ def cmd_localgw_policy_draft(args: argparse.Namespace) -> int:
         out_dir = str(getattr(args, "requests_dir", DEFAULT_REQUESTS_DIR))
     os.makedirs(out_dir, exist_ok=True)
 
-    stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     rid = f"localgw-policy-{stamp}"
     out_req = os.path.join(out_dir, f"{rid}.prestart-request.yaml")
 
@@ -3637,7 +3637,7 @@ def cmd_localgw_policy_draft(args: argparse.Namespace) -> int:
         "apiVersion": "noemaforge.prestart/v1",
         "kind": "PreStartChangeRequest",
         "request_id": rid,
-        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        "created_at": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "created_by": {"actor_type": "human", "channel": "localgw-policy"},
         "status": "draft",
         "track": "policy",
@@ -3786,7 +3786,7 @@ def cmd_localgw_connectors_draft(args: argparse.Namespace) -> int:
         out_dir = str(getattr(args, "requests_dir", DEFAULT_REQUESTS_DIR))
     os.makedirs(out_dir, exist_ok=True)
 
-    stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     rid = f"localgw-connectors-{stamp}"
     out_req = os.path.join(out_dir, f"{rid}.prestart-request.yaml")
 
@@ -3798,7 +3798,7 @@ def cmd_localgw_connectors_draft(args: argparse.Namespace) -> int:
         "apiVersion": "noemaforge.prestart/v1",
         "kind": "PreStartChangeRequest",
         "request_id": rid,
-        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        "created_at": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "created_by": {"actor_type": "human", "channel": "localgw-connectors"},
         "status": "draft",
         "track": "policy",
@@ -4456,14 +4456,14 @@ def cmd_localgw_enroll(args: argparse.Namespace) -> int:
 
     outbox = str(getattr(args, "outbox_dir", "/workspace/outbox/localgw"))
     os.makedirs(outbox, exist_ok=True)
-    stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     out_req = os.path.join(outbox, f"localgw-enroll-{stamp}.prestart-request.yaml")
 
     req = {
         "apiVersion": "noemaforge.prestart/v1",
         "kind": "PreStartChangeRequest",
         "request_id": f"localgw-enroll-{stamp}",
-        "created_at": dt.datetime.utcnow().isoformat() + "Z",
+        "created_at": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "created_by": {"actor_type": "human", "channel": "localgw"},
         "status": "draft",
         "requested_changes": {
@@ -4606,7 +4606,7 @@ def cmd_storage_guard(args: argparse.Namespace) -> int:
 
     outbox = str(getattr(args, "outbox_dir", "/workspace/outbox/storage"))
     os.makedirs(outbox, exist_ok=True)
-    stamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    stamp = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     out_path = os.path.join(outbox, f"storage-guard-{stamp}.json")
     try:
         with open(out_path, "w", encoding="utf-8") as f:

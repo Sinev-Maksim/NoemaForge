@@ -282,6 +282,47 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
             if old_dir is not None:
                 os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = old_dir
 
+    def test_public_mwp_continue_after_reply_next_executes_worker_before_advancing(self) -> None:
+        old_mapping = os.environ.pop("NOEMAFORGE_REFRESHED_ROLE_MAPPING", None)
+        old_dir = os.environ.pop("NOEMAFORGE_SELECTION_REFRESH_DIR", None)
+        try:
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                source = tmp / "old"
+                out = tmp / "refreshed"
+                selection_fixture(source)
+                srr.refresh_selection_artifacts(source, out)
+                os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = str(out)
+                state = tmp / "pipelines"
+                run_id = "run_public_reply_next"
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "public_mwp", "--request", "reply flow", "--run-id", run_id, "--allow-degraded"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", run_id, "--next", "--allow-degraded"])
+                run_dir = state / "runs" / run_id
+                replies = run_dir / "stage_inputs" / "status_check-operator-replies.jsonl"
+                replies.parent.mkdir(parents=True, exist_ok=True)
+                replies.write_text(json.dumps({"stage": "status_check", "action": "reply", "message": "Proceed with deterministic local status output."}) + "\n", encoding="utf-8")
+
+                result = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", run_id, "--next", "--allow-degraded"])
+
+                self.assertTrue(result["ok"])
+                self.assertTrue(result["worker_resolution"]["ok"])
+                self.assertEqual("status_check", result["completed_stage"])
+                self.assertEqual("safe_runtime", result["stage"])
+                self.assertTrue(result["produced_output"])
+                self.assertEqual("executed", result["last_worker_execution_state"]["state"])
+                self.assertEqual("real", result["output_quality"]["quality"])
+                self.assertFalse(result["output_quality"]["looks_placeholder"])
+                output = (run_dir / "outputs" / "status_check.md").read_text(encoding="utf-8")
+                self.assertIn("completed_by_deterministic_local_worker", output)
+                self.assertNotIn("Status: pending", output)
+                decisions = (run_dir / "decisions.md").read_text(encoding="utf-8")
+                self.assertIn("local worker execution for status_check", decisions)
+        finally:
+            if old_mapping is not None:
+                os.environ["NOEMAFORGE_REFRESHED_ROLE_MAPPING"] = old_mapping
+            if old_dir is not None:
+                os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = old_dir
+
     def test_placeholder_output_is_replaced_before_stage_completion(self) -> None:
         old_mapping = os.environ.pop("NOEMAFORGE_REFRESHED_ROLE_MAPPING", None)
         old_dir = os.environ.pop("NOEMAFORGE_SELECTION_REFRESH_DIR", None)
@@ -349,8 +390,11 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 ]
                 self.assertEqual([], placeholder_outputs)
                 conn = prt.db_connect(state)
-                run = prt.get_run(conn, "run_public_final")
-                self.assertEqual([], prt.completion_output_issues(run, "review"))
+                try:
+                    run = prt.get_run(conn, "run_public_final")
+                    self.assertEqual([], prt.completion_output_issues(run, "review"))
+                finally:
+                    prt.close_db_connection(conn)
                 self.assertNotIn("actionable_blocker", result)
         finally:
             if old_mapping is not None:
@@ -367,8 +411,11 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 state = tmp / "pipelines"
                 call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "public_mwp", "--request", "placeholder guard", "--run-id", "run_placeholder_guard", "--allow-degraded"])
                 conn = prt.db_connect(state)
-                run = prt.get_run(conn, "run_placeholder_guard")
-                ready, blocker = prt.ensure_completion_outputs_ready(conn, run, "orient")
+                try:
+                    run = prt.get_run(conn, "run_placeholder_guard")
+                    ready, blocker = prt.ensure_completion_outputs_ready(conn, run, "orient")
+                finally:
+                    prt.close_db_connection(conn)
 
                 self.assertFalse(ready)
                 self.assertIsNotNone(blocker)

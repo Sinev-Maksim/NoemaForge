@@ -378,9 +378,30 @@ def parse_jsonish_text(text: str) -> Any:
     return json.loads(text)
 
 
+
+_DB_CONNECTION_TRACK_STACK: list[list[sqlite3.Connection]] = []
+
+
+def close_db_connection(conn: sqlite3.Connection) -> None:
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+
+def _track_db_connection(conn: sqlite3.Connection) -> None:
+    if _DB_CONNECTION_TRACK_STACK:
+        _DB_CONNECTION_TRACK_STACK[-1].append(conn)
+
+
+def _close_tracked_db_connections(connections: list[sqlite3.Connection]) -> None:
+    for conn in reversed(connections):
+        close_db_connection(conn)
+
 def db_connect(state: Path) -> sqlite3.Connection:
     state.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(state / "pipeline_registry.sqlite")
+    _track_db_connection(conn)
     conn.execute("PRAGMA busy_timeout=5000")
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -1541,8 +1562,12 @@ def advance_run(args: argparse.Namespace) -> None:
         return
 
     stage = args.stage or current_stage
+    current_quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(current_stage)}.md")
+    current_reply_state = latest_operator_reply(run_dir, current_stage)
+    current_has_reply = current_reply_state.get("state") == "operator_reply_recorded"
+    current_needs_worker = current_has_reply and not stage_output_is_real(current_quality)
     if args.next:
-        stage = next_stage_for(run["manifest"], current_stage) or current_stage
+        stage = current_stage if current_needs_worker else (next_stage_for(run["manifest"], current_stage) or current_stage)
     assert_stage(run, str(stage))
     quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(str(stage))}.md")
     reply_state = latest_operator_reply(run_dir, str(stage))
@@ -3539,7 +3564,21 @@ def normalize_global_argv(argv: Optional[List[str]]) -> List[str]:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(normalize_global_argv(argv))
-    args.func(args)
+    _db_connections: list[sqlite3.Connection] = []
+    _DB_CONNECTION_TRACK_STACK.append(_db_connections)
+    try:
+        args.func(args)
+    finally:
+        try:
+            if _DB_CONNECTION_TRACK_STACK and _DB_CONNECTION_TRACK_STACK[-1] is _db_connections:
+                _DB_CONNECTION_TRACK_STACK.pop()
+            else:
+                for idx in range(len(_DB_CONNECTION_TRACK_STACK) - 1, -1, -1):
+                    if _DB_CONNECTION_TRACK_STACK[idx] is _db_connections:
+                        del _DB_CONNECTION_TRACK_STACK[idx]
+                        break
+        finally:
+            _close_tracked_db_connections(_db_connections)
     return 0
 
 

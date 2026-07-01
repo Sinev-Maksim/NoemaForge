@@ -104,7 +104,7 @@ TOOL_ID_RE = re.compile(r"^[a-z0-9]+(\.[a-z0-9_-]+)+$")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -299,7 +299,7 @@ def cmd_propose(args: argparse.Namespace) -> int:
     }
 
     out_dir = args.out_dir or DEFAULT_PROPOSALS_DIR
-    fn = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ") + f"_{tool_id.replace('.', '_')}.yaml"
+    fn = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ") + f"_{tool_id.replace('.', '_')}.yaml"
     path = os.path.join(out_dir, fn)
     _save_yaml(path, prop)
 
