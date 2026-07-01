@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -67,14 +68,16 @@ class ProductionGuiInstallerRuntimeTests(unittest.TestCase):
 
     def test_installer_dry_run_reports_preflight_and_preserves_modes(self) -> None:
         script = PROJECT_ROOT / "install_noemaforge_mvp.sh"
-        result = subprocess.run(
-            [str(script), "--dry-run", "--rootfs", "/tmp/noemaforge-install-test", "--with-share", "/mnt/noemaforge-share"],
-            cwd=str(PROJECT_ROOT),
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
+        with tempfile.TemporaryDirectory(prefix="noemaforge-install-test-") as rootfs:
+            result = subprocess.run(
+                [str(script), "--dry-run", "--rootfs", rootfs, "--with-share", "/mnt/noemaforge-share"],
+                cwd=str(PROJECT_ROOT),
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=30,
+            )
 
         self.assertEqual(0, result.returncode, result.stderr)
         self.assertIn("debian_13_trixie_compatible=check", result.stdout)
@@ -83,6 +86,22 @@ class ProductionGuiInstallerRuntimeTests(unittest.TestCase):
         self.assertIn("destructive_delete_requires=explicit_operator_approval", result.stdout)
         self.assertIn("systemd_update=explicit_recoverable_units", result.stdout)
         self.assertIn("ensure-dir /opt/noemaforge mode=dir-preserve-existing", result.stdout)
+        self.assertIn("ensure-dir /mnt/noemaforge-share mode=dir-preserve-existing", result.stdout)
+
+    def test_installer_live_root_dry_run_does_not_promise_default_share_without_flag(self) -> None:
+        script = PROJECT_ROOT / "install_noemaforge_mvp.sh"
+        result = subprocess.run(
+            [str(script), "--dry-run"],
+            cwd=str(PROJECT_ROOT),
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=30,
+        )
+
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertNotIn("ensure-dir /mnt/noemaforge-share mode=dir-preserve-existing", result.stdout)
 
 
 if __name__ == "__main__":
