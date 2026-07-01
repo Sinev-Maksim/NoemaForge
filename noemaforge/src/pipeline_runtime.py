@@ -95,6 +95,8 @@ TOOLPROXY_BLOCKED_BY_STAGE_DEFAULT = [
 ]
 TOOLPROXY_WRITE_STAGE_TERMS = {
     "development",
+    "implementation",
+    "patch",
     "drafting",
     "docs_update",
     "changelog",
@@ -132,13 +134,25 @@ DEFAULT_PIPELINES: Dict[str, Dict[str, Any]] = {
         "deliverables": ["status_note", "safe_runtime_check", "first_chat_note", "first_pipeline_note", "support_bundle_plan"],
     },
     "evolution": {
-        "description": "Architecture-aware development/evolution pipeline.",
+        "description": "Production evolution planning pipeline with explicit approval and release-readiness gates.",
         "project_id": "noemaforge",
-        "stages": ["intake", "architecture_clarification", "development_plan", "development_execute", "unit_testing", "integration_testing", "optimization", "review", "merge_plan"],
+        "stages": ["intake", "current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "operator_approval", "implementation_plan", "validation_plan", "release_readiness"],
         "team": "development_evolution_team",
         "permission_mode": "ask_before_write",
         "llm_policy": {"mode": "switchable", "max_active_llms": 1},
-        "deliverables": ["architecture_note", "patch_or_plan", "test_report", "optimization_note", "merge_plan"],
+        "deliverables": ["current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "implementation_plan", "validation_plan", "release_readiness"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
+    },
+    "self_development": {
+        "description": "Self-development planning pipeline with scope boundaries, approval gate and adapter-required execution defers.",
+        "project_id": "noemaforge_self_development",
+        "stages": ["goal_intake", "repo_state_scan", "issue_decomposition", "implementation_plan", "safety_review", "operator_approval", "patch_generation_or_adapter_required", "test_execution_or_adapter_required", "review_summary", "handoff"],
+        "team": "self_development_team",
+        "permission_mode": "ask_before_write",
+        "pipeline_scope": "degraded_plan_only",
+        "llm_policy": {"mode": "switchable", "max_active_llms": 1},
+        "deliverables": ["proposed_patch_plan", "test_plan", "risk_register", "rollback_plan", "implementation_report"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
     },
     "book": {
         "description": "Research-to-book pipeline with editor/reviewer handoffs.",
@@ -180,6 +194,11 @@ DEFAULT_TEAMS: Dict[str, Dict[str, Any]] = {
         "roles": ["architect", "developer", "tester", "integration_tester", "optimizer", "reviewer", "archivist"],
         "handoff": "single active LLM; each role receives the previous context packet and writes a new artifact",
     },
+    "self_development_team": {
+        "coordinator": "administrator",
+        "roles": ["scope_reviewer", "repo_scanner", "planner", "safety_reviewer", "operator_gate", "adapter_executor", "qa_reviewer", "handoff_archivist"],
+        "handoff": "single active LLM; planning/review stages are deterministic and code/test execution defers to explicit adapters plus operator approval",
+    },
     "book_team": {
         "coordinator": "editor_in_chief",
         "roles": ["researcher", "outline_architect", "writer", "editor", "fact_checker", "archivist"],
@@ -220,7 +239,7 @@ def build_toolproxy_stage_binding(pipeline_id: str, stage: str, permission_mode:
         allowed.add("exec.run")
     if any(term in stage_key for term in TOOLPROXY_REVIEW_STAGE_TERMS):
         mutating_allowed.extend(["task.update", "roadmap.record"])
-    if str(pipeline_id) == "evolution" and stage_key in {"development", "development_plan", "development_execute", "review", "merge_plan"}:
+    if str(pipeline_id) in {"evolution", "self_development"} and stage_key in {"development", "development_plan", "development_execute", "implementation_plan", "patch_generation_or_adapter_required", "review", "review_summary", "merge_plan", "handoff"}:
         mutating_allowed.append("worktree.enter")
 
     allowed.update(mutating_allowed)

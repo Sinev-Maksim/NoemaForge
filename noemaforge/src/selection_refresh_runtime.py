@@ -28,6 +28,22 @@ from noemaforge_version import RUNTIME_VERSION
 
 
 API_VERSION = "noemaforge.model-selection-refresh/v1"
+ROLE_SELECTION_API_VERSION = "noemaforge.model-role-selection/v1"
+ROLE_REQUIREMENTS = {
+    "operator.admin/administrator": {"capability_class": "text_status", "required_capabilities": ["text_status", "text_review"]},
+    "dev.work/solution_architect": {"capability_class": "dev_plan", "required_capabilities": ["dev_plan", "text_plan", "text_review"]},
+    "dev.work/dev": {"capability_class": "dev_execute", "required_capabilities": ["dev_execute", "dev_plan"]},
+    "dev.work/qa": {"capability_class": "audit", "required_capabilities": ["audit", "text_review"]},
+    "knowledge.vault/researcher": {"capability_class": "text_plan", "required_capabilities": ["text_plan", "audit"]},
+    "writing.story/writer": {"capability_class": "text_documentation", "required_capabilities": ["text_documentation", "text_plan"]},
+}
+VALID_SELECTION_STATES = {
+    "valid_selected",
+    "adapter_required",
+    "backend_unavailable",
+    "insufficient_capability",
+    "operator_confirmation_required",
+}
 TEXT_STAGE_ALLOWED_FALLBACK_ROLES = [
     "operator.admin/administrator",
     "dev.work/solution_architect",
@@ -209,6 +225,149 @@ def write_json(path: Path, data: Any) -> None:
     tmp = path.with_name(f".{path.name}.tmp")
     tmp.write_text(json_dumps(data) + "\n", encoding="utf-8")
     os.replace(tmp, path)
+
+
+def _as_list(value: Any) -> List[str]:
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item or "").strip()]
+
+
+def _float(value: Any, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def normalize_inventory_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Normalize model inventory records before scoring.
+
+    The scorer treats vendor, architecture and size as comparison dimensions,
+    not as hard-coded preferences. Missing backend or adapter declarations are
+    preserved as degraded states instead of being converted into success.
+    """
+    normalized: List[Dict[str, Any]] = []
+    for raw in records:
+        if not isinstance(raw, dict):
+            continue
+        model_id = str(raw.get("model_id") or raw.get("logical_model_id") or raw.get("id") or "").strip()
+        if not model_id:
+            continue
+        capabilities = sorted(set(_as_list(raw.get("capabilities"))) | set(_as_list(raw.get("capability_classes"))))
+        size_b = raw.get("size_bytes")
+        size_label = str(raw.get("size_class") or raw.get("size") or "").strip()
+        if not size_label:
+            params_b = _float(raw.get("params_b"), -1.0)
+            if params_b >= 13:
+                size_label = "large"
+            elif params_b >= 3:
+                size_label = "medium"
+            elif params_b >= 0:
+                size_label = "small"
+            elif size_b is not None and _float(size_b) >= 8_000_000_000:
+                size_label = "large"
+            else:
+                size_label = "unknown"
+        normalized.append({
+            **raw,
+            "model_id": model_id,
+            "vendor": str(raw.get("vendor") or raw.get("family") or "unknown").strip().lower() or "unknown",
+            "architecture": str(raw.get("architecture") or raw.get("arch") or "unknown").strip().lower() or "unknown",
+            "size_class": size_label,
+            "capabilities": capabilities,
+            "backend_status": str(raw.get("backend_status") or ("available" if raw.get("backend_available", True) else "unavailable")),
+            "adapter_status": str(raw.get("adapter_status") or ("available" if raw.get("adapter_available", True) else "required")),
+        })
+    return sorted(normalized, key=lambda item: (str(item.get("model_id")), str(item.get("vendor")), str(item.get("architecture"))))
+
+
+def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_requirements: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    req = dict(role_requirements or ROLE_REQUIREMENTS.get(role_key) or {})
+    required = set(_as_list(req.get("required_capabilities")))
+    capabilities = set(_as_list(candidate.get("capabilities")))
+    missing = sorted(required - capabilities)
+    if str(candidate.get("backend_status") or "") not in {"", "available", "ready", "ok"}:
+        state = "backend_unavailable"
+    elif str(candidate.get("adapter_status") or "") in {"required", "missing", "unavailable"}:
+        state = "adapter_required"
+    elif missing:
+        state = "insufficient_capability"
+    else:
+        state = "valid_selected"
+    measured = candidate.get("measured") if isinstance(candidate.get("measured"), dict) else {}
+    pass_rate = _float(candidate.get("pass_rate", measured.get("pass_rate", 0.0)))
+    quality = _float(candidate.get("quality_score", measured.get("quality_score", candidate.get("score", 0.0))))
+    json_rate = _float(candidate.get("json_parse_rate", measured.get("json_parse_rate", 0.0)))
+    latency_ms = max(1.0, _float(candidate.get("avg_latency_ms", measured.get("avg_latency_ms", 2500.0)), 2500.0))
+    latency_score = min(1.0, 1000.0 / latency_ms)
+    capability_score = 1.0 if not required else (len(required & capabilities) / len(required))
+    score = round((quality * 0.42) + (pass_rate * 0.28) + (json_rate * 0.18) + (latency_score * 0.07) + (capability_score * 0.05), 6)
+    if state != "valid_selected":
+        score = 0.0
+    return {
+        "model_id": candidate.get("model_id"),
+        "role_key": role_key,
+        "selection_state": state,
+        "score": score,
+        "missing_capabilities": missing,
+        "vendor": candidate.get("vendor"),
+        "architecture": candidate.get("architecture"),
+        "size_class": candidate.get("size_class"),
+        "measured": {
+            "pass_rate": pass_rate,
+            "quality_score": quality,
+            "json_parse_rate": json_rate,
+            "avg_latency_ms": latency_ms,
+        },
+    }
+
+
+def build_role_selection_mapping(
+    inventory: Iterable[Dict[str, Any]],
+    role_requirements: Optional[Dict[str, Dict[str, Any]]] = None,
+    *,
+    current_epoch_id: str = "",
+    proposed_epoch_id: str = "",
+    operator_confirmed: bool = False,
+) -> Dict[str, Any]:
+    requirements = role_requirements or ROLE_REQUIREMENTS
+    candidates = normalize_inventory_records(inventory)
+    role_results: Dict[str, Any] = {}
+    for role_key, req in sorted(requirements.items()):
+        scored = [score_candidate_for_role(candidate, role_key, role_requirements=req) for candidate in candidates]
+        scored = sorted(scored, key=lambda item: (-_float(item.get("score")), str(item.get("model_id"))))
+        valid = [item for item in scored if item.get("selection_state") == "valid_selected"]
+        chosen = valid[0] if valid else (scored[0] if scored else {"selection_state": "backend_unavailable", "score": 0.0})
+        state = str(chosen.get("selection_state") or "backend_unavailable")
+        if state == "valid_selected" and proposed_epoch_id and current_epoch_id and proposed_epoch_id != current_epoch_id and not operator_confirmed:
+            state = "operator_confirmation_required"
+        role_results[role_key] = {
+            "role_key": role_key,
+            "requirements": req,
+            "selection_state": state,
+            "chosen": chosen,
+            "candidates": scored,
+        }
+    states = sorted({str(item.get("selection_state")) for item in role_results.values()})
+    return {
+        "apiVersion": ROLE_SELECTION_API_VERSION,
+        "kind": "RoleSelectionMapping",
+        "version": RUNTIME_VERSION,
+        "created_at": nowz(),
+        "schema_version": 1,
+        "current_epoch_id": current_epoch_id,
+        "proposed_epoch_id": proposed_epoch_id,
+        "operator_confirmed": bool(operator_confirmed),
+        "selection_states": states,
+        "valid_selection_states": sorted(VALID_SELECTION_STATES),
+        "fairness_controls": {
+            "compare_dimensions": ["size_class", "architecture", "vendor"],
+            "hardcoded_vendor_preference": False,
+            "capability_class_separation": True,
+        },
+        "roles": role_results,
+    }
 
 
 def _first_existing(source: Path, names: Iterable[str]) -> Optional[Path]:
@@ -462,9 +621,9 @@ def classify_stage_capability(stage: str, *, pipeline_id: str = "", permission_m
     permission = str(permission_mode or "").casefold()
     if normalized == "development":
         return "dev_plan" if permission == "plan_only" else "dev_execute"
-    if normalized in {"development_plan", "dev_plan", "implementation_plan", "patch_plan"}:
+    if normalized in {"development_plan", "dev_plan", "implementation_plan", "patch_plan", "mutation_plan", "validation_plan", "release_readiness", "rollback_plan"}:
         return "dev_plan"
-    if normalized in {"development_execute", "dev_execute", "implementation_execute", "patch_execute"}:
+    if normalized in {"development_execute", "dev_execute", "implementation_execute", "patch_execute", "patch_generation_or_adapter_required", "test_execution_or_adapter_required"}:
         return "dev_execute"
     if terms & {"voice", "audio", "tts", "stt", "microphone", "transcribe", "speech"}:
         return "media_plan" if terms & {"plan", "planning", "spec", "metadata", "review"} else "voice_execute"
@@ -480,13 +639,13 @@ def classify_stage_capability(stage: str, *, pipeline_id: str = "", permission_m
         return "handoff"
     if terms & {"review", "approval", "merge"}:
         return "text_review"
-    if terms & {"status", "health", "safe", "orient", "intake", "chat"}:
+    if terms & {"status", "state", "current", "repo", "goal", "health", "safe", "orient", "intake", "chat"}:
         return "text_status"
     if terms & {"documentation", "docs", "doc", "changelog", "wiki"}:
         return "text_documentation"
     if terms & {"audit", "test", "testing", "qa", "validation", "smoke", "fact", "inventory", "optimization", "performance", "budget", "analysis", "check"}:
         return "audit"
-    if terms & {"plan", "planning", "outline", "research", "source", "architecture", "clarification", "release", "pipeline", "graph", "relation", "entity", "provenance", "drafting", "draft"}:
+    if terms & {"plan", "planning", "outline", "research", "source", "architecture", "clarification", "release", "pipeline", "graph", "relation", "entity", "provenance", "drafting", "draft", "issue", "decomposition"}:
         return "text_plan"
     return "unknown"
 
@@ -631,7 +790,7 @@ def preferred_role_for_stage(pipeline_id: str, stage: str) -> str:
     terms = _stage_terms(text)
     if any(term in terms for term in {"test", "testing", "qa", "validation", "smoke"}):
         return "dev.work/qa"
-    if any(term in terms for term in {"dev", "development", "code", "refactor", "patch", "module"}):
+    if any(term in terms for term in {"dev", "development", "implementation", "code", "refactor", "patch", "module"}):
         return "dev.work/dev"
     if any(term in terms for term in {"research", "source", "citation", "knowledge", "graph"}):
         return "knowledge.vault/researcher"

@@ -22,6 +22,20 @@
     ],
     "handoff": "single active LLM; each role receives the previous context packet and writes a new artifact"
   },
+  "self_development_team": {
+    "coordinator": "administrator",
+    "roles": [
+      "scope_reviewer",
+      "repo_scanner",
+      "planner",
+      "safety_reviewer",
+      "operator_gate",
+      "adapter_executor",
+      "qa_reviewer",
+      "handoff_archivist"
+    ],
+    "handoff": "single active LLM; planning/review stages are deterministic and code/test execution defers to explicit adapters plus operator approval"
+  },
   "book_team": {
     "coordinator": "editor_in_chief",
     "roles": [

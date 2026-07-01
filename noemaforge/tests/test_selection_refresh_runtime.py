@@ -210,6 +210,92 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
             self.assertEqual("dev.work/solution_architect", resolved["resolved_role"])
             self.assertEqual("explicit", resolved["fallback_policy"])
 
+    def test_role_selection_scores_valid_candidate_deterministically(self) -> None:
+        inventory = [
+            {
+                "model_id": "vendor-b-small",
+                "vendor": "vendor-b",
+                "architecture": "llama",
+                "params_b": 1.5,
+                "capabilities": ["dev_plan", "text_plan", "text_review"],
+                "pass_rate": 0.7,
+                "json_parse_rate": 0.8,
+                "quality_score": 0.7,
+                "avg_latency_ms": 900,
+            },
+            {
+                "model_id": "vendor-a-medium",
+                "vendor": "vendor-a",
+                "architecture": "qwen",
+                "params_b": 7,
+                "capabilities": ["dev_plan", "text_plan", "text_review"],
+                "pass_rate": 0.9,
+                "json_parse_rate": 1.0,
+                "quality_score": 0.9,
+                "avg_latency_ms": 1200,
+            },
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+            current_epoch_id="epoch-a",
+            proposed_epoch_id="epoch-a",
+        )
+
+        role = mapping["roles"]["dev.work/solution_architect"]
+        self.assertEqual("valid_selected", role["selection_state"])
+        self.assertEqual("vendor-a-medium", role["chosen"]["model_id"])
+        self.assertFalse(mapping["fairness_controls"]["hardcoded_vendor_preference"])
+        self.assertEqual(["architecture", "size_class", "vendor"], sorted(mapping["fairness_controls"]["compare_dimensions"]))
+
+    def test_role_selection_degraded_states_are_actionable(self) -> None:
+        inventory = [
+            {"model_id": "no-backend", "capabilities": ["dev_plan"], "backend_status": "unavailable"},
+            {"model_id": "needs-adapter", "capabilities": ["dev_plan"], "adapter_status": "required"},
+            {"model_id": "missing-capability", "capabilities": ["text_plan"], "backend_status": "available", "adapter_status": "available"},
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+        )
+        states = {item["selection_state"] for item in mapping["roles"]["dev.work/solution_architect"]["candidates"]}
+
+        self.assertIn("backend_unavailable", states)
+        self.assertIn("adapter_required", states)
+        self.assertIn("insufficient_capability", states)
+        self.assertLessEqual(states, srr.VALID_SELECTION_STATES)
+
+    def test_epoch_switch_requires_operator_confirmation(self) -> None:
+        inventory = [{
+            "model_id": "valid-dev-plan",
+            "capabilities": ["dev_plan", "text_plan", "text_review"],
+            "backend_status": "available",
+            "adapter_status": "available",
+            "quality_score": 1.0,
+            "pass_rate": 1.0,
+            "json_parse_rate": 1.0,
+        }]
+
+        blocked = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+            current_epoch_id="epoch-a",
+            proposed_epoch_id="epoch-b",
+            operator_confirmed=False,
+        )
+        confirmed = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+            current_epoch_id="epoch-a",
+            proposed_epoch_id="epoch-b",
+            operator_confirmed=True,
+        )
+
+        self.assertEqual("operator_confirmation_required", blocked["roles"]["dev.work/solution_architect"]["selection_state"])
+        self.assertEqual("valid_selected", confirmed["roles"]["dev.work/solution_architect"]["selection_state"])
+
     def test_pipeline_advance_can_use_refreshed_mapping_but_missing_worker_still_fails(self) -> None:
         old_mapping = os.environ.pop("NOEMAFORGE_REFRESHED_ROLE_MAPPING", None)
         old_dir = os.environ.pop("NOEMAFORGE_SELECTION_REFRESH_DIR", None)
@@ -221,7 +307,7 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_worker", "--next", "--allow-degraded"])
                 blocked = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_worker", "--allow-degraded"])
                 self.assertFalse(blocked["ok"])
-                self.assertTrue(blocked["blocked_missing_worker"])
+                self.assertIn(blocked["status"], {"blocked_missing_worker", "blocked_placeholder_output"})
 
                 source = tmp / "old"
                 out = tmp / "refreshed"
@@ -237,7 +323,7 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 self.assertEqual("executed", resolved["last_worker_execution_state"]["state"])
                 self.assertEqual("real", resolved["output_quality"]["quality"])
                 self.assertTrue(Path(resolved["output_path"]).exists())
-                self.assertNotEqual("architecture_clarification", resolved["stage"])
+                self.assertNotEqual("current_state", resolved["stage"])
                 text = Path(resolved["output_path"]).read_text(encoding="utf-8")
                 self.assertIn("## Decision", text)
                 self.assertIn("## Evidence/Input summary", text)
@@ -429,7 +515,7 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
             if old_dir is not None:
                 os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = old_dir
 
-    def test_development_plan_produces_real_output_and_execute_requires_backend(self) -> None:
+    def test_implementation_plan_produces_real_output_and_selfdev_execute_defers(self) -> None:
         old_mapping = os.environ.pop("NOEMAFORGE_REFRESHED_ROLE_MAPPING", None)
         old_dir = os.environ.pop("NOEMAFORGE_SELECTION_REFRESH_DIR", None)
         try:
@@ -441,14 +527,15 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 srr.refresh_selection_artifacts(source, out)
                 os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = str(out)
                 state = tmp / "pipelines"
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "evolution", "--request", "evolution development", "--run-id", "run_evolution_dev", "--allow-degraded"])
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--next", "--allow-degraded"])
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--allow-degraded", "--note", "continue architecture"])
-                plan = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--allow-degraded", "--note", "continue development plan"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "evolution", "--request", "evolution implementation", "--run-id", "run_evolution_dev", "--allow-degraded"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--next", "--allow-degraded", "--note", "approve"])
+                for note in ["current state", "evidence", "gap", "mutation", "risk", "approval"]:
+                    call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--allow-degraded", "--note", note])
+                plan = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--allow-degraded", "--note", "continue implementation plan"])
 
                 self.assertTrue(plan["ok"])
-                self.assertEqual("development_plan", plan["completed_stage"])
-                self.assertEqual("development_execute", plan["stage"])
+                self.assertEqual("implementation_plan", plan["completed_stage"])
+                self.assertEqual("validation_plan", plan["stage"])
                 self.assertTrue(plan["produced_output"])
                 self.assertEqual("real", plan["output_quality"]["quality"])
                 self.assertEqual("dev_plan", plan["worker_resolution"]["stage_capability"])
@@ -456,7 +543,11 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 self.assertEqual("dev.work/solution_architect", plan["worker_resolution"]["resolved_role"])
                 self.assertNotIn("actionable_blocker", plan)
 
-                execute = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_evolution_dev", "--allow-degraded", "--note", "continue development execute"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "self_development", "--request", "selfdev execution defer", "--run-id", "run_selfdev_execute", "--allow-degraded"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_selfdev_execute", "--next", "--allow-degraded", "--note", "approve"])
+                for note in ["repo", "decompose", "plan", "safety", "operator"]:
+                    call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_selfdev_execute", "--allow-degraded", "--note", note])
+                execute = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_selfdev_execute", "--allow-degraded", "--note", "continue patch adapter"])
 
                 self.assertFalse(execute["ok"])
                 self.assertEqual("blocked_backend_required", execute["status"])
@@ -464,7 +555,7 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 self.assertEqual("dev_execute", execute["actionable_blocker"]["stage_capability"])
                 self.assertIn("required_backend", execute["actionable_blocker"])
                 self.assertTrue(execute["actionable_blocker"]["next_actions"])
-                status = call_pipeline(["--root", str(ROOT), "--state", str(state), "show", "run_evolution_dev"])
+                status = call_pipeline(["--root", str(ROOT), "--state", str(state), "show", "run_selfdev_execute"])
                 self.assertNotEqual("completed", status["status"])
         finally:
             if old_mapping is not None:
@@ -540,10 +631,10 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
                 srr.refresh_selection_artifacts(source, out)
                 os.environ["NOEMAFORGE_SELECTION_REFRESH_DIR"] = str(out)
                 state = tmp / "pipelines"
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "evolution", "--request", "degraded package", "--run-id", "run_degraded_package", "--allow-degraded"])
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--next", "--allow-degraded"])
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--allow-degraded"])
-                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--allow-degraded"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "run", "self_development", "--request", "degraded package", "--run-id", "run_degraded_package", "--allow-degraded"])
+                call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--next", "--allow-degraded", "--note", "approve"])
+                for note in ["repo", "decompose", "plan", "safety", "operator"]:
+                    call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--allow-degraded", "--note", note])
                 blocked = call_pipeline(["--root", str(ROOT), "--state", str(state), "advance", "run_degraded_package", "--allow-degraded"])
 
                 self.assertFalse(blocked["ok"])
