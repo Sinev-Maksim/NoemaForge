@@ -81,7 +81,8 @@ def parse_ics_text(text: str) -> List[Dict[str, Any]]:
 
 
 def import_ics_file(path: str, out_path: str = '') -> Dict[str, Any]:
-    text = open(path, 'r', encoding='utf-8', errors='replace').read()
+    with open(path, 'r', encoding='utf-8', errors='replace') as f:
+        text = f.read()
     events = parse_ics_text(text)
     payload = {'ok': True, 'source_path': path, 'events': events}
     if out_path:

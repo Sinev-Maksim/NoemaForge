@@ -120,7 +120,7 @@ _INBOX_CACHE: Dict[str, Any] = {"ts": 0.0, "state_root": "", "data": None}
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -836,7 +836,7 @@ def load_telemetry(llm_calls_path: str, limit: int = 50) -> Dict[str, Any]:
 # === End NoemaForge Autodoc Function Header ===
 def _iso_ts(ts: float) -> str:
     try:
-        return dt.datetime.utcfromtimestamp(float(ts)).isoformat() + "Z"
+        return dt.datetime.fromtimestamp(float(ts), dt.UTC).replace(tzinfo=None).isoformat() + "Z"
     except Exception:
         return ""
 

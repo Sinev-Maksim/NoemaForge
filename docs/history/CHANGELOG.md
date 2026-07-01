@@ -71,6 +71,8 @@ pipeline-dragdrop-editor-core: the later Pipeline Dock implementation closes the
 - systemd-happy-path-core: No happy-path install or boot-mode flow requires hand-editing systemd units
 - topic-adjacent-retrieval-core: Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.
 - topic_adjacent_boundary: Topic-adjacent retrieval uses static adjacency metadata and never falls back to fixed context windows.
+- cross-platform-prep-core: Cross-platform prep boundary: tools/prep/*.py is the source of truth for Vault scan, inbox processing, metadata export and firstboot staging; Windows PowerShell/CMD and Linux/macOS shell scripts are thin wrappers over noemaforge_prep_core.py, so prep can run without a Windows host.
+- premerge-release-guard-core: noemaforge selftest release-guard remains the local pre-merge release guard command for static release evidence checks.
 
 ## 0.33.0-dev remaining policy QA token index
 

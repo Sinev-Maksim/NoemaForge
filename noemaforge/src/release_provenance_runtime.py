@@ -98,7 +98,14 @@ def _resolve_ref(ref: str, *, project_root: Path, package_root: Path) -> Dict[st
     return {"ok": False, "ref": ref, "resolved_under": "", "path": "", "checked": checked}
 
 
-def _resolve_refs(refs: Sequence[str], *, project_root: Path, package_root: Path, owner: str) -> Dict[str, Any]:
+def _resolve_refs(
+    refs: Sequence[str],
+    *,
+    project_root: Path,
+    package_root: Path,
+    owner: str,
+    resolve_cache: Optional[Dict[str, Dict[str, Any]]] = None,
+) -> Dict[str, Any]:
     failures: List[str] = []
     resolved_refs: List[Dict[str, Any]] = []
     missing_refs: List[Dict[str, Any]] = []
@@ -108,7 +115,12 @@ def _resolve_refs(refs: Sequence[str], *, project_root: Path, package_root: Path
             unsafe_refs.append({"owner": owner, "ref": ref})
             failures.append(f"unsafe_ref:{owner}:{ref}")
             continue
-        resolved = _resolve_ref(ref, project_root=project_root, package_root=package_root)
+        if resolve_cache is not None and ref in resolve_cache:
+            resolved = dict(resolve_cache[ref])
+        else:
+            resolved = _resolve_ref(ref, project_root=project_root, package_root=package_root)
+            if resolve_cache is not None:
+                resolve_cache[ref] = dict(resolved)
         resolved["owner"] = owner
         if resolved["ok"]:
             resolved_refs.append(resolved)
@@ -379,15 +391,28 @@ def validate_release_provenance_policy(
     all_unsafe_refs: List[Dict[str, Any]] = []
     release_results: List[Dict[str, Any]] = []
     signed_artifacts = 0
+    resolve_cache: Dict[str, Dict[str, Any]] = {}
 
     refs_to_resolve = sorted(set(_as_string_list(payload.get("refs"))))
-    refs_result = _resolve_refs(refs_to_resolve, project_root=project, package_root=package, owner=str(payload.get("id") or "policy"))
+    refs_result = _resolve_refs(
+        refs_to_resolve,
+        project_root=project,
+        package_root=package,
+        owner=str(payload.get("id") or "policy"),
+        resolve_cache=resolve_cache,
+    )
     failures.extend(refs_result["failures"])
     all_resolved_refs.extend(refs_result["resolved_refs"])
     all_missing_refs.extend(refs_result["missing_refs"])
     all_unsafe_refs.extend(refs_result["unsafe_refs"])
 
-    example_ref_results = _resolve_refs(_as_string_list(policy.get("required_example_sets")), project_root=project, package_root=package, owner="required_example_sets")
+    example_ref_results = _resolve_refs(
+        _as_string_list(policy.get("required_example_sets")),
+        project_root=project,
+        package_root=package,
+        owner="required_example_sets",
+        resolve_cache=resolve_cache,
+    )
     failures.extend(example_ref_results["failures"])
     all_resolved_refs.extend(example_ref_results["resolved_refs"])
     all_missing_refs.extend(example_ref_results["missing_refs"])
@@ -410,7 +435,13 @@ def validate_release_provenance_policy(
             release_failures = _release_failures(release, payload)
             failures.extend(release_failures)
             signed_artifacts += len(release.get("signatures") if isinstance(release.get("signatures"), list) else [])
-            release_ref_result = _resolve_refs(_as_string_list(release.get("refs")), project_root=project, package_root=package, owner=release_id)
+            release_ref_result = _resolve_refs(
+                _as_string_list(release.get("refs")),
+                project_root=project,
+                package_root=package,
+                owner=release_id,
+                resolve_cache=resolve_cache,
+            )
             failures.extend(release_ref_result["failures"])
             all_resolved_refs.extend(release_ref_result["resolved_refs"])
             all_missing_refs.extend(release_ref_result["missing_refs"])

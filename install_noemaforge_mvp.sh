@@ -40,6 +40,7 @@ VERIFY=0
 SELFTEST=0
 PRESERVE_TIMERS=0
 DRY_RUN=0
+REQUIRED_DIRS=(/opt/noemaforge /var/lib/noemaforge /mnt/noemaforge-share)
 
 usage(){ cat <<'USAGE'
 Usage: sudo ./install_noemaforge_mvp.sh [options]
@@ -58,6 +59,7 @@ Safe defaults:
   - disables manager/modelscan timers unless --preserve-timers is passed;
   - installs runtime invariant max_active_llms=1;
   - never downloads models or starts heavy backends.
+  - preflights Debian 13/Trixie compatibility and required install/state/share directories.
 USAGE
 }
 
@@ -87,6 +89,40 @@ install_file(){ local src="$1" rel="$2" mode="${3:-0755}"; [[ "$DRY_RUN" == 1 ]]
 install_default_once(){ local src="$1" rel="$2" mode="${3:-0644}"; [[ "$DRY_RUN" == 1 ]] && { echo "install-default $rel mode=$mode if-missing"; return 0; }; [[ -e "$(target "$rel")" ]] && return 0; install_file "$src" "$rel" "$mode"; }
 install_symlink(){ local src="$1" dst="$2"; [[ "$DRY_RUN" == 1 ]] && { echo "link $dst -> $src"; return 0; }; mkdir -p "$(dirname "$(target "$dst")")"; ln -sfn "$src" "$(target "$dst")"; }
 backup_one(){ local p="$1" t; t="$(target "$p")"; if [[ "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ( -e "$t" || -L "$t" ) ]]; then mkdir -p "$BACKUP/backup-root/$(dirname "${p#/}")"; cp -a "$t" "$BACKUP/backup-root/${p#/}" 2>/dev/null || true; fi; }
+ensure_dir_preserve(){ local p="$1" mode="$2" t; t="$(target "$p")"; [[ -d "$t" ]] && return 0; install -d -m "$mode" "$t"; }
+preflight_install_update(){
+  local os_pretty os_version
+  echo "[install][preflight] debian_13_trixie_compatible=check"
+  if [[ -r "$(target /etc/os-release)" ]]; then
+    os_pretty="$(grep -E '^PRETTY_NAME=' "$(target /etc/os-release)" | head -n1 | cut -d= -f2- | tr -d '"')"
+    os_version="$(grep -E '^VERSION_CODENAME=' "$(target /etc/os-release)" | head -n1 | cut -d= -f2- | tr -d '"')"
+    echo "[install][preflight] os=${os_pretty:-unknown} codename=${os_version:-unknown}"
+  else
+    echo "[install][preflight] os-release=missing_or_rootfs_test"
+  fi
+  echo "[install][preflight] required_dirs=${REQUIRED_DIRS[*]}"
+  echo "[install][preflight] state_clobber_policy=preserve_existing_state"
+  echo "[install][preflight] destructive_delete_requires=explicit_operator_approval"
+  echo "[install][preflight] systemd_update=explicit_recoverable_units"
+  if [[ "$DRY_RUN" == 1 ]]; then
+    echo "ensure-dir /opt/noemaforge mode=dir-preserve-existing"
+    echo "ensure-dir $DATA_ROOT mode=dir-preserve-existing"
+    if [[ -n "$WITH_SHARE" ]]; then
+      echo "ensure-dir $WITH_SHARE mode=dir-preserve-existing"
+    elif [[ "$ROOTFS" != "/" ]]; then
+      echo "ensure-dir /mnt/noemaforge-share mode=dir-preserve-existing"
+    fi
+    return 0
+  fi
+  for d in /opt/noemaforge "$DATA_ROOT"; do
+    ensure_dir_preserve "$d" 0750
+  done
+  if [[ -n "$WITH_SHARE" ]]; then
+    ensure_dir_preserve "$WITH_SHARE" 0755
+  elif [[ "$ROOTFS" != "/" ]]; then
+    ensure_dir_preserve /mnt/noemaforge-share 0755
+  fi
+}
 
 if [[ "$VERIFY" == 1 && -f "$PKG_DIR/SHA256SUMS" ]]; then
   (cd "$PKG_DIR" && sha256sum -c SHA256SUMS)
@@ -133,6 +169,7 @@ NoemaForge ${VERSION} install plan
   dry_run:         $DRY_RUN
   invariant:       max_active_llms=1, gui_llm_profile=runtime_only, wogui_llm_profile=bootstrap_cpu_llm, heavy_llm_autostart=manual_only
 PLAN
+preflight_install_update
 [[ "$DRY_RUN" == 1 ]] && exit 0
 
 BACKUP="/var/backups/noemaforge-${VERSION}-$(date +%Y%m%d-%H%M%S)"

@@ -58,6 +58,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import production_ai_contracts
+import selection_refresh_runtime as selection_refresh
 from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
@@ -68,9 +69,10 @@ SAFE_ID_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
 FINISHED_STATUSES = {"done", "completed", "cancelled", "failed", "archived"}
 PAUSED_STATUSES = {"paused", "waiting_for_admin"}
 ACTIVE_STATUSES = {"ready_for_admin_approval", "approved", "in_progress", "testing", "review", "optimization"}
+PLACEHOLDER_STATUSES = {"pending_placeholder", "waiting_for_operator_reply", "operator_reply_recorded", "ready_to_continue_after_reply"}
 EVOLUTION_WORKTREE_BRANCH_PREFIX = "noemaforge/evolution/"
 WORKTREE_REF_RE = re.compile(r"^[A-Za-z0-9._/@+-]{1,180}$")
-TOOLPROXY_POLICY_REF = "tool-policy:tool-policy-main:0.32.2"
+TOOLPROXY_POLICY_REF = f"tool-policy:tool-policy-main:{RUNTIME_VERSION}"
 TOOLPROXY_CAPABILITY_SCHEMA_REF = "contracts/capability_token.schema.json"
 TOOLPROXY_BASE_ACTIONS = [
     "llm.chat",
@@ -93,6 +95,8 @@ TOOLPROXY_BLOCKED_BY_STAGE_DEFAULT = [
 ]
 TOOLPROXY_WRITE_STAGE_TERMS = {
     "development",
+    "implementation",
+    "patch",
     "drafting",
     "docs_update",
     "changelog",
@@ -130,13 +134,25 @@ DEFAULT_PIPELINES: Dict[str, Dict[str, Any]] = {
         "deliverables": ["status_note", "safe_runtime_check", "first_chat_note", "first_pipeline_note", "support_bundle_plan"],
     },
     "evolution": {
-        "description": "Architecture-aware development/evolution pipeline.",
+        "description": "Production evolution planning pipeline with explicit approval and release-readiness gates.",
         "project_id": "noemaforge",
-        "stages": ["intake", "architecture_clarification", "development", "unit_testing", "integration_testing", "optimization", "review", "merge_plan"],
+        "stages": ["intake", "current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "operator_approval", "implementation_plan", "validation_plan", "release_readiness"],
         "team": "development_evolution_team",
         "permission_mode": "ask_before_write",
         "llm_policy": {"mode": "switchable", "max_active_llms": 1},
-        "deliverables": ["architecture_note", "patch_or_plan", "test_report", "optimization_note", "merge_plan"],
+        "deliverables": ["current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "implementation_plan", "validation_plan", "release_readiness"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
+    },
+    "self_development": {
+        "description": "Self-development planning pipeline with scope boundaries, approval gate and adapter-required execution defers.",
+        "project_id": "noemaforge_self_development",
+        "stages": ["goal_intake", "repo_state_scan", "issue_decomposition", "implementation_plan", "safety_review", "operator_approval", "patch_generation_or_adapter_required", "test_execution_or_adapter_required", "review_summary", "handoff"],
+        "team": "self_development_team",
+        "permission_mode": "ask_before_write",
+        "pipeline_scope": "degraded_plan_only",
+        "llm_policy": {"mode": "switchable", "max_active_llms": 1},
+        "deliverables": ["proposed_patch_plan", "test_plan", "risk_register", "rollback_plan", "implementation_report"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
     },
     "book": {
         "description": "Research-to-book pipeline with editor/reviewer handoffs.",
@@ -178,6 +194,11 @@ DEFAULT_TEAMS: Dict[str, Dict[str, Any]] = {
         "roles": ["architect", "developer", "tester", "integration_tester", "optimizer", "reviewer", "archivist"],
         "handoff": "single active LLM; each role receives the previous context packet and writes a new artifact",
     },
+    "self_development_team": {
+        "coordinator": "administrator",
+        "roles": ["scope_reviewer", "repo_scanner", "planner", "safety_reviewer", "operator_gate", "adapter_executor", "qa_reviewer", "handoff_archivist"],
+        "handoff": "single active LLM; planning/review stages are deterministic and code/test execution defers to explicit adapters plus operator approval",
+    },
     "book_team": {
         "coordinator": "editor_in_chief",
         "roles": ["researcher", "outline_architect", "writer", "editor", "fact_checker", "archivist"],
@@ -218,7 +239,7 @@ def build_toolproxy_stage_binding(pipeline_id: str, stage: str, permission_mode:
         allowed.add("exec.run")
     if any(term in stage_key for term in TOOLPROXY_REVIEW_STAGE_TERMS):
         mutating_allowed.extend(["task.update", "roadmap.record"])
-    if str(pipeline_id) == "evolution" and stage_key in {"development", "review", "merge_plan"}:
+    if str(pipeline_id) in {"evolution", "self_development"} and stage_key in {"development", "development_plan", "development_execute", "implementation_plan", "patch_generation_or_adapter_required", "review", "review_summary", "merge_plan", "handoff"}:
         mutating_allowed.append("worktree.enter")
 
     allowed.update(mutating_allowed)
@@ -376,9 +397,30 @@ def parse_jsonish_text(text: str) -> Any:
     return json.loads(text)
 
 
+
+_DB_CONNECTION_TRACK_STACK: list[list[sqlite3.Connection]] = []
+
+
+def close_db_connection(conn: sqlite3.Connection) -> None:
+    try:
+        conn.close()
+    except Exception:
+        pass
+
+
+def _track_db_connection(conn: sqlite3.Connection) -> None:
+    if _DB_CONNECTION_TRACK_STACK:
+        _DB_CONNECTION_TRACK_STACK[-1].append(conn)
+
+
+def _close_tracked_db_connections(connections: list[sqlite3.Connection]) -> None:
+    for conn in reversed(connections):
+        close_db_connection(conn)
+
 def db_connect(state: Path) -> sqlite3.Connection:
     state.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(state / "pipeline_registry.sqlite")
+    _track_db_connection(conn)
     conn.execute("PRAGMA busy_timeout=5000")
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -482,13 +524,42 @@ def load_pipeline_catalog(root: Path) -> Dict[str, Dict[str, Any]]:
     enabled without mutating the distribution file.
     """
     base = dict(load_json_or_default(root / "configs" / "pipelines.json", DEFAULT_PIPELINES))
+    media = load_json_or_default(root / "configs" / "media-pipeline-catalog.json", {})
+    for item in media.get("pipelines", []) if isinstance(media, dict) else []:
+        if not isinstance(item, dict):
+            continue
+        pipeline_id = str(item.get("id") or "").strip()
+        if not pipeline_id or pipeline_id in base:
+            continue
+        stage = safe_id(str(item.get("stage") or "prepared"))
+        base[pipeline_id] = {
+            "description": str(item.get("notes") or item.get("entrypoint") or "Media pipeline adapter."),
+            "project_id": safe_id(pipeline_id),
+            "stages": [stage],
+            "team": "media_team",
+            "permission_mode": "plan_only",
+            "llm_policy": {"mode": "switchable", "max_active_llms": 1},
+            "deliverables": ["media_pipeline_plan"],
+            "entrypoint": str(item.get("entrypoint") or ""),
+            "autostart": item.get("autostart", False),
+            "source_catalog": "media-pipeline-catalog",
+        }
     local_path = root / "configs" / "pipelines.local.json"
     if local_path.exists():
         local = load_json_or_default(local_path, {})
         for key, value in local.items():
             if isinstance(value, dict):
                 base[key] = value
-    return base
+    enriched: Dict[str, Dict[str, Any]] = {}
+    for key, value in base.items():
+        if not isinstance(value, dict):
+            continue
+        spec = dict(value)
+        spec["id"] = str(spec.get("id") or key)
+        spec["pipeline_scope_policy"] = selection_refresh.pipeline_scope_policy(spec, pipeline_id=str(key))
+        spec.setdefault("pipeline_scope", spec["pipeline_scope_policy"]["scope"])
+        enriched[key] = spec
+    return enriched
 
 
 def load_team_catalog(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -621,6 +692,453 @@ def _artifact_rows(conn: sqlite3.Connection, run_id: str) -> List[Dict[str, Any]
             meta = {}
         out.append({"artifact_id": artifact_id, "stage": stage, "artifact_type": artifact_type, "path": path, "status": status, "created_at": created_at, "updated_at": updated_at, "metadata": meta})
     return out
+
+
+def latest_operator_reply(run_dir: Path, stage: str) -> Dict[str, Any]:
+    path = run_dir / "stage_inputs" / f"{safe_id(stage)}-operator-replies.jsonl"
+    latest: Dict[str, Any] = {}
+    count = 0
+    if path.exists():
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except Exception:
+                continue
+            if isinstance(rec, dict):
+                count += 1
+                latest = rec
+    return {
+        "state": "operator_reply_recorded" if latest else "waiting_for_operator_reply",
+        "reply_count": count,
+        "latest": latest,
+        "path": str(path),
+    }
+
+
+def stage_skip_record(run_dir: Path, stage: str) -> Dict[str, Any]:
+    path = run_dir / "stage_inputs" / f"{safe_id(stage)}-skip.json"
+    if not path.exists():
+        return {"skipped": False, "path": str(path)}
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+        if isinstance(data, dict):
+            data["skipped"] = True
+            data.setdefault("path", str(path))
+            return data
+    except Exception:
+        pass
+    return {"skipped": True, "path": str(path), "parse_error": True}
+
+
+def write_stage_skip(run_dir: Path, run_id: str, pipeline_id: str, stage: str, note: str) -> Dict[str, Any]:
+    ts = nowz()
+    path = run_dir / "stage_inputs" / f"{safe_id(stage)}-skip.json"
+    rec = {
+        "ts": ts,
+        "run_id": run_id,
+        "pipeline_id": pipeline_id,
+        "stage": stage,
+        "state": "skipped_by_operator",
+        "note": note or "operator explicitly skipped stage",
+    }
+    atomic_write_text(path, json_dumps(rec) + "\n")
+    with (run_dir / "decisions.md").open("a", encoding="utf-8") as f:
+        f.write(f"\n## {ts} - operator skip for {stage}\n\n- State: `skipped_by_operator`\n- Note: {rec['note']}\n")
+    return {**rec, "path": str(path), "skipped": True}
+
+
+def stage_has_local_worker(stage: str) -> bool:
+    """Return true only for stages with a deterministic local worker in this runtime."""
+    capability = selection_refresh.classify_stage_capability(stage)
+    if not selection_refresh.deterministic_local_worker_allowed(capability):
+        return False
+    mapping = selection_refresh.load_refreshed_role_mapping()
+    if not mapping:
+        return False
+    return bool(selection_refresh.resolve_stage_worker(mapping, pipeline_id="", stage=stage).get("ok"))
+
+
+def resolve_stage_worker(run: Dict[str, Any], stage: str) -> Dict[str, Any]:
+    """Resolve a stage worker only through refreshed selection role mappings."""
+    pipeline = (run.get("manifest") or {}).get("pipeline") or {}
+    capability = selection_refresh.classify_stage_capability(
+        stage,
+        pipeline_id=str(run.get("pipeline_id") or ""),
+        permission_mode=str(pipeline.get("permission_mode") or ""),
+    )
+    mapping = selection_refresh.load_refreshed_role_mapping()
+    if not mapping:
+        return {
+            "ok": False,
+            "diagnostics": ["role_mapping_missing", "worker_not_registered"],
+            "requested_role": selection_refresh.preferred_role_for_stage(str(run.get("pipeline_id") or ""), stage),
+            "resolved_role": "",
+            "fallback_used": False,
+            "fallback_policy": "",
+            "model_id": "",
+            "worker_status": "worker_not_registered",
+            "stage_capability": capability,
+        }
+    resolved = selection_refresh.resolve_stage_worker(
+        mapping,
+        pipeline_id=str(run.get("pipeline_id") or ""),
+        stage=stage,
+    )
+    resolved["stage_capability"] = capability
+    if not selection_refresh.deterministic_local_worker_allowed(capability):
+        resolved["ok"] = False
+        resolved["worker_status"] = "backend_required"
+        resolved["diagnostics"] = sorted(set([*(resolved.get("diagnostics") or []), "backend_required", f"capability:{capability}"]))
+    return resolved
+
+
+def actionable_missing_worker(run: Dict[str, Any], stage: str, quality: Dict[str, Any], reply_state: Dict[str, Any]) -> Dict[str, Any]:
+    worker = resolve_stage_worker(run, stage)
+    capability = str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage))
+    if not selection_refresh.deterministic_local_worker_allowed(capability):
+        return actionable_backend_required(run, stage, quality, reply_state, worker)
+    return {
+        "state": "blocked_missing_worker",
+        "selection_state": "blocked_missing_worker",
+        "degraded_reason": "no_deterministic_local_worker_or_refreshed_selection",
+        "required_capability": capability,
+        "required_adapter": "",
+        "code": "blocked_missing_worker",
+        "message": f"Stage `{stage}` has no deterministic local worker/backend in pipeline_runtime.py; no real output can be produced automatically.",
+        "missing_component": "pipeline_stage_worker",
+        "next_action": "Provide a real stage artifact and register it, or click Skip stage explicitly.",
+        "stage": stage,
+        "run_id": run.get("run_id"),
+        "pipeline_id": run.get("pipeline_id"),
+        "worker_resolution": worker,
+        "diagnostics": worker.get("diagnostics", ["worker_not_registered"]),
+        "output_quality": quality,
+        "operator_reply_state": reply_state,
+    }
+
+
+def actionable_backend_required(run: Dict[str, Any], stage: str, quality: Dict[str, Any], reply_state: Dict[str, Any], worker: Dict[str, Any]) -> Dict[str, Any]:
+    capability = str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage))
+    required_backend = selection_refresh.required_backend_for_capability(capability)
+    deprecated = str(stage) == "development" and capability == "dev_execute"
+    message = (
+        f"Stage `{stage}` is classified as `{capability}` and requires {required_backend}; "
+        "the deterministic local worker is forbidden for this capability."
+    )
+    if deprecated:
+        message += " The ambiguous `development` stage is deprecated for launchable production pipelines; split it into `development_plan` and `development_execute`."
+    return {
+        "state": "blocked_backend_required",
+        "status": "blocked_backend_required",
+        "selection_state": "blocked_backend_required",
+        "degraded_reason": "backend_required_for_stage_capability",
+        "required_capability": capability,
+        "required_adapter": required_backend,
+        "code": f"backend_required_for_{capability}",
+        "message": message,
+        "missing_component": required_backend,
+        "required_backend": required_backend,
+        "stage": stage,
+        "stage_capability": capability,
+        "run_id": run.get("run_id"),
+        "pipeline_id": run.get("pipeline_id"),
+        "worker_resolution": worker,
+        "diagnostics": sorted(set([*(worker.get("diagnostics") or []), "backend_required"])),
+        "output_quality": quality,
+        "operator_reply_state": reply_state,
+        "next_actions": [
+            f"install or configure {required_backend}",
+            "register a real stage artifact produced by that backend",
+            "for ambiguous development stages, split the manifest into development_plan and development_execute",
+        ],
+    }
+
+
+def stage_output_is_real(quality: Dict[str, Any]) -> bool:
+    return bool(
+        quality.get("exists")
+        and not quality.get("looks_placeholder")
+        and not quality.get("pending")
+        and int(quality.get("size_bytes") or 0) >= 80
+    )
+
+
+def actionable_placeholder_output_before_completion(
+    run: Dict[str, Any],
+    stage: str,
+    quality: Dict[str, Any],
+    reply_state: Dict[str, Any],
+    worker: Dict[str, Any],
+    issues: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    return {
+        "state": "blocked_placeholder_output",
+        "status": "blocked_placeholder_output",
+        "selection_state": "blocked_placeholder_output",
+        "degraded_reason": "placeholder_output_cannot_complete_stage",
+        "required_capability": str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage)),
+        "required_adapter": str(worker.get("required_adapter") or ""),
+        "code": "placeholder_output_before_completion",
+        "message": (
+            f"Pipeline `{run.get('pipeline_id')}` cannot complete because stage `{stage}` "
+            "still has placeholder, pending, tiny, or missing output."
+        ),
+        "stage": stage,
+        "run_id": run.get("run_id"),
+        "pipeline_id": run.get("pipeline_id"),
+        "worker_resolution": worker,
+        "diagnostics": ["placeholder_output_before_completion"],
+        "output_quality": quality,
+        "operator_reply_state": reply_state,
+        "placeholder_outputs": issues,
+        "next_actions": [
+            "produce and register a real non-placeholder stage artifact",
+            "refresh pipeline status",
+            "do not mark the pipeline completed until every required stage output is real",
+        ],
+    }
+
+
+def _generic_local_worker_allowed(pipeline_id: str, stage: str) -> Tuple[bool, str]:
+    del pipeline_id
+    capability = selection_refresh.classify_stage_capability(stage)
+    if selection_refresh.deterministic_local_worker_allowed(capability):
+        return True, f"deterministic local worker allowed for capability {capability}"
+    return False, f"capability {capability} requires {selection_refresh.required_backend_for_capability(capability)}"
+
+
+def _stage_reply_summary(run_dir: Path, stage: str) -> List[str]:
+    path = run_dir / "stage_inputs" / f"{safe_id(stage)}-operator-replies.jsonl"
+    replies: List[str] = []
+    if not path.exists():
+        return replies
+    for line in path.read_text(encoding="utf-8", errors="replace").splitlines()[-5:]:
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if isinstance(rec, dict):
+            msg = str(rec.get("message") or "").strip()
+            if msg:
+                replies.append(msg[:240])
+    return replies
+
+
+def _prior_output_summary(run: Dict[str, Any], stage: str) -> List[str]:
+    run_dir = Path(str(run.get("run_dir") or ""))
+    stages = list((((run.get("manifest") or {}).get("pipeline") or {}).get("stages") or []))
+    summary: List[str] = []
+    for prior in stages:
+        if prior == stage:
+            break
+        output = run_dir / "outputs" / f"{safe_id(str(prior))}.md"
+        quality = stage_output_quality(output)
+        if quality.get("exists") and not quality.get("looks_placeholder"):
+            summary.append(f"{prior}: output exists, {quality.get('size_bytes', 0)} bytes, quality_score={quality.get('quality_score', 0)}")
+    return summary
+
+
+def execute_generic_local_stage_worker(conn: sqlite3.Connection, run: Dict[str, Any], stage: str, worker: Dict[str, Any], reply_state: Dict[str, Any]) -> Dict[str, Any]:
+    pipeline_id = str(run.get("pipeline_id") or "")
+    pipeline = (run.get("manifest") or {}).get("pipeline") or {}
+    capability = str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage, pipeline_id=pipeline_id, permission_mode=str(pipeline.get("permission_mode") or "")))
+    allowed = selection_refresh.deterministic_local_worker_allowed(capability)
+    reason = f"deterministic local worker allowed for capability {capability}" if allowed else f"capability {capability} requires {selection_refresh.required_backend_for_capability(capability)}"
+    run_dir = Path(str(run.get("run_dir") or ""))
+    output = run_dir / "outputs" / f"{safe_id(stage)}.md"
+    if not allowed:
+        quality = stage_output_quality(output)
+        blocker = actionable_backend_required(run, stage, quality, reply_state, worker)
+        degraded_package = write_degraded_plan_package(conn, run, stage, blocker)
+        if degraded_package:
+            blocker["degraded_plan_package"] = degraded_package
+        emit(conn, str(run["run_id"]), "stage_worker_blocked_backend_required", blocker)
+        return {"ok": False, "actionable_blocker": blocker, "output_path": str(output), "output_quality": quality}
+
+    request = str(run.get("request") or "").strip()
+    replies = _stage_reply_summary(run_dir, stage)
+    prior = _prior_output_summary(run, stage)
+    now = nowz()
+    resolved_role = str(worker.get("resolved_role") or worker.get("requested_role") or "local_text_worker")
+    fallback = str(worker.get("fallback_policy") or "none")
+    evidence_lines = [
+        f"- pipeline_id: `{pipeline_id}`",
+        f"- run_id: `{run.get('run_id')}`",
+        f"- request: {request or 'No operator request text was provided.'}",
+        f"- worker_status: `{worker.get('worker_status')}`",
+        f"- selection_state: `{worker.get('selection_state') or 'valid_selected'}`",
+        f"- degraded_reason: `{worker.get('degraded_reason') or ''}`",
+        f"- resolved_role: `{resolved_role}`",
+        f"- fallback_policy: `{fallback}`",
+    ]
+    if prior:
+        evidence_lines.append("- prior_outputs:")
+        evidence_lines.extend(f"  - {item}" for item in prior)
+    else:
+        evidence_lines.append("- prior_outputs: none with real non-placeholder output yet")
+    if replies:
+        evidence_lines.append("- operator_replies:")
+        evidence_lines.extend(f"  - {item}" for item in replies)
+    else:
+        evidence_lines.append("- operator_replies: none recorded")
+    text = "\n".join([
+        f"# {stage}",
+        "",
+        "## Status",
+        "",
+        "completed_by_deterministic_local_worker",
+        "",
+        "## Decision",
+        "",
+        f"Use the refreshed selection worker `{resolved_role}` as the deterministic artifact source for this `{capability}` stage. The runtime produced a concrete planning/review artifact without starting hidden LLM, media, camera, microphone, GPU, or privileged services.",
+        "",
+        "## Evidence/Input summary",
+        "",
+        *evidence_lines,
+        "",
+        "## Risk",
+        "",
+        "This is a deterministic local artifact. It is suitable only for allowed text, review, audit, documentation, handoff, development-plan, and media-plan stages; execute stages still require an explicit backend and operator-approved adapter path.",
+        "",
+        "## Next handoff",
+        "",
+        "Advance to the next pipeline stage with this artifact registered as the current stage output, or stop on the specific actionable blocker if a later stage requires a non-text backend.",
+        "",
+        f"_generated_at: {now}_",
+        "",
+    ])
+    atomic_write_text(output, text)
+    quality = stage_output_quality(output)
+    contract = _pipeline_stage_contract(stage)
+    artifact_type = str((contract.get("artifact_types") or ["stage_output"])[0])
+    artifact = register_artifact(
+        conn,
+        str(run["run_id"]),
+        stage,
+        artifact_type,
+        output,
+        "ready",
+        {
+            "source": "deterministic_local_stage_worker",
+            "stage_capability": capability,
+            "selection_state": worker.get("selection_state") or "valid_selected",
+            "degraded_reason": worker.get("degraded_reason") or "",
+            "worker_resolution": worker,
+            "output_quality": quality,
+            "version": RUNTIME_VERSION,
+        },
+    )
+    execution = {
+        "ok": True,
+        "state": "executed",
+        "worker_type": "deterministic_local_text_stage_worker",
+        "stage": stage,
+        "stage_capability": capability,
+        "selection_state": worker.get("selection_state") or "valid_selected",
+        "degraded_reason": worker.get("degraded_reason") or "",
+        "run_id": run.get("run_id"),
+        "pipeline_id": pipeline_id,
+        "worker_resolution": worker,
+        "output_path": str(output),
+        "output_quality": quality,
+        "artifact": artifact,
+        "reason": reason,
+    }
+    emit(conn, str(run["run_id"]), "stage_worker_executed", execution)
+    with (run_dir / "decisions.md").open("a", encoding="utf-8") as f:
+        f.write(f"\n## {now} - local worker execution for {stage}\n\n- State: `executed`\n- Worker: `{resolved_role}`\n- Output: `{output}`\n")
+    return execution
+
+
+def completion_output_issues(run: Dict[str, Any], completing_stage: str) -> List[Dict[str, Any]]:
+    run_dir = Path(str(run.get("run_dir") or ""))
+    stages = list((((run.get("manifest") or {}).get("pipeline") or {}).get("stages") or []))
+    if completing_stage in stages:
+        stages = stages[: stages.index(completing_stage) + 1]
+    issues: List[Dict[str, Any]] = []
+    for stage in stages:
+        stage_name = str(stage)
+        if stage_skip_record(run_dir, stage_name).get("skipped"):
+            continue
+        quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(stage_name)}.md")
+        if not stage_output_is_real(quality):
+            issues.append({
+                "stage": stage_name,
+                "path": quality.get("path"),
+                "quality": quality.get("quality"),
+                "size_bytes": quality.get("size_bytes"),
+                "looks_placeholder": quality.get("looks_placeholder"),
+                "pending": quality.get("pending"),
+            })
+    return issues
+
+
+def ensure_completion_outputs_ready(
+    conn: sqlite3.Connection,
+    run: Dict[str, Any],
+    completing_stage: str,
+) -> Tuple[bool, Optional[Dict[str, Any]]]:
+    run_dir = Path(str(run.get("run_dir") or ""))
+    while True:
+        issues = completion_output_issues(run, completing_stage)
+        if not issues:
+            return True, None
+        issue = issues[0]
+        stage = str(issue.get("stage") or completing_stage)
+        quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(stage)}.md")
+        reply_state = latest_operator_reply(run_dir, stage)
+        worker = resolve_stage_worker(run, stage)
+        capability = str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage))
+        if not selection_refresh.deterministic_local_worker_allowed(capability):
+            blocker = actionable_backend_required(run, stage, quality, reply_state, worker)
+            degraded_package = write_degraded_plan_package(conn, run, stage, blocker)
+            if degraded_package:
+                blocker["degraded_plan_package"] = degraded_package
+            emit(conn, str(run["run_id"]), "completion_blocked_backend_required", blocker)
+            return False, blocker
+        if worker.get("ok"):
+            execution = execute_generic_local_stage_worker(conn, run, stage, worker, reply_state)
+            quality = execution.get("output_quality") or stage_output_quality(run_dir / "outputs" / f"{safe_id(stage)}.md")
+            if execution.get("ok") and stage_output_is_real(quality):
+                continue
+            blocker = execution.get("actionable_blocker") or actionable_placeholder_output_before_completion(run, stage, quality, reply_state, worker, issues)
+            emit(conn, str(run["run_id"]), "completion_blocked_placeholder_output", blocker)
+            return False, blocker
+        blocker = actionable_placeholder_output_before_completion(run, stage, quality, reply_state, worker, issues)
+        emit(conn, str(run["run_id"]), "completion_blocked_placeholder_output", blocker)
+        return False, blocker
+
+
+def _status_hash_payload(run: Dict[str, Any], quality: Dict[str, Any], worker_state: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "run_id": run.get("run_id"),
+        "status": run.get("status"),
+        "current_stage": run.get("current_stage"),
+        "output_path": quality.get("path"),
+        "output_size": quality.get("size_bytes"),
+        "output_score": quality.get("quality_score"),
+        "worker_state": worker_state.get("state") or "",
+    }
+
+
+def stable_status_hash(run: Dict[str, Any], quality: Dict[str, Any], worker_state: Dict[str, Any]) -> str:
+    payload = json_dumps(_status_hash_payload(run, quality, worker_state), pretty=False)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def latest_worker_execution_state(events: List[Dict[str, Any]], stage: str = "") -> Dict[str, Any]:
+    for ev in reversed(events):
+        if ev.get("event_type") not in {"stage_worker_executed", "stage_worker_blocked_cannot_execute", "stage_blocked_missing_worker", "stage_worker_resolved"}:
+            continue
+        payload = ev.get("payload") if isinstance(ev.get("payload"), dict) else {}
+        if stage and payload.get("stage") not in {stage, None, ""}:
+            continue
+        state = str(payload.get("state") or ("resolved" if ev.get("event_type") == "stage_worker_resolved" else ""))
+        return {**payload, "event_type": ev.get("event_type"), "state": state}
+    return {"state": "not_started"}
 
 
 
@@ -873,6 +1391,62 @@ def register_artifact(conn: sqlite3.Connection, run_id: str, stage: str, artifac
     return rec
 
 
+def write_degraded_plan_package(conn: sqlite3.Connection, run: Dict[str, Any], blocked_stage: str, blocker: Dict[str, Any]) -> Dict[str, Any]:
+    pipeline = (run.get("manifest") or {}).get("pipeline") or {}
+    policy = pipeline.get("pipeline_scope_policy") or selection_refresh.pipeline_scope_policy(pipeline, pipeline_id=str(run.get("pipeline_id") or ""))
+    if str(policy.get("scope") or "") != "degraded_plan_only":
+        return {}
+    run_dir = Path(str(run.get("run_dir") or ""))
+    outputs_dir = run_dir / "outputs"
+    stage_outputs: List[Dict[str, Any]] = []
+    for stage in list(pipeline.get("stages") or []):
+        stage_name = str(stage)
+        path = outputs_dir / f"{safe_id(stage_name)}.md"
+        quality = stage_output_quality(path)
+        if quality.get("exists") and not quality.get("looks_placeholder"):
+            stage_outputs.append({
+                "stage": stage_name,
+                "path": str(path),
+                "quality": quality.get("quality"),
+                "size_bytes": quality.get("size_bytes"),
+                "sha256": hashlib.sha256(path.read_bytes()).hexdigest() if path.exists() else "",
+            })
+    package_path = run_dir / "final_degraded_plan_package.json"
+    package = {
+        "apiVersion": "noemaforge.pipeline.degraded-plan-package/v1",
+        "version": RUNTIME_VERSION,
+        "created_at": nowz(),
+        "run_id": run.get("run_id"),
+        "pipeline_id": run.get("pipeline_id"),
+        "scope": "degraded_plan_only",
+        "status": "blocked_before_backend_execute",
+        "blocked_stage": blocked_stage,
+        "actionable_blocker": blocker,
+        "pipeline_scope_policy": policy,
+        "stage_outputs": stage_outputs,
+        "statement": "This package contains real deterministic plan/review artifacts only. It does not claim that backend execute stages ran.",
+    }
+    atomic_write_text(package_path, json_dumps(package) + "\n")
+    quality = stage_output_quality(package_path)
+    artifact = register_artifact(
+        conn,
+        str(run["run_id"]),
+        str(blocked_stage),
+        "degraded_plan_package",
+        package_path,
+        "blocked_backend_required",
+        {
+            "source": "pipeline_scope_policy",
+            "scope": "degraded_plan_only",
+            "blocked_stage": str(blocked_stage),
+            "output_quality": quality,
+            "version": RUNTIME_VERSION,
+        },
+    )
+    emit(conn, str(run["run_id"]), "degraded_plan_package_created", {"path": str(package_path), "blocked_stage": str(blocked_stage), "artifact": artifact})
+    return {"path": str(package_path), "quality": quality, "artifact": artifact}
+
+
 def create_run(args: argparse.Namespace) -> None:
     guard_degraded_mutation("pipeline run", getattr(args, "allow_degraded", False))
     root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
@@ -920,7 +1494,7 @@ def create_run(args: argparse.Namespace) -> None:
     register_task_contexts(conn, run_id, packet_paths)
     emit(conn, run_id, "pipeline_created", {"trace_id": trace_id, "run_dir": str(run_dir), "dry_run": bool(args.dry_run), "packet_count": len(packet_paths), "typed_contexts": len(packet_paths)})
     conn.close()
-    print(json_dumps({"ok": True, "trace_id": trace_id, "run_id": run_id, "run_dir": str(run_dir), "status": manifest["status"], "next": f"noemaforge pipeline approve {run_id}"}))
+    print(json_dumps({"ok": True, "trace_id": trace_id, "run_id": run_id, "pipeline_id": pipeline_id, "run_dir": str(run_dir), "status": manifest["status"], "pipeline_scope_policy": pipeline.get("pipeline_scope_policy") or {}, "next": f"noemaforge pipeline approve {run_id}"}))
 
 
 def catalog(args: argparse.Namespace) -> None:
@@ -954,6 +1528,14 @@ def show_run(args: argparse.Namespace) -> None:
     data = get_run(conn, args.run_id)
     data["events"] = _event_rows(conn, args.run_id, limit=args.events)
     data["artifacts"] = _artifact_rows(conn, args.run_id)
+    stage = str(data.get("current_stage") or "")
+    quality = stage_output_quality(Path(str(data.get("run_dir") or "")) / "outputs" / f"{safe_id(stage)}.md") if stage else {"exists": False}
+    worker_state = latest_worker_execution_state(data["events"], stage)
+    data["stage_output_quality"] = quality
+    data["output_path"] = quality.get("path")
+    data["output_quality"] = quality
+    data["last_worker_execution_state"] = worker_state
+    data["stable_status_hash"] = stable_status_hash(data, quality, worker_state)
     print(json_dumps(data))
 
 
@@ -995,13 +1577,203 @@ def advance_run(args: argparse.Namespace) -> None:
     state = Path(args.state).resolve() if args.state else DEFAULT_STATE
     conn = db_connect(state)
     run = get_run(conn, args.run_id)
-    stage = args.stage or run["current_stage"]
+    current_stage = str(run["current_stage"])
+    run_dir = Path(str(run["run_dir"]))
+    if getattr(args, "skip", False):
+        skipped_stage = str(args.stage or current_stage)
+        assert_stage(run, skipped_stage)
+        skip = write_stage_skip(run_dir, str(run["run_id"]), str(run["pipeline_id"]), skipped_stage, args.note or "")
+        next_stage = next_stage_for(run["manifest"], skipped_stage)
+        status = "completed" if next_stage is None else "in_progress"
+        run = update_run(conn, run, status=status, stage=next_stage or skipped_stage, note=args.note or f"operator explicitly skipped {skipped_stage}", event_type="stage_skipped")
+        print(json_dumps({
+            "ok": True,
+            "run_id": args.run_id,
+            "stage": run["current_stage"],
+            "status": run["status"],
+            "skipped_stage": skipped_stage,
+            "skipped_by_operator": True,
+            "skip_record": skip,
+            "next_stage": next_stage,
+        }))
+        return
+
+    stage = args.stage or current_stage
+    current_quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(current_stage)}.md")
+    current_reply_state = latest_operator_reply(run_dir, current_stage)
+    current_has_reply = current_reply_state.get("state") == "operator_reply_recorded"
+    current_needs_worker = current_has_reply and not stage_output_is_real(current_quality)
     if args.next:
-        stage = next_stage_for(run["manifest"], str(run["current_stage"])) or str(run["current_stage"])
+        stage = current_stage if current_needs_worker else (next_stage_for(run["manifest"], current_stage) or current_stage)
     assert_stage(run, str(stage))
+    quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(str(stage))}.md")
+    reply_state = latest_operator_reply(run_dir, str(stage))
+    skip_state = stage_skip_record(run_dir, str(stage))
+    worker = resolve_stage_worker(run, str(stage))
+    stage_capability = str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(str(stage)))
+    output_real = stage_output_is_real(quality)
+    admin_approval_advance = run["status"] == "ready_for_admin_approval" and args.next
+    stage_change_advance = str(stage) != current_stage
+    if not admin_approval_advance and not stage_change_advance and not output_real and not skip_state.get("skipped") and not worker.get("ok"):
+        backend_required = not selection_refresh.deterministic_local_worker_allowed(stage_capability)
+        blocker = actionable_backend_required(run, str(stage), quality, reply_state, worker) if backend_required else actionable_missing_worker(run, str(stage), quality, reply_state)
+        if backend_required:
+            degraded_package = write_degraded_plan_package(conn, run, str(stage), blocker)
+            if degraded_package:
+                blocker["degraded_plan_package"] = degraded_package
+        emit(conn, str(run["run_id"]), "stage_blocked_backend_required" if backend_required else "stage_blocked_missing_worker", blocker)
+        print(json_dumps({
+            "ok": False,
+            "run_id": args.run_id,
+            "stage": str(stage),
+            "status": blocker.get("status") or blocker.get("state") or "blocked_missing_worker",
+            "blocked_missing_worker": not backend_required,
+            "actionable_blocker": blocker,
+            "operator_reply_state": reply_state,
+            "stage_output_quality": quality,
+            "next_actions": blocker.get("next_actions") or ["register real stage output", "skip stage explicitly", "refresh status"],
+        }))
+        return
+    if worker.get("ok"):
+        emit(conn, str(run["run_id"]), "stage_worker_resolved", {"stage": str(stage), "worker_resolution": worker})
+    worker_execution: Dict[str, Any] = {"state": "not_started"}
+    if worker.get("ok") and not output_real and not admin_approval_advance and not stage_change_advance and not skip_state.get("skipped"):
+        before_hash = stable_status_hash(run, quality, worker_execution)
+        worker_execution = execute_generic_local_stage_worker(conn, run, str(stage), worker, reply_state)
+        quality = worker_execution.get("output_quality") or stage_output_quality(run_dir / "outputs" / f"{safe_id(str(stage))}.md")
+        output_real = stage_output_is_real(quality)
+        if not worker_execution.get("ok"):
+            blocker = worker_execution.get("actionable_blocker") or {}
+            blocked_status = str(blocker.get("status") or blocker.get("state") or "blocked_worker_cannot_execute")
+            print(json_dumps({
+                "ok": False,
+                "run_id": args.run_id,
+                "stage": str(stage),
+                "status": blocked_status,
+                "actionable_blocker": blocker,
+                "operator_reply_state": reply_state,
+                "stage_output_quality": quality,
+                "output_path": worker_execution.get("output_path"),
+                "output_quality": quality,
+                "worker_resolution": worker,
+                "last_worker_execution_state": worker_execution,
+                "stable_status_hash": before_hash,
+                "stage_progress_changed": False,
+                "next_actions": blocker.get("next_actions") or ["provide explicit backend or artifact", "skip stage explicitly", "refresh status"],
+            }))
+            return
+        next_stage = next_stage_for(run["manifest"], str(stage))
+        status = args.status or ("completed" if next_stage is None else "in_progress")
+        if status == "completed":
+            ready_to_complete, completion_blocker = ensure_completion_outputs_ready(conn, run, str(stage))
+            if not ready_to_complete:
+                blocked_status = str((completion_blocker or {}).get("status") or (completion_blocker or {}).get("state") or "blocked_placeholder_output")
+                print(json_dumps({
+                    "ok": False,
+                    "run_id": args.run_id,
+                    "stage": str(stage),
+                    "status": blocked_status,
+                    "actionable_blocker": completion_blocker or {},
+                    "operator_reply_state": reply_state,
+                    "stage_output_quality": quality,
+                    "output_path": worker_execution.get("output_path"),
+                    "output_quality": quality,
+                    "worker_resolution": worker,
+                    "last_worker_execution_state": worker_execution,
+                    "stable_status_hash": before_hash,
+                    "stage_progress_changed": False,
+                    "next_actions": (completion_blocker or {}).get("next_actions") or ["produce real required outputs", "refresh status"],
+                }))
+                return
+            quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(str(stage))}.md")
+            output_real = stage_output_is_real(quality)
+        run = update_run(conn, run, status=status, stage=next_stage or str(stage), note=args.note or f"local worker completed {stage}", event_type="pipeline_stage_worker_advanced")
+        after_hash = stable_status_hash(run, quality, worker_execution)
+        print(json_dumps({
+            "ok": True,
+            "run_id": args.run_id,
+            "stage": run["current_stage"],
+            "completed_stage": str(stage),
+            "status": run["status"],
+            "next_stage": next_stage_for(run["manifest"], str(run["current_stage"])),
+            "operator_reply_state": reply_state,
+            "stage_output_quality": quality,
+            "output_path": worker_execution.get("output_path"),
+            "output_quality": quality,
+            "produced_output": output_real,
+            "worker_resolution": worker,
+            "last_worker_execution_state": worker_execution,
+            "stable_status_hash": after_hash,
+            "stage_progress_changed": before_hash != after_hash,
+        }))
+        return
+    if output_real and not admin_approval_advance and not stage_change_advance and not skip_state.get("skipped"):
+        next_stage = next_stage_for(run["manifest"], str(stage))
+        status = args.status or ("completed" if next_stage is None else "in_progress")
+        before_hash = stable_status_hash(run, quality, worker_execution)
+        if status == "completed":
+            ready_to_complete, completion_blocker = ensure_completion_outputs_ready(conn, run, str(stage))
+            if not ready_to_complete:
+                blocked_status = str((completion_blocker or {}).get("status") or (completion_blocker or {}).get("state") or "blocked_placeholder_output")
+                print(json_dumps({
+                    "ok": False,
+                    "run_id": args.run_id,
+                    "stage": str(stage),
+                    "status": blocked_status,
+                    "actionable_blocker": completion_blocker or {},
+                    "operator_reply_state": reply_state,
+                    "stage_output_quality": quality,
+                    "output_path": quality.get("path"),
+                    "output_quality": quality,
+                    "worker_resolution": worker,
+                    "last_worker_execution_state": worker_execution,
+                    "stable_status_hash": before_hash,
+                    "stage_progress_changed": False,
+                    "next_actions": (completion_blocker or {}).get("next_actions") or ["produce real required outputs", "refresh status"],
+                }))
+                return
+            quality = stage_output_quality(run_dir / "outputs" / f"{safe_id(str(stage))}.md")
+            output_real = stage_output_is_real(quality)
+        run = update_run(conn, run, status=status, stage=next_stage or str(stage), note=args.note or f"real output accepted for {stage}", event_type="pipeline_stage_real_output_advanced")
+        after_hash = stable_status_hash(run, quality, worker_execution)
+        print(json_dumps({
+            "ok": True,
+            "run_id": args.run_id,
+            "stage": run["current_stage"],
+            "completed_stage": str(stage),
+            "status": run["status"],
+            "next_stage": next_stage_for(run["manifest"], str(run["current_stage"])),
+            "operator_reply_state": reply_state,
+            "stage_output_quality": quality,
+            "output_path": quality.get("path"),
+            "output_quality": quality,
+            "produced_output": output_real,
+            "worker_resolution": worker,
+            "last_worker_execution_state": worker_execution,
+            "stable_status_hash": after_hash,
+            "stage_progress_changed": before_hash != after_hash,
+        }))
+        return
     status = args.status or "in_progress"
+    before_hash = stable_status_hash(run, quality, worker_execution)
     run = update_run(conn, run, status=status, stage=str(stage), note=args.note or "", event_type="pipeline_stage_updated")
-    print(json_dumps({"ok": True, "run_id": args.run_id, "stage": run["current_stage"], "status": run["status"], "next_stage": next_stage_for(run["manifest"], str(run["current_stage"]))}))
+    after_hash = stable_status_hash(run, quality, worker_execution)
+    print(json_dumps({
+        "ok": True,
+        "run_id": args.run_id,
+        "stage": run["current_stage"],
+        "status": run["status"],
+        "next_stage": next_stage_for(run["manifest"], str(run["current_stage"])),
+        "operator_reply_state": reply_state,
+        "stage_output_quality": quality,
+        "output_path": quality.get("path"),
+        "output_quality": quality,
+        "produced_output": output_real,
+        "worker_resolution": worker,
+        "last_worker_execution_state": worker_execution,
+        "stable_status_hash": after_hash,
+        "stage_progress_changed": before_hash != after_hash,
+    }))
 
 
 def approve_run(args: argparse.Namespace) -> None:
@@ -1343,6 +2115,7 @@ def stage_output_quality(path: Path) -> Dict[str, Any]:
         "has_handoff": has_handoff,
         "quality_score": score,
         "pending": has_placeholder and len(stripped) < 260,
+        "quality": "missing" if not exists else ("placeholder" if (has_placeholder and len(stripped) < 260) else ("real" if score >= 80 else "weak")),
     }
 
 
@@ -1594,8 +2367,8 @@ def validate(args: argparse.Namespace) -> None:
         pol = spec.get("llm_policy") or {}
         if pol.get("mode") != "switchable" or int(pol.get("max_active_llms") or 0) != 1:
             problems.append(f"pipeline {pid}: llm_policy must be switchable/max_active_llms=1")
-        if "development" in (stages or []) and "architecture_clarification" not in (stages or []) and pid == "evolution":
-            problems.append("evolution pipeline must include architecture_clarification before development")
+        if any(stage in (stages or []) for stage in ["development", "development_plan", "development_execute"]) and "architecture_clarification" not in (stages or []) and pid == "evolution":
+            problems.append("evolution pipeline must include architecture_clarification before development stages")
     patterns = pattern_catalog.get("patterns") or []
     if not patterns:
         problems.append("pattern catalog is empty or missing")
@@ -2501,6 +3274,15 @@ def executor_step_cmd(args: argparse.Namespace) -> None:
     print(json_dumps(result))
 
 
+def selection_refresh_cmd(args: argparse.Namespace) -> None:
+    report = selection_refresh.refresh_selection_artifacts(
+        Path(args.source).resolve(),
+        Path(args.out).resolve(),
+        refresh_reason=args.reason or "pipeline_selection_refresh",
+    )
+    print(json_dumps(report))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="noemaforge pipeline")
     parser.add_argument("--root")
@@ -2550,7 +3332,8 @@ def build_parser() -> argparse.ArgumentParser:
     adv.add_argument("run_id")
     adv.add_argument("--stage")
     adv.add_argument("--next", action="store_true")
-    adv.add_argument("--status", default="in_progress")
+    adv.add_argument("--skip", action="store_true")
+    adv.add_argument("--status", default=None)
     adv.add_argument("--note", default="")
     adv.add_argument("--allow-degraded", action="store_true")
     adv.set_defaults(func=advance_run)
@@ -2762,6 +3545,12 @@ def build_parser() -> argparse.ArgumentParser:
     estep.add_argument("--allow-degraded", action="store_true")
     estep.set_defaults(func=executor_step_cmd)
 
+    sref = sub.add_parser("selection-refresh")
+    sref.add_argument("source")
+    sref.add_argument("--out", required=True)
+    sref.add_argument("--reason", default="pipeline_selection_refresh")
+    sref.set_defaults(func=selection_refresh_cmd)
+
     member = sub.add_parser("member")
     member.add_argument("member_action", choices=["team", "run", "analyze-code", "validate", "list", "show"])
     member.add_argument("run_id", nargs="?", help="pipeline run id for member run, or member run id for show")
@@ -2812,11 +3601,23 @@ def normalize_global_argv(argv: Optional[List[str]]) -> List[str]:
 def main(argv: Optional[List[str]] = None) -> int:
     parser = build_parser()
     args = parser.parse_args(normalize_global_argv(argv))
-    args.func(args)
+    _db_connections: list[sqlite3.Connection] = []
+    _DB_CONNECTION_TRACK_STACK.append(_db_connections)
+    try:
+        args.func(args)
+    finally:
+        try:
+            if _DB_CONNECTION_TRACK_STACK and _DB_CONNECTION_TRACK_STACK[-1] is _db_connections:
+                _DB_CONNECTION_TRACK_STACK.pop()
+            else:
+                for idx in range(len(_DB_CONNECTION_TRACK_STACK) - 1, -1, -1):
+                    if _DB_CONNECTION_TRACK_STACK[idx] is _db_connections:
+                        del _DB_CONNECTION_TRACK_STACK[idx]
+                        break
+        finally:
+            _close_tracked_db_connections(_db_connections)
     return 0
 
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

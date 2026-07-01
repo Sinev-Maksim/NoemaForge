@@ -52,6 +52,10 @@ def persona_catalog(handler: Any) -> None:
     handler._send_json(handler.server.persona_catalog_api())
 
 
+def persona_rules(handler: Any) -> None:
+    handler._send_json(handler.server.persona_rules())
+
+
 # --- POST handlers ---------------------------------------------------------------
 def persona_switch(handler: Any, body: Dict[str, Any]) -> None:
     name = str(body.get("name") or "Admin")
@@ -107,6 +111,7 @@ def get_routes() -> Dict[str, Any]:
         "/api/inactivity/status": inactivity_status,
         "/api/persona/current": persona_current,
         "/api/persona/catalog": persona_catalog,
+        "/api/persona/rules": persona_rules,
     }
 
 

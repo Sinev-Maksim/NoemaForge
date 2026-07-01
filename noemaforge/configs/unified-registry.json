@@ -2912,7 +2912,7 @@
     {
       "kind": "eval-pack",
       "id": "pipeline-toolproxy-stage-binding-core",
-      "version": "0.32.1",
+      "version": "0.33.0",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5045,7 +5045,7 @@
     {
       "kind": "tool-policy",
       "id": "tool-policy-main",
-      "version": "0.32.1",
+      "version": "0.33.0",
       "status": "shadow",
       "channels": [
         "stable"
@@ -5086,7 +5086,7 @@
         "eval-pack:a2a-interop-review-core:0.32.1",
         "eval-pack:toolproxy-capability-token-core:0.32.1",
         "eval-pack:toolproxy-capability-live-smoke-readiness-core:0.32.1",
-        "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.1",
+        "eval-pack:pipeline-toolproxy-stage-binding-core:0.33.0",
         "eval-pack:toolproxy-live-llm-smoke-readiness-core:0.32.1",
         "eval-pack:post-reboot-gpu-gdm-gateway-toolproxy-readiness-core:0.32.1"
       ]
@@ -5541,7 +5541,7 @@
         "eval-pack:typed-governance-track-core:0.32.1",
         "eval-pack:wiki-patch-commit-helper-core:0.32.1",
         "eval-pack:media-backend-selection-readiness-core:0.32.1",
-        "eval-pack:pipeline-toolproxy-stage-binding-core:0.32.1",
+        "eval-pack:pipeline-toolproxy-stage-binding-core:0.33.0",
         "eval-pack:pipeline-stage-validator-smoke-core:0.32.1",
         "eval-pack:gateway-main-live-smoke-readiness-core:0.32.1",
         "eval-pack:systemd-gdm-nvidia-live-validation-readiness-core:0.32.1"
