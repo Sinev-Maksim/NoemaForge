@@ -20,12 +20,21 @@ Notes: Code comments are English-only. stdlib only — no new runtime deps.
 from __future__ import annotations
 
 import subprocess
+import shutil
 import sys
 from typing import List, Tuple
 
 SERVICE_MANAGER_UNAVAILABLE = 127  # POSIX convention: command not found
 
 _cached_available: bool | None = None
+_SYSTEMCTL_PATH: str | None = None
+
+
+def _systemctl_path() -> str | None:
+    global _SYSTEMCTL_PATH
+    if _SYSTEMCTL_PATH is None:
+        _SYSTEMCTL_PATH = shutil.which("systemctl") or ""
+    return _SYSTEMCTL_PATH or None
 
 
 def available() -> bool:
@@ -41,9 +50,13 @@ def available() -> bool:
     if sys.platform != "linux":
         _cached_available = False
         return False
+    systemctl = _systemctl_path()
+    if systemctl is None:
+        _cached_available = False
+        return False
     try:
         rc = subprocess.call(
-            ["systemctl", "--version"],
+            [systemctl, "--version"],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
@@ -61,13 +74,16 @@ def call(*args: str) -> int:
     """
     if not available():
         return SERVICE_MANAGER_UNAVAILABLE
+    systemctl = _systemctl_path()
+    if systemctl is None:
+        return SERVICE_MANAGER_UNAVAILABLE
     try:
         return subprocess.call(
-            ["systemctl", *args],
+            [systemctl, *args],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-    except Exception:
+    except OSError:
         return SERVICE_MANAGER_UNAVAILABLE
 
 
@@ -79,8 +95,11 @@ def check_output(args: List[str]) -> Tuple[int, str]:
     """
     if not available():
         return SERVICE_MANAGER_UNAVAILABLE, "service_manager_not_available"
+    systemctl = _systemctl_path()
+    if systemctl is None:
+        return SERVICE_MANAGER_UNAVAILABLE, "service_manager_not_available"
     try:
-        out = subprocess.check_output(["systemctl"] + args, stderr=subprocess.STDOUT)
+        out = subprocess.check_output([systemctl, *args], stderr=subprocess.STDOUT)
         return 0, out.decode("utf-8", errors="replace")
     except subprocess.CalledProcessError as exc:
         return int(exc.returncode), (exc.output or b"").decode("utf-8", errors="replace")
