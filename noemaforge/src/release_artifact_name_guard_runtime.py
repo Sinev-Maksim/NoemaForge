@@ -45,6 +45,8 @@ DEFAULT_EXCLUDED_DIR_NAMES = {
     "node_modules",
     "trash",
 }
+_FILENAME_PATTERN_CACHE: Dict[tuple[str, ...], List[tuple[str, str, str]]] = {}
+_FILENAME_PATTERN_OBJECT_CACHE: Dict[int, tuple[int, List[tuple[str, str, str]]]] = {}
 
 
 def _nowz() -> str:
@@ -140,11 +142,44 @@ def _active_files(base: Path, excluded_names: Iterable[str]) -> List[Path]:
     return sorted(files, key=lambda item: _display_path(item))
 
 
+def _compile_filename_patterns(pattern_tuple: tuple[str, ...]) -> List[tuple[str, str, str]]:
+    compiled_patterns = _FILENAME_PATTERN_CACHE.get(pattern_tuple)
+    if compiled_patterns is not None:
+        return compiled_patterns
+    compiled_patterns = []
+    for pattern in pattern_tuple:
+        lowered_pattern = _normalize_ref(pattern).lower()
+        if lowered_pattern.endswith("*") and not any(char in lowered_pattern[:-1] for char in "*?["):
+            compiled_patterns.append((pattern, "prefix", lowered_pattern[:-1]))
+        elif lowered_pattern.startswith("*") and not any(char in lowered_pattern[1:] for char in "*?["):
+            compiled_patterns.append((pattern, "suffix", lowered_pattern[1:]))
+        else:
+            compiled_patterns.append((pattern, "fnmatch", lowered_pattern))
+    _FILENAME_PATTERN_CACHE[pattern_tuple] = compiled_patterns
+    return compiled_patterns
+
+
 def _filename_matches_any(name: str, patterns: Iterable[str]) -> str:
     lowered_name = name.lower()
-    for pattern in patterns:
-        lowered_pattern = _normalize_ref(pattern).lower()
-        if fnmatch.fnmatchcase(lowered_name, lowered_pattern):
+    if isinstance(patterns, (list, tuple)):
+        cached = _FILENAME_PATTERN_OBJECT_CACHE.get(id(patterns))
+        if cached is not None and cached[0] == len(patterns):
+            compiled_patterns = cached[1]
+        else:
+            compiled_patterns = _compile_filename_patterns(tuple(str(pattern) for pattern in patterns))
+            _FILENAME_PATTERN_OBJECT_CACHE[id(patterns)] = (len(patterns), compiled_patterns)
+    else:
+        compiled_patterns = _compile_filename_patterns(tuple(str(pattern) for pattern in patterns))
+    for pattern, match_kind, match_value in compiled_patterns:
+        if match_kind == "prefix":
+            if lowered_name.startswith(match_value):
+                return pattern
+            continue
+        if match_kind == "suffix":
+            if lowered_name.endswith(match_value):
+                return pattern
+            continue
+        if fnmatch.fnmatchcase(lowered_name, match_value):
             return pattern
     return ""
 
