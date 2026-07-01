@@ -248,6 +248,49 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
         self.assertEqual("vendor-a-medium", role["chosen"]["model_id"])
         self.assertFalse(mapping["fairness_controls"]["hardcoded_vendor_preference"])
         self.assertEqual(["architecture", "size_class", "vendor"], sorted(mapping["fairness_controls"]["compare_dimensions"]))
+        self.assertEqual(2, mapping["schema_version"])
+        self.assertEqual("normal", mapping["selection_mode"])
+        self.assertIn("selected_mapping", mapping)
+        self.assertIn("rollback_evidence", mapping)
+        self.assertEqual("dev_plan", role["stage_capability"])
+        self.assertEqual("vendor-a-medium", role["selected_model_id"])
+        self.assertIn("candidate_summary", role)
+        self.assertIn("inventory_source", role)
+
+    def test_inventory_normalization_preserves_unknowns_and_runtime_hints(self) -> None:
+        normalized = srr.normalize_inventory_records([
+            {
+                "id": "qwen-coder",
+                "provider": "Qwen",
+                "family": "Qwen2.5",
+                "arch": "transformer",
+                "quant": "Q4_K_M",
+                "context_length": 32768,
+                "modalities": ["text"],
+                "capability_classes": ["dev_plan"],
+                "canonical_path": "/models/qwen-00002-of-00003.gguf",
+                "backend_available": False,
+                "resource_fit": {"state": "tight", "gpu_fit": "unknown"},
+            },
+            {
+                "model_id": "unknown-fields",
+                "capabilities": ["text_plan"],
+            },
+        ])
+
+        first = normalized[0]
+        second = normalized[1]
+        self.assertEqual("qwen-coder", first["model_id"])
+        self.assertEqual("qwen", first["provider"])
+        self.assertEqual("qwen2.5", first["family"])
+        self.assertEqual("q4_k_m", first["quantization"])
+        self.assertEqual(32768, first["context_window"])
+        self.assertEqual("unavailable", first["backend_status"])
+        self.assertEqual("blocked_non_head_shard", first["gguf_shard_safety"]["state"])
+        self.assertEqual("tight", first["host_resource_fit_hints"]["state"])
+        self.assertEqual("unknown", second["family"])
+        self.assertEqual("unknown", second["context_window"])
+        self.assertEqual("unknown", second["inventory_source"])
 
     def test_role_selection_degraded_states_are_actionable(self) -> None:
         inventory = [
@@ -266,6 +309,56 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
         self.assertIn("adapter_required", states)
         self.assertIn("insufficient_capability", states)
         self.assertLessEqual(states, srr.VALID_SELECTION_STATES)
+
+    def test_adapter_and_backend_required_candidates_never_become_valid(self) -> None:
+        requirements = {"dev.work/dev": srr.ROLE_REQUIREMENTS["dev.work/dev"]}
+        mapping = srr.build_role_selection_mapping(
+            [
+                {
+                    "model_id": "adapter-needed",
+                    "capabilities": ["dev_execute", "dev_plan"],
+                    "adapter_status": "required",
+                    "backend_status": "available",
+                    "pass_rate": 1.0,
+                    "quality_score": 1.0,
+                    "json_parse_rate": 1.0,
+                },
+                {
+                    "model_id": "backend-down",
+                    "capabilities": ["dev_execute", "dev_plan"],
+                    "adapter_status": "available",
+                    "backend_status": "unavailable",
+                    "pass_rate": 1.0,
+                    "quality_score": 1.0,
+                    "json_parse_rate": 1.0,
+                },
+            ],
+            requirements,
+        )
+        candidates = mapping["roles"]["dev.work/dev"]["candidates"]
+
+        self.assertEqual({"adapter_required", "backend_unavailable"}, {item["selection_state"] for item in candidates})
+        self.assertFalse(any(item["selection_state"] == "valid_selected" for item in candidates))
+
+    def test_execution_media_live_stage_requirements_reject_planning_only_candidate(self) -> None:
+        media_exec_req = {"capability_class": "media_execute", "required_capabilities": ["media_execute"]}
+        mapping = srr.build_role_selection_mapping(
+            [{
+                "model_id": "planner-only",
+                "capabilities": ["media_plan", "text_plan"],
+                "backend_status": "available",
+                "adapter_status": "available",
+                "pass_rate": 1.0,
+                "quality_score": 1.0,
+                "json_parse_rate": 1.0,
+            }],
+            {"media.pipeline/executor": media_exec_req},
+        )
+        role = mapping["roles"]["media.pipeline/executor"]
+
+        self.assertEqual("insufficient_capability", role["selection_state"])
+        self.assertEqual(0.0, role["chosen"]["score"])
+        self.assertEqual("media_execute", role["required_capability"])
 
     def test_required_degraded_taxonomy_is_complete(self) -> None:
         required = {
@@ -390,6 +483,129 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
         self.assertIn("fairness_diversity_score", rationale)
         self.assertGreater(rationale["base_score"], 0.0)
 
+    def test_measured_scoring_records_reliability_resource_penalty_and_sparse_confidence(self) -> None:
+        mapping = srr.build_role_selection_mapping(
+            [
+                {
+                    "model_id": "sparse",
+                    "capabilities": ["dev_plan", "text_plan", "text_review"],
+                    "backend_status": "available",
+                    "adapter_status": "available",
+                    "quality_score": 0.95,
+                },
+                {
+                    "model_id": "measured",
+                    "capabilities": ["dev_plan", "text_plan", "text_review"],
+                    "backend_status": "available",
+                    "adapter_status": "available",
+                    "pass_rate": 0.85,
+                    "quality_score": 0.9,
+                    "json_parse_rate": 0.95,
+                    "avg_latency_ms": 800,
+                    "startup_success_rate": 1.0,
+                    "readiness_success_rate": 1.0,
+                    "failure_rate": 0.0,
+                    "host_resource_fit_hints": {"state": "tight"},
+                },
+            ],
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+        )
+        role = mapping["roles"]["dev.work/solution_architect"]
+        sparse = next(item for item in role["candidates"] if item["model_id"] == "sparse")
+        measured = next(item for item in role["candidates"] if item["model_id"] == "measured")
+
+        self.assertLessEqual(sparse["scoring_rationale"]["confidence"], 0.34)
+        self.assertGreater(measured["scoring_rationale"]["confidence"], sparse["scoring_rationale"]["confidence"])
+        self.assertEqual(0.08, measured["scoring_rationale"]["resource_fit_penalty"])
+        self.assertIn("reliability_score", measured["scoring_rationale"])
+        self.assertEqual("measured", role["selected_model_id"])
+
+    def test_selection_modes_fast_normal_full_and_full_composite_are_explicit(self) -> None:
+        inventory = [
+            {
+                "model_id": "cheap-small",
+                "vendor": "a",
+                "architecture": "llama",
+                "size_class": "small",
+                "capabilities": ["dev_plan", "text_plan", "text_review"],
+                "pass_rate": 0.7,
+                "quality_score": 0.7,
+                "json_parse_rate": 0.7,
+                "avg_latency_ms": 700,
+            },
+            {
+                "model_id": "best-large",
+                "vendor": "b",
+                "architecture": "qwen",
+                "size_class": "large",
+                "capabilities": ["dev_plan", "text_plan", "text_review"],
+                "pass_rate": 1.0,
+                "quality_score": 1.0,
+                "json_parse_rate": 1.0,
+                "avg_latency_ms": 1800,
+            },
+            {
+                "model_id": "mid",
+                "vendor": "c",
+                "architecture": "mistral",
+                "size_class": "medium",
+                "capabilities": ["dev_plan", "text_plan", "text_review"],
+                "pass_rate": 0.8,
+                "quality_score": 0.8,
+                "json_parse_rate": 0.8,
+                "avg_latency_ms": 900,
+            },
+        ]
+        requirements = {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]}
+
+        fast = srr.build_role_selection_mapping(inventory, requirements, selection_mode="fast")
+        normal = srr.build_role_selection_mapping(inventory, requirements, selection_mode="normal")
+        full = srr.build_role_selection_mapping(inventory, requirements, selection_mode="full")
+
+        self.assertEqual("cheap-small", fast["roles"]["dev.work/solution_architect"]["selected_model_id"])
+        self.assertEqual(["cheap-small"], fast["roles"]["dev.work/solution_architect"]["comparison_set"])
+        self.assertEqual("best-large", normal["roles"]["dev.work/solution_architect"]["selected_model_id"])
+        self.assertGreaterEqual(len(normal["roles"]["dev.work/solution_architect"]["comparison_set"]), 2)
+        self.assertEqual(3, len(full["roles"]["dev.work/solution_architect"]["comparison_set"]))
+
+    def test_full_composite_respects_qa_developer_distinct_model_constraint(self) -> None:
+        inventory = [
+            {
+                "model_id": "strong-dev",
+                "vendor": "a",
+                "architecture": "qwen",
+                "capabilities": ["dev_execute", "dev_plan", "audit", "text_review"],
+                "pass_rate": 1.0,
+                "quality_score": 1.0,
+                "json_parse_rate": 1.0,
+            },
+            {
+                "model_id": "qa-alt",
+                "vendor": "b",
+                "architecture": "llama",
+                "capabilities": ["audit", "text_review", "dev_plan"],
+                "pass_rate": 0.8,
+                "quality_score": 0.8,
+                "json_parse_rate": 0.8,
+            },
+        ]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {
+                "dev.work/dev": srr.ROLE_REQUIREMENTS["dev.work/dev"],
+                "dev.work/qa": srr.ROLE_REQUIREMENTS["dev.work/qa"],
+            },
+            selection_mode="full_composite",
+            composite_top_n=2,
+        )
+        plan = mapping["composition_plan"]
+
+        self.assertEqual("full_composite", mapping["selection_mode"])
+        self.assertEqual("strong-dev", plan["selected_by_role"]["dev.work/dev"]["model_id"])
+        self.assertEqual("qa-alt", plan["selected_by_role"]["dev.work/qa"]["model_id"])
+        self.assertIn({"constraint": "QA != Developer", "state": "satisfied"}, plan["hard_constraints"])
+
     def test_epoch_switch_requires_operator_confirmation(self) -> None:
         inventory = [{
             "model_id": "valid-dev-plan",
@@ -418,6 +634,32 @@ class SelectionRefreshRuntimeTests(unittest.TestCase):
 
         self.assertEqual("operator_confirmation_required", blocked["roles"]["dev.work/solution_architect"]["selection_state"])
         self.assertEqual("valid_selected", confirmed["roles"]["dev.work/solution_architect"]["selection_state"])
+        self.assertTrue(blocked["operator_confirmation_required"])
+        self.assertFalse(confirmed["operator_confirmation_required"])
+        self.assertEqual(blocked["selected_mapping"], blocked["proposed_mapping"])
+
+    def test_mapping_change_persists_proposed_and_previous_mapping_evidence(self) -> None:
+        inventory = [{
+            "model_id": "new-model",
+            "capabilities": ["dev_plan", "text_plan", "text_review"],
+            "backend_status": "available",
+            "adapter_status": "available",
+            "quality_score": 1.0,
+            "pass_rate": 1.0,
+            "json_parse_rate": 1.0,
+        }]
+
+        mapping = srr.build_role_selection_mapping(
+            inventory,
+            {"dev.work/solution_architect": srr.ROLE_REQUIREMENTS["dev.work/solution_architect"]},
+            previous_mapping={"roles": {"dev.work/solution_architect": {"selected_model_id": "old-model"}}},
+            operator_confirmed=False,
+        )
+
+        self.assertTrue(mapping["operator_confirmation_required"])
+        self.assertEqual({"dev.work/solution_architect": "old-model"}, mapping["applied_mapping"])
+        self.assertEqual({"dev.work/solution_architect": "new-model"}, mapping["proposed_mapping"])
+        self.assertTrue(mapping["rollback_evidence"]["previous_mapping_available"])
 
     def test_pipeline_advance_can_use_refreshed_mapping_but_missing_worker_still_fails(self) -> None:
         old_mapping = os.environ.pop("NOEMAFORGE_REFRESHED_ROLE_MAPPING", None)

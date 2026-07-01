@@ -29,6 +29,8 @@ from noemaforge_version import RUNTIME_VERSION
 
 API_VERSION = "noemaforge.model-selection-refresh/v1"
 ROLE_SELECTION_API_VERSION = "noemaforge.model-role-selection/v1"
+ROLE_SELECTION_SCHEMA_VERSION = 2
+SELECTION_MODES = {"fast", "normal", "full", "full_composite"}
 ROLE_REQUIREMENTS = {
     "operator.admin/administrator": {"capability_class": "text_status", "required_capabilities": ["text_status", "text_review"]},
     "dev.work/solution_architect": {"capability_class": "dev_plan", "required_capabilities": ["dev_plan", "text_plan", "text_review"]},
@@ -263,6 +265,67 @@ def _float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+def normalize_selection_mode(value: str = "") -> str:
+    selected = str(value or "normal").strip().lower().replace("-", "_")
+    aliases = {"composite": "full_composite", "fullcomposite": "full_composite"}
+    selected = aliases.get(selected, selected)
+    return selected if selected in SELECTION_MODES else "normal"
+
+
+def _first_text(raw: Dict[str, Any], names: Iterable[str], default: str = "unknown") -> str:
+    for name in names:
+        value = str(raw.get(name) or "").strip()
+        if value:
+            return value
+    return default
+
+
+def _numeric_or_unknown(value: Any) -> Any:
+    try:
+        return int(value)
+    except Exception:
+        try:
+            return float(value)
+        except Exception:
+            return "unknown"
+
+
+def _metric_present(candidate: Dict[str, Any], measured: Dict[str, Any], key: str) -> bool:
+    return candidate.get(key) is not None or measured.get(key) is not None
+
+
+def _cost_tuple(candidate: Dict[str, Any]) -> tuple[int, float, str]:
+    size_rank = {"tiny": 0, "small": 1, "medium": 2, "large": 3, "xlarge": 4, "unknown": 5}
+    size = size_rank.get(str(candidate.get("size_class") or "unknown").lower(), 5)
+    measured = candidate.get("measured") if isinstance(candidate.get("measured"), dict) else {}
+    latency = _float(candidate.get("avg_latency_ms", measured.get("avg_latency_ms", 999999.0)), 999999.0)
+    return (size, latency, str(candidate.get("model_id") or ""))
+
+
+def _diverse_candidates(candidates: List[Dict[str, Any]], limit: int = 4) -> List[Dict[str, Any]]:
+    selected: List[Dict[str, Any]] = []
+    seen_dims: set[tuple[str, str, str]] = set()
+    for candidate in candidates:
+        dims = (
+            str(candidate.get("vendor") or "unknown"),
+            str(candidate.get("architecture") or "unknown"),
+            str(candidate.get("size_class") or "unknown"),
+        )
+        if dims in seen_dims and len(selected) >= 2:
+            continue
+        selected.append(candidate)
+        seen_dims.add(dims)
+        if len(selected) >= limit:
+            break
+    if len(selected) < min(2, len(candidates)):
+        for candidate in candidates:
+            if candidate not in selected:
+                selected.append(candidate)
+            if len(selected) >= min(2, len(candidates)):
+                break
+    return selected
+
+
 def _selection_next_actions(state: str, *, required_capability: str = "", required_adapter: str = "") -> List[str]:
     if state == "valid_selected":
         return []
@@ -298,6 +361,34 @@ def _required_adapter_for_candidate(candidate: Dict[str, Any], required_capabili
     return required_backend_for_capability(required_capability) if required_capability in BACKEND_REQUIRED_STAGE_CAPABILITIES else ""
 
 
+def _gguf_shard_safety(raw: Dict[str, Any]) -> Dict[str, Any]:
+    safety = raw.get("gguf_shard_safety")
+    if isinstance(safety, dict):
+        return dict(safety)
+    path = str(raw.get("source_path") or raw.get("canonical_path") or raw.get("path") or "")
+    name = Path(path).name.lower()
+    match = re.search(r"-(\d{5})-of-(\d{5})\.gguf$", name)
+    if not match:
+        return {"state": "unknown" if path else "unknown", "reason": "not_declared"}
+    shard_no = int(match.group(1))
+    return {
+        "state": "safe_head_shard" if shard_no == 1 else "blocked_non_head_shard",
+        "shard_index": shard_no,
+        "shard_count": int(match.group(2)),
+    }
+
+
+def _host_resource_fit_hints(raw: Dict[str, Any]) -> Dict[str, Any]:
+    hints = raw.get("host_resource_fit_hints") or raw.get("resource_fit")
+    if isinstance(hints, dict):
+        return dict(hints)
+    return {
+        "state": str(raw.get("resource_fit_state") or "unknown"),
+        "memory_fit": str(raw.get("memory_fit") or "unknown"),
+        "gpu_fit": str(raw.get("gpu_fit") or "unknown"),
+    }
+
+
 def normalize_inventory_records(records: Iterable[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """Normalize model inventory records before scoring.
 
@@ -313,6 +404,7 @@ def normalize_inventory_records(records: Iterable[Dict[str, Any]]) -> List[Dict[
         if not model_id:
             continue
         capabilities = sorted(set(_as_list(raw.get("capabilities"))) | set(_as_list(raw.get("capability_classes"))))
+        measured = raw.get("measured") if isinstance(raw.get("measured"), dict) else {}
         size_b = raw.get("size_bytes")
         size_label = str(raw.get("size_class") or raw.get("size") or "").strip()
         if not size_label:
@@ -327,15 +419,39 @@ def normalize_inventory_records(records: Iterable[Dict[str, Any]]) -> List[Dict[
                 size_label = "large"
             else:
                 size_label = "unknown"
+        vendor = _first_text(raw, ["vendor", "provider", "publisher"], "unknown").lower()
+        family = _first_text(raw, ["family", "architecture_family", "model_family"], "unknown").lower()
+        architecture = _first_text(raw, ["architecture", "arch", "family"], "unknown").lower()
+        backend_status = str(raw.get("backend_status") or ("available" if raw.get("backend_available", True) else "unavailable")).strip().lower()
+        adapter_status = str(raw.get("adapter_status") or ("available" if raw.get("adapter_available", True) else "required")).strip().lower()
         normalized.append({
             **raw,
             "model_id": model_id,
-            "vendor": str(raw.get("vendor") or raw.get("family") or "unknown").strip().lower() or "unknown",
-            "architecture": str(raw.get("architecture") or raw.get("arch") or "unknown").strip().lower() or "unknown",
+            "provider": _first_text(raw, ["provider", "vendor", "publisher"], "unknown").lower(),
+            "vendor": vendor or "unknown",
+            "architecture": architecture or "unknown",
+            "family": family or "unknown",
             "size_class": size_label,
+            "quantization": _first_text(raw, ["quantization", "quant", "quant_method"], "unknown").lower(),
+            "context_window": _numeric_or_unknown(raw.get("context_window") or raw.get("context_length") or raw.get("n_ctx")),
+            "modalities": sorted(set(_as_list(raw.get("modalities"))) or {"text"}),
             "capabilities": capabilities,
-            "backend_status": str(raw.get("backend_status") or ("available" if raw.get("backend_available", True) else "unavailable")),
-            "adapter_status": str(raw.get("adapter_status") or ("available" if raw.get("adapter_available", True) else "required")),
+            "backend_status": backend_status or "unknown",
+            "adapter_status": adapter_status or "unknown",
+            "measured_metrics": {
+                "pass_rate": raw.get("pass_rate", measured.get("pass_rate", "unknown")),
+                "quality_score": raw.get("quality_score", measured.get("quality_score", "unknown")),
+                "json_parse_rate": raw.get("json_parse_rate", measured.get("json_parse_rate", "unknown")),
+                "avg_latency_ms": raw.get("avg_latency_ms", measured.get("avg_latency_ms", "unknown")),
+                "startup_success_rate": raw.get("startup_success_rate", measured.get("startup_success_rate", "unknown")),
+                "readiness_success_rate": raw.get("readiness_success_rate", measured.get("readiness_success_rate", "unknown")),
+                "failure_rate": raw.get("failure_rate", measured.get("failure_rate", "unknown")),
+                "error_rate": raw.get("error_rate", measured.get("error_rate", "unknown")),
+            },
+            "source_path": str(raw.get("source_path") or raw.get("canonical_path") or raw.get("path") or ""),
+            "gguf_shard_safety": _gguf_shard_safety(raw),
+            "host_resource_fit_hints": _host_resource_fit_hints(raw),
+            "inventory_source": str(raw.get("inventory_source") or raw.get("source") or "unknown"),
         })
     return sorted(normalized, key=lambda item: (str(item.get("model_id")), str(item.get("vendor")), str(item.get("architecture"))))
 
@@ -349,7 +465,10 @@ def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_r
     required_capability = missing[0] if missing else str(req.get("capability_class") or "")
     required_adapter = _required_adapter_for_candidate(candidate, required_capability)
     degraded_reason = ""
-    if str(candidate.get("backend_status") or "") not in {"", "available", "ready", "ok"}:
+    if str((candidate.get("gguf_shard_safety") or {}).get("state") or "") == "blocked_non_head_shard":
+        state = "backend_unavailable"
+        degraded_reason = "candidate_is_non_head_gguf_shard"
+    elif str(candidate.get("backend_status") or "") not in {"", "available", "ready", "ok"}:
         state = "backend_unavailable"
         degraded_reason = "candidate_backend_not_available"
     elif str(candidate.get("adapter_status") or "") in {"required", "missing", "unavailable"}:
@@ -371,19 +490,39 @@ def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_r
     json_rate = _float(candidate.get("json_parse_rate", measured.get("json_parse_rate", 0.0)))
     latency_ms = max(1.0, _float(candidate.get("avg_latency_ms", measured.get("avg_latency_ms", 2500.0)), 2500.0))
     latency_score = min(1.0, 1000.0 / latency_ms)
+    startup_success = _float(candidate.get("startup_success_rate", measured.get("startup_success_rate", 0.0)))
+    readiness_success = _float(candidate.get("readiness_success_rate", measured.get("readiness_success_rate", startup_success)))
+    failure_rate = max(0.0, min(1.0, _float(candidate.get("failure_rate", measured.get("failure_rate", 0.0)))))
+    error_rate = max(0.0, min(1.0, _float(candidate.get("error_rate", measured.get("error_rate", failure_rate)))))
+    reliability_score = max(0.0, ((startup_success + readiness_success) / 2.0) - max(failure_rate, error_rate))
     capability_score = 1.0 if not required else (len(required & capabilities) / len(required))
     diversity_score = _float(
         candidate.get("fairness_diversity_score", candidate.get("diversity_score", measured.get("fairness_diversity_score", 0.0)))
     )
+    resource_hints = candidate.get("host_resource_fit_hints") if isinstance(candidate.get("host_resource_fit_hints"), dict) else {}
+    resource_state = str(resource_hints.get("state") or resource_hints.get("memory_fit") or "unknown").lower()
+    resource_fit_penalty = 0.0
+    if resource_state in {"tight", "marginal", "warning"}:
+        resource_fit_penalty = 0.08
+    elif resource_state in {"poor", "no_fit", "insufficient", "blocked"}:
+        resource_fit_penalty = 0.18
+    metric_keys = ["pass_rate", "quality_score", "json_parse_rate", "avg_latency_ms", "startup_success_rate", "readiness_success_rate", "failure_rate"]
+    present_metrics = [key for key in metric_keys if _metric_present(candidate, measured, key)]
+    confidence = round(min(1.0, len(present_metrics) / len(metric_keys)), 6)
+    if len(present_metrics) < 3:
+        confidence = min(confidence, 0.34)
     base_score = round(
         (pass_rate * 0.30)
         + (quality * 0.27)
         + (json_rate * 0.18)
-        + (latency_score * 0.10)
+        + (latency_score * 0.08)
         + (capability_score * 0.10)
-        + (diversity_score * 0.05),
+        + (reliability_score * 0.05)
+        + (diversity_score * 0.02)
+        - resource_fit_penalty,
         6,
     )
+    base_score = max(0.0, base_score)
     score = base_score
     if state == "degraded_selected":
         score = round(base_score * 0.72, 6)
@@ -395,7 +534,15 @@ def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_r
         "json_parse_rate": json_rate,
         "latency_ms": latency_ms,
         "latency_score": round(latency_score, 6),
+        "startup_success_rate": startup_success,
+        "readiness_success_rate": readiness_success,
+        "failure_rate": failure_rate,
+        "error_rate": error_rate,
+        "reliability_score": round(reliability_score, 6),
         "capability_coverage_ratio": round(capability_score, 6),
+        "resource_fit_penalty": resource_fit_penalty,
+        "confidence": confidence,
+        "metric_presence": sorted(present_metrics),
         "fairness_diversity_score": diversity_score,
         "base_score": base_score,
         "degraded_score_multiplier": 0.72 if state == "degraded_selected" else 1.0,
@@ -404,9 +551,10 @@ def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_r
             "pass_rate": 0.30,
             "quality_score": 0.27,
             "json_parse_rate": 0.18,
-            "latency_penalty": 0.10,
+            "latency_penalty": 0.08,
             "capability_coverage_ratio": 0.10,
-            "fairness_diversity": 0.05,
+            "startup_readiness_failure_rate": 0.05,
+            "fairness_diversity": 0.02,
         },
     }
     return {
@@ -424,19 +572,129 @@ def score_candidate_for_role(candidate: Dict[str, Any], role_key: str, *, role_r
             "missing_capabilities": missing,
             "backend_status": str(candidate.get("backend_status") or ""),
             "adapter_status": str(candidate.get("adapter_status") or ""),
+            "inventory_source": str(candidate.get("inventory_source") or "unknown"),
+            "source_path": str(candidate.get("source_path") or ""),
+            "gguf_shard_safety": dict(candidate.get("gguf_shard_safety") or {}),
+            "host_resource_fit_hints": dict(candidate.get("host_resource_fit_hints") or {}),
         },
         "score": score,
         "missing_capabilities": missing,
         "vendor": candidate.get("vendor"),
+        "provider": candidate.get("provider"),
         "architecture": candidate.get("architecture"),
+        "family": candidate.get("family"),
         "size_class": candidate.get("size_class"),
+        "quantization": candidate.get("quantization"),
+        "context_window": candidate.get("context_window"),
+        "modalities": candidate.get("modalities"),
         "scoring_rationale": scoring_rationale,
         "measured": {
             "pass_rate": pass_rate,
             "quality_score": quality,
             "json_parse_rate": json_rate,
             "avg_latency_ms": latency_ms,
+            "startup_success_rate": startup_success,
+            "readiness_success_rate": readiness_success,
+            "failure_rate": failure_rate,
+            "error_rate": error_rate,
         },
+    }
+
+
+def _candidate_summary(scored: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return {
+        "candidate_count": len(scored),
+        "valid_count": sum(1 for item in scored if item.get("selection_state") == "valid_selected"),
+        "degraded_count": sum(1 for item in scored if item.get("selection_state") == "degraded_selected"),
+        "adapter_required_count": sum(1 for item in scored if item.get("selection_state") == "adapter_required"),
+        "backend_unavailable_count": sum(1 for item in scored if item.get("selection_state") == "backend_unavailable"),
+        "insufficient_capability_count": sum(1 for item in scored if item.get("selection_state") == "insufficient_capability"),
+        "top_candidates": [
+            {
+                "model_id": item.get("model_id"),
+                "selection_state": item.get("selection_state"),
+                "score": item.get("score"),
+                "vendor": item.get("vendor"),
+                "architecture": item.get("architecture"),
+                "size_class": item.get("size_class"),
+            }
+            for item in scored[:5]
+        ],
+    }
+
+
+def _comparison_set(scored: List[Dict[str, Any]], mode: str) -> List[Dict[str, Any]]:
+    selectable = [item for item in scored if item.get("selection_state") in {"valid_selected", "degraded_selected"}]
+    if mode == "fast":
+        valid = [item for item in selectable if item.get("selection_state") == "valid_selected"]
+        return sorted(valid or selectable, key=_cost_tuple)[:1]
+    if mode == "normal":
+        return _diverse_candidates(selectable, limit=4)
+    return selectable
+
+
+def _choose_from_scored(scored: List[Dict[str, Any]], mode: str) -> tuple[Dict[str, Any], List[Dict[str, Any]]]:
+    compared = _comparison_set(scored, mode)
+    valid = [item for item in compared if item.get("selection_state") == "valid_selected"]
+    degraded = [item for item in compared if item.get("selection_state") == "degraded_selected"]
+    if mode == "fast" and valid:
+        return sorted(valid, key=_cost_tuple)[0], compared
+    if valid:
+        return sorted(valid, key=lambda item: (-_float(item.get("score")), str(item.get("model_id"))))[0], compared
+    if degraded:
+        return sorted(degraded, key=lambda item: (-_float(item.get("score")), str(item.get("model_id"))))[0], compared
+    return (scored[0] if scored else {}), compared
+
+
+def _build_composition_plan(role_results: Dict[str, Any], top_n: int) -> Dict[str, Any]:
+    limit = int(top_n) if int(top_n) > 0 else 0
+    selected: Dict[str, Any] = {}
+    used_by_role: Dict[str, str] = {}
+    constraints: List[Dict[str, Any]] = []
+    for role_key, role_doc in sorted(role_results.items()):
+        candidates = [
+            item for item in role_doc.get("candidates", [])
+            if item.get("selection_state") == "valid_selected"
+        ]
+        if limit:
+            candidates = candidates[:limit]
+        chosen = candidates[0] if candidates else {}
+        if role_key == "dev.work/qa":
+            dev_model = used_by_role.get("dev.work/dev")
+            alternatives = [item for item in candidates if str(item.get("model_id") or "") != dev_model]
+            if dev_model and alternatives:
+                chosen = alternatives[0]
+            elif dev_model and chosen and str(chosen.get("model_id") or "") == dev_model:
+                constraints.append({
+                    "constraint": "QA != Developer",
+                    "state": "blocked",
+                    "role_key": role_key,
+                    "model_id": dev_model,
+                    "reason": "no_distinct_valid_qa_candidate",
+                })
+                chosen = {}
+        if chosen:
+            selected[role_key] = {
+                "model_id": chosen.get("model_id"),
+                "score": chosen.get("score"),
+                "vendor": chosen.get("vendor"),
+                "architecture": chosen.get("architecture"),
+                "size_class": chosen.get("size_class"),
+            }
+            used_by_role[role_key] = str(chosen.get("model_id") or "")
+    if "dev.work/dev" in used_by_role and "dev.work/qa" in used_by_role:
+        constraints.append({
+            "constraint": "QA != Developer",
+            "state": "satisfied" if used_by_role["dev.work/dev"] != used_by_role["dev.work/qa"] else "blocked",
+        })
+    return {
+        "apiVersion": "noemaforge.model-role-composition/v1",
+        "kind": "RoleCompositionPlan",
+        "schema_version": 1,
+        "selection_mode": "full_composite",
+        "top_n": limit,
+        "selected_by_role": selected,
+        "hard_constraints": constraints or [{"constraint": "QA != Developer", "state": "not_applicable"}],
     }
 
 
@@ -447,20 +705,20 @@ def build_role_selection_mapping(
     current_epoch_id: str = "",
     proposed_epoch_id: str = "",
     operator_confirmed: bool = False,
+    selection_mode: str = "normal",
+    composite_top_n: int = 0,
+    inventory_source: str = "",
+    previous_mapping: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     requirements = role_requirements or ROLE_REQUIREMENTS
     candidates = normalize_inventory_records(inventory)
+    selection_mode = normalize_selection_mode(selection_mode)
     role_results: Dict[str, Any] = {}
     for role_key, req in sorted(requirements.items()):
         scored = [score_candidate_for_role(candidate, role_key, role_requirements=req) for candidate in candidates]
         scored = sorted(scored, key=lambda item: (-_float(item.get("score")), str(item.get("model_id"))))
-        valid = [item for item in scored if item.get("selection_state") == "valid_selected"]
-        degraded = [item for item in scored if item.get("selection_state") == "degraded_selected"]
-        if valid:
-            chosen = valid[0]
-        elif degraded:
-            chosen = degraded[0]
-        else:
+        chosen, compared = _choose_from_scored(scored, selection_mode)
+        if not chosen:
             chosen = scored[0] if scored else {
                 "selection_state": "backend_unavailable",
                 "degraded_reason": "no_inventory_candidates",
@@ -483,35 +741,71 @@ def build_role_selection_mapping(
                 "next_actions": _selection_next_actions(state),
             }
         role_results[role_key] = {
+            "role_id": role_key,
             "role_key": role_key,
+            "stage_capability": str(req.get("capability_class") or "unknown"),
             "requirements": req,
+            "selected_model_id": str(chosen.get("model_id") or ""),
             "selection_state": state,
             "degraded_reason": str(chosen.get("degraded_reason") or ""),
             "required_capability": str(chosen.get("required_capability") or ""),
             "required_adapter": str(chosen.get("required_adapter") or ""),
+            "score": chosen.get("score", 0.0),
             "next_actions": list(chosen.get("next_actions") or []),
             "evidence": dict(chosen.get("evidence") or {}),
             "scoring_rationale": dict(chosen.get("scoring_rationale") or {}),
+            "candidate_summary": _candidate_summary(scored),
+            "comparison_set": [item.get("model_id") for item in compared],
+            "inventory_source": inventory_source or str((chosen.get("evidence") or {}).get("inventory_source") or "unknown"),
             "chosen": chosen,
             "candidates": scored,
         }
     states = sorted({str(item.get("selection_state")) for item in role_results.values()})
+    composition_plan = _build_composition_plan(role_results, composite_top_n) if selection_mode == "full_composite" else None
+    selected_mapping = {role: item.get("selected_model_id") for role, item in sorted(role_results.items())}
+    previous_selected = {}
+    if isinstance(previous_mapping, dict):
+        previous_roles = previous_mapping.get("roles") if isinstance(previous_mapping.get("roles"), dict) else previous_mapping
+        for role, item in (previous_roles or {}).items():
+            if isinstance(item, dict):
+                previous_selected[str(role)] = str(item.get("selected_model_id") or item.get("model_id") or "")
+            else:
+                previous_selected[str(role)] = str(item or "")
+    mapping_changed = bool(previous_selected) and previous_selected != selected_mapping
+    operator_gate_required = bool(
+        (proposed_epoch_id and current_epoch_id and proposed_epoch_id != current_epoch_id and not operator_confirmed)
+        or (mapping_changed and not operator_confirmed)
+    )
     return {
         "apiVersion": ROLE_SELECTION_API_VERSION,
         "kind": "RoleSelectionMapping",
         "version": RUNTIME_VERSION,
         "created_at": nowz(),
-        "schema_version": 1,
+        "schema_version": ROLE_SELECTION_SCHEMA_VERSION,
         "current_epoch_id": current_epoch_id,
         "proposed_epoch_id": proposed_epoch_id,
         "operator_confirmed": bool(operator_confirmed),
+        "operator_confirmation_required": operator_gate_required,
+        "selection_mode": selection_mode,
+        "composite_top_n": int(composite_top_n),
         "selection_states": states,
         "valid_selection_states": sorted(VALID_SELECTION_STATES),
+        "inventory_source": inventory_source or "unknown",
+        "selected_mapping": selected_mapping,
+        "applied_mapping": previous_selected,
+        "proposed_mapping": selected_mapping if operator_gate_required or mapping_changed else {},
+        "rollback_evidence": {
+            "previous_mapping_available": bool(previous_selected),
+            "previous_mapping": previous_selected,
+            "message": "Keep previous mapping until operator confirms epoch/model composition changes.",
+        },
         "fairness_controls": {
             "compare_dimensions": ["size_class", "architecture", "vendor"],
             "hardcoded_vendor_preference": False,
             "capability_class_separation": True,
+            "rationale": "Diverse comparison sets include size, architecture and vendor/provider where hard constraints leave alternatives.",
         },
+        "composition_plan": composition_plan,
         "roles": role_results,
     }
 
