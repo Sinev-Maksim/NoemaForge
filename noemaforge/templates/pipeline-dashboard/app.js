@@ -60,6 +60,12 @@ function makeNode(tag, className='', text=''){
 }
 function replaceWithNodes(target, nodes){ target.replaceChildren(...nodes); }
 function showMuted(target, text){ replaceWithNodes(target, [makeNode('p', 'muted', text)]); }
+function taskStateNote(taskState){
+  const note = makeNode('div', 'task-state-note');
+  note.append(makeNode('b', '', taskState?.state_reason || 'task_state'));
+  note.append(makeNode('span', '', taskState?.visible_note || 'Task panel state is unavailable.'));
+  return note;
+}
 function safeLocalUrl(value){
   if(!value) return '';
   try{
@@ -879,15 +885,36 @@ async function refreshTasks(){
   try{
     const st = await api('/api/tasks');
     const tasks = st.tasks || [];
-    el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked`;
+    const taskState = st.task_state || {};
+    const expectedDefaults = st.expected_default_tasks || taskState.expected_default_tasks || [];
+    const stateSuffix = taskState.state_reason ? ` · ${taskState.state_reason}` : '';
+    el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked${stateSuffix}`;
     const target = el('tasks');
-    if(!tasks.length){ showMuted(target, 'No tasks yet.'); return; }
-    replaceWithNodes(target, tasks.slice(-8).reverse().map(x => {
+    if(!tasks.length){
+      const nodes = [];
+      nodes.push(taskStateNote(taskState));
+      if(expectedDefaults.length){
+        nodes.push(...expectedDefaults.slice(0, 8).map(x => {
+          const task = makeNode('div', 'task expected-task');
+          task.append(makeNode('b', '', x.title || x.module || x.kind || 'Default task'));
+          task.append(makeNode('span', '', `${x.domain || x.category || 'default'} · ${x.priority_class || 'background'} · expected`));
+          return task;
+        }));
+      }else{
+        nodes.push(makeNode('p', 'muted', 'No tasks yet.'));
+      }
+      replaceWithNodes(target, nodes);
+      return;
+    }
+    const nodes = [];
+    if(taskState.state_reason && taskState.state_reason !== 'default_tasks_present') nodes.push(taskStateNote(taskState));
+    nodes.push(...tasks.slice(-8).reverse().map(x => {
       const task = makeNode('div', 'task');
       task.append(makeNode('b', '', x.title));
       task.append(makeNode('span', '', `${x.category} · p=${x.priority} · ${x.status}`));
       return task;
     }));
+    replaceWithNodes(target, nodes);
   }catch(e){ showMuted(el('tasks'), 'tasks unavailable'); }
 }
 const CANCELLABLE_JOB_STATES = new Set(['queued','starting','running','needs_privilege']);

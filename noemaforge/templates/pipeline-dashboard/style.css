@@ -25,3 +25,4 @@ Tests: visual smoke at http://127.0.0.1:8765/.
 .depth-notice{margin-top:6px;padding:6px 10px;border-radius:10px;font-size:12px;background:#1a1408;border:1px solid #775d23;color:var(--warn)}
 
 /* Draft pipeline editor | drag&drop pipeline editor planned */
+.task-state-note{display:grid;gap:5px;padding:10px;border:1px dashed #775d23;border-radius:14px;background:#171208}.task-state-note b{color:var(--warn)}.task-state-note span{color:var(--muted);font-size:12px}.expected-task{border-style:dashed}
