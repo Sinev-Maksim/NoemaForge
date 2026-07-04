@@ -244,6 +244,55 @@ class PipelineStatusAndArtifactTests(unittest.TestCase):
         self.assertEqual("operator_reply_recorded", after["operator_reply_state"]["state"])
         self.assertNotEqual(before_version, after["stage_handoff"]["handoff_version"])
 
+    def test_degraded_handoff_reply_state_is_visible_and_traceable(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            state = tmp / "pipelines"
+            self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "run", "evolution",
+                "--request", "degraded handoff state",
+                "--run-id", "run_degraded_handoff_reply",
+                "--allow-degraded",
+            ])
+            self._pipeline_cli([
+                "--root", str(ROOT),
+                "--state", str(state),
+                "advance", "run_degraded_handoff_reply",
+                "--next",
+                "--allow-degraded",
+            ])
+            srv = _server(tmp)
+            srv.state = state
+            (srv.bootstrap_dir / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "degraded_selected",
+                "warnings": ["below threshold"],
+            }), encoding="utf-8")
+
+            before = srv.pipeline_run_status("run_degraded_handoff_reply")
+            self.assertEqual("degraded_readonly", before["handoff_reply_mode"])
+            self.assertEqual("record_operator_reply", before["handoff_next_action"])
+            self.assertIn("continuing still requires explicit degraded approval", before["handoff_reply_limitation"])
+
+            reply = srv.pipeline_stage_reply("run_degraded_handoff_reply", {
+                "stage": "current_state",
+                "message": "chat input reply: continue with explicit degraded approval",
+                "action": "reply",
+                "source": "chat_input",
+            })
+            after = srv.pipeline_run_status("run_degraded_handoff_reply")
+            jsonl = Path(reply["stage_input_path"]).read_text(encoding="utf-8")
+            decisions = Path(reply["decisions_path"]).read_text(encoding="utf-8")
+
+        self.assertTrue(reply["ok"])
+        self.assertEqual("operator_reply_recorded", after["operator_reply_state"]["state"])
+        self.assertEqual("degraded_readonly", after["handoff_reply_mode"])
+        self.assertEqual("continue_after_reply", after["handoff_next_action"])
+        self.assertIn('"source": "chat_input"', jsonl)
+        self.assertIn("chat input reply: continue with explicit degraded approval", jsonl)
+        self.assertIn("- Source: `chat_input`", decisions)
+
     def test_continue_without_worker_returns_actionable_blocker_not_fake_success(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
@@ -642,6 +691,10 @@ class FrontendSourceGuards(unittest.TestCase):
         src = APP_JS.read_text(encoding="utf-8")
         self.assertIn("stage_handoff", src)
         self.assertIn("postedStageHandoffKeys", src)
+        self.assertIn("activeStageHandoff", src)
+        self.assertIn("_sendActiveStageHandoffReply", src)
+        self.assertIn("source: 'chat_input'", src)
+        self.assertIn("pipeline_stage_handoff_response", src)
         self.assertIn("Reply / Provide decision", src)
         self.assertIn("Continue after reply", src)
         self.assertIn("Skip stage explicitly", src)
@@ -649,6 +702,9 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn("allow_degraded:true", src)
         self.assertIn("stage_progress", src)
         self.assertIn("operator_reply_state", src)
+        self.assertIn("handoff_reply_mode", src)
+        self.assertIn("handoff_reply_limitation", src)
+        self.assertIn("handoff_next_action", src)
         self.assertIn("actionable_blocker", src)
 
     def test_pipeline_status_exposes_worker_progress_contract(self) -> None:
