@@ -81,7 +81,11 @@ def code_evolution_status_post(handler: Any, body: Dict[str, Any]) -> None:
 
 
 def device_policy_set(handler: Any, body: Dict[str, Any]) -> None:
-    handler._send_json(handler.server.device_policy_set(str(body.get("policy") or body.get("mode") or "auto")))
+    handler._send_json(handler.server.device_policy_set(
+        str(body.get("policy") or body.get("mode") or "auto"),
+        scope=str(body.get("scope") or "session"),
+        reset_to_safe_default=bool(body.get("reset_to_safe_default") or body.get("reset")),
+    ))
 
 
 def workflow_stop(handler: Any, body: Dict[str, Any]) -> None:
