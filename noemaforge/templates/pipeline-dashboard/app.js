@@ -966,7 +966,7 @@ async function refreshPersona(){ try{ const st = await api('/api/persona/current
 async function showPersonaRules(){
   try{
     const st = await api('/api/persona/rules');
-    showModal('Persona rules', st.rules || st);
+    showPersonaRulesModal(st);
   }catch(e){ addMessage('Admin', `Persona rules error: ${String(e)}`, 'error'); }
 }
 async function pollEvents(){
@@ -1270,7 +1270,61 @@ function showPipelineDiagram(id, data){
   const body=el('modal-body');body.textContent='';body.appendChild(wrap);
   el('modal').classList.remove('hidden');
 }
-function showModal(title, obj){ el('modal-title').textContent = title; el('modal-body').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); el('modal').classList.remove('hidden'); }
+function _jsonPre(obj){
+  const pre = makeNode('pre', '', typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
+  return pre;
+}
+function showModal(title, obj){
+  el('modal-title').textContent = title;
+  replaceWithNodes(el('modal-body'), [_jsonPre(obj)]);
+  el('modal').classList.remove('hidden');
+}
+function _personaRulesVisualText(visual){
+  const parts = [];
+  if(visual.status) parts.push(`Status: ${visual.status}`);
+  if(visual.value != null) parts.push(`Value: ${visual.value}${visual.max != null ? ` / ${visual.max}` : ''}${visual.unit ? ` ${visual.unit}` : ''}`);
+  if(Array.isArray(visual.rows)) parts.push(`${visual.rows.length} rows`);
+  if(Array.isArray(visual.points)) parts.push(`${visual.points.length} points`);
+  if(Array.isArray(visual.events)) parts.push(`${visual.events.length} events`);
+  return parts.join('\n') || (visual.source || 'persona_rules');
+}
+function showPersonaRulesModal(payload){
+  const rendered = payload.rendered_rules || {};
+  const sections = Array.isArray(rendered.sections) ? rendered.sections : [];
+  const visuals = Array.isArray(payload.visuals) ? payload.visuals : (Array.isArray(rendered.visuals) ? rendered.visuals : []);
+  const root = makeNode('div', 'persona-rules-view');
+  if(sections.length){
+    sections.forEach(section => {
+      const card = makeNode('section', 'persona-rule-section');
+      card.append(makeNode('h3', '', section.title || 'Persona rules'));
+      const lines = Array.isArray(section.lines) ? section.lines : [];
+      const list = makeNode('ul');
+      lines.forEach(line => list.append(makeNode('li', '', String(line || '').replace(/^- /, ''))));
+      card.append(list);
+      root.append(card);
+    });
+  }else{
+    root.append(_jsonPre(rendered.text || 'No readable persona rules are available.'));
+  }
+  if(visuals.length){
+    const grid = makeNode('div', 'persona-visual-grid');
+    visuals.forEach(visual => {
+      const card = makeNode('div', 'persona-visual');
+      card.dataset.renderHint = String(visual.type || '');
+      card.append(makeNode('b', '', `${visual.type || 'Visual'} · ${visual.title || 'Persona rules'}`));
+      card.append(makeNode('span', 'muted', _personaRulesVisualText(visual)));
+      grid.append(card);
+    });
+    root.append(grid);
+  }
+  const audit = makeNode('details', 'audit-card');
+  audit.append(makeNode('summary', '', 'Raw JSON audit'));
+  audit.append(_jsonPre(payload.rules || payload));
+  root.append(audit);
+  el('modal-title').textContent = 'Persona rules';
+  replaceWithNodes(el('modal-body'), [root]);
+  el('modal').classList.remove('hidden');
+}
 async function addTaskDialog(){ const title = prompt('Task title:'); if(!title) return; const cat = prompt('Category:', 'gui') || 'general'; const priority = Number(prompt('Priority 1-100:', '50') || 50); const r = await api('/api/tasks/create', {title, category:cat, priority}); absorbResult(r); refreshTasks(); }
 async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
