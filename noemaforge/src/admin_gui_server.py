@@ -931,7 +931,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     # --- session state ----------------------------------------------------------------
     def _new_gui_session_id(self) -> str:
         """Return an opaque live GUI session id for this server process."""
-        stamp = now_iso().replace("-", "").replace(":", "").replace("Z", "Z")
+        stamp = now_iso().replace("-", "").replace(":", "")
         return f"gui_{stamp}_{uuid.uuid4().hex[:8]}"
 
     def _active_session_id(self) -> str:
@@ -982,8 +982,9 @@ class AdminGuiServer(ThreadingHTTPServer):
                 previous_conversation_archive=archive_path,
                 supersedes_conflicting_session=True,
             )
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - best-effort session-store sync
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _begin_gui_session: session_store update failed: {exc}\n")
         return conv
 
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
