@@ -106,6 +106,69 @@ def json_dumps(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True)
 
 
+def _meminfo_kib_to_bytes(value: Any) -> Optional[int]:
+    text = "" if value is None else str(value).strip()
+    if not text:
+        return None
+    match = re.match(r"^(\d+)", text)
+    if not match:
+        return None
+    return int(match.group(1)) * 1024
+
+
+def _memory_metrics(meminfo: Dict[str, Any]) -> Dict[str, Any]:
+    ram_total = _meminfo_kib_to_bytes(meminfo.get("MemTotal"))
+    ram_available = _meminfo_kib_to_bytes(meminfo.get("MemAvailable"))
+    swap_total = _meminfo_kib_to_bytes(meminfo.get("SwapTotal"))
+    swap_free = _meminfo_kib_to_bytes(meminfo.get("SwapFree"))
+
+    def used_and_percent(total: Optional[int], available: Optional[int]) -> Tuple[Optional[int], Optional[float]]:
+        if total is None or available is None:
+            return None, None
+        used = max(total - available, 0)
+        percent = (used / total * 100.0) if total else 0.0
+        return used, percent
+
+    ram_used, ram_percent = used_and_percent(ram_total, ram_available)
+    swap_used, swap_percent = used_and_percent(swap_total, swap_free)
+    return {
+        "MemTotal": meminfo.get("MemTotal"),
+        "MemAvailable": meminfo.get("MemAvailable"),
+        "SwapTotal": meminfo.get("SwapTotal"),
+        "SwapFree": meminfo.get("SwapFree"),
+        "ram": {"total": ram_total, "available": ram_available, "used": ram_used, "percent": ram_percent},
+        "swap": {"total": swap_total, "free": swap_free, "used": swap_used, "percent": swap_percent},
+        "total": ram_total,
+        "available": ram_available,
+        "used": ram_used,
+        "percent": ram_percent,
+        "swap_total": swap_total,
+        "swap_free": swap_free,
+        "swap_used": swap_used,
+        "swap_percent": swap_percent,
+    }
+
+
+def _parse_nvidia_smi_gpus(nvidia_smi: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(nvidia_smi, dict) or not nvidia_smi.get("available"):
+        return []
+    rows = []
+    for line in str(nvidia_smi.get("stdout") or "").splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 6:
+            continue
+        name, temp_c, power_w, memory_used_mib, memory_total_mib, utilization_percent = parts[:6]
+        rows.append({
+            "name": name,
+            "temperature_c": temp_c,
+            "power_w": power_w,
+            "memory_used_mib": memory_used_mib,
+            "memory_total_mib": memory_total_mib,
+            "utilization_percent": utilization_percent,
+        })
+    return rows
+
+
 def safe_id(text: str, default: str = "item") -> str:
     raw = re.sub(r"[^A-Za-z0-9_.-]+", "-", text.strip()).strip("-._")
     return raw[:96] or default
@@ -879,11 +942,18 @@ class AdminGuiServer(ThreadingHTTPServer):
             git_branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=str(self.root), text=True, stderr=subprocess.DEVNULL, timeout=3).strip()
         except Exception:
             pass
+        if git_head or git_branch:
+            git_metadata_reason = "git checkout metadata available"
+        elif not (self.root / ".git").exists():
+            git_metadata_reason = "package/release install metadata only; source root is not a git checkout"
+        else:
+            git_metadata_reason = "git metadata unavailable from this runtime context"
         return {
             "cli_path": cli_path,
             "install_path": install_path,
             "git_head": git_head,
             "git_branch": git_branch,
+            "git_metadata_reason": git_metadata_reason,
         }
 
     # --- event log -----------------------------------------------------------------
@@ -1649,7 +1719,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         runtime = self.runtime_status()
         staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
         decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
-        hardware = {"memory": {"MemTotal": meminfo.get("MemTotal"), "MemAvailable": meminfo.get("MemAvailable"), "SwapTotal": meminfo.get("SwapTotal"), "SwapFree": meminfo.get("SwapFree")}, "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
+        hardware = {"memory": _memory_metrics(meminfo), "gpus": _parse_nvidia_smi_gpus(nvidia), "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
         creative_media = {
             "quality_evaluation_state": "not_measured_without_explicit_evaluator",
             "quality_claim_policy": "metadata_and_review_required",
