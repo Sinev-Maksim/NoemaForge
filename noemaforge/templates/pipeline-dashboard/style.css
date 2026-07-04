@@ -23,5 +23,6 @@ Tests: visual smoke at http://127.0.0.1:8765/.
 
 /* D-008 iteration depth notice */
 .depth-notice{margin-top:6px;padding:6px 10px;border-radius:10px;font-size:12px;background:#1a1408;border:1px solid #775d23;color:var(--warn)}
+.product-card{align-self:stretch}.product-card pre{max-height:min(44vh,520px);min-height:180px}
 
 /* Draft pipeline editor | drag&drop pipeline editor planned */

@@ -614,6 +614,71 @@ class FrontendSourceGuards(unittest.TestCase):
         css = (ROOT / "templates" / "pipeline-dashboard" / "style.css").read_text(encoding="utf-8")
         self.assertIn("minmax(340px,1.6fr)", css)
         self.assertIn(".product-card", css)
+        self.assertIn("max-height:min(44vh,520px)", css)
+
+    def test_degraded_product_metrics_extract_available_values_and_missing_reasons(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            srv = _server(Path(td))
+            staff = {
+                "staffing_state": "degraded_selected",
+                "selected_model_ids": ["dev-model", "admin-model"],
+                "selected_model_count": 2,
+                "total_roles": 4,
+                "selected_roles": 3,
+                "target_met_roles": 2,
+                "degraded_roles": ["writing.story/writer"],
+                "unstaffed_roles": ["music.compose/arranger"],
+                "missing_mandatory_core_roles": [],
+                "warnings": ["Some selected roles are below minimal thresholds."],
+            }
+            decision = {
+                "mode": "full_composite",
+                "composite_top_n": 4,
+                "chosen_by_role": {
+                    "dev.work/solution_architect": {
+                        "model_id": "dev-model",
+                        "score": 0.72,
+                        "pass_rate": 0.8,
+                        "json_parse_rate": 0.9,
+                        "quality_score": 0.7,
+                        "avg_latency_ms": 1500,
+                    },
+                    "writing.story/writer": {
+                        "model_id": "admin-model",
+                        "score": 0.54,
+                        "pass_rate": 0.6,
+                        "json_parse_rate": 0.7,
+                        "quality_score": 0.65,
+                        "avg_latency_ms": 2500,
+                    },
+                },
+            }
+            result = srv._model_selection_product_metrics(staff, decision)
+
+        self.assertEqual("degraded_selected", result["staffing_state"])
+        self.assertIn("Mandatory core roles are staffed", result["status_explanation"])
+        self.assertIn("explicit degraded approval", result["next_action"])
+        self.assertEqual(0.7, result["metrics"]["pass_rate"]["value"])
+        self.assertEqual(0.8, result["metrics"]["json_parse_rate"]["value"])
+        self.assertEqual(0.675, result["metrics"]["quality_score"]["value"])
+        self.assertEqual(2.0, result["metrics"]["avg_latency_s"]["value"])
+        self.assertEqual("3/4", result["metrics"]["role_coverage"]["value"])
+        self.assertIn("firstboot-staffing-summary.json", result["metrics"]["degraded_roles"]["source"])
+        self.assertEqual([], result["metrics"]["missing_mandatory_core_roles"]["value"])
+        self.assertNotIn("reason", result["metrics"]["missing_mandatory_core_roles"])
+        self.assertIsNone(result["metrics"]["failed_tasks"]["value"])
+        self.assertIn("no failed_tasks field", result["metrics"]["failed_tasks"]["reason"])
+
+    def test_product_metrics_card_explains_degraded_sources_and_missing_reasons(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        self.assertIn("function _metricCellRow", src)
+        self.assertIn("degraded_selected", src)
+        self.assertIn("Mandatory core roles are staffed", src)
+        self.assertIn("Next action:", src)
+        self.assertIn("missing:", src)
+        self.assertIn("source artifact", src)
+        self.assertIn("Degraded roles:", src)
+        self.assertIn("Missing mandatory:", src)
 
     def test_degraded_decision_panel_source_guards(self) -> None:
         src = APP_JS.read_text(encoding="utf-8")

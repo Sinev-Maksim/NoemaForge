@@ -790,6 +790,22 @@ function _fmtHardware(hw){
   return lines.join('\n');
 }
 function _metricRow(label, value){ return `${label.padEnd(22)} ${value != null && value !== '' ? String(value) : '—'}`; }
+function _metricCellRow(label, cell, formatter){
+  const c = cell && typeof cell === 'object' && Object.prototype.hasOwnProperty.call(cell, 'value')
+    ? cell
+    : {value: cell, source: 'legacy telemetry field'};
+  const value = c.value;
+  const present = !(value == null || value === '' || (Array.isArray(value) && value.length === 0));
+  if (!present) {
+    const reason = c.reason || 'not present in source artifact';
+    const source = c.source ? ` (${c.source})` : '';
+    return _metricRow(label, `missing: ${reason}${source}`);
+  }
+  let rendered = formatter ? formatter(value) : value;
+  if (Array.isArray(rendered)) rendered = rendered.length ? rendered.join(', ') : 'none';
+  const source = c.source ? ` [${c.source}]` : '';
+  return _metricRow(label, `${rendered}${source}`);
+}
 function _na(value){
   const text = value == null ? '' : String(value).trim();
   return text || 'not available';
@@ -845,16 +861,35 @@ function _fmtProductMetrics(prod){
   if (!prod) return '—';
   const ms = prod.model_selection || {};
   const cm = prod.creative_media || {};
+  const metrics = ms.metrics || {};
+  const state = metrics.staffing_state || ms.staffing_state;
+  const degradedNote = ms.staffing_state === 'degraded_selected'
+    ? [
+        'degraded_selected',
+        ms.status_explanation || 'Mandatory core roles are staffed, but selected role quality is below target thresholds.',
+        `Next action: ${ms.next_action || 'Review degraded roles and continue only with explicit degraded approval or rerun model selection.'}`,
+        '',
+      ]
+    : (ms.status_explanation ? ['Model selection', ms.status_explanation, ms.next_action ? `Next action: ${ms.next_action}` : '', ''] : []);
   const rows = [
-    _metricRow('Selected model:', ms.current_main_model || ms.main_model || '—'),
-    _metricRow('Selection status:', ms.staffing_state || '—'),
-    _metricRow('Score:', ms.selection_score != null ? ms.selection_score : '—'),
-    _metricRow('Pass rate:', ms.pass_rate != null ? _pct(ms.pass_rate * 100) : '—'),
-    _metricRow('JSON parse rate:', ms.json_parse_rate != null ? _pct(ms.json_parse_rate * 100) : '—'),
-    _metricRow('Quality score:', ms.quality_score != null ? ms.quality_score : '—'),
-    _metricRow('Avg latency (s):', ms.avg_latency_s != null ? ms.avg_latency_s : '—'),
-    _metricRow('Failed tasks:', ms.failed_tasks != null ? ms.failed_tasks : '—'),
-    _metricRow('Top-N composite:', ms.selected_composite_top_n != null ? ms.selected_composite_top_n : '—'),
+    ...degradedNote.filter(Boolean),
+    _metricCellRow('Selected model:', metrics.current_main_model || ms.current_main_model || ms.main_model),
+    _metricCellRow('Selection status:', state),
+    _metricCellRow('Selected count:', metrics.selected_model_count || ms.selected_model_count),
+    _metricCellRow('Role coverage:', metrics.role_coverage),
+    _metricCellRow('Target-met roles:', metrics.target_met_roles),
+    _metricCellRow('Degraded roles:', metrics.degraded_roles),
+    _metricCellRow('Unstaffed roles:', metrics.unstaffed_roles),
+    _metricCellRow('Missing mandatory:', metrics.missing_mandatory_core_roles || ms.missing_mandatory_core_roles),
+    _metricCellRow('Warnings:', metrics.warnings),
+    _metricCellRow('Score:', metrics.selection_score || ms.selection_score),
+    _metricCellRow('Pass rate:', metrics.pass_rate || ms.pass_rate, v => _pct(Number(v) * 100)),
+    _metricCellRow('JSON parse rate:', metrics.json_parse_rate || ms.json_parse_rate, v => _pct(Number(v) * 100)),
+    _metricCellRow('Quality score:', metrics.quality_score || ms.quality_score),
+    _metricCellRow('Avg latency (s):', metrics.avg_latency_s || ms.avg_latency_s),
+    _metricCellRow('Failed tasks:', metrics.failed_tasks || ms.failed_tasks),
+    _metricCellRow('Selection mode:', metrics.selection_mode),
+    _metricCellRow('Top-N composite:', metrics.selected_composite_top_n || ms.selected_composite_top_n),
     cm.status ? _metricRow('Creative media:', cm.status) : null,
   ].filter(Boolean);
   return rows.join('\n');
@@ -867,7 +902,9 @@ async function refreshTelemetry(){
     el('version-line').textContent = mismatch ? `NoemaForge / version mismatch: API ${health.version} telemetry ${st.version}` : `NoemaForge / ${apiVersion || 'not available'}`;
     el('hardware-status').textContent = 'ok';
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
-    el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
+    const productState = st.product?.model_selection?.staffing_state || '—';
+    el('product-status').textContent = productState;
+    el('product-status').title = st.product?.model_selection?.status_explanation || '';
     el('hardware-metrics').textContent = _fmtHardware(st.hardware);
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('software-metrics').textContent = _fmtSoftware(health);

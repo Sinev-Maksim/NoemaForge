@@ -1634,6 +1634,167 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         r = run_json(cmd, timeout=timeout)
         return {"available": True, **r}
 
+    def _product_metric_cell(self, value: Any, *, source: str, reason: str = "", empty_is_present: bool = False) -> Dict[str, Any]:
+        present = value not in (None, "", {}) and (empty_is_present or value != [])
+        cell = {"value": value if present else None, "source": source}
+        if not present:
+            cell["reason"] = reason or "not present in source artifact"
+        return cell
+
+    def _model_selection_product_metrics(self, staff: Any, decision: Any) -> Dict[str, Any]:
+        staff = staff if isinstance(staff, dict) else {}
+        decision = decision if isinstance(decision, dict) else {}
+        staffing_source = "firstboot-staffing-summary.json"
+        decision_source = "model-selection-decision.json"
+        chosen_by_role = decision.get("chosen_by_role") if isinstance(decision.get("chosen_by_role"), dict) else {}
+        chosen = [item for item in chosen_by_role.values() if isinstance(item, dict)]
+        selected_model_ids = staff.get("selected_model_ids")
+        if not selected_model_ids and chosen:
+            selected_model_ids = sorted({str(item.get("model_id")) for item in chosen if item.get("model_id")})
+
+        def _avg(keys: Sequence[str]) -> Optional[float]:
+            values: List[float] = []
+            for item in chosen:
+                measured = item.get("measured") if isinstance(item.get("measured"), dict) else {}
+                for key in keys:
+                    raw = item.get(key, measured.get(key))
+                    if raw is not None and raw != "unknown":
+                        try:
+                            values.append(float(raw))
+                            break
+                        except Exception:
+                            continue
+            if not values:
+                return None
+            return round(sum(values) / len(values), 6)
+
+        latency_ms = _avg(["avg_latency_ms", "latency_ms"])
+        metrics = {
+            "current_main_model": self._product_metric_cell(
+                ", ".join(selected_model_ids) if isinstance(selected_model_ids, list) else selected_model_ids,
+                source=f"{staffing_source}:selected_model_ids",
+                reason="firstboot staffing artifact has no selected_model_ids",
+            ),
+            "staffing_state": self._product_metric_cell(
+                staff.get("staffing_state"),
+                source=f"{staffing_source}:staffing_state",
+                reason="firstboot staffing summary is missing or has no staffing_state",
+            ),
+            "selected_model_count": self._product_metric_cell(
+                staff.get("selected_model_count"),
+                source=f"{staffing_source}:selected_model_count",
+                reason="firstboot staffing summary has no selected_model_count",
+            ),
+            "role_coverage": self._product_metric_cell(
+                f"{staff.get('selected_roles')}/{staff.get('total_roles')}" if staff.get("selected_roles") is not None and staff.get("total_roles") is not None else None,
+                source=f"{staffing_source}:selected_roles,total_roles",
+                reason="firstboot staffing summary has no selected_roles/total_roles coverage",
+            ),
+            "target_met_roles": self._product_metric_cell(
+                staff.get("target_met_roles"),
+                source=f"{staffing_source}:target_met_roles",
+                reason="firstboot staffing summary has no target_met_roles",
+            ),
+            "degraded_roles": self._product_metric_cell(
+                staff.get("degraded_roles"),
+                source=f"{staffing_source}:degraded_roles",
+                reason="no degraded roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "unstaffed_roles": self._product_metric_cell(
+                staff.get("unstaffed_roles"),
+                source=f"{staffing_source}:unstaffed_roles",
+                reason="no unstaffed roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "missing_mandatory_core_roles": self._product_metric_cell(
+                staff.get("missing_mandatory_core_roles"),
+                source=f"{staffing_source}:missing_mandatory_core_roles",
+                reason="no missing mandatory core roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "warnings": self._product_metric_cell(
+                staff.get("warnings"),
+                source=f"{staffing_source}:warnings",
+                reason="firstboot staffing summary has no degraded warning text",
+                empty_is_present=True,
+            ),
+            "selection_mode": self._product_metric_cell(
+                decision.get("mode") or (decision.get("selection") or {}).get("mode"),
+                source=f"{decision_source}:mode",
+                reason="model-selection decision has no mode",
+            ),
+            "selected_composite_top_n": self._product_metric_cell(
+                decision.get("composite_top_n") if decision.get("composite_top_n") is not None else (decision.get("selection") or {}).get("composite_top_n"),
+                source=f"{decision_source}:composite_top_n",
+                reason="model-selection decision has no composite_top_n",
+            ),
+            "selection_score": self._product_metric_cell(
+                _avg(["score", "final_score"]),
+                source=f"{decision_source}:chosen_by_role.score",
+                reason="model-selection decision has no role score measurements",
+            ),
+            "pass_rate": self._product_metric_cell(
+                _avg(["pass_rate"]),
+                source=f"{decision_source}:chosen_by_role.pass_rate",
+                reason="model-selection decision has no pass_rate measurements",
+            ),
+            "json_parse_rate": self._product_metric_cell(
+                _avg(["json_parse_rate"]),
+                source=f"{decision_source}:chosen_by_role.json_parse_rate",
+                reason="model-selection decision has no json_parse_rate measurements",
+            ),
+            "quality_score": self._product_metric_cell(
+                _avg(["quality_score"]),
+                source=f"{decision_source}:chosen_by_role.quality_score",
+                reason="model-selection decision has no quality_score measurements",
+            ),
+            "avg_latency_s": self._product_metric_cell(
+                round(latency_ms / 1000.0, 3) if latency_ms is not None else None,
+                source=f"{decision_source}:chosen_by_role.avg_latency_ms",
+                reason="model-selection decision has no latency measurements",
+            ),
+            "failed_tasks": self._product_metric_cell(
+                decision.get("failed_tasks"),
+                source=f"{decision_source}:failed_tasks",
+                reason="model-selection decision has no failed_tasks field",
+            ),
+        }
+        state = staff.get("staffing_state")
+        explanation = ""
+        next_action = ""
+        if state == "degraded_selected":
+            explanation = "Mandatory core roles are staffed, but one or more selected roles are below target quality thresholds. This is a warning state, not a fatal failure."
+            next_action = "Review degraded roles and warnings; continue only with explicit degraded approval or rerun model selection to improve coverage."
+        elif state:
+            explanation = "Model-selection staffing summary is available."
+            next_action = "Review available metrics before applying or refreshing the epoch."
+        else:
+            explanation = "No firstboot staffing summary is available yet."
+            next_action = "Run model selection or refresh firstboot artifacts."
+        return {
+            "staffing_state": staff.get("staffing_state"),
+            "selected_model_count": staff.get("selected_model_count"),
+            "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"),
+            "current_main_model": metrics["current_main_model"]["value"],
+            "main_model": metrics["current_main_model"]["value"],
+            "selection_score": metrics["selection_score"]["value"],
+            "pass_rate": metrics["pass_rate"]["value"],
+            "json_parse_rate": metrics["json_parse_rate"]["value"],
+            "quality_score": metrics["quality_score"]["value"],
+            "avg_latency_s": metrics["avg_latency_s"]["value"],
+            "failed_tasks": metrics["failed_tasks"]["value"],
+            "selected_composite_top_n": metrics["selected_composite_top_n"]["value"],
+            "status_explanation": explanation,
+            "next_action": next_action,
+            "source_artifacts": {
+                "staffing_summary": {"path": str(self.bootstrap_dir / "firstboot-staffing-summary.json"), "available": bool(staff)},
+                "model_selection_decision": {"path": str(self.bootstrap_dir / "model-selection-decision.json"), "available": bool(decision)},
+            },
+            "metrics": metrics,
+            "decision": decision,
+        }
+
     def telemetry_status(self) -> Dict[str, Any]:
         meminfo = {}
         try:
@@ -1656,7 +1817,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "note": "Telemetry cards show availability and metadata only; creative-media quality is not claimed without an explicit evaluator or review artifact.",
         }
         product = {
-            "model_selection": {"staffing_state": staff.get("staffing_state"), "selected_model_count": staff.get("selected_model_count"), "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"), "decision": decision},
+            "model_selection": self._model_selection_product_metrics(staff, decision),
             "creative_media": creative_media,
         }
         return {"ok": True, "version": RUNTIME_VERSION, "hardware": hardware, "runtime": runtime, "product": product, "creative_metrics_policy": "creative media uses metadata/review-required metrics unless an explicit evaluator is configured"}
