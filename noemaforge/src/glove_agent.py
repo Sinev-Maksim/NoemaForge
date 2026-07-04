@@ -58,6 +58,7 @@ No network. No long-term memory.
 import argparse
 import datetime as dt
 import hashlib
+import importlib
 import io
 import json
 import os
@@ -67,10 +68,14 @@ import zipfile
 from html.parser import HTMLParser
 from typing import Any, Dict, List, Optional, Tuple
 
+XML_ENTITY_RE = re.compile(r"<!\s*ENTITY\b", re.IGNORECASE)
+
 try:
-    import xml.etree.ElementTree as ET
-except Exception:  # pragma: no cover
-    ET = None  # type: ignore
+    ET = importlib.import_module("defusedxml.ElementTree")
+    _DEFUSED_XML = True
+except Exception:  # pragma: no cover - depends on optional security extra
+    ET = importlib.import_module("xml.etree.ElementTree")
+    _DEFUSED_XML = False
 
 
 try:
@@ -575,7 +580,7 @@ def _pi_scan_and_scrub(text: str, *, source: str) -> Tuple[str, Dict[str, Any]]:
 # === End NoemaForge Autodoc Function Header ===
 def _extract_rss_items(xml_text: str, max_items: int = 50) -> Tuple[str, List[str]]:
     links: List[str] = []
-    if ET is None:
+    if not _DEFUSED_XML and XML_ENTITY_RE.search(xml_text):
         plain = _strip_html(xml_text)
         return plain, links
 

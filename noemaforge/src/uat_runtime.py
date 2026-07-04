@@ -104,11 +104,7 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        # pipeline_id/run_id are regex-validated safe tokens (see _SAFE_PIPELINE_ID)
-        # and shell=False (list cmd), so there is no shell to inject into. Scoped,
-        # code-backed suppression for the framework-mismatched django taint rule — this
-        # replaces the repo-wide --exclude-rule, so injection detection stays live.
-        proc = subprocess.run(  # nosemgrep: python.django.security.injection.command.subprocess-injection
+        proc = subprocess.run(
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
         )

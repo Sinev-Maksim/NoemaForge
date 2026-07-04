@@ -73,6 +73,25 @@ import uuid
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
+FETCH_BY_ID_TABLES = {
+    "sources": ("sources", "source_id"),
+    "passages": ("passages", "passage_id"),
+    "concepts": ("concepts", "concept_id"),
+    "claims": ("claims", "claim_id"),
+    "conflicts": ("conflicts", "conflict_id"),
+    "realms": ("realms", "realm_id"),
+    "realm_bridges": ("realm_bridges", "bridge_id"),
+    "trails": ("trails", "trail_id"),
+}
+
+
+def _placeholders(count: int) -> str:
+    n = int(count)
+    if n <= 0 or n > 1000:
+        raise ValueError("invalid_placeholder_count")
+    return ",".join("?" for _ in range(n))
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
 # Purpose: Implement the routine ' nowz'.
@@ -1246,21 +1265,13 @@ class KnowledgeStore:
         ids = [str(x) for x in ids if str(x).strip()]
         if not ids:
             return []
-        if table not in {"sources", "passages", "concepts", "claims", "conflicts", "realms", "realm_bridges", "trails"}:
+        table_spec = FETCH_BY_ID_TABLES.get(table)
+        if not table_spec:
             return []
-        pk = {
-            "sources": "source_id",
-            "passages": "passage_id",
-            "concepts": "concept_id",
-            "claims": "claim_id",
-            "conflicts": "conflict_id",
-            "realms": "realm_id",
-            "realm_bridges": "bridge_id",
-            "trails": "trail_id",
-        }[table]
+        table_name, pk = table_spec
         con = self._connect()
         cur = con.cursor()
-        q = f"SELECT * FROM {table} WHERE {pk} IN ({','.join(['?']*len(ids))})"
+        q = f"SELECT * FROM {table_name} WHERE {pk} IN ({_placeholders(len(ids))})"
         cur.execute(q, ids)
         rows = [dict(r) for r in cur.fetchall()]
         con.close()

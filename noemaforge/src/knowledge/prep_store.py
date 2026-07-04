@@ -102,6 +102,14 @@ TABLE_ORDER: List[str] = [
     "passage_origins",
     "claim_origins",
 ]
+BOOK_COUNT_TABLES = {
+    "chapters": "chapters",
+    "sections": "sections",
+    "normalized_text_artifacts": "normalized_text_artifacts",
+    "sentences": "sentences",
+    "adjacency_groups": "adjacency_groups",
+    "split_nodes": "split_nodes",
+}
 
 
 class PrepStore:
@@ -140,6 +148,25 @@ class PrepStore:
         con.execute("PRAGMA foreign_keys = ON")
         return con
 
+    def _safe_table_name(self, con: sqlite3.Connection, table: str) -> str:
+        value = str(table)
+        if value not in set(self._all_tables(con)):
+            raise ValueError("unknown_table")
+        return value
+
+    def _column_list(self, con: sqlite3.Connection, table: str, cols: Sequence[str]) -> str:
+        available = set(self._table_columns(con, table))
+        safe = [str(col) for col in cols]
+        if not safe or any(col not in available for col in safe):
+            raise ValueError("unknown_column")
+        return ", ".join(safe)
+
+    def _placeholders(self, count: int) -> str:
+        n = int(count)
+        if n <= 0 or n > 200:
+            raise ValueError("invalid_placeholder_count")
+        return ", ".join("?" for _ in range(n))
+
     def _init_db(self) -> None:
         sql = Path(self.sql_path).read_text(encoding="utf-8")
         with self._connect() as con:
@@ -147,7 +174,7 @@ class PrepStore:
             con.commit()
 
     def _table_columns(self, con: sqlite3.Connection, table: str) -> List[str]:
-        rows = con.execute(f"PRAGMA table_info({table})").fetchall()
+        rows = con.execute("SELECT name FROM pragma_table_info(?)", (str(table),)).fetchall()
         return [str(r["name"]) for r in rows]
 
     def _all_tables(self, con: sqlite3.Connection) -> List[str]:
@@ -972,7 +999,10 @@ class PrepStore:
                 elif table == "claim_origins":
                     row = con.execute("SELECT COUNT(*) AS n FROM claim_origins WHERE book_id=?", (str(book_id),)).fetchone()
                 else:
-                    row = con.execute(f"SELECT COUNT(*) AS n FROM {table} WHERE book_id=?", (str(book_id),)).fetchone()
+                    table_name = BOOK_COUNT_TABLES.get(str(table))
+                    if not table_name:
+                        raise ValueError("unsupported_count_table")
+                    row = con.execute(f"SELECT COUNT(*) AS n FROM {table_name} WHERE book_id=?", (str(book_id),)).fetchone()
                 return int(row["n"] if row else 0)
             book = con.execute("SELECT * FROM books WHERE book_id=?", (str(book_id),)).fetchone()
             row = con.execute("SELECT COUNT(*) AS n FROM split_nodes WHERE book_id=? AND is_leaf=1", (str(book_id),)).fetchone()
@@ -1004,7 +1034,8 @@ class PrepStore:
             for table in names:
                 if table not in available:
                     continue
-                rows = con.execute(f"SELECT * FROM {table}").fetchall()
+                table_name = self._safe_table_name(con, table)
+                rows = con.execute(f"SELECT * FROM {table_name}").fetchall()
                 out_path = tgt / f"{table}.jsonl"
                 with open(out_path, "w", encoding="utf-8") as f:
                     for r in rows:
@@ -1029,10 +1060,12 @@ class PrepStore:
                 p = src / f"{table}.jsonl"
                 if table not in available or not p.exists():
                     continue
-                cols = self._table_columns(con, table)
-                placeholders = ", ".join(["?"] * len(cols))
+                table_name = self._safe_table_name(con, table)
+                cols = self._table_columns(con, table_name)
+                placeholders = self._placeholders(len(cols))
+                column_list = self._column_list(con, table_name, cols)
                 verb = "INSERT OR REPLACE" if mode == "replace" else "INSERT OR IGNORE"
-                sql = f"{verb} INTO {table} ({', '.join(cols)}) VALUES ({placeholders})"
+                sql = f"{verb} INTO {table_name} ({column_list}) VALUES ({placeholders})"
                 count = 0
                 with open(p, "r", encoding="utf-8") as f:
                     for line in f:
