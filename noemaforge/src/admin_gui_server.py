@@ -69,6 +69,7 @@ TRACE_COVERAGE_ADMIN_GUI_JOBS_ANCHORS = (
 
 import production_ai_contracts
 import admin_gui_routes
+import model_profiles
 import selection_refresh_runtime as selection_refresh
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
@@ -96,6 +97,8 @@ DEFAULT_LLM_MAIN_BACKEND_SOCKET = _platform_paths.llm_main_backend_socket
 DEFAULT_LEGACY_LLM_GATEWAY_SOCKET = _platform_paths.legacy_brainos_gateway_socket
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
+SAFE_STARTUP_PROFILE = "minimal"
+DEFAULT_STARTUP_PROFILE = "balanced"
 
 
 def now_iso() -> str:
@@ -774,6 +777,157 @@ class AdminGuiServer(ThreadingHTTPServer):
                 pass
             raise
 
+    def startup_profile_file(self) -> Path:
+        return self.gui_state_dir / "startup-profile-state.json"
+
+    def startup_profile_catalog(self) -> Dict[str, Dict[str, Any]]:
+        try:
+            profiles = model_profiles.load_profiles(self.root)
+        except Exception:
+            profiles = {}
+        if not isinstance(profiles, dict):
+            profiles = {}
+        if SAFE_STARTUP_PROFILE not in profiles:
+            profiles[SAFE_STARTUP_PROFILE] = {
+                "description": "Safe minimal startup profile.",
+                "max_active_llms": 1,
+                "default_runtime": "manual",
+                "ram_gib_min": 0,
+                "vram_gib_min": 0,
+                "model_hints": [],
+                "roles": [],
+            }
+        out: Dict[str, Dict[str, Any]] = {}
+        for profile_id, spec in profiles.items():
+            if not isinstance(spec, dict):
+                continue
+            out[str(profile_id)] = {
+                "profile": str(profile_id),
+                "description": str(spec.get("description") or ""),
+                "default_runtime": str(spec.get("default_runtime") or "manual"),
+                "max_active_llms": int(spec.get("max_active_llms") or 1),
+                "ram_gib_min": float(spec.get("ram_gib_min") or 0),
+                "vram_gib_min": float(spec.get("vram_gib_min") or 0),
+                "safe_minimal": str(profile_id) == SAFE_STARTUP_PROFILE,
+            }
+        return out
+
+    def _startup_known_usable(self, profile: str, status: Dict[str, Any], catalog: Dict[str, Any]) -> bool:
+        if profile == SAFE_STARTUP_PROFILE:
+            return True
+        if profile not in catalog:
+            return False
+        value = status.get(profile)
+        return value is not False
+
+    def _startup_bool(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        text = str(value or "").strip().lower()
+        return text in {"1", "true", "yes", "ok", "usable", "passed"}
+
+    def startup_profile_state(self) -> Dict[str, Any]:
+        catalog = self.startup_profile_catalog()
+        raw = self._read_json(self.startup_profile_file(), {})
+        if not isinstance(raw, dict):
+            raw = {}
+        known = raw.get("profile_status")
+        if not isinstance(known, dict):
+            known = {}
+        default_profile = str(raw.get("default_profile") or DEFAULT_STARTUP_PROFILE)
+        if default_profile not in catalog:
+            default_profile = SAFE_STARTUP_PROFILE
+        session_profile = str(raw.get("session_profile") or default_profile)
+        if session_profile not in catalog:
+            session_profile = default_profile
+        last_known = str(raw.get("last_known_usable_profile") or default_profile)
+        if not self._startup_known_usable(last_known, known, catalog):
+            last_known = SAFE_STARTUP_PROFILE
+        active_profile = str(raw.get("active_profile") or last_known)
+        if not self._startup_known_usable(active_profile, known, catalog):
+            active_profile = last_known if self._startup_known_usable(last_known, known, catalog) else SAFE_STARTUP_PROFILE
+        transition = raw.get("transition") if isinstance(raw.get("transition"), dict) else {}
+        if not transition:
+            transition = {
+                "state": "stable",
+                "reason": "Using last known usable startup profile.",
+                "requested_profile": session_profile,
+                "fallback_profile": "",
+            }
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "safe_minimal_profile": SAFE_STARTUP_PROFILE,
+            "default_profile": default_profile,
+            "session_profile": session_profile,
+            "last_known_usable_profile": last_known,
+            "active_profile": active_profile,
+            "active_reason": str(raw.get("active_reason") or transition.get("reason") or "Using startup profile state."),
+            "transition": transition,
+            "profile_status": known,
+            "profiles": catalog,
+            "api": {
+                "status_endpoint": "/api/startup/profile",
+                "test_endpoint": "/api/startup/profile",
+                "safe_test_only": True,
+                "starts_services": False,
+            },
+        }
+        return doc
+
+    def startup_profile_update(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        catalog = self.startup_profile_catalog()
+        current = self.startup_profile_state()
+        known = current.get("profile_status") if isinstance(current.get("profile_status"), dict) else {}
+        profile = str(body.get("profile") or body.get("selected_profile") or current.get("session_profile") or current.get("default_profile") or SAFE_STARTUP_PROFILE).strip()
+        if profile not in catalog:
+            known[profile] = False
+            profile_usable = False
+            test_state = "unusable"
+        elif "usable" in body:
+            profile_usable = self._startup_bool(body.get("usable"))
+            known[profile] = profile_usable
+            test_state = "usable" if profile_usable else "unusable"
+        else:
+            profile_usable = True
+            test_state = "testing"
+        last_known = str(current.get("last_known_usable_profile") or current.get("default_profile") or SAFE_STARTUP_PROFILE)
+        if not self._startup_known_usable(last_known, known, catalog):
+            last_known = SAFE_STARTUP_PROFILE
+        if test_state == "testing":
+            active = str(current.get("active_profile") or last_known)
+            reason = f"Testing startup profile '{profile}'; active profile remains '{active}' until the test result is recorded."
+            fallback = ""
+        elif profile_usable:
+            active = profile
+            last_known = profile
+            reason = f"Startup profile '{profile}' is usable and is now active for this session."
+            fallback = ""
+        else:
+            fallback = last_known if self._startup_known_usable(last_known, known, catalog) else SAFE_STARTUP_PROFILE
+            active = fallback
+            reason = f"Startup profile '{profile}' is not usable; recovered to '{active}'."
+        state = {
+            "default_profile": current.get("default_profile") or DEFAULT_STARTUP_PROFILE,
+            "session_profile": profile if profile in catalog else current.get("session_profile", SAFE_STARTUP_PROFILE),
+            "last_known_usable_profile": last_known,
+            "active_profile": active,
+            "active_reason": reason,
+            "profile_status": known,
+            "transition": {
+                "state": test_state,
+                "requested_profile": profile,
+                "tested_profile": profile,
+                "fallback_profile": fallback,
+                "reason": reason,
+                "starts_services": False,
+                "updated_at": now_iso(),
+            },
+            "updated_at": now_iso(),
+        }
+        self._write_json(self.startup_profile_file(), state)
+        return self.startup_profile_state()
+
     def _append_jsonl(self, path: Path, obj: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("a", encoding="utf-8") as f:
@@ -855,6 +1009,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "/api/admin/message", "/api/events",
                 "/api/conversation/current", "/api/conversation/history",
                 "/api/session/current", "/api/session/mode",
+                "/api/startup/profile",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
@@ -1505,6 +1660,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         doc["conversation"] = conv
         doc["tasks"] = self.tasks_list().get("summary")
         doc["jobs"] = self.jobs_list().get("jobs", [])[-5:]
+        doc["startup_profile"] = self.startup_profile_state()
         return doc
 
     def dashboard_api(self) -> Dict[str, Any]:
@@ -1525,7 +1681,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         return state
 
     def gui_state(self) -> Dict[str, Any]:
-        return {"ok": True, "version": RUNTIME_VERSION, "dashboard": self.dashboard_state(), "conversation": self.conversation_history(), "epoch": self.epoch_status(), "telemetry": self.telemetry_status(), "tasks": self.tasks_list(), "jobs": self.jobs_list(), "persona": self.persona_current(), "inactivity": self.inactivity_status(), "pipelines": self.pipeline_catalog_api()}
+        startup_profile = self.startup_profile_state()
+        return {"ok": True, "version": RUNTIME_VERSION, "dashboard": self.dashboard_state(), "startup_profile": startup_profile, "conversation": self.conversation_history(), "epoch": self.epoch_status(), "telemetry": self.telemetry_status(), "tasks": self.tasks_list(), "jobs": self.jobs_list(), "persona": self.persona_current(), "inactivity": self.inactivity_status(), "pipelines": self.pipeline_catalog_api()}
 
     def inactivity_status(self) -> Dict[str, Any]:
         conv = self._conversation()
@@ -1565,7 +1722,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "selection_required": not active_model_ready,
             "message": "" if active_model_ready else "Model selection required: run model selection and refresh/apply epoch.",
         }
-        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy")}
+        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy"), "startup_profile": self.startup_profile_state()}
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
 
