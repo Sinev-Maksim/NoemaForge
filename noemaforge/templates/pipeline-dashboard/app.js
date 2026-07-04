@@ -920,7 +920,8 @@ function renderJobs(jobs){
       job.append(btn);
     }
     job.append(makeNode('b', '', j.kind));
-    const actionState = j.action_state ? ` · ${j.action_state}` : '';
+    const actionStateValue = j.action_state_label || j.action_state;
+    const actionState = actionStateValue ? ` · ${actionStateValue}` : '';
     job.append(makeNode('span', '', `${j.status}${actionState} · ${j.job_id}`));
     if(j.next_action_label) job.append(makeNode('span', '', `Next: ${j.next_action_label}`));
     job.append(makeNode('code', '', j.command || ''));

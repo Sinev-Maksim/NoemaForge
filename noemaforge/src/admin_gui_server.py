@@ -1764,11 +1764,17 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "privileged_runner_command": active.get("privileged_runner_command"),
             "display_policy": active.get("display_policy"),
         }
-        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), "action_state": "plan_only", "transition_payload": transition_payload, "progress": progress, "job": active, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "note": "Continuation plan created. GUI does not start a real selection process; use safe_command for dry-run or real_command_requires_operator_terminal for an operator-approved run. Display-manager is preserved by default."}
+        plan_state = {
+            "action_state": "plan_only",
+            "transition_payload": transition_payload,
+            "next_action": active.get("next_action"),
+            "next_action_label": active.get("next_action_label"),
+        }
+        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), **plan_state, "progress": progress, "job": active, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "note": "Continuation plan created. GUI does not start a real selection process; use safe_command for dry-run or real_command_requires_operator_terminal for an operator-approved run. Display-manager is preserved by default."}
         self._write_json(out, doc)
         reply = f"Normal-mode recovery is plan-only and not running. Progress snapshot: tested {progress.get('tested_models')} of {progress.get('total_models')} models; failed {progress.get('failed_models')}; remaining {progress.get('remaining_models')}. Next action: run the approved command from the job card."
         self.save_message("model", reply, persona="Optimizer", intent="model_selection_continue", artifacts=active.get("artifacts", []), raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "action_state": "plan_only", "transition_payload": transition_payload, "progress": progress, "job": active, "suggested_command": active.get("command"), "run_command": real_command, "next_action": active.get("next_action"), "next_action_label": active.get("next_action_label"), "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": active.get("artifacts", [])}
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, **plan_state, "progress": progress, "job": active, "suggested_command": active.get("command"), "run_command": real_command, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": active.get("artifacts", [])}
 
     def epoch_apply(self, body: Dict[str, Any]) -> Dict[str, Any]:
         status = self.epoch_status()
