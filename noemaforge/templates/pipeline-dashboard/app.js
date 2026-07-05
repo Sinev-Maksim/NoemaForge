@@ -42,6 +42,15 @@ let _confirmPipelineId = '';
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
+const INACTIVITY_REFRESH_VISIBLE_MS = 1000;
+const INACTIVITY_REFRESH_HIDDEN_MS = 30000;
+const DASHBOARD_REFRESH_VISIBLE_MS = 10000;
+const DASHBOARD_REFRESH_HIDDEN_MS = 30000;
+let inactivityRefreshTimer = null;
+let inactivityRefreshIntervalMs = 0;
+let dashboardRefreshTimer = null;
+let dashboardRefreshIntervalMs = 0;
+let dashboardWindowFocused = true;
 
 const personaNames = {
   Admin: 'Admin', Optimizer: 'Optimizer', 'Model Evolution': 'Model Evolution', 'Dev Team': 'Dev Team',
@@ -963,6 +972,34 @@ function connectJobProgressStream(){
 }
 async function refreshInactivity(){ try{ const st = await api('/api/inactivity/status'); el('inactivity-status').textContent = st.idle_human || '—'; el('inactivity').textContent = `policy=${st.policy?.mode || 'manual'} · next=${st.policy?.next_idle_action || 'none'} · status=${st.status}`; }catch(e){} }
 async function refreshPersona(){ try{ const st = await api('/api/persona/current'); setPersona(st.active_persona || 'Admin', st.portrait_url); }catch(e){} }
+function dashboardIsBackgrounded(doc=document){
+  return !!(doc?.hidden || doc?.visibilityState === 'hidden' || !dashboardWindowFocused);
+}
+function inactivityRefreshCadenceMs(doc=document){
+  return dashboardIsBackgrounded(doc) ? INACTIVITY_REFRESH_HIDDEN_MS : INACTIVITY_REFRESH_VISIBLE_MS;
+}
+function dashboardRefreshCadenceMs(doc=document){
+  return dashboardIsBackgrounded(doc) ? DASHBOARD_REFRESH_HIDDEN_MS : DASHBOARD_REFRESH_VISIBLE_MS;
+}
+function startInactivityRefreshTimer(){
+  const nextMs = inactivityRefreshCadenceMs();
+  if(inactivityRefreshTimer && inactivityRefreshIntervalMs === nextMs) return;
+  if(inactivityRefreshTimer) clearInterval(inactivityRefreshTimer);
+  inactivityRefreshIntervalMs = nextMs;
+  inactivityRefreshTimer = setInterval(refreshInactivity, nextMs);
+}
+function startDashboardRefreshTimer(){
+  const nextMs = dashboardRefreshCadenceMs();
+  if(dashboardRefreshTimer && dashboardRefreshIntervalMs === nextMs) return;
+  if(dashboardRefreshTimer) clearInterval(dashboardRefreshTimer);
+  dashboardRefreshIntervalMs = nextMs;
+  dashboardRefreshTimer = setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshEpoch(false); pollEvents(); }, nextMs);
+}
+function updateDashboardRefreshCadence(){
+  startInactivityRefreshTimer();
+  startDashboardRefreshTimer();
+  refreshInactivity();
+}
 async function showPersonaRules(){
   try{
     const st = await api('/api/persona/rules');
@@ -1304,10 +1341,14 @@ async function startup(){
   _updateDepthNotice();
   connectJobProgressStream();
   startActiveWorkPolling();
-  // Poll events every 10 s alongside other refresh tasks; deduplication by lastEventIndex.
-  setInterval(()=>{ refreshTelemetry(); refreshJobs(); refreshInactivity(); refreshEpoch(false); pollEvents(); }, 10000);
+  startInactivityRefreshTimer();
+  startDashboardRefreshTimer();
 }
 if (typeof window !== 'undefined' && window.document === document) {
+  document.addEventListener('visibilitychange', updateDashboardRefreshCadence);
+  window.addEventListener('focus', () => { dashboardWindowFocused = true; updateDashboardRefreshCadence(); });
+  window.addEventListener('blur', () => { dashboardWindowFocused = false; updateDashboardRefreshCadence(); });
+
   el('admin-send').addEventListener('click', sendAdmin);
 
   el('admin-message').addEventListener('keydown', e => {

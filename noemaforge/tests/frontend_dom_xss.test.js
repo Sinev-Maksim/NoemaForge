@@ -138,3 +138,38 @@ test('legacy UI dashboard renders snapshot fields as text nodes', async () => {
   assert.match(document.getElementById('eventsTable').textContent, /<svg onload=alert\(1\)>/);
   assert.match(document.getElementById('inboxBlocks').textContent, /<svg onload=alert\(1\)>/);
 });
+
+test('pipeline dashboard refresh cadence follows visibility and focus state', () => {
+  const intervals = [];
+  const cleared = [];
+  const {context, document} = loadScript('templates/pipeline-dashboard/app.js', ['inactivity-status', 'inactivity'], {
+    setInterval: (fn, ms) => {
+      const id = intervals.length + 1;
+      intervals.push({id, fn, ms});
+      return id;
+    },
+    clearInterval: (id) => cleared.push(id),
+  });
+
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 1000);
+  assert.equal(vm.runInContext('dashboardRefreshCadenceMs()', context), 10000);
+
+  vm.runInContext('startInactivityRefreshTimer(); startDashboardRefreshTimer();', context);
+  assert.deepEqual(intervals.map((item) => item.ms), [1000, 10000]);
+
+  document.hidden = true;
+  document.visibilityState = 'hidden';
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 30000);
+  assert.equal(vm.runInContext('dashboardRefreshCadenceMs()', context), 30000);
+  vm.runInContext('updateDashboardRefreshCadence();', context);
+  assert.deepEqual(cleared, [1, 2]);
+  assert.deepEqual(intervals.map((item) => item.ms), [1000, 10000, 30000, 30000]);
+
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  vm.runInContext('dashboardWindowFocused = false', context);
+  assert.equal(vm.runInContext('dashboardIsBackgrounded()', context), true);
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 30000);
+});
