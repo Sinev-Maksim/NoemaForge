@@ -52,5 +52,17 @@
   "depth.until_stop": "停止まで",
   "pipeline.new": "+ 新規パイプライン",
   "pipeline.search": "パイプラインを検索...",
+  "message.original": "英語の原文",
+  "admin.reply.smalltalk": "ここにいます。NoemaForge はローカルで動作しています。チャット、Dev Team の起動、モデル進化の準備、epoch 状態の表示ができます。",
+  "admin.reply.model_selection_ready": "モデル選択モード: {mode}。スコープ: {scope}。選択計画は準備済みです。候補、決定、rollback plan が添付されています。別途 approve/apply しない限り epoch は適用されません。",
+  "admin.reply.model_evolution_ready": "測定付き model-evolution サイクルは準備済みです。成果物: baseline snapshot、mutation plan、candidate profile、scorecard、rollback plan。Production weights は自動変更されていません。",
+  "pipeline.run.started": "標準シナリオで pipeline {pipeline_id} を開始します。Run: {run_id}。",
+  "pipeline.clarification.forwarded": "pipeline {pipeline_id} の確認を受け付け、run {run_id} に転送しました: {text}",
+  "pipeline.clarification.failed": "pipeline {pipeline_id} / run {run_id} に確認を転送できませんでした: {error}",
+  "pipeline.clarification.question": "pipeline を続行するために必要なパラメータを確認してください。",
+  "pipeline.handoff.message": "{persona} の `{stage}` handoff が必要です: {reason}。Dashboard はこの placeholder を完了済み stage 作業として扱ってはいけません。",
+  "pipeline.handoff.admin_note": "Admin 注記: 実際の stage 出力を提供するか、operator decision を記録するか、明示的にスキップしてください。英語原文は監査用に利用できます。",
+  "pipeline.handoff.question.output": "{persona}: stage `{stage}` の実際の出力または operator decision を提供してください。",
+  "pipeline.handoff.question.decision": "続行前に記録すべき decision、risk、次の handoff は何ですか？",
   "role.user": "ユーザー"
 }

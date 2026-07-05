@@ -15,7 +15,7 @@ Tests: browser smoke + curl dashboard backend + manual send/refresh/history test
 */
 const el = id => document.getElementById(id);
 let allMessages = {};
-let activeLocale = 'ru';
+let activeLocale = 'en';
 let latestRaw = {};
 let pendingAction = null;
 let pipelineCatalog = [];
@@ -99,11 +99,41 @@ async function api(path, body){
   return data;
 }
 
-function addMessage(who, text, cls=''){
+function _messagePartClass(style){
+  const clean = String(style || 'admin_note').replace(/[^a-z0-9_-]+/gi, '-').toLowerCase();
+  return `message-part ${clean}`;
+}
+function _appendLocalizedContent(parent, text, payload){
+  const parts = Array.isArray(payload?.message_parts) ? payload.message_parts : [];
+  const single = payload?.localized_reply || (payload?.rendered_text ? payload : null);
+  const renderedParts = parts.length ? parts : (single ? [single] : []);
+  if(!renderedParts.length){
+    parent.appendChild(document.createTextNode(String(text || '')));
+    return;
+  }
+  renderedParts.forEach(part => {
+    const block = makeNode('div', _messagePartClass(part.style), part.rendered_text || text || '');
+    block.dataset.sourceLocale = part.source_locale || 'en';
+    block.dataset.targetLocale = part.target_locale || activeLocale || 'en';
+    block.dataset.messageRole = part.role || '';
+    parent.appendChild(block);
+  });
+  const originals = renderedParts
+    .filter(part => part.original_text && part.original_text !== part.rendered_text)
+    .map(part => `${part.role || 'message'}: ${part.original_text}`);
+  if(originals.length){
+    const details = document.createElement('details');
+    details.className = 'message-original';
+    details.append(makeNode('summary', '', t('message.original','Original English')));
+    details.append(makeNode('pre', '', originals.join('\n\n')));
+    parent.appendChild(details);
+  }
+}
+function addMessage(who, text, cls='', payload=null){
   const div = document.createElement('div');
   div.className = `bubble ${speakerClass(who)}${cls ? ' '+cls : ''}`;
   div.appendChild(makeNode('small', '', speakerLabel(who)));
-  div.appendChild(document.createTextNode(String(text || '')));
+  _appendLocalizedContent(div, text, payload);
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
@@ -190,7 +220,7 @@ function renderConversation(history){
   if(!msgs.length){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); return; }
   for(const m of msgs){
     if(m.system_event) addSystemLine(m.text);
-    else addMessage(m.role === 'user' ? 'User' : (m.persona || m.role || 'Admin'), m.text || '');
+    else addMessage(m.role === 'user' ? 'User' : (m.persona || m.role || 'Admin'), m.rendered_text || m.text || '', '', m);
   }
 }
 function artifactGroup(type){
@@ -291,7 +321,10 @@ function postStageHandoffToChat(handoff){
   postedStageHandoffKeys.add(key);
   const persona = handoff.persona || 'Pipeline';
   const questions = Array.isArray(handoff.questions) ? handoff.questions : [];
-  addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'));
+  const payload = Object.assign({}, handoff, {
+    message_parts: Array.isArray(handoff.message_parts) ? handoff.message_parts : [],
+  });
+  addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'), 'stage-handoff-chat', payload);
 }
 async function _replyStageHandoff(panel, handoff, input, messageNode){
   const runId = String(handoff?.run_id || panel.dataset.runId || '');
@@ -352,7 +385,7 @@ function _renderStageHandoff(panel, handoff){
     box = document.createElement('div');
     box.className = 'stage-handoff-panel';
     const title = makeNode('b', 'stage-handoff-title');
-    const msg = makeNode('p', 'muted stage-handoff-message');
+    const msg = makeNode('div', 'stage-handoff-message');
     const qs = makeNode('ul', 'stage-handoff-questions');
     const input = document.createElement('textarea');
     input.className = 'stage-handoff-reply';
@@ -376,7 +409,9 @@ function _renderStageHandoff(panel, handoff){
   }
   box._handoff = handoff;
   box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
-  box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
+  const msgBox = box.querySelector('.stage-handoff-message');
+  msgBox.replaceChildren();
+  _appendLocalizedContent(msgBox, handoff.message || 'Stage handoff required.', handoff);
   const replyState = handoff.operator_reply_state || {};
   const quality = handoff.output_quality || {};
   const actions = Array.isArray(handoff.next_actions || handoff.suggested_actions) ? (handoff.next_actions || handoff.suggested_actions).join(' · ') : '—';
@@ -651,8 +686,8 @@ function absorbResult(result){
   const route = result.route || {};
   const personaSwitch = result.persona_switch;
   if(personaSwitch && personaSwitch.switch_line){ addSystemLine(personaSwitch.switch_line); setPersona(personaSwitch.to); _updatePersonaSelect(personaSwitch.to); if(personaSwitch.to && personaSwitch.to !== 'Admin') _addReturnToAdminLine(); }
-  if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '');
-  else if(result.ok === false) addMessage('Admin', `Error: ${htmlEscape(result.error || 'unknown error')}`, 'error');
+  if(result.reply) addMessage(personaSwitch?.to || route.label || result.persona || 'Admin', result.reply, result.ok === false ? 'error' : '', result);
+  else if(result.ok === false) addMessage('Admin', `Error: ${result.error || 'unknown error'}`, 'error');
   if(result.stage_handoff) postStageHandoffToChat(result.stage_handoff);
   else if(result.clarification_required && Array.isArray(result.questions)) addMessage('Admin', result.questions.join('\n'));
   if(Array.isArray(result.artifacts)){ renderArtifacts(result.artifacts); postArtifactsToChat(result.artifacts); }
@@ -1277,7 +1312,7 @@ async function loadDashboardBackendState(){
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
   // Try session-based restore first (persists across page refresh); fall back to dashboard state.
   let restoredFromSession = false;
   try{
@@ -1288,7 +1323,7 @@ async function startup(){
   if(!restoredFromSession){
     try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
   }
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('ru') ? 'ru' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
   // Restore selected mode from the session store; conversation state is rendered below.
   try{
     const sess = await api('/api/session/current');

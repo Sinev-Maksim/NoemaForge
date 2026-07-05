@@ -52,5 +52,17 @@
   "depth.until_stop": "중지까지",
   "pipeline.new": "+ 새 파이프라인",
   "pipeline.search": "파이프라인 검색...",
+  "message.original": "영어 원문",
+  "admin.reply.smalltalk": "여기 있습니다. NoemaForge는 로컬에서 실행 중입니다. 대화, Dev Team 열기, 모델 진화 준비, epoch 상태 표시를 할 수 있습니다.",
+  "admin.reply.model_selection_ready": "모델 선택 모드: {mode}. 범위: {scope}. 선택 계획이 준비되었습니다. 후보, 결정, rollback plan이 첨부되었습니다. 별도 approve/apply 없이는 epoch가 적용되지 않습니다.",
+  "admin.reply.model_evolution_ready": "측정된 model-evolution 사이클이 준비되었습니다. 산출물: baseline snapshot, mutation plan, candidate profile, scorecard, rollback plan. Production weights는 자동으로 변경되지 않았습니다.",
+  "pipeline.run.started": "표준 시나리오로 pipeline {pipeline_id}를 시작합니다. Run: {run_id}.",
+  "pipeline.clarification.forwarded": "pipeline {pipeline_id}에 대한 확인을 수락하고 run {run_id}로 전달했습니다: {text}",
+  "pipeline.clarification.failed": "pipeline {pipeline_id} / run {run_id}로 확인을 전달하지 못했습니다: {error}",
+  "pipeline.clarification.question": "pipeline을 계속하기 위해 필요한 매개변수를 확인하세요.",
+  "pipeline.handoff.message": "{persona} handoff가 `{stage}` 단계에 필요합니다: {reason}. Dashboard는 이 placeholder를 완료된 stage 작업으로 처리하면 안 됩니다.",
+  "pipeline.handoff.admin_note": "Admin 참고: 실제 stage 출력을 제공하거나 operator decision을 기록하거나 명시적으로 건너뛰세요. 영어 원문은 감사용으로 사용할 수 있습니다.",
+  "pipeline.handoff.question.output": "{persona}: `{stage}` 단계의 실제 출력 또는 operator decision을 제공하세요.",
+  "pipeline.handoff.question.decision": "계속하기 전에 어떤 decision, risk, 다음 handoff를 기록해야 하나요?",
   "role.user": "사용자"
 }

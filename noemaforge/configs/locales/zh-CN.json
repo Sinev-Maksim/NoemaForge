@@ -52,5 +52,17 @@
   "depth.until_stop": "直到停止",
   "pipeline.new": "+ 新建流水线",
   "pipeline.search": "搜索流水线...",
+  "message.original": "英文原文",
+  "admin.reply.smalltalk": "我在。NoemaForge 正在本地运行：我可以聊天、打开 Dev Team、准备模型演化，或显示 epoch 状态。",
+  "admin.reply.model_selection_ready": "已选择模型选择模式：{mode}。范围：{scope}。选择计划已就绪；候选项、决策和 rollback plan 已附加。没有单独 approve/apply 时不会应用 epoch。",
+  "admin.reply.model_evolution_ready": "受控的 model-evolution 周期已就绪。工件：baseline snapshot、mutation plan、candidate profile、scorecard 和 rollback plan。生产权重未被自动更改。",
+  "pipeline.run.started": "正在以标准场景启动 pipeline {pipeline_id}。Run: {run_id}。",
+  "pipeline.clarification.forwarded": "已接受 pipeline {pipeline_id} 的澄清，并转发到 run {run_id}: {text}",
+  "pipeline.clarification.failed": "无法将澄清转发到 pipeline {pipeline_id} / run {run_id}: {error}",
+  "pipeline.clarification.question": "请澄清继续该 pipeline 所需的参数。",
+  "pipeline.handoff.message": "{persona} 在 `{stage}` 需要 handoff：{reason}。Dashboard 不应把此 placeholder 当作已完成的阶段工作。",
+  "pipeline.handoff.admin_note": "Admin 说明：提供真实阶段输出、记录操作员决策，或显式跳过；英文原文保留用于审计。",
+  "pipeline.handoff.question.output": "{persona}: 为阶段 `{stage}` 提供真实输出或操作员决策。",
+  "pipeline.handoff.question.decision": "继续前应记录什么决策、风险和下一个 handoff？",
   "role.user": "用户"
 }
