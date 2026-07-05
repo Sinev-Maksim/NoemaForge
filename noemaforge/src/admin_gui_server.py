@@ -698,6 +698,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.gui_state_dir = self.data_root / "gui"
         self.event_log = EventLog(self.data_root / "events")
         self._last_task_state_reason = ""
+        self._expected_default_tasks_cache = None
         self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.job_manager = JobManager(self.jobs_dir)
@@ -1164,17 +1165,51 @@ class AdminGuiServer(ThreadingHTTPServer):
         data.setdefault("tasks", [])
         return data
 
-    def _expected_default_tasks(self) -> List[Dict[str, Any]]:
+    def _expected_default_tasks_result(self) -> Dict[str, Any]:
         path = self.root / "configs" / "taskqueue-policy.yaml"
-        if yaml is None or not path.exists():
-            return []
+        if yaml is None:
+            return {
+                "tasks": [],
+                "load_status": "yaml_unavailable",
+                "load_reason": "PyYAML is not available, so taskqueue-policy.yaml could not be loaded.",
+            }
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return {
+                "tasks": [],
+                "load_status": "policy_missing",
+                "load_reason": "configs/taskqueue-policy.yaml is missing.",
+            }
+        except OSError as exc:
+            return {
+                "tasks": [],
+                "load_status": "policy_stat_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be inspected: {exc}",
+            }
+        cache_key = (str(path), stat.st_mtime_ns, stat.st_size)
+        cache = getattr(self, "_expected_default_tasks_cache", None)
+        if isinstance(cache, dict) and cache.get("cache_key") == cache_key:
+            return dict(cache["result"])
         try:
             policy = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-        except Exception:
-            return []
+        except Exception as exc:  # noqa: BLE001 - surface policy load failure in API state.
+            result = {
+                "tasks": [],
+                "load_status": "policy_parse_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be read or parsed: {exc}",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
         defaults = policy.get("default_tasks") if isinstance(policy, dict) else {}
         if not isinstance(defaults, dict):
-            return []
+            result = {
+                "tasks": [],
+                "load_status": "default_tasks_invalid",
+                "load_reason": "configs/taskqueue-policy.yaml default_tasks must be a mapping.",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
         expected: List[Dict[str, Any]] = []
         for domain, items in defaults.items():
             if not isinstance(items, list):
@@ -1202,15 +1237,34 @@ class AdminGuiServer(ThreadingHTTPServer):
                     "cooldown_sec": int(item.get("cooldown_sec", 0) or 0),
                     "state_reason": "configured_default_task",
                 })
-        return expected
+        result = {
+            "tasks": expected,
+            "load_status": "ok",
+            "load_reason": "loaded",
+        }
+        self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+        return result
 
-    def _task_state_payload(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
-        expected = self._expected_default_tasks()
+    def _expected_default_tasks(self) -> List[Dict[str, Any]]:
+        result = self._expected_default_tasks_result()
+        loaded = result.get("tasks", [])
+        return loaded if isinstance(loaded, list) else []
+
+    def _task_state_payload(self, tasks: List[Dict[str, Any]], expected_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        result = expected_result or self._expected_default_tasks_result()
+        expected = result.get("tasks", [])
+        if not isinstance(expected, list):
+            expected = []
+        load_status = str(result.get("load_status") or "unknown")
+        load_reason = str(result.get("load_reason") or "")
         expected_keys = {str(t.get("group_key") or "") for t in expected if t.get("group_key")}
         actual_keys = {str(t.get("group_key") or "") for t in tasks if isinstance(t, dict) and t.get("group_key")}
         present_count = len(expected_keys.intersection(actual_keys))
         missing_count = max(0, len(expected) - present_count)
-        if not expected:
+        if load_status != "ok":
+            reason = "default_tasks_policy_unavailable"
+            note = load_reason or "Default task policy could not be loaded."
+        elif not expected:
             reason = "no_default_tasks_configured"
             note = "No default tasks are configured for the task queue policy."
         elif missing_count == 0:
@@ -1225,6 +1279,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {
             "state_reason": reason,
             "visible_note": note,
+            "default_tasks_load_status": load_status,
+            "default_tasks_load_reason": load_reason,
             "default_tasks_configured": bool(expected),
             "default_tasks_present": bool(expected) and missing_count == 0,
             "expected_default_task_count": len(expected),
@@ -1235,22 +1291,27 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     def _record_task_state_reason(self, task_state: Dict[str, Any]) -> None:
         reason = str(task_state.get("state_reason") or "")
-        if not reason or reason == getattr(self, "_last_task_state_reason", ""):
+        if not reason:
             return
-        self._last_task_state_reason = reason
+        with self._tasks_lock:
+            if reason == getattr(self, "_last_task_state_reason", ""):
+                return
+            self._last_task_state_reason = reason
         try:
             self.event_log.append("admin_gui.task_state", {
                 "state_reason": reason,
                 "visible_note": task_state.get("visible_note"),
+                "default_tasks_load_status": task_state.get("default_tasks_load_status"),
                 "default_tasks_configured": task_state.get("default_tasks_configured"),
                 "expected_default_task_count": task_state.get("expected_default_task_count"),
                 "missing_default_task_count": task_state.get("missing_default_task_count"),
                 "actual_task_count": task_state.get("actual_task_count"),
             }, actor="admin_gui")
-        except Exception:
-            pass
+        except Exception as exc:  # noqa: BLE001 - event logging must not break the request.
+            sys.stderr.write(f"[NoemaForge] _record_task_state_reason: failed to log event: {exc}\n")
 
     def tasks_list(self) -> Dict[str, Any]:
+        expected_result = self._expected_default_tasks_result()
         # Acquire _tasks_lock so reads are consistent with concurrent
         # task_create()/task_update() writes (same pattern as jobs_list/_jobs_lock).
         with self._tasks_lock:
@@ -1263,7 +1324,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 if not isinstance(t, dict):
                     continue
                 categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
-            task_state = self._task_state_payload(tasks)
+        task_state = self._task_state_payload(tasks, expected_result)
         self._record_task_state_reason(task_state)
         return {
             "ok": True,

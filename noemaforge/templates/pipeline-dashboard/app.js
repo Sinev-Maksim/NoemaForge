@@ -60,9 +60,21 @@ function makeNode(tag, className='', text=''){
 }
 function replaceWithNodes(target, nodes){ target.replaceChildren(...nodes); }
 function showMuted(target, text){ replaceWithNodes(target, [makeNode('p', 'muted', text)]); }
+function taskStateReasonLabel(reason){
+  const labels = {
+    default_tasks_policy_unavailable: t('tasks.state.default_tasks_policy_unavailable', 'Default task policy unavailable'),
+    no_default_tasks_configured: t('tasks.state.no_default_tasks_configured', 'No default tasks configured'),
+    default_tasks_present: t('tasks.state.default_tasks_present', 'Default tasks present'),
+    default_tasks_configured_not_materialized: t('tasks.state.default_tasks_configured_not_materialized', 'Default tasks not materialized'),
+    default_tasks_partially_present: t('tasks.state.default_tasks_partially_present', 'Some default tasks missing'),
+  };
+  return labels[reason] || t('tasks.state.unavailable', 'Task panel state unavailable');
+}
 function taskStateNote(taskState){
+  const reason = String(taskState?.state_reason || '');
   const note = makeNode('div', 'task-state-note');
-  note.append(makeNode('b', '', taskState?.state_reason || 'task_state'));
+  if(reason) note.title = reason;
+  note.append(makeNode('b', '', taskStateReasonLabel(reason)));
   note.append(makeNode('span', '', taskState?.visible_note || 'Task panel state is unavailable.'));
   return note;
 }
@@ -887,7 +899,8 @@ async function refreshTasks(){
     const tasks = st.tasks || [];
     const taskState = st.task_state || {};
     const expectedDefaults = st.expected_default_tasks || taskState.expected_default_tasks || [];
-    const stateSuffix = taskState.state_reason ? ` · ${taskState.state_reason}` : '';
+    const stateSuffix = taskState.state_reason ? ` · ${taskStateReasonLabel(taskState.state_reason)}` : '';
+    el('task-summary').title = taskState.state_reason ? String(taskState.state_reason) : '';
     el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked${stateSuffix}`;
     const target = el('tasks');
     if(!tasks.length){
