@@ -1345,7 +1345,10 @@ async function startup(){
   startDashboardRefreshTimer();
 }
 if (typeof window !== 'undefined' && window.document === document) {
-  document.addEventListener('visibilitychange', updateDashboardRefreshCadence);
+  document.addEventListener('visibilitychange', () => {
+    dashboardWindowFocused = document.visibilityState !== 'hidden';
+    updateDashboardRefreshCadence();
+  });
   window.addEventListener('focus', () => { dashboardWindowFocused = true; updateDashboardRefreshCadence(); });
   window.addEventListener('blur', () => { dashboardWindowFocused = false; updateDashboardRefreshCadence(); });
 
