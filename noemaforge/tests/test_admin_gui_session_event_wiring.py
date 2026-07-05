@@ -238,6 +238,36 @@ class TestSaveMessageSessionIntegration(unittest.TestCase):
         # messages may or may not be populated depending on integration depth
         self.assertIn("messages", session)
 
+    def test_save_message_stores_run_mode_metadata_in_session(self) -> None:
+        self.srv.save_message(
+            "user",
+            "run this fully",
+            persona="User",
+            metadata={"run_mode": "full", "non_default_run_mode": True, "scope": "current_message"},
+        )
+
+        session = self.srv.session_store.load("default")
+        self.assertEqual(session["messages"][0]["metadata"]["run_mode"], "full")
+        self.assertTrue(session["messages"][0]["metadata"]["non_default_run_mode"])
+
+
+class TestPerMessageRunModeMetadata(unittest.TestCase):
+    def test_default_run_mode_has_no_message_metadata(self) -> None:
+        srv = object.__new__(AdminGuiServer)
+
+        self.assertEqual(srv._message_run_mode_metadata("normal"), {})
+        self.assertEqual(srv._message_run_mode_metadata(""), {})
+
+    def test_non_default_run_mode_is_current_message_metadata(self) -> None:
+        srv = object.__new__(AdminGuiServer)
+
+        metadata = srv._message_run_mode_metadata("full_composite", 4)
+
+        self.assertEqual(metadata["run_mode"], "full_composite")
+        self.assertEqual(metadata["composite_top_n"], 4)
+        self.assertTrue(metadata["non_default_run_mode"])
+        self.assertEqual(metadata["scope"], "current_message")
+
 
 # ---------------------------------------------------------------------------
 # HTTP route integration (source-level)

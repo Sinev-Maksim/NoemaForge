@@ -99,11 +99,19 @@ async function api(path, body){
   return data;
 }
 
-function addMessage(who, text, cls=''){
+function _runModeLabel(metadata){
+  const mode = metadata?.run_mode || '';
+  if(!mode || mode === 'normal') return '';
+  if(mode === 'full_composite' && Number(metadata?.composite_top_n || 0) > 0) return `Run mode: ${mode} (top ${Number(metadata.composite_top_n)})`;
+  return `Run mode: ${mode}`;
+}
+function addMessage(who, text, cls='', metadata=null){
   const div = document.createElement('div');
   div.className = `bubble ${speakerClass(who)}${cls ? ' '+cls : ''}`;
   div.appendChild(makeNode('small', '', speakerLabel(who)));
   div.appendChild(document.createTextNode(String(text || '')));
+  const runModeLabel = _runModeLabel(metadata);
+  if(runModeLabel) div.appendChild(makeNode('span', 'message-run-metadata', runModeLabel));
   el('chat-log').appendChild(div);
   el('chat-log').scrollTop = el('chat-log').scrollHeight;
 }
@@ -190,7 +198,7 @@ function renderConversation(history){
   if(!msgs.length){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); return; }
   for(const m of msgs){
     if(m.system_event) addSystemLine(m.text);
-    else addMessage(m.role === 'user' ? 'User' : (m.persona || m.role || 'Admin'), m.text || '');
+    else addMessage(m.role === 'user' ? 'User' : (m.persona || m.role || 'Admin'), m.text || '', '', m.metadata || null);
   }
 }
 function artifactGroup(type){
@@ -678,6 +686,33 @@ function selectionModePayload(){
   return {mode, composite_top_n};
 }
 function budgetPayload(){ return { max_steps:Number(el('depth-steps').value || 0), time_budget_minutes:Number(el('depth-minutes').value || 0), until_stop:Boolean(el('depth-until-stop').checked) }; }
+function messageRunModePayload(){
+  const mode = String(el('message-run-mode')?.value || 'normal');
+  if(mode === 'normal') return {};
+  const payload = {run_mode:mode};
+  const topN = Number(el('message-composite-top-n')?.value || 0);
+  if(mode === 'full_composite' && topN > 0) payload.composite_top_n = topN;
+  return payload;
+}
+function _resetMessageRunMode(){
+  const mode = el('message-run-mode');
+  if(mode) mode.value = 'normal';
+  _updateMessageRunModeNotice();
+}
+function _updateMessageRunModeNotice(){
+  const payload = messageRunModePayload();
+  const notice = el('message-run-mode-notice');
+  const topWrap = el('message-composite-top-wrap');
+  if(topWrap) topWrap.classList.toggle('hidden', payload.run_mode !== 'full_composite');
+  if(!notice) return;
+  const label = _runModeLabel(payload);
+  if(label){
+    notice.textContent = `Next message only: ${label}`;
+    notice.classList.remove('hidden');
+  }else{
+    notice.classList.add('hidden');
+  }
+}
 function _updateDepthNotice(){
   const steps = Number(el('depth-steps')?.value || 0);
   const mins  = Number(el('depth-minutes')?.value || 0);
@@ -717,12 +752,13 @@ async function sendAdmin(){
   const input = el('admin-message');
   const text = input.value.trim();
   if(!text) return;
+  const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
+  const runModePayload = modePick ? {} : messageRunModePayload();
   input.value = '';
-  addMessage('User', text);
+  addMessage('User', text, '', runModePayload);
   const pendingBubble = _addPendingBubble();
   el('admin-send').disabled = true; el('chat-status').textContent = t('status.running','running');
   try{
-    const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
     let result;
     if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
@@ -735,12 +771,12 @@ async function sendAdmin(){
         : modePick.mode;
       addMessage('Admin', `Mode selected: ${_modeLabel}`);
     }else{
-      result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload()});
+      result = await api('/api/admin/message', {message:text, execute:el('admin-execute').checked, prepare_media:el('admin-prepare-media').checked, allow_degraded:true, locale:el('locale-select').value, ...budgetPayload(), ...runModePayload});
     }
     pendingBubble.remove();
     absorbResult(result);
   }catch(e){ pendingBubble.remove(); addMessage('Admin', `Error: ${String(e)}`, 'error'); }
-  finally{ el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
+  finally{ _resetMessageRunMode(); el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }
 function shortenPath(path){ if(!path) return '—'; const parts = String(path).split('/'); return parts.slice(-2).join('/'); }
 const _STAFFING_LABELS = {
@@ -1301,6 +1337,7 @@ async function startup(){
   }catch(_){}
   try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
+  _updateMessageRunModeNotice();
   _updateDepthNotice();
   connectJobProgressStream();
   startActiveWorkPolling();
@@ -1337,6 +1374,8 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('vault-reinventory').addEventListener('click', reinventoryVault);
   el('persona-rules')?.addEventListener('click', showPersonaRules);
   el('workflow-stop').addEventListener('click', stopWorkflow);
+  el('message-run-mode').addEventListener('change', _updateMessageRunModeNotice);
+  el('message-composite-top-n').addEventListener('input', _updateMessageRunModeNotice);
   el('depth-steps').addEventListener('input', _updateDepthNotice);
   el('depth-minutes').addEventListener('input', _updateDepthNotice);
   el('depth-until-stop').addEventListener('change', _updateDepthNotice);

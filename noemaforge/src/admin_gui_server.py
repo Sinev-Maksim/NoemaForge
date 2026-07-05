@@ -947,7 +947,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         conv["updated_at"] = now_iso()
         self._write_json(self.conversation_file(), conv)
 
-    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
+    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "", metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # Acquire _conv_lock to serialise concurrent save_message() calls on
         # the conversation R-M-W cycle (_conversation + _save_conversation).
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
@@ -971,6 +971,8 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "artifacts": affordance_artifacts,
                 "system_event": bool(system_event),
             }
+            if metadata:
+                msg["metadata"] = dict(metadata)
             conv.setdefault("messages", []).append(msg)
             if affordance_artifacts:
                 conv.setdefault("artifacts", []).extend(affordance_artifacts)
@@ -2004,9 +2006,27 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         return doc
 
     # --- action wrappers -------------------------------------------------------------
-    def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False) -> Dict[str, Any]:
+    def _message_run_mode_metadata(self, run_mode: str = "", composite_top_n: int = 0) -> Dict[str, Any]:
+        aliases = {"composite": "full_composite", "fullcomposite": "full_composite"}
+        mode = aliases.get(str(run_mode or "").strip().lower().replace("-", "_"), str(run_mode or "").strip().lower().replace("-", "_"))
+        if mode not in {"fast", "normal", "full", "full_composite"}:
+            mode = "normal"
+        if mode == "normal":
+            return {}
+        metadata: Dict[str, Any] = {
+            "run_mode": mode,
+            "non_default_run_mode": True,
+            "scope": "current_message",
+        }
+        top_n = int(composite_top_n or 0)
+        if mode == "full_composite" and top_n > 0:
+            metadata["composite_top_n"] = top_n
+        return metadata
+
+    def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False, run_mode: str = "", composite_top_n: int = 0) -> Dict[str, Any]:
         locale = locale or ("ru" if re.search(r"[А-Яа-яЁё]", text) else "en")
-        self.save_message("user", text, persona="User", locale=locale, intent="user_message")
+        message_metadata = self._message_run_mode_metadata(run_mode, composite_top_n)
+        self.save_message("user", text, persona="User", locale=locale, intent="user_message", metadata=message_metadata)
         low = text.lower().strip()
         conv = self._conversation()
         budget = {"max_steps": max_steps, "time_budget_minutes": time_budget_minutes, "until_stop": until_stop, "stop_on_no_further_improvement": True}
@@ -2054,6 +2074,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             doc["api"] = {"inside_gui_supported": True, "endpoint": "/api/admin/message", "cmd": cmd}
             if budget and any(budget.values()):
                 doc["improvement_budget"] = budget
+            if message_metadata:
+                doc["message_metadata"] = message_metadata
             reply = str(doc.get("reply") or "Action completed.")
             persona = (doc.get("persona_switch") or {}).get("to") or conv.get("active_persona", "Admin")
             self.save_message("admin", reply, persona=persona, locale=locale, intent=str((doc.get("route") or {}).get("intent") or "admin_message"), artifacts=doc.get("artifacts") if isinstance(doc.get("artifacts"), list) else [], raw=doc)

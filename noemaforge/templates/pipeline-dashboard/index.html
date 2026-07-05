@@ -73,6 +73,18 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
           <textarea id="admin-message" rows="2" placeholder="Напиши Админу задачу"></textarea>
           <button id="admin-send">Отправить</button>
         </div>
+        <div class="message-run-controls" aria-label="Current message run mode">
+          <label><span>Next message run mode</span>
+            <select id="message-run-mode">
+              <option value="normal" selected>Normal</option>
+              <option value="fast">Fast</option>
+              <option value="full">Full</option>
+              <option value="full_composite">Full composite</option>
+            </select>
+          </label>
+          <label id="message-composite-top-wrap" class="hidden"><span>Top N</span> <input id="message-composite-top-n" type="number" min="0" value="4" /></label>
+        </div>
+        <div id="message-run-mode-notice" class="depth-notice hidden" role="status" aria-live="polite"></div>
         <div class="depth-controls" aria-label="Improvement depth controls">
           <label><span id="depth-steps-label">Шаги</span> <input id="depth-steps" type="number" min="0" value="0" /></label>
           <label><span id="depth-minutes-label">Минуты</span> <input id="depth-minutes" type="number" min="0" value="0" /></label>

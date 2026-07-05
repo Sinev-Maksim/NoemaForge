@@ -610,6 +610,20 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn("version mismatch", src)
         self.assertIn("health.version", src)
 
+    def test_per_message_run_mode_source_guards(self) -> None:
+        src = APP_JS.read_text(encoding="utf-8")
+        html = INDEX_HTML.read_text(encoding="utf-8")
+        routes = (ROOT / "src" / "admin_gui_routes" / "session_routes.py").read_text(encoding="utf-8")
+
+        self.assertIn('id="message-run-mode"', html)
+        self.assertIn("Next message run mode", html)
+        self.assertIn("function messageRunModePayload", src)
+        self.assertIn("if(mode === 'normal') return {};", src)
+        self.assertIn("...runModePayload", src)
+        self.assertIn("_resetMessageRunMode()", src)
+        self.assertIn("message_metadata", (ROOT / "src" / "admin_gui_server.py").read_text(encoding="utf-8"))
+        self.assertIn("run_mode=str(body.get(\"run_mode\") or \"\")", routes)
+
     def test_product_metrics_gets_wider_grid_track(self) -> None:
         css = (ROOT / "templates" / "pipeline-dashboard" / "style.css").read_text(encoding="utf-8")
         self.assertIn("minmax(340px,1.6fr)", css)
