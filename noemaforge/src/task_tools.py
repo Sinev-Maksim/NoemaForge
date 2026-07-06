@@ -62,6 +62,26 @@ import taskqueue
 from platform_paths import DEFAULT_PATHS as _pp
 
 PROJECTS_BASE = str(_pp.data_root / "projects")
+LIST_USER_TASKS_SQL = (
+    "SELECT user_task_id, created_at, updated_at, project_id, session_id, title, description, kind, status, owner, "
+    "priority_class, engine_task_id, worktree_id, plan_required, last_error, payload_json, metadata_json "
+    "FROM user_tasks {where_clause} ORDER BY created_at DESC LIMIT ?"
+)
+UPDATE_USER_TASK_COLUMNS = {
+    "title": "title",
+    "description": "description",
+    "kind": "kind",
+    "status": "status",
+    "owner": "owner",
+    "priority_class": "priority_class",
+    "worktree_id": "worktree_id",
+    "last_error": "last_error",
+    "session_id": "session_id",
+    "plan_required": "plan_required",
+    "payload_json": "payload_json",
+    "metadata_json": "metadata_json",
+    "updated_at": "updated_at",
+}
 
 USER_TO_ENGINE = {
     "queued": "TODO",
@@ -178,6 +198,23 @@ def _con(policy: Optional[Dict[str, Any]] = None) -> sqlite3.Connection:
     con = taskqueue._connect(db_path)  # type: ignore[attr-defined]
     init_v26_schema(policy=policy, con=con)
     return con
+
+
+def _where_clause(parts: List[str]) -> str:
+    if not parts:
+        return ""
+    allowed = {"project_id=?", "status=?"}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError("unsupported_where_clause")
+    return "WHERE " + " AND ".join(parts)
+
+
+def _assignment(column: str) -> str:
+    safe = UPDATE_USER_TASK_COLUMNS.get(str(column))
+    if not safe:
+        raise ValueError("unsupported_update_column")
+    return f"{safe}=?"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -586,9 +623,9 @@ def list_user_tasks(
         if status:
             wh.append("status=?")
             args.append(status)
-        where = ("WHERE " + " AND ".join(wh)) if wh else ""
+        where = _where_clause(wh)
         rows = con.execute(
-            f"SELECT user_task_id, created_at, updated_at, project_id, session_id, title, description, kind, status, owner, priority_class, engine_task_id, worktree_id, plan_required, last_error, payload_json, metadata_json FROM user_tasks {where} ORDER BY created_at DESC LIMIT ?",
+            LIST_USER_TASKS_SQL.format(where_clause=where),
             tuple(args + [max(1, int(limit))]),
         ).fetchall()
         return {"ok": True, "tasks": [_row_to_task(con, r) for r in rows]}
@@ -665,20 +702,20 @@ def update_user_task(
         simple = ["title", "description", "kind", "status", "owner", "priority_class", "worktree_id", "last_error", "session_id"]
         for key in simple:
             if key in patch:
-                fields.append(f"{key}=?")
+                fields.append(_assignment(key))
                 args.append((str(patch.get(key) or "").strip() or None) if key not in ("status", "priority_class") else str(patch.get(key) or "").strip())
         if "plan_required" in patch:
-            fields.append("plan_required=?")
+            fields.append(_assignment("plan_required"))
             args.append(1 if bool(patch.get("plan_required")) else 0)
         if "payload" in patch:
-            fields.append("payload_json=?")
+            fields.append(_assignment("payload_json"))
             args.append(json.dumps(patch.get("payload") or {}, ensure_ascii=False))
         if "metadata" in patch:
-            fields.append("metadata_json=?")
+            fields.append(_assignment("metadata_json"))
             args.append(json.dumps(patch.get("metadata") or {}, ensure_ascii=False))
         if not fields:
             return get_user_task(policy=policy, user_task_id=user_task_id)
-        fields.append("updated_at=?")
+        fields.append(_assignment("updated_at"))
         args.append(_nowz())
         args.append(user_task_id)
         con.execute(f"UPDATE user_tasks SET {', '.join(fields)} WHERE user_task_id=?", tuple(args))

@@ -1,0 +1,135 @@
+#!/usr/bin/env python3
+"""
+Focused regression tests for 0.33.0 pre-release security hardening.
+"""
+from __future__ import annotations
+
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+from unittest import mock
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+import brainui  # noqa: E402
+import persona_runtime  # noqa: E402
+import prestart  # noqa: E402
+import privileged_gui_job_runner as pgr  # noqa: E402
+import task_tools  # noqa: E402
+import taskqueue  # noqa: E402
+import ui_snapshot  # noqa: E402
+from knowledge.prep_store import PrepStore  # noqa: E402
+
+
+class BrainUiStaticAssetTests(unittest.TestCase):
+    def test_static_asset_resolver_rejects_traversal_and_symlink_escape(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-brainui-") as tmp:
+            base = Path(tmp) / "assets"
+            outside = Path(tmp) / "outside.txt"
+            base.mkdir()
+            (base / "index.html").write_text("ok", encoding="utf-8")
+            outside.write_text("secret", encoding="utf-8")
+
+            resolved, data = brainui._read_static_asset(str(base), "/index.html")
+            self.assertEqual(Path(resolved).name, "index.html")
+            self.assertEqual(data, b"ok")
+
+            with self.assertRaises(PermissionError):
+                brainui._read_static_asset(str(base), "/../outside.txt")
+
+            link = base / "escape.txt"
+            try:
+                link.symlink_to(outside)
+            except OSError:
+                return
+            with self.assertRaises(PermissionError):
+                brainui._read_static_asset(str(base), "/escape.txt")
+
+
+class XmlHardeningTests(unittest.TestCase):
+    def test_persona_xml_fallback_rejects_entities(self) -> None:
+        if persona_runtime._DEFUSED_XML:
+            self.skipTest("defusedxml handles entity rejection")
+        with self.assertRaises(ValueError):
+            persona_runtime._parse_portrait_xml("<!DOCTYPE svg [<!ENTITY x 'y'>]><svg>&x;</svg>")
+
+    def test_polkit_xml_fallback_rejects_entities(self) -> None:
+        if pgr._DEFUSED_XML:
+            self.skipTest("defusedxml handles entity rejection")
+        with tempfile.TemporaryDirectory(prefix="nf-polkit-") as tmp:
+            path = Path(tmp) / "policy.xml"
+            path.write_text("<!DOCTYPE policyconfig [<!ENTITY x 'y'>]><policyconfig>&x;</policyconfig>", encoding="utf-8")
+            with self.assertRaises(ValueError):
+                pgr._parse_policy_xml(path)
+
+
+class PrestartCanaryRunnerTests(unittest.TestCase):
+    def test_canary_runner_rejects_unsupported_suite_before_subprocess(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-contracts-") as contracts:
+            root = Path(contracts)
+            base = root / "00001"
+            cand = root / "00002"
+            base.mkdir()
+            cand.mkdir()
+            runner = SRC / "canary_runner.py"
+            with mock.patch("prestart.subprocess.run") as run_mock:
+                with self.assertRaises(ValueError):
+                    prestart._run_canary_runner(
+                        runner=str(runner),
+                        base=str(base),
+                        cand=str(cand),
+                        law=str(base),
+                        suite="smoke;rm -rf /",
+                        timeout_sec=1,
+                        contracts_root=str(root),
+                    )
+                run_mock.assert_not_called()
+
+    def test_canary_runner_builds_shell_false_argv(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-contracts-") as contracts:
+            root = Path(contracts)
+            base = root / "00001"
+            cand = root / "00002"
+            base.mkdir()
+            cand.mkdir()
+            runner = SRC / "canary_runner.py"
+            completed = mock.Mock(stdout='{"ok": true}', returncode=0)
+            with mock.patch("prestart.subprocess.run", return_value=completed) as run_mock:
+                result = prestart._run_canary_runner(
+                    runner=str(runner),
+                    base=str(base),
+                    cand=str(cand),
+                    law=str(base),
+                    suite="smoke",
+                    timeout_sec=1,
+                    contracts_root=str(root),
+                )
+            self.assertIs(result, completed)
+            kwargs = run_mock.call_args.kwargs
+            self.assertIs(kwargs["shell"], False)
+            self.assertIn("--suite", run_mock.call_args.args[0])
+
+
+class SqlAllowlistHelperTests(unittest.TestCase):
+    def test_sql_identifier_helpers_reject_unknown_tokens(self) -> None:
+        with self.assertRaises(ValueError):
+            taskqueue._where_clause(["status=?; DROP TABLE tasks"])
+        with self.assertRaises(ValueError):
+            task_tools._assignment("status=?, title='pwned'")
+        with self.assertRaises(ValueError):
+            ui_snapshot._task_order_sql("created_at DESC; DROP TABLE tasks")
+
+    def test_prep_store_table_columns_use_bound_pragma(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-prep-store-") as tmp:
+            store = PrepStore(str(Path(tmp) / "prep.sqlite"))
+            with store._connect() as con:
+                self.assertIn("book_id", store._table_columns(con, "books"))
+                self.assertEqual([], store._table_columns(con, "books); DROP TABLE books;--"))
+
+
+if __name__ == "__main__":
+    unittest.main()

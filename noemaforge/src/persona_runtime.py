@@ -30,9 +30,9 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import importlib
 import json
 import os
-import xml.etree.ElementTree as ET
 import re
 import sys
 from pathlib import Path
@@ -42,6 +42,14 @@ from platform_paths import DEFAULT_PATHS as _pp
 DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = _pp.persona_state_dir
 SAFE_RE = re.compile(r"[^A-Za-z0-9_.-]+")
+XML_ENTITY_RE = re.compile(r"<!\s*ENTITY\b", re.IGNORECASE)
+
+try:
+    ET = importlib.import_module("defusedxml.ElementTree")
+    _DEFUSED_XML = True
+except Exception:  # pragma: no cover - depends on optional security extra
+    ET = importlib.import_module("xml.etree.ElementTree")
+    _DEFUSED_XML = False
 
 
 def nowz() -> str:
@@ -61,6 +69,12 @@ def atomic_write_text(path: Path, text: str) -> None:
     tmp = path.with_name(f".{path.name}.tmp")
     tmp.write_text(text, encoding="utf-8")
     os.replace(tmp, path)
+
+
+def _parse_portrait_xml(text: str):
+    if not _DEFUSED_XML and XML_ENTITY_RE.search(text):
+        raise ValueError("unsafe_xml_entity")
+    return ET.fromstring(text)
 
 
 def load_catalog(root: Path) -> Dict[str, Any]:
@@ -283,7 +297,7 @@ def cmd_validate(args: argparse.Namespace) -> None:
             problems.append(f"{role}: missing portrait {portrait}")
         else:
             try:
-                ET.fromstring(portrait.read_text(encoding="utf-8", errors="replace"))
+                _parse_portrait_xml(portrait.read_text(encoding="utf-8", errors="replace"))
             except Exception as exc:
                 problems.append(f"{role}: invalid SVG portrait {portrait}: {exc}")
         if (spec.get("safety") or {}).get("max_active_llms") != 1:

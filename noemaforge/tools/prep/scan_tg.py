@@ -69,6 +69,13 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
+MESSAGE_SCHEMA_UPGRADES = {
+    "pi_post_severity": "TEXT",
+    "pi_post_score": "INTEGER",
+    "pi_bad_lines": "INTEGER",
+}
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
 # Purpose: Implement the routine ' nowz'.
@@ -244,11 +251,7 @@ def _init_db(con: sqlite3.Connection) -> None:
     )
     # Best-effort schema upgrade for older DBs
     # (SQLite doesn't support ADD COLUMN IF NOT EXISTS)
-    for col, typ in (
-        ("pi_post_severity", "TEXT"),
-        ("pi_post_score", "INTEGER"),
-        ("pi_bad_lines", "INTEGER"),
-    ):
+    for col, typ in MESSAGE_SCHEMA_UPGRADES.items():
         try:
             con.execute(f"ALTER TABLE messages ADD COLUMN {col} {typ}")
         except sqlite3.OperationalError:

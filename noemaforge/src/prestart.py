@@ -3147,6 +3147,77 @@ def _clone_tree(src_dir: str) -> str:
     return tmp
 
 
+SAFE_CANARY_SUITES = {"smoke", "full"}
+
+
+def _validate_path_under_any(path: str, *, roots: List[str], label: str) -> str:
+    path_real = os.path.realpath(path)
+    if not os.path.exists(path_real):
+        raise ValueError(f"{label}_missing")
+    for root in roots:
+        root_real = os.path.realpath(root)
+        if path_real == root_real or path_real.startswith(root_real + os.sep):
+            return path_real
+    raise ValueError(f"{label}_outside_allowed_roots")
+
+
+def _validate_output_path_under(path: str, *, root: str, label: str) -> str:
+    root_real = os.path.realpath(root)
+    path_real = os.path.realpath(path)
+    if path_real == root_real or path_real.startswith(root_real + os.sep):
+        return path_real
+    raise ValueError(f"{label}_outside_root")
+
+
+def _validate_existing_file(path: str, *, expected_name: str, label: str) -> str:
+    real = os.path.realpath(path)
+    if os.path.basename(real) != expected_name or not os.path.isfile(real):
+        raise ValueError(f"{label}_invalid")
+    return real
+
+
+def _run_canary_runner(
+    *,
+    runner: str,
+    base: str,
+    cand: str,
+    law: str,
+    suite: str,
+    timeout_sec: int,
+    contracts_root: str,
+    report_path: str = "",
+) -> subprocess.CompletedProcess[str]:
+    safe_runner = _validate_existing_file(runner, expected_name="canary_runner.py", label="runner")
+    safe_suite = str(suite or "").strip().lower()
+    if safe_suite not in SAFE_CANARY_SUITES:
+        raise ValueError("suite_not_allowed")
+    safe_base = _validate_path_under_any(base, roots=[contracts_root, tempfile.gettempdir()], label="base")
+    safe_cand = _validate_path_under_any(cand, roots=[contracts_root], label="cand")
+    safe_law = _validate_path_under_any(law, roots=[contracts_root], label="law")
+    argv = [
+        sys.executable,
+        safe_runner,
+        "--base",
+        safe_base,
+        "--cand",
+        safe_cand,
+        "--law",
+        safe_law,
+        "--suite",
+        safe_suite,
+    ]
+    if report_path:
+        safe_report = _validate_output_path_under(report_path, root=safe_cand, label="report")
+        argv.extend(["--report-path", safe_report])
+    return subprocess.run(
+        argv,
+        shell=False,
+        capture_output=True,
+        text=True,
+        timeout=max(1, int(timeout_sec)),
+    )
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _restore_tree(src_dir: str, dst_dir: str)
 # Purpose: Restore dst_dir to match src_dir.
@@ -3402,24 +3473,15 @@ def build_candidate_epoch(
                 report_path = os.path.join(reports_dir, f"{rid}--{safe_unit}--{suite}.json")
 
                 try:
-                    cp = subprocess.run(
-                        [
-                            sys.executable,
-                            runner,
-                            "--base",
-                            snap,
-                            "--cand",
-                            cand_dir,
-                            "--law",
-                            law_dir,
-                            "--suite",
-                            suite,
-                            "--report-path",
-                            report_path,
-                        ],
-                        capture_output=True,
-                        text=True,
-                        timeout=timeout_sec,
+                    cp = _run_canary_runner(
+                        runner=runner,
+                        base=snap,
+                        cand=cand_dir,
+                        law=law_dir,
+                        suite=suite,
+                        report_path=report_path,
+                        timeout_sec=timeout_sec,
+                        contracts_root=contracts_root,
                     )
                     payload = json.loads((cp.stdout or "{}").strip() or "{}")
                     ok = bool(payload.get("ok"))
@@ -3571,22 +3633,14 @@ def build_candidate_epoch(
     qf = ((law_policy.get("quota_profiles") or {}).get(final_suite) or {})
     timeout_final = int(qf.get("timeout_sec") or (180 if final_suite == "smoke" else 3600))
     try:
-        cp = subprocess.run(
-            [
-                sys.executable,
-                runner,
-                "--base",
-                law_dir,
-                "--cand",
-                cand_dir,
-                "--law",
-                law_dir,
-                "--suite",
-                final_suite,
-            ],
-            capture_output=True,
-            text=True,
-            timeout=timeout_final,
+        cp = _run_canary_runner(
+            runner=runner,
+            base=law_dir,
+            cand=cand_dir,
+            law=law_dir,
+            suite=final_suite,
+            timeout_sec=timeout_final,
+            contracts_root=contracts_root,
         )
         payload = json.loads((cp.stdout or "{}").strip() or "{}")
         ok_final = bool(payload.get("ok"))

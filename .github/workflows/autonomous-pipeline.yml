@@ -6,6 +6,9 @@ on:
       - 'claude/**'
       - 'codex/**'
 
+permissions:
+  contents: read
+
 jobs:
   # ─── Stage 1: lint + compile on Claude push ───────────────────────────────
   validate-claude-push:
