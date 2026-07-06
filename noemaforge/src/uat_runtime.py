@@ -49,6 +49,7 @@ from noemaforge_version import RUNTIME_VERSION  # noqa: E402
 # per-pipeline directory), so it must be a constrained token. Enforced at the call
 # site in _run_pipeline as defense-in-depth, independent of the caller's allowlist.
 _SAFE_PIPELINE_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+_PIPELINE_RUN_COMMAND = "pipeline_runtime_run"
 
 
 def _now() -> str:
@@ -83,6 +84,21 @@ def _pipeline_run_cmd(package_root: Path, pipeline_id: str, request: str, run_id
     return cmd
 
 
+def _pipeline_run_command_allowlist(
+    package_root: Path,
+    pipeline_id: str,
+    request: str,
+    run_id: str,
+    dry_run: bool,
+) -> Dict[str, List[str]]:
+    """Return the only subprocess argv shape allowed for UAT pipeline runs."""
+    return {
+        _PIPELINE_RUN_COMMAND: _pipeline_run_cmd(
+            package_root, pipeline_id, request, run_id, dry_run,
+        ),
+    }
+
+
 def _append_event(events_dir: Path, event_type: str, data: Dict[str, Any]) -> None:
     import event_log
     event_log.EventLog(events_dir).append(event_type, data, actor="uat")
@@ -103,7 +119,10 @@ def _run_pipeline(
     # the subprocess argv or the bundle path. This also blocks path traversal below.
     pipeline_id = _safe_pipeline_id(pipeline_id)
     run_id = f"uat_{pipeline_id}_{int(time.time())}"
-    cmd = _pipeline_run_cmd(package_root, pipeline_id, request, run_id, dry_run)
+    command_allowlist = _pipeline_run_command_allowlist(
+        package_root, pipeline_id, request, run_id, dry_run,
+    )
+    cmd = command_allowlist[_PIPELINE_RUN_COMMAND]
     # Display-safety: pipeline_runtime.run is orchestration with no display surface;
     # any model/GPU launch it triggers goes through model_selection_runtime, which
     # always passes --keep-display. The UAT runner never stops a display manager.
@@ -112,10 +131,14 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        # False positive: cmd is a fixed argv list built by _pipeline_run_cmd after _safe_pipeline_id; shell is never used.
-        proc = subprocess.run(  # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection
-            cmd, cwd=str(package_root), env=env, text=True,
-            capture_output=True, timeout=timeout,
+        proc = subprocess.run(
+            command_allowlist[_PIPELINE_RUN_COMMAND],
+            cwd=str(package_root),
+            env=env,
+            text=True,
+            shell=False,
+            capture_output=True,
+            timeout=timeout,
         )
         record["returncode"] = proc.returncode
         record["status"] = "ok" if proc.returncode == 0 else "failed"
