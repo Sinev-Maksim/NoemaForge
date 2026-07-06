@@ -810,15 +810,29 @@ function _fmtRuntimeState(runtime){
   const rt = runtime || {};
   const policy = rt.device_policy || {};
   const sockets = rt.sockets || {};
+  const services = rt.service_states || {};
+  const socketStates = rt.socket_states || {};
   const active = rt.active_model || {};
-  const requiredSockets = [
-    '/run/noemaforge/llm/gateway.sock',
-    '/run/noemaforge/llm/backends/main.sock',
-    '/run/brainos/llm/gateway.sock',
-  ];
-  const socketPaths = [...new Set([...requiredSockets, ...Object.keys(sockets)])];
-  const socketRows = socketPaths.map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  const serviceRows = Object.entries(services).map(([name, item]) => {
+    const unit = item?.unit || name;
+    const state = item?.state || 'unknown';
+    return `  ${unit}: ${state}`;
+  });
+  const socketRows = Object.entries(socketStates).map(([name, item]) => {
+    const path = item?.path || name;
+    const state = item?.state || (item?.present ? 'present' : 'missing');
+    return `  ${path}: ${state}`;
+  });
+  const fallbackSocketRows = Object.keys(sockets).map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  const freshness = rt.state_freshness || {};
   return [
+    'State freshness',
+    _metricRow('  State:', freshness.state || 'unknown'),
+    _metricRow('  Observed at:', freshness.observed_at || rt.observed_at || '—'),
+    '',
+    'Services',
+    serviceRows.length ? serviceRows.join('\n') : '  not available',
+    '',
     'Device policy',
     _metricRow('  Policy:', policy.policy || policy.mode || '—'),
     _metricRow('  Pending apply:', policy.pending_apply),
@@ -829,7 +843,7 @@ function _fmtRuntimeState(runtime){
     _metricRow('  Max active LLMs:', policy.max_active_llms),
     '',
     'Sockets',
-    socketRows.length ? socketRows.join('\n') : '  not available',
+    socketRows.length ? socketRows.join('\n') : (fallbackSocketRows.length ? fallbackSocketRows.join('\n') : '  not available'),
     '',
     'Active model',
     _metricRow('  State:', active.state || (rt.model_selection_required ? 'missing' : '—')),

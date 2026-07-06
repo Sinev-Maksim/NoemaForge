@@ -94,6 +94,10 @@ DEFAULT_MODELSTORE_DIR = _platform_paths.modelstore_dir
 DEFAULT_LLM_GATEWAY_SOCKET = _platform_paths.llm_gateway_socket
 DEFAULT_LLM_MAIN_BACKEND_SOCKET = _platform_paths.llm_main_backend_socket
 DEFAULT_LEGACY_LLM_GATEWAY_SOCKET = _platform_paths.legacy_brainos_gateway_socket
+CANONICAL_LLM_GATEWAY_SOCKET = Path("/run/noemaforge/llm/gateway.sock")
+CANONICAL_LLM_MAIN_BACKEND_SOCKET = Path("/run/noemaforge/llm/backends/main.sock")
+GATEWAY_SERVICE_UNIT = "noemaforge-llm-gateway.service"
+MAIN_BACKEND_SERVICE_UNIT = "noemaforge-llama@main.service"
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 
@@ -245,29 +249,152 @@ def _service_state(result: Dict[str, Any]) -> str:
     return "inactive"
 
 
+def _service_status(result: Dict[str, Any]) -> str:
+    state = _service_state(result)
+    if state in {"active", "ok"}:
+        return "ok"
+    if state in {"command_unavailable", "unknown"}:
+        return "unknown"
+    return "warn"
+
+
+def _service_state_doc(service_id: str, unit: str, result: Dict[str, Any], observed_at: str) -> Dict[str, Any]:
+    state = _service_state(result)
+    return {
+        "id": service_id,
+        "unit": unit,
+        "kind": "systemd_service",
+        "state": state,
+        "active": state in {"active", "ok"},
+        "status": _service_status(result),
+        "observed_at": observed_at,
+        "returncode": result.get("returncode"),
+        "stdout": result.get("stdout"),
+        "stderr": result.get("stderr"),
+        "available": result.get("available", result.get("returncode") is not None),
+        "evidence": f"systemctl is-active {unit}",
+    }
+
+
 def _path_key(path: Path) -> str:
     return str(path)
 
 
+def _path_keys(path: Path) -> List[str]:
+    raw = _path_key(path)
+    normalized = raw.replace("\\", "/")
+    return [raw] if normalized == raw else [raw, normalized]
+
+
 def _socket_present(sockets: Dict[str, Any], path: Path, *fallbacks: Optional[Path]) -> bool:
-    keys = {_path_key(path), _path_key(path).replace("\\", "/")}
+    keys = set(_path_keys(path))
     for fallback in fallbacks:
         if fallback is not None:
-            keys.add(_path_key(fallback))
-            keys.add(_path_key(fallback).replace("\\", "/"))
+            keys.update(_path_keys(fallback))
     return any(bool(sockets.get(key)) for key in keys)
+
+
+def _socket_state_from_map(sockets: Dict[str, Any], path: Path, *, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = (), observed_at: str = "") -> Dict[str, Any]:
+    keys: List[str] = []
+    for key in _path_keys(path):
+        if key not in keys:
+            keys.append(key)
+    for fallback in fallbacks:
+        if fallback is not None:
+            for key in _path_keys(fallback):
+                if key not in keys:
+                    keys.append(key)
+    matched_key = ""
+    present = False
+    for key in keys:
+        if key in sockets and bool(sockets.get(key)):
+            matched_key = key
+            present = True
+            break
+    if not matched_key:
+        for key in keys:
+            if key in sockets:
+                matched_key = key
+                break
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+    elif matched_key:
+        state = "present" if present else "missing"
+        status = "ok" if present else "warn"
+    else:
+        state = "unknown"
+        status = "unknown"
+    return {
+        "path": _path_key(path),
+        "state": state,
+        "present": present,
+        "status": status,
+        "observed_at": observed_at,
+        "matched_key": matched_key,
+    }
+
+
+def _socket_state_doc(socket_id: str, path: Path, observed_at: str, *, present: Optional[bool] = None, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = ()) -> Dict[str, Any]:
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+        resolved_present = False
+    elif present is None:
+        state = "unknown"
+        status = "unknown"
+        resolved_present = False
+    else:
+        resolved_present = bool(present)
+        state = "present" if resolved_present else "missing"
+        status = "ok" if resolved_present else "warn"
+    return {
+        "id": socket_id,
+        "kind": "unix_socket",
+        "path": _path_key(path),
+        "canonical_path": _path_key(path),
+        "fallback_paths": [_path_key(item) for item in fallbacks if item is not None],
+        "state": state,
+        "present": resolved_present,
+        "applicable": applicable,
+        "status": status,
+        "observed_at": observed_at,
+        "evidence": _path_key(path),
+    }
 
 
 def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]]:
     sockets = runtime.get("sockets") if isinstance(runtime.get("sockets"), dict) else {}
-    gateway_state = _service_state(runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {})
-    backend_state = _service_state(runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {})
-    gateway_socket = _socket_present(
-        sockets,
-        DEFAULT_LLM_GATEWAY_SOCKET,
-        DEFAULT_LEGACY_LLM_GATEWAY_SOCKET,
-    )
-    backend_socket = _socket_present(sockets, DEFAULT_LLM_MAIN_BACKEND_SOCKET)
+    service_states = runtime.get("service_states") if isinstance(runtime.get("service_states"), dict) else {}
+    socket_states = runtime.get("socket_states") if isinstance(runtime.get("socket_states"), dict) else {}
+    freshness = runtime.get("state_freshness") if isinstance(runtime.get("state_freshness"), dict) else {}
+    observed_at = str(freshness.get("observed_at") or runtime.get("observed_at") or "")
+    gateway_service = service_states.get("gateway") if isinstance(service_states.get("gateway"), dict) else {}
+    backend_service = service_states.get("main_backend") if isinstance(service_states.get("main_backend"), dict) else {}
+    if not gateway_service:
+        gateway_service = _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {}, observed_at)
+    if not backend_service:
+        backend_service = _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {}, observed_at)
+    gateway_socket_doc = socket_states.get("gateway") if isinstance(socket_states.get("gateway"), dict) else {}
+    backend_socket_doc = socket_states.get("main_backend") if isinstance(socket_states.get("main_backend"), dict) else {}
+    if not gateway_socket_doc:
+        gateway_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_GATEWAY_SOCKET,
+            fallbacks=(DEFAULT_LLM_GATEWAY_SOCKET, DEFAULT_LEGACY_LLM_GATEWAY_SOCKET),
+            observed_at=observed_at,
+        )
+    if not backend_socket_doc:
+        backend_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+            fallbacks=(DEFAULT_LLM_MAIN_BACKEND_SOCKET,),
+            observed_at=observed_at,
+        )
+    gateway_state = str(gateway_service.get("state") or "unknown")
+    backend_state = str(backend_service.get("state") or "unknown")
+    gateway_socket_state = str(gateway_socket_doc.get("state") or "unknown")
+    backend_socket_state = str(backend_socket_doc.get("state") or "unknown")
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
@@ -275,10 +402,10 @@ def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]
     if isinstance(policy, dict) and policy:
         device_policy = f"{policy.get('policy', 'auto')} / gpu={policy.get('gpu_policy', 'explicit_on_demand')} / pending={bool(policy.get('pending_apply', False))}"
     return [
-        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
-        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_GATEWAY_SOCKET)},
-        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": "ok" if backend_state == "active" else "warn", "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llama@main.service"},
-        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_MAIN_BACKEND_SOCKET)},
+        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": gateway_service.get("status") or ("ok" if gateway_state == "active" else "warn"), "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": gateway_service.get("evidence") or f"systemctl is-active {GATEWAY_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": gateway_socket_state, "status": gateway_socket_doc.get("status") or ("ok" if gateway_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if gateway_socket_state == "present" else "not_affirmed", "evidence": gateway_socket_doc.get("path") or _path_key(CANONICAL_LLM_GATEWAY_SOCKET), "observed_at": observed_at},
+        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": backend_service.get("status") or ("ok" if backend_state == "active" else "warn"), "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": backend_service.get("evidence") or f"systemctl is-active {MAIN_BACKEND_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": backend_socket_state, "status": backend_socket_doc.get("status") or ("ok" if backend_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if backend_socket_state == "present" else "not_affirmed", "evidence": backend_socket_doc.get("path") or _path_key(CANONICAL_LLM_MAIN_BACKEND_SOCKET), "observed_at": observed_at},
         {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
         {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
     ]
@@ -1541,12 +1668,37 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         return {"ok": True, "version": RUNTIME_VERSION, "idle_seconds": idle_sec, "idle_human": f"{idle_sec//3600:02d}:{(idle_sec//60)%60:02d}:{idle_sec%60:02d}", "policy": policy, "status": "paused" if policy.get("mode") == "manual_only" else "active"}
 
     def runtime_status(self) -> Dict[str, Any]:
-        sockets = [self.llm_gateway_socket, self.llm_main_backend_socket]
+        observed_at = now_iso()
+        sockets = [CANONICAL_LLM_GATEWAY_SOCKET, CANONICAL_LLM_MAIN_BACKEND_SOCKET]
+        for configured in [self.llm_gateway_socket, self.llm_main_backend_socket]:
+            if configured not in sockets:
+                sockets.append(configured)
         if self.legacy_llm_gateway_socket is not None:
             sockets.append(self.legacy_llm_gateway_socket)
         sock_status = {_path_key(s): s.exists() for s in sockets}
-        svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
-        main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
+        svc = run_json(["systemctl", "is-active", GATEWAY_SERVICE_UNIT], timeout=10)
+        main = run_json(["systemctl", "is-active", MAIN_BACKEND_SERVICE_UNIT], timeout=10)
+        service_states = {
+            "gateway": _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, svc, observed_at),
+            "main_backend": _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, main, observed_at),
+        }
+        socket_states = {
+            "gateway": _socket_state_doc(
+                "gateway",
+                CANONICAL_LLM_GATEWAY_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_GATEWAY_SOCKET, self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+                fallbacks=(self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+            ),
+            "main_backend": _socket_state_doc(
+                "main_backend",
+                CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_MAIN_BACKEND_SOCKET, self.llm_main_backend_socket),
+                applicable=service_states["main_backend"]["state"] not in {"inactive", "failed", "deactivating"},
+                fallbacks=(self.llm_main_backend_socket,),
+            ),
+        }
         main_model_dir = self.modelstore_dir / "models" / "main"
         manifest_path = main_model_dir / "noemaforge-model.json"
         legacy_manifest_path = main_model_dir / "brainos-model.json"
@@ -1565,7 +1717,29 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "selection_required": not active_model_ready,
             "message": "" if active_model_ready else "Model selection required: run model selection and refresh/apply epoch.",
         }
-        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy")}
+        state_freshness = {
+            "state": "fresh",
+            "observed_at": observed_at,
+            "timestamp": observed_at,
+            "stale_after_seconds": 30,
+        }
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "observed_at": observed_at,
+            "state_freshness": state_freshness,
+            "sockets": sock_status,
+            "socket_states": socket_states,
+            "service_states": service_states,
+            "gateway": svc,
+            "main_backend": main,
+            "main_manifest": main_manifest,
+            "selected_model": active_model,
+            "active_model": active_model,
+            "model_selection_required": not active_model_ready,
+            "missing_main_model_manifest": not manifest_exists,
+            "device_policy": self.device_policy().get("policy"),
+        }
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
 
