@@ -44,6 +44,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -848,6 +849,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self._begin_gui_session()
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -1054,9 +1056,67 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     # --- session state ----------------------------------------------------------------
+    def _new_gui_session_id(self) -> str:
+        """Return an opaque live GUI session id for this server process."""
+        stamp = now_iso().replace("-", "").replace(":", "")
+        return f"gui_{stamp}_{uuid.uuid4().hex[:8]}"
+
+    def _active_session_id(self) -> str:
+        """Return the active live session id, falling back for test doubles."""
+        return str(getattr(self, "current_session_id", "") or "default")
+
+    def _new_live_conversation(self, *, previous_archive: str = "") -> Dict[str, Any]:
+        session_id = self._active_session_id()
+        return {
+            "conversation_id": "conv_" + safe_id(session_id, "gui"),
+            "session_id": session_id,
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+            "locale": "ru",
+            "active_persona": "Admin",
+            "live_context_branch": "Admin",
+            "pending_intent": None,
+            "pending_payload": {},
+            "messages": [],
+            "artifacts": [],
+            "jobs": [],
+            "previous_conversation_archive": previous_archive,
+            "history_preserved_as_archive": bool(previous_archive),
+        }
+
+    def _begin_gui_session(self) -> Dict[str, Any]:
+        """Start a fresh live GUI session and detach prior context into history."""
+        self.current_session_id = self._new_gui_session_id()
+        archive_path = ""
+        conv_path = self.conversation_file()
+        old = self._read_json(conv_path, {}) if conv_path.exists() else {}
+        if isinstance(old, dict) and (
+            old.get("messages") or old.get("artifacts") or old.get("pending_intent") or old.get("active_persona") not in (None, "", "Admin")
+        ):
+            archive = self.gui_state_dir / "archive" / f"{safe_id(str(old.get('conversation_id') or 'conv'), 'conv')}_{int(time.time())}_session-start.json"
+            self._write_json(archive, old)
+            archive_path = str(archive)
+        conv = self._new_live_conversation(previous_archive=archive_path)
+        self._write_json(conv_path, conv)
+        try:
+            self.session_store.update(
+                self._active_session_id(),
+                active_persona="Admin",
+                live_context_branch="Admin",
+                selected_mode="normal",
+                selected_composite_top_n=0,
+                messages=[],
+                previous_conversation_archive=archive_path,
+                supersedes_conflicting_session=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - best-effort session-store sync
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _begin_gui_session: session_store update failed: {exc}\n")
+        return conv
+
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
-        session = self.session_store.set_mode("default", mode, composite_top_n)
+        session = self.session_store.set_mode(self._active_session_id(), mode, composite_top_n)
         return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
@@ -1066,7 +1126,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     def _conversation(self) -> Dict[str, Any]:
         conv = self._read_json(self.conversation_file(), {})
         if not isinstance(conv, dict) or not conv.get("conversation_id"):
-            conv = {"conversation_id": "conv_default", "created_at": now_iso(), "updated_at": now_iso(), "locale": "ru", "active_persona": "Admin", "pending_intent": None, "pending_payload": {}, "messages": [], "artifacts": [], "jobs": []}
+            conv = self._new_live_conversation()
             self._write_json(self.conversation_file(), conv)
         return conv
 
@@ -1103,7 +1163,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 conv.setdefault("artifacts", []).extend(affordance_artifacts)
             if locale:
                 conv["locale"] = locale
-            if persona:
+            if persona and str(role).lower() != "user" and str(persona) != "User":
                 conv["active_persona"] = persona
             self._save_conversation(conv)
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
@@ -1120,7 +1180,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
         # Also persist in session_store for browser-refresh restore.
         try:
-            self.session_store.append_message("default", msg)
+            self.session_store.append_message(self._active_session_id(), msg)
         except Exception:
             pass
         return msg
@@ -1448,7 +1508,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 jobs.append(item)
             try:
                 active = [j for j in jobs if is_active_job(j)]
-                self.session_store.attach_active_jobs("default", active)
+                self.session_store.attach_active_jobs(self._active_session_id(), active)
             except Exception:
                 pass
             return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1477,7 +1537,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         # during the session_store JSONL write.
         try:
             active = [j for j in jobs if is_active_job(j)]
-            self.session_store.attach_active_jobs("default", active)
+            self.session_store.attach_active_jobs(self._active_session_id(), active)
         except Exception:
             pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1485,7 +1545,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
     def session_current(self, session_id: str = "default") -> Dict[str, Any]:
         """Return the current session record from SessionStore."""
         try:
-            session = self.session_store.load(session_id)
+            target_session_id = self._active_session_id() if session_id in {"", "default"} else session_id
+            session = self.session_store.load(target_session_id)
             return {"ok": True, "version": RUNTIME_VERSION, "session": session}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
