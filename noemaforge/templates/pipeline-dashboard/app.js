@@ -809,6 +809,9 @@ function _fmtSoftware(health){
 function _fmtRuntimeState(runtime){
   const rt = runtime || {};
   const policy = rt.device_policy || {};
+  const persistent = policy.persistent_default || {};
+  const sessionOverride = policy.session_override || {};
+  const effective = policy.effective_policy || {};
   const sockets = rt.sockets || {};
   const services = rt.service_states || {};
   const socketStates = rt.socket_states || {};
@@ -834,13 +837,16 @@ function _fmtRuntimeState(runtime){
     serviceRows.length ? serviceRows.join('\n') : '  not available',
     '',
     'Device policy',
-    _metricRow('  Policy:', policy.policy || policy.mode || '—'),
+    _metricRow('  Safe default:', policy.safe_default?.policy || 'cpu'),
+    _metricRow('  Persistent default:', persistent.policy ? `${persistent.policy}${persistent.configured ? '' : ' (not configured)'}` : 'not configured'),
+    _metricRow('  Session override:', sessionOverride.policy ? `${sessionOverride.policy} (session only)` : 'none'),
+    _metricRow('  Effective:', effective.policy || policy.policy || policy.mode || '—'),
     _metricRow('  Pending apply:', policy.pending_apply),
-    _metricRow('  Applies on:', policy.applies_on),
-    _metricRow('  Updated at:', policy.updated_at),
+    _metricRow('  Applies on:', effective.applies_on || policy.applies_on),
+    _metricRow('  Updated at:', effective.updated_at || policy.updated_at),
     _metricRow('  Note:', policy.note),
-    _metricRow('  GPU allowed:', policy.gpu_allowed),
-    _metricRow('  Max active LLMs:', policy.max_active_llms),
+    _metricRow('  GPU policy:', effective.gpu_policy || policy.gpu_policy),
+    _metricRow('  Max active workers:', effective.max_active_heavy_workers || policy.max_active_heavy_workers || policy.max_active_llms),
     '',
     'Sockets',
     socketRows.length ? socketRows.join('\n') : (fallbackSocketRows.length ? fallbackSocketRows.join('\n') : '  not available'),
@@ -886,6 +892,8 @@ async function refreshTelemetry(){
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('software-metrics').textContent = _fmtSoftware(health);
     el('runtime-metrics').textContent = _fmtRuntimeState(st.runtime);
+    const effectiveDevicePolicy = st.runtime?.device_policy?.effective_policy?.policy || st.runtime?.device_policy?.policy;
+    if (effectiveDevicePolicy && el('device-policy')) el('device-policy').value = effectiveDevicePolicy;
     el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
@@ -1033,7 +1041,8 @@ async function continueSelection(){
 }
 async function reinventoryVault(){ try{ const r = await api('/api/vault/reinventory', {}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Vault inventory error: ${String(e)}`, 'error'); } }
 async function stopWorkflow(){ try{ absorbResult(await api('/api/workflow/stop', {reason:'operator_clicked_stop'})); }catch(e){ addMessage('Admin', `Stop error: ${String(e)}`, 'error'); } }
-async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value, scope:'session'}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function resetDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {reset_to_safe_default:true, scope:'session'}); absorbResult(r); el('device-policy').value = 'cpu'; }catch(e){ addMessage('Admin', `Device policy reset error: ${String(e)}`, 'error'); } }
 async function loadUsecases(){
   try{
     const data = await api('/api/usecases');
@@ -1355,6 +1364,7 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('depth-minutes').addEventListener('input', _updateDepthNotice);
   el('depth-until-stop').addEventListener('change', _updateDepthNotice);
   el('device-policy').addEventListener('change', setDevicePolicy);
+  el('device-policy-reset').addEventListener('click', resetDevicePolicy);
   el('tasks-refresh').addEventListener('click', refreshTasks);
   el('task-add').addEventListener('click', addTaskDialog);
   el('public-showcase-load').addEventListener('click', loadPublicShowcase);

@@ -101,6 +101,16 @@ GATEWAY_SERVICE_UNIT = "noemaforge-llm-gateway.service"
 MAIN_BACKEND_SERVICE_UNIT = "noemaforge-llama@main.service"
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
+DEVICE_POLICY_SAFE_DEFAULT = {
+    "policy": "cpu",
+    "decision": "cpu_safe_always_on_with_gpu_on_demand",
+    "pending_apply": False,
+    "applies_on": "next_persona_or_model_switch_or_backend_restart",
+    "gpu_policy": "explicit_on_demand",
+    "gpu_autostart_enabled": False,
+    "max_active_heavy_workers": 1,
+}
+DEVICE_POLICY_ALLOWED = {"auto", "cpu", "gpu", "cuda"}
 
 
 def now_iso() -> str:
@@ -399,9 +409,12 @@ def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
-    device_policy = str(policy.get("policy") or policy or "auto")
+    effective_policy = policy.get("effective_policy") if isinstance(policy.get("effective_policy"), dict) else {}
+    session_override = policy.get("session_override") if isinstance(policy.get("session_override"), dict) else None
+    device_policy = str(effective_policy.get("policy") or policy.get("policy") or policy or "auto")
     if isinstance(policy, dict) and policy:
-        device_policy = f"{policy.get('policy', 'auto')} / gpu={policy.get('gpu_policy', 'explicit_on_demand')} / pending={bool(policy.get('pending_apply', False))}"
+        source = effective_policy.get("source") or policy.get("scope") or "runtime"
+        device_policy = f"{device_policy} / source={source} / session={bool(session_override)} / pending={bool(policy.get('pending_apply', False))}"
     return [
         {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": gateway_service.get("status") or ("ok" if gateway_state == "active" else "warn"), "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": gateway_service.get("evidence") or f"systemctl is-active {GATEWAY_SERVICE_UNIT}", "observed_at": observed_at},
         {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": gateway_socket_state, "status": gateway_socket_doc.get("status") or ("ok" if gateway_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if gateway_socket_state == "present" else "not_affirmed", "evidence": gateway_socket_doc.get("path") or _path_key(CANONICAL_LLM_GATEWAY_SOCKET), "observed_at": observed_at},
@@ -838,6 +851,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
         # then calls save_message which acquires _conv_lock — never reversed).
         self._conv_lock = threading.Lock()
+        self._session_device_policy_override: Optional[Dict[str, Any]] = None
         self.runtime_dir = self.data_root / "runtime"
         self.bootstrap_dir = DEFAULT_BOOTSTRAP_DIR
         self.modelstore_dir = DEFAULT_MODELSTORE_DIR
@@ -1849,19 +1863,94 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         runtime = self.runtime_status()
         return {"ok": True, "version": RUNTIME_VERSION, "observer_cards": runtime.get("observer_cards", []), "runtime": runtime}
 
-    def device_policy(self) -> Dict[str, Any]:
-        path = self.runtime_dir / "device-policy.json"
-        policy = self._read_json(path, {"policy": "cpu", "decision": "cpu_safe_always_on_with_gpu_on_demand", "pending_apply": False, "applies_on": "next_persona_or_model_switch_or_backend_restart", "gpu_policy": "explicit_on_demand", "gpu_autostart_enabled": False, "max_active_heavy_workers": 1, "updated_at": now_iso()})
-        return {"ok": True, "version": RUNTIME_VERSION, "policy": policy}
+    def _device_policy_note(self, scope: str) -> str:
+        if scope in {"session", "session_override"}:
+            scope_note = "This is a session-only override and is not persisted across GUI restarts."
+        elif scope == "safe_default":
+            scope_note = "This is the safe CPU default used when no persistent default or session override is configured."
+        else:
+            scope_note = "This is an explicit persistent default update."
+        return f"Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart. {scope_note}"
 
-    def device_policy_set(self, policy: str) -> Dict[str, Any]:
-        if policy not in {"auto", "cpu", "gpu", "cuda"}:
+    def _normalize_device_policy_doc(self, doc: Any, *, source: str, pending_apply: Optional[bool] = None) -> Dict[str, Any]:
+        base = dict(DEVICE_POLICY_SAFE_DEFAULT)
+        if isinstance(doc, dict):
+            base.update({k: v for k, v in doc.items() if v is not None})
+        policy = str(base.get("policy") or "cpu").strip().lower()
+        base["policy"] = "gpu" if policy == "cuda" else (policy if policy in {"auto", "cpu", "gpu"} else "cpu")
+        if pending_apply is not None:
+            base["pending_apply"] = bool(pending_apply)
+        else:
+            base["pending_apply"] = bool(base.get("pending_apply", False))
+        base.setdefault("applies_on", DEVICE_POLICY_SAFE_DEFAULT["applies_on"])
+        base.setdefault("updated_at", now_iso())
+        base["source"] = source
+        return base
+
+    def _persistent_device_policy(self) -> Tuple[Dict[str, Any], bool]:
+        path = self.runtime_dir / "device-policy.json"
+        raw = self._read_json(path, {})
+        configured = isinstance(raw, dict) and bool(raw)
+        source = "persistent_default" if configured else "safe_default"
+        return self._normalize_device_policy_doc(raw if configured else DEVICE_POLICY_SAFE_DEFAULT, source=source), configured
+
+    def _session_device_policy(self) -> Optional[Dict[str, Any]]:
+        override = getattr(self, "_session_device_policy_override", None)
+        return dict(override) if isinstance(override, dict) else None
+
+    def device_policy(self) -> Dict[str, Any]:
+        persistent, configured = self._persistent_device_policy()
+        session_override = self._session_device_policy()
+        effective = session_override or persistent
+        state = {
+            "policy": effective.get("policy"),
+            "mode": effective.get("policy"),
+            "safe_default": self._normalize_device_policy_doc(DEVICE_POLICY_SAFE_DEFAULT, source="safe_default"),
+            "persistent_default": {**persistent, "configured": configured},
+            "session_override": session_override,
+            "effective_policy": effective,
+            "pending_apply": bool(effective.get("pending_apply", False)),
+            "applies_on": effective.get("applies_on"),
+            "updated_at": effective.get("updated_at"),
+            "note": effective.get("note") or self._device_policy_note(str(effective.get("source") or "runtime")),
+            "gpu_policy": effective.get("gpu_policy"),
+            "gpu_autostart_enabled": effective.get("gpu_autostart_enabled"),
+            "max_active_heavy_workers": effective.get("max_active_heavy_workers"),
+            "reset_to_safe_default_available": True,
+            "scope": effective.get("source"),
+        }
+        return {"ok": True, "version": RUNTIME_VERSION, "policy": state}
+
+    def device_policy_set(self, policy: str, scope: str = "session", reset_to_safe_default: bool = False) -> Dict[str, Any]:
+        normalized_scope = str(scope or "session").strip().lower()
+        if normalized_scope not in {"session", "persistent"}:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "scope must be session|persistent"}
+        raw_policy = str(policy or "").strip().lower()
+        reset = bool(reset_to_safe_default) or raw_policy in {"safe", "safe_default", "reset", "default"}
+        if not reset and raw_policy not in DEVICE_POLICY_ALLOWED:
             return {"ok": False, "version": RUNTIME_VERSION, "error": "policy must be auto|cpu|gpu"}
-        normalized = "gpu" if policy == "cuda" else policy
-        doc = {"policy": normalized, "pending_apply": True, "applies_on": "next_persona_or_model_switch_or_backend_restart", "updated_at": now_iso(), "note": "Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart."}
-        self._write_json(self.runtime_dir / "device-policy.json", doc)
-        self.save_message("system", f"Runtime device policy staged: {normalized}", persona="Runtime", intent="device_policy", raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": doc}
+        normalized = "cpu" if reset else ("gpu" if raw_policy == "cuda" else raw_policy)
+        doc = self._normalize_device_policy_doc(
+            {
+                "policy": normalized,
+                "pending_apply": True,
+                "applies_on": DEVICE_POLICY_SAFE_DEFAULT["applies_on"],
+                "updated_at": now_iso(),
+                "note": self._device_policy_note(normalized_scope),
+            },
+            source="session_override" if normalized_scope == "session" else "persistent_default",
+            pending_apply=True,
+        )
+        if normalized_scope == "persistent":
+            persisted = {k: v for k, v in doc.items() if k != "source"}
+            self._write_json(self.runtime_dir / "device-policy.json", persisted)
+            self._session_device_policy_override = None
+        else:
+            self._session_device_policy_override = doc
+        self.save_message("system", f"Runtime device policy staged: {normalized} ({normalized_scope})", persona="Runtime", intent="device_policy", raw=doc)
+        state = self.device_policy()["policy"]
+        reply_scope = "session only" if normalized_scope == "session" else "persistent default"
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged for {reply_scope}: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": state}
 
     def _command_output(self, cmd: Sequence[str], timeout: int = 8) -> Dict[str, Any]:
         if shutil.which(cmd[0]) is None and not Path(cmd[0]).exists():
