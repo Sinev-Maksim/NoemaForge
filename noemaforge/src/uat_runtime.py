@@ -131,8 +131,8 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        proc = subprocess.run(
-            command_allowlist[_PIPELINE_RUN_COMMAND],
+        proc = subprocess.run(  # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection - fixed argv allowlist, validated pipeline_id, shell=False.
+            cmd,
             cwd=str(package_root),
             env=env,
             text=True,
