@@ -44,6 +44,7 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -95,10 +96,24 @@ DEFAULT_MODELSTORE_DIR = _platform_paths.modelstore_dir
 DEFAULT_LLM_GATEWAY_SOCKET = _platform_paths.llm_gateway_socket
 DEFAULT_LLM_MAIN_BACKEND_SOCKET = _platform_paths.llm_main_backend_socket
 DEFAULT_LEGACY_LLM_GATEWAY_SOCKET = _platform_paths.legacy_brainos_gateway_socket
+CANONICAL_LLM_GATEWAY_SOCKET = Path("/run/noemaforge/llm/gateway.sock")
+CANONICAL_LLM_MAIN_BACKEND_SOCKET = Path("/run/noemaforge/llm/backends/main.sock")
+GATEWAY_SERVICE_UNIT = "noemaforge-llm-gateway.service"
+MAIN_BACKEND_SERVICE_UNIT = "noemaforge-llama@main.service"
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
 SAFE_STARTUP_PROFILE = "minimal"
 DEFAULT_STARTUP_PROFILE = "balanced"
+DEVICE_POLICY_SAFE_DEFAULT = {
+    "policy": "cpu",
+    "decision": "cpu_safe_always_on_with_gpu_on_demand",
+    "pending_apply": False,
+    "applies_on": "next_persona_or_model_switch_or_backend_restart",
+    "gpu_policy": "explicit_on_demand",
+    "gpu_autostart_enabled": False,
+    "max_active_heavy_workers": 1,
+}
+DEVICE_POLICY_ALLOWED = {"auto", "cpu", "gpu", "cuda"}
 
 
 def now_iso() -> str:
@@ -248,40 +263,166 @@ def _service_state(result: Dict[str, Any]) -> str:
     return "inactive"
 
 
+def _service_status(result: Dict[str, Any]) -> str:
+    state = _service_state(result)
+    if state in {"active", "ok"}:
+        return "ok"
+    if state in {"command_unavailable", "unknown"}:
+        return "unknown"
+    return "warn"
+
+
+def _service_state_doc(service_id: str, unit: str, result: Dict[str, Any], observed_at: str) -> Dict[str, Any]:
+    state = _service_state(result)
+    return {
+        "id": service_id,
+        "unit": unit,
+        "kind": "systemd_service",
+        "state": state,
+        "active": state in {"active", "ok"},
+        "status": _service_status(result),
+        "observed_at": observed_at,
+        "returncode": result.get("returncode"),
+        "stdout": result.get("stdout"),
+        "stderr": result.get("stderr"),
+        "available": result.get("available", result.get("returncode") is not None),
+        "evidence": f"systemctl is-active {unit}",
+    }
+
+
 def _path_key(path: Path) -> str:
     return str(path)
 
 
+def _path_keys(path: Path) -> List[str]:
+    raw = _path_key(path)
+    normalized = raw.replace("\\", "/")
+    return [raw] if normalized == raw else [raw, normalized]
+
+
 def _socket_present(sockets: Dict[str, Any], path: Path, *fallbacks: Optional[Path]) -> bool:
-    keys = {_path_key(path), _path_key(path).replace("\\", "/")}
+    keys = set(_path_keys(path))
     for fallback in fallbacks:
         if fallback is not None:
-            keys.add(_path_key(fallback))
-            keys.add(_path_key(fallback).replace("\\", "/"))
+            keys.update(_path_keys(fallback))
     return any(bool(sockets.get(key)) for key in keys)
+
+
+def _socket_state_from_map(sockets: Dict[str, Any], path: Path, *, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = (), observed_at: str = "") -> Dict[str, Any]:
+    keys: List[str] = []
+    for key in _path_keys(path):
+        if key not in keys:
+            keys.append(key)
+    for fallback in fallbacks:
+        if fallback is not None:
+            for key in _path_keys(fallback):
+                if key not in keys:
+                    keys.append(key)
+    matched_key = ""
+    present = False
+    for key in keys:
+        if key in sockets and bool(sockets.get(key)):
+            matched_key = key
+            present = True
+            break
+    if not matched_key:
+        for key in keys:
+            if key in sockets:
+                matched_key = key
+                break
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+    elif matched_key:
+        state = "present" if present else "missing"
+        status = "ok" if present else "warn"
+    else:
+        state = "unknown"
+        status = "unknown"
+    return {
+        "path": _path_key(path),
+        "state": state,
+        "present": present,
+        "status": status,
+        "observed_at": observed_at,
+        "matched_key": matched_key,
+    }
+
+
+def _socket_state_doc(socket_id: str, path: Path, observed_at: str, *, present: Optional[bool] = None, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = ()) -> Dict[str, Any]:
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+        resolved_present = False
+    elif present is None:
+        state = "unknown"
+        status = "unknown"
+        resolved_present = False
+    else:
+        resolved_present = bool(present)
+        state = "present" if resolved_present else "missing"
+        status = "ok" if resolved_present else "warn"
+    return {
+        "id": socket_id,
+        "kind": "unix_socket",
+        "path": _path_key(path),
+        "canonical_path": _path_key(path),
+        "fallback_paths": [_path_key(item) for item in fallbacks if item is not None],
+        "state": state,
+        "present": resolved_present,
+        "applicable": applicable,
+        "status": status,
+        "observed_at": observed_at,
+        "evidence": _path_key(path),
+    }
 
 
 def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]]:
     sockets = runtime.get("sockets") if isinstance(runtime.get("sockets"), dict) else {}
-    gateway_state = _service_state(runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {})
-    backend_state = _service_state(runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {})
-    gateway_socket = _socket_present(
-        sockets,
-        DEFAULT_LLM_GATEWAY_SOCKET,
-        DEFAULT_LEGACY_LLM_GATEWAY_SOCKET,
-    )
-    backend_socket = _socket_present(sockets, DEFAULT_LLM_MAIN_BACKEND_SOCKET)
+    service_states = runtime.get("service_states") if isinstance(runtime.get("service_states"), dict) else {}
+    socket_states = runtime.get("socket_states") if isinstance(runtime.get("socket_states"), dict) else {}
+    freshness = runtime.get("state_freshness") if isinstance(runtime.get("state_freshness"), dict) else {}
+    observed_at = str(freshness.get("observed_at") or runtime.get("observed_at") or "")
+    gateway_service = service_states.get("gateway") if isinstance(service_states.get("gateway"), dict) else {}
+    backend_service = service_states.get("main_backend") if isinstance(service_states.get("main_backend"), dict) else {}
+    if not gateway_service:
+        gateway_service = _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {}, observed_at)
+    if not backend_service:
+        backend_service = _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {}, observed_at)
+    gateway_socket_doc = socket_states.get("gateway") if isinstance(socket_states.get("gateway"), dict) else {}
+    backend_socket_doc = socket_states.get("main_backend") if isinstance(socket_states.get("main_backend"), dict) else {}
+    if not gateway_socket_doc:
+        gateway_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_GATEWAY_SOCKET,
+            fallbacks=(DEFAULT_LLM_GATEWAY_SOCKET, DEFAULT_LEGACY_LLM_GATEWAY_SOCKET),
+            observed_at=observed_at,
+        )
+    if not backend_socket_doc:
+        backend_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+            fallbacks=(DEFAULT_LLM_MAIN_BACKEND_SOCKET,),
+            observed_at=observed_at,
+        )
+    gateway_state = str(gateway_service.get("state") or "unknown")
+    backend_state = str(backend_service.get("state") or "unknown")
+    gateway_socket_state = str(gateway_socket_doc.get("state") or "unknown")
+    backend_socket_state = str(backend_socket_doc.get("state") or "unknown")
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
-    device_policy = str(policy.get("policy") or policy or "auto")
+    effective_policy = policy.get("effective_policy") if isinstance(policy.get("effective_policy"), dict) else {}
+    session_override = policy.get("session_override") if isinstance(policy.get("session_override"), dict) else None
+    device_policy = str(effective_policy.get("policy") or policy.get("policy") or policy or "auto")
     if isinstance(policy, dict) and policy:
-        device_policy = f"{policy.get('policy', 'auto')} / gpu={policy.get('gpu_policy', 'explicit_on_demand')} / pending={bool(policy.get('pending_apply', False))}"
+        source = effective_policy.get("source") or policy.get("scope") or "runtime"
+        device_policy = f"{device_policy} / source={source} / session={bool(session_override)} / pending={bool(policy.get('pending_apply', False))}"
     return [
-        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
-        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_GATEWAY_SOCKET)},
-        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": "ok" if backend_state == "active" else "warn", "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llama@main.service"},
-        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_MAIN_BACKEND_SOCKET)},
+        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": gateway_service.get("status") or ("ok" if gateway_state == "active" else "warn"), "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": gateway_service.get("evidence") or f"systemctl is-active {GATEWAY_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": gateway_socket_state, "status": gateway_socket_doc.get("status") or ("ok" if gateway_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if gateway_socket_state == "present" else "not_affirmed", "evidence": gateway_socket_doc.get("path") or _path_key(CANONICAL_LLM_GATEWAY_SOCKET), "observed_at": observed_at},
+        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": backend_service.get("status") or ("ok" if backend_state == "active" else "warn"), "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": backend_service.get("evidence") or f"systemctl is-active {MAIN_BACKEND_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": backend_socket_state, "status": backend_socket_doc.get("status") or ("ok" if backend_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if backend_socket_state == "present" else "not_affirmed", "evidence": backend_socket_doc.get("path") or _path_key(CANONICAL_LLM_MAIN_BACKEND_SOCKET), "observed_at": observed_at},
         {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
         {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
     ]
@@ -713,6 +854,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
         # then calls save_message which acquires _conv_lock — never reversed).
         self._conv_lock = threading.Lock()
+        self._session_device_policy_override: Optional[Dict[str, Any]] = None
         self.runtime_dir = self.data_root / "runtime"
         self.bootstrap_dir = DEFAULT_BOOTSTRAP_DIR
         self.modelstore_dir = DEFAULT_MODELSTORE_DIR
@@ -724,6 +866,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self._begin_gui_session()
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -1082,9 +1225,67 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     # --- session state ----------------------------------------------------------------
+    def _new_gui_session_id(self) -> str:
+        """Return an opaque live GUI session id for this server process."""
+        stamp = now_iso().replace("-", "").replace(":", "")
+        return f"gui_{stamp}_{uuid.uuid4().hex[:8]}"
+
+    def _active_session_id(self) -> str:
+        """Return the active live session id, falling back for test doubles."""
+        return str(getattr(self, "current_session_id", "") or "default")
+
+    def _new_live_conversation(self, *, previous_archive: str = "") -> Dict[str, Any]:
+        session_id = self._active_session_id()
+        return {
+            "conversation_id": "conv_" + safe_id(session_id, "gui"),
+            "session_id": session_id,
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+            "locale": "ru",
+            "active_persona": "Admin",
+            "live_context_branch": "Admin",
+            "pending_intent": None,
+            "pending_payload": {},
+            "messages": [],
+            "artifacts": [],
+            "jobs": [],
+            "previous_conversation_archive": previous_archive,
+            "history_preserved_as_archive": bool(previous_archive),
+        }
+
+    def _begin_gui_session(self) -> Dict[str, Any]:
+        """Start a fresh live GUI session and detach prior context into history."""
+        self.current_session_id = self._new_gui_session_id()
+        archive_path = ""
+        conv_path = self.conversation_file()
+        old = self._read_json(conv_path, {}) if conv_path.exists() else {}
+        if isinstance(old, dict) and (
+            old.get("messages") or old.get("artifacts") or old.get("pending_intent") or old.get("active_persona") not in (None, "", "Admin")
+        ):
+            archive = self.gui_state_dir / "archive" / f"{safe_id(str(old.get('conversation_id') or 'conv'), 'conv')}_{int(time.time())}_session-start.json"
+            self._write_json(archive, old)
+            archive_path = str(archive)
+        conv = self._new_live_conversation(previous_archive=archive_path)
+        self._write_json(conv_path, conv)
+        try:
+            self.session_store.update(
+                self._active_session_id(),
+                active_persona="Admin",
+                live_context_branch="Admin",
+                selected_mode="normal",
+                selected_composite_top_n=0,
+                messages=[],
+                previous_conversation_archive=archive_path,
+                supersedes_conflicting_session=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - best-effort session-store sync
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _begin_gui_session: session_store update failed: {exc}\n")
+        return conv
+
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
-        session = self.session_store.set_mode("default", mode, composite_top_n)
+        session = self.session_store.set_mode(self._active_session_id(), mode, composite_top_n)
         return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
@@ -1094,7 +1295,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     def _conversation(self) -> Dict[str, Any]:
         conv = self._read_json(self.conversation_file(), {})
         if not isinstance(conv, dict) or not conv.get("conversation_id"):
-            conv = {"conversation_id": "conv_default", "created_at": now_iso(), "updated_at": now_iso(), "locale": "ru", "active_persona": "Admin", "pending_intent": None, "pending_payload": {}, "messages": [], "artifacts": [], "jobs": []}
+            conv = self._new_live_conversation()
             self._write_json(self.conversation_file(), conv)
         return conv
 
@@ -1131,7 +1332,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 conv.setdefault("artifacts", []).extend(affordance_artifacts)
             if locale:
                 conv["locale"] = locale
-            if persona:
+            if persona and str(role).lower() != "user" and str(persona) != "User":
                 conv["active_persona"] = persona
             self._save_conversation(conv)
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
@@ -1148,7 +1349,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
         # Also persist in session_store for browser-refresh restore.
         try:
-            self.session_store.append_message("default", msg)
+            self.session_store.append_message(self._active_session_id(), msg)
         except Exception:
             pass
         return msg
@@ -1476,7 +1677,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 jobs.append(item)
             try:
                 active = [j for j in jobs if is_active_job(j)]
-                self.session_store.attach_active_jobs("default", active)
+                self.session_store.attach_active_jobs(self._active_session_id(), active)
             except Exception:
                 pass
             return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1505,7 +1706,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         # during the session_store JSONL write.
         try:
             active = [j for j in jobs if is_active_job(j)]
-            self.session_store.attach_active_jobs("default", active)
+            self.session_store.attach_active_jobs(self._active_session_id(), active)
         except Exception:
             pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1513,7 +1714,8 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
     def session_current(self, session_id: str = "default") -> Dict[str, Any]:
         """Return the current session record from SessionStore."""
         try:
-            session = self.session_store.load(session_id)
+            target_session_id = self._active_session_id() if session_id in {"", "default"} else session_id
+            session = self.session_store.load(target_session_id)
             return {"ok": True, "version": RUNTIME_VERSION, "session": session}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
@@ -1698,12 +1900,37 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         return {"ok": True, "version": RUNTIME_VERSION, "idle_seconds": idle_sec, "idle_human": f"{idle_sec//3600:02d}:{(idle_sec//60)%60:02d}:{idle_sec%60:02d}", "policy": policy, "status": "paused" if policy.get("mode") == "manual_only" else "active"}
 
     def runtime_status(self) -> Dict[str, Any]:
-        sockets = [self.llm_gateway_socket, self.llm_main_backend_socket]
+        observed_at = now_iso()
+        sockets = [CANONICAL_LLM_GATEWAY_SOCKET, CANONICAL_LLM_MAIN_BACKEND_SOCKET]
+        for configured in [self.llm_gateway_socket, self.llm_main_backend_socket]:
+            if configured not in sockets:
+                sockets.append(configured)
         if self.legacy_llm_gateway_socket is not None:
             sockets.append(self.legacy_llm_gateway_socket)
         sock_status = {_path_key(s): s.exists() for s in sockets}
-        svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
-        main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
+        svc = run_json(["systemctl", "is-active", GATEWAY_SERVICE_UNIT], timeout=10)
+        main = run_json(["systemctl", "is-active", MAIN_BACKEND_SERVICE_UNIT], timeout=10)
+        service_states = {
+            "gateway": _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, svc, observed_at),
+            "main_backend": _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, main, observed_at),
+        }
+        socket_states = {
+            "gateway": _socket_state_doc(
+                "gateway",
+                CANONICAL_LLM_GATEWAY_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_GATEWAY_SOCKET, self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+                fallbacks=(self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+            ),
+            "main_backend": _socket_state_doc(
+                "main_backend",
+                CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_MAIN_BACKEND_SOCKET, self.llm_main_backend_socket),
+                applicable=service_states["main_backend"]["state"] not in {"inactive", "failed", "deactivating"},
+                fallbacks=(self.llm_main_backend_socket,),
+            ),
+        }
         main_model_dir = self.modelstore_dir / "models" / "main"
         manifest_path = main_model_dir / "noemaforge-model.json"
         legacy_manifest_path = main_model_dir / "brainos-model.json"
@@ -1722,7 +1949,30 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "selection_required": not active_model_ready,
             "message": "" if active_model_ready else "Model selection required: run model selection and refresh/apply epoch.",
         }
-        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "active_model": active_model, "model_selection_required": not active_model_ready, "missing_main_model_manifest": not manifest_exists, "device_policy": self.device_policy().get("policy"), "startup_profile": self.startup_profile_state()}
+        state_freshness = {
+            "state": "fresh",
+            "observed_at": observed_at,
+            "timestamp": observed_at,
+            "stale_after_seconds": 30,
+        }
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "observed_at": observed_at,
+            "state_freshness": state_freshness,
+            "sockets": sock_status,
+            "socket_states": socket_states,
+            "service_states": service_states,
+            "gateway": svc,
+            "main_backend": main,
+            "main_manifest": main_manifest,
+            "selected_model": active_model,
+            "active_model": active_model,
+            "model_selection_required": not active_model_ready,
+            "missing_main_model_manifest": not manifest_exists,
+            "device_policy": self.device_policy().get("policy"),
+            "startup_profile": self.startup_profile_state(),
+        }
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
 
@@ -1771,19 +2021,94 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         runtime = self.runtime_status()
         return {"ok": True, "version": RUNTIME_VERSION, "observer_cards": runtime.get("observer_cards", []), "runtime": runtime}
 
-    def device_policy(self) -> Dict[str, Any]:
-        path = self.runtime_dir / "device-policy.json"
-        policy = self._read_json(path, {"policy": "cpu", "decision": "cpu_safe_always_on_with_gpu_on_demand", "pending_apply": False, "applies_on": "next_persona_or_model_switch_or_backend_restart", "gpu_policy": "explicit_on_demand", "gpu_autostart_enabled": False, "max_active_heavy_workers": 1, "updated_at": now_iso()})
-        return {"ok": True, "version": RUNTIME_VERSION, "policy": policy}
+    def _device_policy_note(self, scope: str) -> str:
+        if scope in {"session", "session_override"}:
+            scope_note = "This is a session-only override and is not persisted across GUI restarts."
+        elif scope == "safe_default":
+            scope_note = "This is the safe CPU default used when no persistent default or session override is configured."
+        else:
+            scope_note = "This is an explicit persistent default update."
+        return f"Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart. {scope_note}"
 
-    def device_policy_set(self, policy: str) -> Dict[str, Any]:
-        if policy not in {"auto", "cpu", "gpu", "cuda"}:
+    def _normalize_device_policy_doc(self, doc: Any, *, source: str, pending_apply: Optional[bool] = None) -> Dict[str, Any]:
+        base = dict(DEVICE_POLICY_SAFE_DEFAULT)
+        if isinstance(doc, dict):
+            base.update({k: v for k, v in doc.items() if v is not None})
+        policy = str(base.get("policy") or "cpu").strip().lower()
+        base["policy"] = "gpu" if policy == "cuda" else (policy if policy in {"auto", "cpu", "gpu"} else "cpu")
+        if pending_apply is not None:
+            base["pending_apply"] = bool(pending_apply)
+        else:
+            base["pending_apply"] = bool(base.get("pending_apply", False))
+        base.setdefault("applies_on", DEVICE_POLICY_SAFE_DEFAULT["applies_on"])
+        base.setdefault("updated_at", now_iso())
+        base["source"] = source
+        return base
+
+    def _persistent_device_policy(self) -> Tuple[Dict[str, Any], bool]:
+        path = self.runtime_dir / "device-policy.json"
+        raw = self._read_json(path, {})
+        configured = isinstance(raw, dict) and bool(raw)
+        source = "persistent_default" if configured else "safe_default"
+        return self._normalize_device_policy_doc(raw if configured else DEVICE_POLICY_SAFE_DEFAULT, source=source), configured
+
+    def _session_device_policy(self) -> Optional[Dict[str, Any]]:
+        override = getattr(self, "_session_device_policy_override", None)
+        return dict(override) if isinstance(override, dict) else None
+
+    def device_policy(self) -> Dict[str, Any]:
+        persistent, configured = self._persistent_device_policy()
+        session_override = self._session_device_policy()
+        effective = session_override or persistent
+        state = {
+            "policy": effective.get("policy"),
+            "mode": effective.get("policy"),
+            "safe_default": self._normalize_device_policy_doc(DEVICE_POLICY_SAFE_DEFAULT, source="safe_default"),
+            "persistent_default": {**persistent, "configured": configured},
+            "session_override": session_override,
+            "effective_policy": effective,
+            "pending_apply": bool(effective.get("pending_apply", False)),
+            "applies_on": effective.get("applies_on"),
+            "updated_at": effective.get("updated_at"),
+            "note": effective.get("note") or self._device_policy_note(str(effective.get("source") or "runtime")),
+            "gpu_policy": effective.get("gpu_policy"),
+            "gpu_autostart_enabled": effective.get("gpu_autostart_enabled"),
+            "max_active_heavy_workers": effective.get("max_active_heavy_workers"),
+            "reset_to_safe_default_available": True,
+            "scope": effective.get("source"),
+        }
+        return {"ok": True, "version": RUNTIME_VERSION, "policy": state}
+
+    def device_policy_set(self, policy: str, scope: str = "session", reset_to_safe_default: bool = False) -> Dict[str, Any]:
+        normalized_scope = str(scope or "session").strip().lower()
+        if normalized_scope not in {"session", "persistent"}:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "scope must be session|persistent"}
+        raw_policy = str(policy or "").strip().lower()
+        reset = bool(reset_to_safe_default) or raw_policy in {"safe", "safe_default", "reset", "default"}
+        if not reset and raw_policy not in DEVICE_POLICY_ALLOWED:
             return {"ok": False, "version": RUNTIME_VERSION, "error": "policy must be auto|cpu|gpu"}
-        normalized = "gpu" if policy == "cuda" else policy
-        doc = {"policy": normalized, "pending_apply": True, "applies_on": "next_persona_or_model_switch_or_backend_restart", "updated_at": now_iso(), "note": "Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart."}
-        self._write_json(self.runtime_dir / "device-policy.json", doc)
-        self.save_message("system", f"Runtime device policy staged: {normalized}", persona="Runtime", intent="device_policy", raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": doc}
+        normalized = "cpu" if reset else ("gpu" if raw_policy == "cuda" else raw_policy)
+        doc = self._normalize_device_policy_doc(
+            {
+                "policy": normalized,
+                "pending_apply": True,
+                "applies_on": DEVICE_POLICY_SAFE_DEFAULT["applies_on"],
+                "updated_at": now_iso(),
+                "note": self._device_policy_note(normalized_scope),
+            },
+            source="session_override" if normalized_scope == "session" else "persistent_default",
+            pending_apply=True,
+        )
+        if normalized_scope == "persistent":
+            persisted = {k: v for k, v in doc.items() if k != "source"}
+            self._write_json(self.runtime_dir / "device-policy.json", persisted)
+            self._session_device_policy_override = None
+        else:
+            self._session_device_policy_override = doc
+        self.save_message("system", f"Runtime device policy staged: {normalized} ({normalized_scope})", persona="Runtime", intent="device_policy", raw=doc)
+        state = self.device_policy()["policy"]
+        reply_scope = "session only" if normalized_scope == "session" else "persistent default"
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged for {reply_scope}: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": state}
 
     def _command_output(self, cmd: Sequence[str], timeout: int = 8) -> Dict[str, Any]:
         if shutil.which(cmd[0]) is None and not Path(cmd[0]).exists():

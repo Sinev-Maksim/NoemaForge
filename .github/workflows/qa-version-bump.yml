@@ -4,6 +4,9 @@ on:
   workflow_dispatch:          # manual trigger or from batch-counter
   workflow_call:
 
+permissions:
+  contents: read
+
 jobs:
   qa-and-bump:
     runs-on: ubuntu-latest

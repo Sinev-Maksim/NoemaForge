@@ -522,7 +522,8 @@ class PersonaAndPolicyTests(unittest.TestCase):
             self.assertIsInstance(policy, dict)
             self.assertEqual("cpu", policy["policy"])
             card = [c for c in srv.runtime_status()["observer_cards"] if c["id"] == "device-policy"][0]
-            self.assertIn("gpu=", card["state"])
+            self.assertIn("source=", card["state"])
+            self.assertIn("pending=", card["state"])
 
     def test_runtime_degraded_status_exposes_readonly_staffing_summary(self) -> None:
         with tempfile.TemporaryDirectory() as td:
