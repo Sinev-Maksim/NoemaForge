@@ -112,9 +112,8 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection
         # False positive: cmd is a fixed argv list built by _pipeline_run_cmd after _safe_pipeline_id; shell is never used.
-        proc = subprocess.run(
+        proc = subprocess.run(  # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
         )
