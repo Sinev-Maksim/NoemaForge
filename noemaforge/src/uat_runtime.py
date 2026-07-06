@@ -61,6 +61,28 @@ def _load_catalog(package_root: Path) -> Dict[str, Dict[str, Any]]:
     return pipeline_runtime.load_pipeline_catalog(package_root)
 
 
+def _safe_pipeline_id(pipeline_id: str) -> str:
+    match = _SAFE_PIPELINE_ID.fullmatch(str(pipeline_id))
+    if match is None:
+        raise ValueError(f"unsafe pipeline_id: {pipeline_id!r}")
+    return match.group(0)
+
+
+def _pipeline_run_cmd(package_root: Path, pipeline_id: str, request: str, run_id: str, dry_run: bool) -> List[str]:
+    safe_pipeline_id = _safe_pipeline_id(pipeline_id)
+    cmd = [
+        sys.executable, str(package_root / "src" / "pipeline_runtime.py"),
+        "run", safe_pipeline_id,
+        "--task-id", f"uat_{safe_pipeline_id}",
+        "--request", request,
+        "--run-id", run_id,
+        "--allow-degraded",
+    ]
+    if dry_run:
+        cmd.append("--dry-run")
+    return cmd
+
+
 def _append_event(events_dir: Path, event_type: str, data: Dict[str, Any]) -> None:
     import event_log
     event_log.EventLog(events_dir).append(event_type, data, actor="uat")
@@ -78,24 +100,10 @@ def _run_pipeline(
 ) -> Dict[str, Any]:
     """Run one pipeline as a subprocess; collect its artifacts into the bundle."""
     # Hard guard: reject any pipeline_id that is not a safe token before it is used in
-    # the subprocess argv or the bundle path, and carry forward the regex-match result
-    # so the value is provably sanitized at the source (fixing the injection rather than
-    # suppressing the scanner). This also blocks path traversal in out_dir below.
-    match = _SAFE_PIPELINE_ID.fullmatch(pipeline_id)
-    if match is None:
-        raise ValueError(f"unsafe pipeline_id: {pipeline_id!r}")
-    pipeline_id = match.group(0)
+    # the subprocess argv or the bundle path. This also blocks path traversal below.
+    pipeline_id = _safe_pipeline_id(pipeline_id)
     run_id = f"uat_{pipeline_id}_{int(time.time())}"
-    cmd = [
-        sys.executable, str(package_root / "src" / "pipeline_runtime.py"),
-        "run", pipeline_id,
-        "--task-id", f"uat_{pipeline_id}",
-        "--request", request,
-        "--run-id", run_id,
-        "--allow-degraded",
-    ]
-    if dry_run:
-        cmd.append("--dry-run")
+    cmd = _pipeline_run_cmd(package_root, pipeline_id, request, run_id, dry_run)
     # Display-safety: pipeline_runtime.run is orchestration with no display surface;
     # any model/GPU launch it triggers goes through model_selection_runtime, which
     # always passes --keep-display. The UAT runner never stops a display manager.
@@ -104,6 +112,8 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
+        # nosemgrep: semgrep-rules.python.django.security.injection.command.subprocess-injection
+        # False positive: cmd is a fixed argv list built by _pipeline_run_cmd after _safe_pipeline_id; shell is never used.
         proc = subprocess.run(
             cmd, cwd=str(package_root), env=env, text=True,
             capture_output=True, timeout=timeout,
@@ -176,12 +186,14 @@ def run_uat(args: argparse.Namespace) -> int:
 
     catalog = _load_catalog(package_root)
     if args.pipelines:
-        selected = [p for p in args.pipelines.split(",") if p.strip()]
-        unknown = [p for p in selected if p not in catalog]
+        requested = [p.strip() for p in args.pipelines.split(",") if p.strip()]
+        unknown = [p for p in requested if p not in catalog]
         if unknown:
             print(json.dumps({"ok": False, "error": "unknown_pipelines", "unknown": unknown}),
                   file=sys.stderr)
             return 2
+        catalog_ids = {p: p for p in catalog}
+        selected = [catalog_ids[p] for p in requested]
     else:
         selected = sorted(catalog)
 

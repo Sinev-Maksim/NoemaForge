@@ -110,6 +110,28 @@ BOOK_COUNT_TABLES = {
     "adjacency_groups": "adjacency_groups",
     "split_nodes": "split_nodes",
 }
+BOOK_COUNT_SQL = {
+    "chapters": "SELECT COUNT(*) AS n FROM chapters WHERE book_id=?",
+    "sections": "SELECT COUNT(*) AS n FROM sections WHERE book_id=?",
+    "normalized_text_artifacts": "SELECT COUNT(*) AS n FROM normalized_text_artifacts WHERE book_id=?",
+    "sentences": "SELECT COUNT(*) AS n FROM sentences WHERE book_id=?",
+    "adjacency_groups": "SELECT COUNT(*) AS n FROM adjacency_groups WHERE book_id=?",
+    "split_nodes": "SELECT COUNT(*) AS n FROM split_nodes WHERE book_id=?",
+}
+EXPORT_SELECT_SQL = {
+    "books": "SELECT * FROM books",
+    "book_queue_entries": "SELECT * FROM book_queue_entries",
+    "chapters": "SELECT * FROM chapters",
+    "sections": "SELECT * FROM sections",
+    "normalized_text_artifacts": "SELECT * FROM normalized_text_artifacts",
+    "processing_runs": "SELECT * FROM processing_runs",
+    "sentences": "SELECT * FROM sentences",
+    "sentence_topic_maps": "SELECT * FROM sentence_topic_maps",
+    "adjacency_groups": "SELECT * FROM adjacency_groups",
+    "split_nodes": "SELECT * FROM split_nodes",
+    "passage_origins": "SELECT * FROM passage_origins",
+    "claim_origins": "SELECT * FROM claim_origins",
+}
 
 
 class PrepStore:
@@ -1002,7 +1024,7 @@ class PrepStore:
                     table_name = BOOK_COUNT_TABLES.get(str(table))
                     if not table_name:
                         raise ValueError("unsupported_count_table")
-                    row = con.execute(f"SELECT COUNT(*) AS n FROM {table_name} WHERE book_id=?", (str(book_id),)).fetchone()
+                    row = con.execute(BOOK_COUNT_SQL[table_name], (str(book_id),)).fetchone()
                 return int(row["n"] if row else 0)
             book = con.execute("SELECT * FROM books WHERE book_id=?", (str(book_id),)).fetchone()
             row = con.execute("SELECT COUNT(*) AS n FROM split_nodes WHERE book_id=? AND is_leaf=1", (str(book_id),)).fetchone()
@@ -1035,7 +1057,7 @@ class PrepStore:
                 if table not in available:
                     continue
                 table_name = self._safe_table_name(con, table)
-                rows = con.execute(f"SELECT * FROM {table_name}").fetchall()
+                rows = con.execute(EXPORT_SELECT_SQL[table_name]).fetchall()
                 out_path = tgt / f"{table}.jsonl"
                 with open(out_path, "w", encoding="utf-8") as f:
                     for r in rows:
