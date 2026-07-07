@@ -18,6 +18,7 @@ let allMessages = {};
 let activeLocale = 'ru';
 let latestRaw = {};
 let pendingAction = null;
+let activeStageHandoff = null;
 let pipelineCatalog = [];
 let pipelineFilter = 'All';
 let jobStream = null;
@@ -293,6 +294,60 @@ function postStageHandoffToChat(handoff){
   const questions = Array.isArray(handoff.questions) ? handoff.questions : [];
   addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'));
 }
+function _setActiveStageHandoff(handoff){
+  if(!handoff || !handoff.run_id){
+    activeStageHandoff = null;
+    return;
+  }
+  const replyState = handoff.operator_reply_state || {};
+  activeStageHandoff = {
+    run_id: String(handoff.run_id || ''),
+    pipeline_id: String(handoff.pipeline_id || ''),
+    current_stage: String(handoff.current_stage || ''),
+    persona: String(handoff.persona || 'Pipeline'),
+    handoff_version: String(handoff.handoff_version || ''),
+    state: String(replyState.state || 'waiting_for_operator_reply'),
+  };
+}
+function _clearActiveStageHandoff(runId, stage){
+  if(!activeStageHandoff) return;
+  if(runId && String(activeStageHandoff.run_id) !== String(runId)) return;
+  if(stage && String(activeStageHandoff.current_stage) !== String(stage)) return;
+  activeStageHandoff = null;
+}
+function _panelForRun(runId){
+  if(!runId) return null;
+  return Array.from(document.querySelectorAll('.pipeline-run-panel')).find(panel => String(panel.dataset.runId || '') === String(runId)) || null;
+}
+async function _sendActiveStageHandoffReply(text){
+  const handoff = activeStageHandoff ? {...activeStageHandoff} : null;
+  if(!handoff || !handoff.run_id) return null;
+  const reply = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/reply`, {
+    stage: handoff.current_stage,
+    message: text,
+    action: 'reply',
+    source: 'chat_input',
+    allow_degraded: true,
+  });
+  const status = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/status`);
+  const panel = _panelForRun(handoff.run_id);
+  if(panel) _updatePipelineRunPanel(panel, status);
+  _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  return {
+    ...reply,
+    mode: 'pipeline_stage_handoff_response',
+    reply: reply.ok === false
+      ? `Pipeline handoff reply rejected: ${reply.error || 'unknown error'}`
+      : `Operator reply recorded for pipeline ${handoff.pipeline_id || status.pipeline_id || handoff.run_id}, stage ${handoff.current_stage || status.current_stage || 'stage'}.`,
+    route: {id:'pipeline_handoff_reply', intent:'pipeline_handoff_reply', pipeline_id:handoff.pipeline_id || status.pipeline_id, run_id:handoff.run_id},
+    status_after_reply: status,
+    stage_handoff: status.stage_handoff || null,
+    operator_reply_state: status.operator_reply_state || reply.operator_reply_state,
+    handoff_reply_mode: status.handoff_reply_mode,
+    handoff_reply_limitation: status.handoff_reply_limitation,
+    handoff_next_action: status.handoff_next_action,
+  };
+}
 async function _replyStageHandoff(panel, handoff, input, messageNode){
   const runId = String(handoff?.run_id || panel.dataset.runId || '');
   const text = String(input.value || '').trim();
@@ -305,6 +360,7 @@ async function _replyStageHandoff(panel, handoff, input, messageNode){
     messageNode.textContent = 'Reply saved.';
     const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
     _updatePipelineRunPanel(panel, status);
+    _clearActiveStageHandoff(runId, handoff.current_stage);
   }catch(e){
     messageNode.textContent = `Reply error: ${e.message || String(e)}`;
   }
@@ -375,9 +431,11 @@ function _renderStageHandoff(panel, handoff){
     panel.insertBefore(box, refreshBtn || null);
   }
   box._handoff = handoff;
+  const replyState = handoff.operator_reply_state || {};
+  if(replyState.state === 'operator_reply_recorded') _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  else _setActiveStageHandoff(handoff);
   box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
   box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
-  const replyState = handoff.operator_reply_state || {};
   const quality = handoff.output_quality || {};
   const actions = Array.isArray(handoff.next_actions || handoff.suggested_actions) ? (handoff.next_actions || handoff.suggested_actions).join(' · ') : '—';
   box.querySelector('.stage-handoff-meta').textContent = `Output: ${quality.quality || (quality.exists ? 'placeholder' : 'missing')} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${actions}`;
@@ -443,7 +501,13 @@ async function _workTowardNormalMode(messageNode){
     const {mode, composite_top_n} = selectionModePayload();
     const result = await api('/api/model-selection/continue', {mode, composite_top_n, recovery:'normal-mode recovery'});
     absorbResult(result);
-    messageNode.textContent = 'Normal-mode recovery job/plan created. Use the exact operator command from the job card; the dashboard did not fake normal mode.';
+    const transition = result.transition_payload || {};
+    if(result.action_state === 'plan_only' || transition.state === 'plan_only'){
+      const label = transition.next_action_label || result.next_action_label || 'Run approved normal-mode selection';
+      messageNode.textContent = `Normal-mode recovery is plan-only; no corrective process is running. Next action: ${label}. Use the exact operator command from the job card.`;
+    }else{
+      messageNode.textContent = result.reply || 'Normal-mode recovery state updated.';
+    }
     addMessage('Admin', messageNode.textContent);
     await refreshJobs();
   }catch(e){
@@ -504,7 +568,9 @@ function _updatePipelineRunPanel(panel, status){
   const quality = status.stage_output_quality || {};
   const blocker = status.actionable_blocker || {};
   const nextActions = Array.isArray(status.next_actions) && status.next_actions.length ? status.next_actions.join(' · ') : '—';
-  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${nextActions}`;
+  const handoffMode = status.handoff_reply_mode && status.handoff_reply_mode !== 'none' ? ` · Mode: ${status.handoff_reply_mode}` : '';
+  const handoffNext = status.handoff_next_action ? ` · Handoff next: ${status.handoff_next_action}` : '';
+  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'}${handoffMode}${handoffNext} · Next: ${nextActions}`;
   let blockerLine = panel.querySelector('.pipeline-run-blocker');
   if(blocker && blocker.message){
     if(!blockerLine){
@@ -515,6 +581,17 @@ function _updatePipelineRunPanel(panel, status){
     blockerLine.textContent = `Blocker: ${blocker.message}`;
   }else if(blockerLine){
     blockerLine.remove();
+  }
+  let limitationLine = panel.querySelector('.pipeline-run-handoff-limitation');
+  if(status.handoff_reply_limitation){
+    if(!limitationLine){
+      limitationLine = document.createElement('div');
+      limitationLine.className = 'pipeline-run-handoff-limitation muted';
+      panel.insertBefore(limitationLine, panel.querySelector('.pipeline-run-refresh'));
+    }
+    limitationLine.textContent = status.handoff_reply_limitation;
+  }else if(limitationLine){
+    limitationLine.remove();
   }
   if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
     activeRunIds.delete(String(panel.dataset.runId || ''));
@@ -724,7 +801,9 @@ async function sendAdmin(){
   try{
     const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
     let result;
-    if(modePick){
+    if(activeStageHandoff?.run_id){
+      result = await _sendActiveStageHandoffReply(text);
+    }else if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
       result.type = 'model_selection';
       // Persist the selected mode to session so it survives page refresh.
@@ -865,27 +944,49 @@ function _fmtSoftware(health){
 function _fmtRuntimeState(runtime){
   const rt = runtime || {};
   const policy = rt.device_policy || {};
+  const persistent = policy.persistent_default || {};
+  const sessionOverride = policy.session_override || {};
+  const effective = policy.effective_policy || {};
   const sockets = rt.sockets || {};
+  const services = rt.service_states || {};
+  const socketStates = rt.socket_states || {};
   const active = rt.active_model || {};
-  const requiredSockets = [
-    '/run/noemaforge/llm/gateway.sock',
-    '/run/noemaforge/llm/backends/main.sock',
-    '/run/brainos/llm/gateway.sock',
-  ];
-  const socketPaths = [...new Set([...requiredSockets, ...Object.keys(sockets)])];
-  const socketRows = socketPaths.map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  const startup = rt.startup_profile || {};
+  const transition = startup.transition || {};
+  const serviceRows = Object.entries(services).map(([name, item]) => {
+    const unit = item?.unit || name;
+    const state = item?.state || 'unknown';
+    return `  ${unit}: ${state}`;
+  });
+  const socketRows = Object.entries(socketStates).map(([name, item]) => {
+    const path = item?.path || name;
+    const state = item?.state || (item?.present ? 'present' : 'missing');
+    return `  ${path}: ${state}`;
+  });
+  const fallbackSocketRows = Object.keys(sockets).map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  const freshness = rt.state_freshness || {};
   return [
+    'State freshness',
+    _metricRow('  State:', freshness.state || 'unknown'),
+    _metricRow('  Observed at:', freshness.observed_at || rt.observed_at || '—'),
+    '',
+    'Services',
+    serviceRows.length ? serviceRows.join('\n') : '  not available',
+    '',
     'Device policy',
-    _metricRow('  Policy:', policy.policy || policy.mode || '—'),
+    _metricRow('  Safe default:', policy.safe_default?.policy || 'cpu'),
+    _metricRow('  Persistent default:', persistent.policy ? `${persistent.policy}${persistent.configured ? '' : ' (not configured)'}` : 'not configured'),
+    _metricRow('  Session override:', sessionOverride.policy ? `${sessionOverride.policy} (session only)` : 'none'),
+    _metricRow('  Effective:', effective.policy || policy.policy || policy.mode || '—'),
     _metricRow('  Pending apply:', policy.pending_apply),
-    _metricRow('  Applies on:', policy.applies_on),
-    _metricRow('  Updated at:', policy.updated_at),
+    _metricRow('  Applies on:', effective.applies_on || policy.applies_on),
+    _metricRow('  Updated at:', effective.updated_at || policy.updated_at),
     _metricRow('  Note:', policy.note),
-    _metricRow('  GPU allowed:', policy.gpu_allowed),
-    _metricRow('  Max active LLMs:', policy.max_active_llms),
+    _metricRow('  GPU policy:', effective.gpu_policy || policy.gpu_policy),
+    _metricRow('  Max active workers:', effective.max_active_heavy_workers || policy.max_active_heavy_workers || policy.max_active_llms),
     '',
     'Sockets',
-    socketRows.length ? socketRows.join('\n') : '  not available',
+    socketRows.length ? socketRows.join('\n') : (fallbackSocketRows.length ? fallbackSocketRows.join('\n') : '  not available'),
     '',
     'Active model',
     _metricRow('  State:', active.state || (rt.model_selection_required ? 'missing' : '—')),
@@ -895,6 +996,16 @@ function _fmtRuntimeState(runtime){
     _metricRow('  Model realpath:', active.model_realpath),
     _metricRow('  Selection required:', active.selection_required ?? rt.model_selection_required),
     _metricRow('  Message:', active.message || '—'),
+    '',
+    'Startup profile',
+    _metricRow('  Safe minimal:', startup.safe_minimal_profile || 'minimal'),
+    _metricRow('  Default:', startup.default_profile),
+    _metricRow('  Session:', startup.session_profile),
+    _metricRow('  Last usable:', startup.last_known_usable_profile),
+    _metricRow('  Active:', startup.active_profile),
+    _metricRow('  Reason:', startup.active_reason || transition.reason),
+    _metricRow('  Transition:', transition.state),
+    _metricRow('  Test endpoint:', startup.api?.test_endpoint || '/api/startup/profile'),
   ].join('\n');
 }
 function _fmtProductMetrics(prod){
@@ -928,6 +1039,8 @@ async function refreshTelemetry(){
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('software-metrics').textContent = _fmtSoftware(health);
     el('runtime-metrics').textContent = _fmtRuntimeState(st.runtime);
+    const effectiveDevicePolicy = st.runtime?.device_policy?.effective_policy?.policy || st.runtime?.device_policy?.policy;
+    if (effectiveDevicePolicy && el('device-policy')) el('device-policy').value = effectiveDevicePolicy;
     el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
@@ -970,8 +1083,12 @@ function renderJobs(jobs){
       job.append(btn);
     }
     job.append(makeNode('b', '', j.kind));
-    job.append(makeNode('span', '', `${j.status} · ${j.job_id}`));
+    const actionStateValue = j.action_state_label || j.action_state;
+    const actionState = actionStateValue ? ` · ${actionStateValue}` : '';
+    job.append(makeNode('span', '', `${j.status}${actionState} · ${j.job_id}`));
+    if(j.next_action_label) job.append(makeNode('span', '', `Next: ${j.next_action_label}`));
     job.append(makeNode('code', '', j.command || ''));
+    if(j.next_action_command) job.append(makeNode('code', '', j.next_action_command));
     return job;
   }));
 }
@@ -1022,7 +1139,7 @@ async function refreshPersona(){ try{ const st = await api('/api/persona/current
 async function showPersonaRules(){
   try{
     const st = await api('/api/persona/rules');
-    showModal('Persona rules', st.rules || st);
+    showPersonaRulesModal(st);
   }catch(e){ addMessage('Admin', `Persona rules error: ${String(e)}`, 'error'); }
 }
 async function pollEvents(){
@@ -1075,7 +1192,8 @@ async function continueSelection(){
 }
 async function reinventoryVault(){ try{ const r = await api('/api/vault/reinventory', {}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Vault inventory error: ${String(e)}`, 'error'); } }
 async function stopWorkflow(){ try{ absorbResult(await api('/api/workflow/stop', {reason:'operator_clicked_stop'})); }catch(e){ addMessage('Admin', `Stop error: ${String(e)}`, 'error'); } }
-async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value, scope:'session'}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function resetDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {reset_to_safe_default:true, scope:'session'}); absorbResult(r); el('device-policy').value = 'cpu'; }catch(e){ addMessage('Admin', `Device policy reset error: ${String(e)}`, 'error'); } }
 async function loadUsecases(){
   try{
     const data = await api('/api/usecases');
@@ -1326,7 +1444,61 @@ function showPipelineDiagram(id, data){
   const body=el('modal-body');body.textContent='';body.appendChild(wrap);
   el('modal').classList.remove('hidden');
 }
-function showModal(title, obj){ el('modal-title').textContent = title; el('modal-body').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); el('modal').classList.remove('hidden'); }
+function _jsonPre(obj){
+  const pre = makeNode('pre', '', typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
+  return pre;
+}
+function showModal(title, obj){
+  el('modal-title').textContent = title;
+  replaceWithNodes(el('modal-body'), [_jsonPre(obj)]);
+  el('modal').classList.remove('hidden');
+}
+function _personaRulesVisualText(visual){
+  const parts = [];
+  if(visual.status) parts.push(`Status: ${visual.status}`);
+  if(visual.value != null) parts.push(`Value: ${visual.value}${visual.max != null ? ` / ${visual.max}` : ''}${visual.unit ? ` ${visual.unit}` : ''}`);
+  if(Array.isArray(visual.rows)) parts.push(`${visual.rows.length} rows`);
+  if(Array.isArray(visual.points)) parts.push(`${visual.points.length} points`);
+  if(Array.isArray(visual.events)) parts.push(`${visual.events.length} events`);
+  return parts.join('\n') || (visual.source || 'persona_rules');
+}
+function showPersonaRulesModal(payload){
+  const rendered = payload.rendered_rules || {};
+  const sections = Array.isArray(rendered.sections) ? rendered.sections : [];
+  const visuals = Array.isArray(payload.visuals) ? payload.visuals : (Array.isArray(rendered.visuals) ? rendered.visuals : []);
+  const root = makeNode('div', 'persona-rules-view');
+  if(sections.length){
+    sections.forEach(section => {
+      const card = makeNode('section', 'persona-rule-section');
+      card.append(makeNode('h3', '', section.title || 'Persona rules'));
+      const lines = Array.isArray(section.lines) ? section.lines : [];
+      const list = makeNode('ul');
+      lines.forEach(line => list.append(makeNode('li', '', String(line || '').replace(/^- /, ''))));
+      card.append(list);
+      root.append(card);
+    });
+  }else{
+    root.append(_jsonPre(rendered.text || 'No readable persona rules are available.'));
+  }
+  if(visuals.length){
+    const grid = makeNode('div', 'persona-visual-grid');
+    visuals.forEach(visual => {
+      const card = makeNode('div', 'persona-visual');
+      card.dataset.renderHint = String(visual.type || '');
+      card.append(makeNode('b', '', `${visual.type || 'Visual'} · ${visual.title || 'Persona rules'}`));
+      card.append(makeNode('span', 'muted', _personaRulesVisualText(visual)));
+      grid.append(card);
+    });
+    root.append(grid);
+  }
+  const audit = makeNode('details', 'audit-card');
+  audit.append(makeNode('summary', '', 'Raw JSON audit'));
+  audit.append(_jsonPre(payload.rules || payload));
+  root.append(audit);
+  el('modal-title').textContent = 'Persona rules';
+  replaceWithNodes(el('modal-body'), [root]);
+  el('modal').classList.remove('hidden');
+}
 async function addTaskDialog(){ const title = prompt('Task title:'); if(!title) return; const cat = prompt('Category:', 'gui') || 'general'; const priority = Number(prompt('Priority 1-100:', '50') || 50); const r = await api('/api/tasks/create', {title, category:cat, priority}); absorbResult(r); refreshTasks(); }
 async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
@@ -1397,6 +1569,7 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('depth-minutes').addEventListener('input', _updateDepthNotice);
   el('depth-until-stop').addEventListener('change', _updateDepthNotice);
   el('device-policy').addEventListener('change', setDevicePolicy);
+  el('device-policy-reset').addEventListener('click', resetDevicePolicy);
   el('tasks-refresh').addEventListener('click', refreshTasks);
   el('task-add').addEventListener('click', addTaskDialog);
   el('public-showcase-load').addEventListener('click', loadPublicShowcase);

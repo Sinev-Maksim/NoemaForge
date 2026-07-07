@@ -95,6 +95,19 @@ except Exception:  # pragma: no cover
 
 
 SCHEMA = "noemaforge.ui.snapshot/v1"
+TASK_ORDER_SQL = {
+    "created_desc": "created_at DESC",
+    "priority_created": "prio_index ASC, created_at ASC",
+}
+
+
+def _task_order_sql(order_key: str) -> str:
+    key = str(order_key or "").strip()
+    if key in TASK_ORDER_SQL:
+        return TASK_ORDER_SQL[key]
+    if key in set(TASK_ORDER_SQL.values()):
+        return key
+    raise ValueError("unsupported_task_order")
 
 # Inbox snapshot caching: avoid rescanning inbox trees on every UI poll.
 INBOX_CACHE_TTL_SEC = float(os.environ.get("NOEMAFORGE_INBOX_CACHE_TTL_SEC", "10"))
@@ -467,13 +480,14 @@ def _tq_pick_fields(r: sqlite3.Row) -> Dict[str, Any]:
 # === End NoemaForge Autodoc Function Header ===
 def _tq_fetch(con: sqlite3.Connection, *, status: str, limit: int, order_sql: str) -> List[Dict[str, Any]]:
     try:
+        order_clause = _task_order_sql(order_sql)
         rows = con.execute(
             f"""
             SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
                    module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
             FROM tasks
             WHERE status=?
-            ORDER BY {order_sql}
+            ORDER BY {order_clause}
             LIMIT ?
             """,
             (status.upper(), max(1, int(limit))),

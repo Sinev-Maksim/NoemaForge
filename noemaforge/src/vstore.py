@@ -153,6 +153,19 @@ def _ensure_dir(p: str) -> None:
     os.makedirs(p, exist_ok=True)
 
 
+PREFILTER_ENTRY_IDS_SQL = "SELECT entry_id FROM entries WHERE {where_clause}"
+
+
+def _and_where(parts: List[str]) -> str:
+    if not parts:
+        raise ValueError("empty_where")
+    allowed = {"dims=?", "model_id=?", "tombstone=0", "stream_id=?", "project_id=?", "kind=?", "created_at>=?", "created_at<=?"}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError("unsupported_where_clause")
+    return " AND ".join(parts)
+
+
 @dataclass
 class VStoreConfig:
     backend: str = "flat"           # flat|hnsw
@@ -699,7 +712,7 @@ class VStore:
             where.append("created_at<=?")
             args.append(filters["created_to"])
 
-        q = "SELECT entry_id FROM entries WHERE " + " AND ".join(where)
+        q = PREFILTER_ENTRY_IDS_SQL.format(where_clause=_and_where(where))
         con = self._connect()
         cur = con.cursor()
         cur.execute(q, tuple(args))
