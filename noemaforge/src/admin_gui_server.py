@@ -985,7 +985,10 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise
 
     def startup_profile_file(self) -> Path:
-        return self.gui_state_dir / "startup-profile-state.json"
+        gui_state_dir = getattr(self, "gui_state_dir", None)
+        if gui_state_dir is None:
+            gui_state_dir = Path(getattr(self, "data_root", DEFAULT_DATA_ROOT)) / "gui"
+        return Path(gui_state_dir) / "startup-profile-state.json"
 
     def startup_profile_catalog(self) -> Dict[str, Dict[str, Any]]:
         try:

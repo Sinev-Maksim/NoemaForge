@@ -43,6 +43,7 @@ let _confirmPipelineId = '';
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
+const CANONICAL_MAIN_BACKEND_SOCKET = '/run/noemaforge/llm/backends/main.sock';
 
 const personaNames = {
   Admin: 'Admin', Optimizer: 'Optimizer', 'Model Evolution': 'Model Evolution', 'Dev Team': 'Dev Team',
@@ -964,6 +965,9 @@ function _fmtRuntimeState(runtime){
     return `  ${path}: ${state}`;
   });
   const fallbackSocketRows = Object.keys(sockets).map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  if (!socketRows.length && !fallbackSocketRows.some(row => row.includes(CANONICAL_MAIN_BACKEND_SOCKET))) {
+    fallbackSocketRows.unshift(`  ${CANONICAL_MAIN_BACKEND_SOCKET}: not reported`);
+  }
   const freshness = rt.state_freshness || {};
   return [
     'State freshness',
