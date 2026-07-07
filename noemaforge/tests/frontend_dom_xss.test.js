@@ -21,6 +21,13 @@ class FakeElement {
     this.classList = {
       add: (...names) => { this.className = [...new Set([...this.className.split(/\s+/).filter(Boolean), ...names])].join(' '); },
       remove: (...names) => { this.className = this.className.split(/\s+/).filter((name) => name && !names.includes(name)).join(' '); },
+      contains: (name) => this.className.split(/\s+/).includes(name),
+      toggle: (name, force) => {
+        const enabled = force === undefined ? !this.classList.contains(name) : Boolean(force);
+        if (enabled) this.classList.add(name);
+        else this.classList.remove(name);
+        return enabled;
+      },
     };
   }
   get textContent() { return this._text + this.children.map((child) => child.textContent).join(''); }
@@ -55,12 +62,15 @@ class FakeElement {
 }
 
 class FakeDocument {
-  constructor(ids = []) { this.nodes = Object.fromEntries(ids.map((id) => [id, new FakeElement()])); }
+  constructor(ids = []) {
+    this.nodes = Object.fromEntries(ids.map((id) => [id, new FakeElement()]));
+    this.listeners = {};
+  }
   getElementById(id) { return this.nodes[id] ||= new FakeElement(); }
   createElement(tag) { return new FakeElement(tag); }
   createTextNode(text) { return new FakeText(text); }
   querySelectorAll(selector) { return Object.values(this.nodes).flatMap((node) => node.querySelectorAll(selector)); }
-  addEventListener() {}
+  addEventListener(type, listener) { (this.listeners[type] ||= []).push(listener); }
 }
 
 function loadScript(relativePath, ids, extras = {}) {
@@ -69,6 +79,30 @@ function loadScript(relativePath, ids, extras = {}) {
   const source = fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
   vm.runInContext(source, context, {filename: relativePath});
   return {context, document};
+}
+
+function loadScriptWithWindow(relativePath, ids, extras = {}) {
+  const document = new FakeDocument(ids);
+  const windowListeners = {};
+  const window = {
+    document,
+    location: {origin: 'http://localhost'},
+    addEventListener: (type, listener) => { (windowListeners[type] ||= []).push(listener); },
+  };
+  const context = vm.createContext({
+    console,
+    document,
+    window,
+    navigator: {},
+    URL,
+    fetch: async () => ({ok: true, text: async () => '{}'}),
+    setInterval: () => 1,
+    clearInterval: () => {},
+    ...extras,
+  });
+  const source = fs.readFileSync(path.join(__dirname, '..', relativePath), 'utf8');
+  vm.runInContext(source, context, {filename: relativePath});
+  return {context, document, window, windowListeners};
 }
 
 function executableTags(root) {
@@ -137,4 +171,64 @@ test('legacy UI dashboard renders snapshot fields as text nodes', async () => {
   assert.match(document.getElementById('projectsList').textContent, /<svg onload=alert\(1\)>/);
   assert.match(document.getElementById('eventsTable').textContent, /<svg onload=alert\(1\)>/);
   assert.match(document.getElementById('inboxBlocks').textContent, /<svg onload=alert\(1\)>/);
+});
+
+test('pipeline dashboard refresh cadence follows visibility and focus state', () => {
+  const intervals = [];
+  const cleared = [];
+  const {context, document} = loadScript('templates/pipeline-dashboard/app.js', ['inactivity-status', 'inactivity'], {
+    setInterval: (fn, ms) => {
+      const id = intervals.length + 1;
+      intervals.push({id, fn, ms});
+      return id;
+    },
+    clearInterval: (id) => cleared.push(id),
+  });
+
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 1000);
+  assert.equal(vm.runInContext('dashboardRefreshCadenceMs()', context), 10000);
+
+  vm.runInContext('startInactivityRefreshTimer(); startDashboardRefreshTimer();', context);
+  assert.deepEqual(intervals.map((item) => item.ms), [1000, 10000]);
+
+  document.hidden = true;
+  document.visibilityState = 'hidden';
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 30000);
+  assert.equal(vm.runInContext('dashboardRefreshCadenceMs()', context), 30000);
+  vm.runInContext('updateDashboardRefreshCadence();', context);
+  assert.deepEqual(cleared, [1, 2]);
+  assert.deepEqual(intervals.map((item) => item.ms), [1000, 10000, 30000, 30000]);
+
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  vm.runInContext('dashboardWindowFocused = false', context);
+  assert.equal(vm.runInContext('dashboardIsBackgrounded()', context), true);
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 30000);
+});
+
+test('pipeline dashboard visibilitychange restores focused cadence when visible', () => {
+  const intervals = [];
+  const {context, document} = loadScriptWithWindow('templates/pipeline-dashboard/app.js', ['inactivity-status', 'inactivity'], {
+    setInterval: (fn, ms) => {
+      const id = intervals.length + 1;
+      intervals.push({id, fn, ms});
+      return id;
+    },
+  });
+
+  assert.equal(document.listeners.visibilitychange.length, 1);
+  document.hidden = false;
+  document.visibilityState = 'visible';
+  vm.runInContext('dashboardWindowFocused = false', context);
+  assert.equal(vm.runInContext('dashboardIsBackgrounded()', context), true);
+
+  document.listeners.visibilitychange[0]();
+
+  assert.equal(vm.runInContext('dashboardIsBackgrounded()', context), false);
+  assert.equal(vm.runInContext('inactivityRefreshCadenceMs()', context), 1000);
+  assert.equal(vm.runInContext('dashboardRefreshCadenceMs()', context), 10000);
+  assert.ok(intervals.some((item) => item.ms === 1000));
+  assert.ok(intervals.some((item) => item.ms === 10000));
 });
