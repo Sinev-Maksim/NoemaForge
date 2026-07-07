@@ -76,6 +76,8 @@ def admin_message(handler: Any, body: Dict[str, Any]) -> None:
         max_steps=int(body.get("max_steps") or 0),
         time_budget_minutes=int(body.get("time_budget_minutes") or 0),
         until_stop=bool(body.get("until_stop", False)),
+        run_mode=str(body.get("run_mode") or ""),
+        composite_top_n=int(body.get("composite_top_n") or 0),
     ))
 
 
