@@ -77,6 +77,7 @@ import production_ai_contracts
 import admin_gui_routes
 import model_profiles
 import selection_refresh_runtime as selection_refresh
+from i18n_runtime import localized_message, normalize_locale
 from persona_rules_renderer import render_persona_rules
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
@@ -1384,7 +1385,30 @@ class AdminGuiServer(ThreadingHTTPServer):
         conv["updated_at"] = now_iso()
         self._write_json(self.conversation_file(), conv)
 
-    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
+    def _message_rendering_from_raw(self, raw: Optional[Dict[str, Any]], text: str, role: str, locale: str, style: str = "") -> Dict[str, Any]:
+        target_locale = normalize_locale(locale)
+        if isinstance(raw, dict) and isinstance(raw.get("localized_reply"), dict):
+            msg = dict(raw["localized_reply"])
+        else:
+            msg = {
+                "role": role,
+                "style": style or ("system_payload" if role == "system" else "admin_note"),
+                "source_locale": "en",
+                "target_locale": target_locale,
+                "original_text": str(text or ""),
+                "rendered_text": str(text or ""),
+                "localized": False,
+            }
+        msg.setdefault("role", role)
+        msg.setdefault("style", style or ("system_payload" if role == "system" else "admin_note"))
+        msg.setdefault("source_locale", "en")
+        msg.setdefault("target_locale", target_locale)
+        msg.setdefault("original_text", str(text or ""))
+        msg.setdefault("rendered_text", str(text or ""))
+        msg["audit_available"] = bool(msg.get("original_text"))
+        return msg
+
+    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "", style: str = "") -> Dict[str, Any]:
         # Acquire _conv_lock to serialise concurrent save_message() calls on
         # the conversation R-M-W cycle (_conversation + _save_conversation).
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
@@ -1395,6 +1419,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
             tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
             affordance_artifacts = enrich_artifact_cards(artifacts)
+            target_locale = normalize_locale(locale or conv.get("locale", "en"))
+            rendering = self._message_rendering_from_raw(raw, text, role, target_locale, style=style)
             msg = {
                 "message_id": f"msg_{int(time.time())}_{idx}",
                 "trace_id": tid,
@@ -1402,9 +1428,17 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "ts": now_iso(),
                 "role": role,
                 "persona": persona,
-                "locale": locale or conv.get("locale", "ru"),
+                "locale": target_locale,
                 "intent": intent,
                 "text": text,
+                "rendered_text": rendering.get("rendered_text") or text,
+                "original_text": rendering.get("original_text") or text,
+                "message_metadata": {
+                    "source_locale": rendering.get("source_locale", "en"),
+                    "target_locale": rendering.get("target_locale", target_locale),
+                    "role": rendering.get("role", role),
+                    "style": rendering.get("style") or style or ("system_payload" if role == "system" else "admin_note"),
+                },
                 "artifacts": affordance_artifacts,
                 "system_event": bool(system_event),
             }
@@ -1412,7 +1446,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             if affordance_artifacts:
                 conv.setdefault("artifacts", []).extend(affordance_artifacts)
             if locale:
-                conv["locale"] = locale
+                conv["locale"] = target_locale
             if persona and str(role).lower() != "user" and str(persona) != "User":
                 conv["active_persona"] = persona
             self._save_conversation(conv)
@@ -2860,6 +2894,12 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             return "Optimizer"
         return "Admin"
 
+    def _localized_admin_note(self, key: str, default: str, locale: str, **kwargs: Any) -> Dict[str, Any]:
+        return localized_message(self.root, key, default, locale=locale, role="admin", style="admin_note", **kwargs)
+
+    def _localized_pipeline_payload(self, key: str, default: str, locale: str, **kwargs: Any) -> Dict[str, Any]:
+        return localized_message(self.root, key, default, locale=locale, role="pipeline", style="system_payload", **kwargs)
+
     def _run_explicit_pipeline_from_chat(self, text: str, pipeline_id: str, locale: str, allow_degraded: bool) -> Dict[str, Any]:
         """Run an explicitly named pipeline from chat and return a GUI-friendly response."""
         result = self.pipeline_run(pipeline_id, text, allow_degraded=allow_degraded)
@@ -2870,16 +2910,28 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if not artifacts and run_dir:
             artifacts = promote_run_artifacts(str(run_dir), status=stdout.get("status", "created") if isinstance(stdout, dict) else "created")
         persona = self._pipeline_persona(pipeline_id)
-        if locale == "ru":
-            reply = f"Запускаю pipeline {pipeline_id} по стандартному сценарию. Run: {run_id or 'создан/ожидает подтверждения'}."
-        else:
-            reply = f"Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id or 'created/waiting for approval'}."
+        reply_msg = self._localized_admin_note(
+            "pipeline.run.started",
+            "Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id}.",
+            locale,
+            pipeline_id=pipeline_id,
+            run_id=run_id or "created/waiting for approval",
+        )
+        reply = reply_msg["rendered_text"]
         switch = None if persona == "Admin" else {"from": "Admin", "to": persona, "switch_line": f"-- смена персоны с Admin на {persona} --", "switch_line_key": "persona.switch_line"}
         doc = {
             "ok": bool(result.get("ok", False)),
             "version": RUNTIME_VERSION,
             "mode": "pipeline_run",
             "reply": reply,
+            "localized_reply": reply_msg,
+            "message_metadata": {
+                "source_locale": reply_msg["source_locale"],
+                "target_locale": reply_msg["target_locale"],
+                "role": reply_msg["role"],
+                "style": reply_msg["style"],
+            },
+            "original_text": reply_msg["original_text"],
             "route": {"id": "pipeline", "intent": "pipeline_run", "label": f"Pipeline / {pipeline_id}", "pipeline_id": pipeline_id},
             "persona_switch": switch,
             "artifacts": artifacts,
@@ -2937,16 +2989,39 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         forwarded = bool(isinstance(action_result, dict) and action_result.get("ok") and not runtime_failed)
         if forwarded:
             self._clear_pending_clarification()
-            reply = f"Принял уточнение для pipeline {pipeline_id or run_id} и передал его в run {run_id}: {text}" if locale == "ru" else f"Clarification accepted for pipeline {pipeline_id or run_id} and forwarded to run {run_id}: {text}"
+            reply_msg = self._localized_admin_note(
+                "pipeline.clarification.forwarded",
+                "Clarification accepted for pipeline {pipeline_id} and forwarded to run {run_id}: {text}",
+                locale,
+                pipeline_id=pipeline_id or run_id,
+                run_id=run_id,
+                text=text,
+            )
         else:
             stdout_error = action_stdout.get("error") if isinstance(action_stdout, dict) else ""
             error = str(stdout_error or action_result.get("error") or action_result.get("stderr") or action_result) if isinstance(action_result, dict) else str(action_result)
-            reply = f"Не удалось передать уточнение в pipeline {pipeline_id or run_id} / run {run_id}: {error}" if locale == "ru" else f"Failed to forward clarification to pipeline {pipeline_id or run_id} / run {run_id}: {error}"
+            reply_msg = self._localized_admin_note(
+                "pipeline.clarification.failed",
+                "Failed to forward clarification to pipeline {pipeline_id} / run {run_id}: {error}",
+                locale,
+                pipeline_id=pipeline_id or run_id,
+                run_id=run_id,
+                error=error,
+            )
+        reply = reply_msg["rendered_text"]
         doc = {
             "ok": forwarded,
             "version": RUNTIME_VERSION,
             "mode": "pipeline_clarification_response",
             "reply": reply,
+            "localized_reply": reply_msg,
+            "message_metadata": {
+                "source_locale": reply_msg["source_locale"],
+                "target_locale": reply_msg["target_locale"],
+                "role": reply_msg["role"],
+                "style": reply_msg["style"],
+            },
+            "original_text": reply_msg["original_text"],
             "run_id": run_id,
             "pipeline_id": pipeline_id,
             "route": {"id": "pipeline_clarification", "intent": "pipeline_clarification", "pipeline_id": pipeline_id, "run_id": run_id},
@@ -3321,13 +3396,28 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             result.setdefault("status", status)
             result.setdefault("route", {"id": "pipeline", "intent": "pipeline_run", "pipeline_id": pipeline_id})
             result.setdefault("reply", f"Pipeline {pipeline_id} started. Run: {run_id or 'created'}.")
-            if needs_clarification:
-                question = question or "Уточните параметры для продолжения pipeline."
-                result["clarification_required"] = True
-                result["questions"] = [question]
-                result["reply"] = question
-                self._set_pending_clarification(run_id, pipeline_id, question)
-                self.save_message("admin", question, persona=self._pipeline_persona(pipeline_id), intent="pipeline_clarification", artifacts=promoted, raw=result, trace_id=trace_id)
+        if needs_clarification:
+            locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+            if not question:
+                question_msg = self._localized_admin_note(
+                    "pipeline.clarification.question",
+                    "Clarify the parameters required to continue the pipeline.",
+                    locale,
+                )
+                question = question_msg["rendered_text"]
+                result["localized_reply"] = question_msg
+                result["original_text"] = question_msg["original_text"]
+                result["message_metadata"] = {
+                    "source_locale": question_msg["source_locale"],
+                    "target_locale": question_msg["target_locale"],
+                    "role": question_msg["role"],
+                    "style": question_msg["style"],
+                }
+            result["clarification_required"] = True
+            result["questions"] = [question]
+            result["reply"] = question
+            self._set_pending_clarification(run_id, pipeline_id, question)
+            self.save_message("admin", question, persona=self._pipeline_persona(pipeline_id), intent="pipeline_clarification", artifacts=promoted, raw=result, trace_id=trace_id)
         if not result.get("ok") or not run_id:
             raw_error = result.get("stderr") or result.get("stdout") or result.get("error") or "pipeline runtime did not return run_id"
             result.setdefault("error", str(raw_error))
@@ -3448,10 +3538,6 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             return None
         pipeline_id = str(raw.get("pipeline_id") or "")
         persona = self._stage_persona(current_stage)
-        questions = [
-            f"{persona}: provide the real output or operator decision for stage `{current_stage}`.",
-            "What decision, risk, and next handoff should be recorded before continuing?",
-        ]
         reason_bits = []
         if not quality["exists"]:
             reason_bits.append("missing output")
@@ -3460,6 +3546,33 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         if quality["looks_placeholder"] or quality["pending"]:
             reason_bits.append("placeholder/pending output")
         reason = ", ".join(reason_bits) or "stage output is not ready"
+        locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+        payload_msg = self._localized_pipeline_payload(
+            "pipeline.handoff.message",
+            "{persona} handoff required for `{stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
+            locale,
+            persona=persona,
+            stage=current_stage,
+            reason=reason,
+        )
+        admin_note = self._localized_admin_note(
+            "pipeline.handoff.admin_note",
+            "Admin note: provide a real stage output, record the operator decision, or skip explicitly; original English text remains available for audit.",
+            locale,
+        )
+        question_one = self._localized_pipeline_payload(
+            "pipeline.handoff.question.output",
+            "{persona}: provide the real output or operator decision for stage `{stage}`.",
+            locale,
+            persona=persona,
+            stage=current_stage,
+        )
+        question_two = self._localized_pipeline_payload(
+            "pipeline.handoff.question.decision",
+            "What decision, risk, and next handoff should be recorded before continuing?",
+            locale,
+        )
+        questions = [question_one["rendered_text"], question_two["rendered_text"]]
         reply_suffix = f"reply_{reply_state.get('reply_count', 0)}"
         key = f"stage_handoff_v2:{run_id}:{current_stage}:{quality.get('size_bytes', 0)}:{reason.replace(' ', '_')}:{reply_suffix}"
         return {
@@ -3467,10 +3580,20 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "pipeline_id": pipeline_id,
             "current_stage": current_stage,
             "persona": persona,
-            "message": f"{persona} handoff required for `{current_stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
+            "message": payload_msg["rendered_text"],
+            "original_text": payload_msg["original_text"],
+            "admin_note": admin_note["rendered_text"],
+            "message_metadata": {
+                "source_locale": payload_msg["source_locale"],
+                "target_locale": payload_msg["target_locale"],
+                "role": payload_msg["role"],
+                "style": payload_msg["style"],
+            },
+            "message_parts": [payload_msg, admin_note],
             "suggested_actions": ["Reply / Provide decision", "Continue after reply", "Skip stage explicitly", "Refresh status"],
             "next_actions": ["reply" if reply_state["state"] == "waiting_for_operator_reply" else "continue_after_reply", "skip_stage_explicitly", "refresh_status"],
             "questions": questions,
+            "question_parts": [question_one, question_two],
             "handoff_version": key,
             "output_quality": quality,
             "operator_reply_state": reply_state,
@@ -3598,7 +3721,14 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         elif status == "ready_for_admin_approval":
             next_actions = ["continue in degraded/admin-approved mode", "work toward normal mode", "refresh status"]
         if needs_clarification:
-            question = question or "Уточните параметры для продолжения pipeline."
+            locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+            if not question:
+                question_msg = self._localized_admin_note(
+                    "pipeline.clarification.question",
+                    "Clarify the parameters required to continue the pipeline.",
+                    locale,
+                )
+                question = question_msg["rendered_text"]
             pending_changed = self._set_pending_clarification(run_id, str(raw.get("pipeline_id") or ""), question)
             if pending_changed:
                 persona = (stage_handoff or {}).get("persona") or self._pipeline_persona(str(raw.get("pipeline_id") or ""))
