@@ -26,3 +26,4 @@ Tests: visual smoke at http://127.0.0.1:8765/.
 .product-card{align-self:stretch}.product-card pre{max-height:min(44vh,520px);min-height:180px}
 
 /* Draft pipeline editor | drag&drop pipeline editor planned */
+.task-state-note{display:grid;gap:5px;padding:10px;border:1px dashed #775d23;border-radius:14px;background:#171208}.task-state-note b{color:var(--warn)}.task-state-note span{color:var(--muted);font-size:12px}.expected-task{border-style:dashed}

@@ -51,6 +51,11 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+try:
+    import yaml
+except Exception:  # noqa: BLE001 - Admin GUI must still import without PyYAML.
+    yaml = None
+
 
 # Offline policy/trace source anchors. These strings are intentionally kept close to
 # Admin GUI task/job code so static release validators can prove the GUI exposes
@@ -900,6 +905,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
         self.event_log = EventLog(self.data_root / "events")
+        self._last_task_state_reason = ""
+        self._expected_default_tasks_cache = None
         self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.job_manager = JobManager(self.jobs_dir)
@@ -1621,16 +1628,183 @@ class AdminGuiServer(ThreadingHTTPServer):
         data.setdefault("tasks", [])
         return data
 
+    def _expected_default_tasks_result(self) -> Dict[str, Any]:
+        path = self.root / "configs" / "taskqueue-policy.yaml"
+        if yaml is None:
+            return {
+                "tasks": [],
+                "load_status": "yaml_unavailable",
+                "load_reason": "PyYAML is not available, so taskqueue-policy.yaml could not be loaded.",
+            }
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return {
+                "tasks": [],
+                "load_status": "policy_missing",
+                "load_reason": "configs/taskqueue-policy.yaml is missing.",
+            }
+        except OSError as exc:
+            return {
+                "tasks": [],
+                "load_status": "policy_stat_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be inspected: {exc}",
+            }
+        cache_key = (str(path), stat.st_mtime_ns, stat.st_size)
+        cache = getattr(self, "_expected_default_tasks_cache", None)
+        if isinstance(cache, dict) and cache.get("cache_key") == cache_key:
+            return dict(cache["result"])
+        try:
+            policy = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:  # noqa: BLE001 - surface policy load failure in API state.
+            result = {
+                "tasks": [],
+                "load_status": "policy_parse_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be read or parsed: {exc}",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
+        defaults = policy.get("default_tasks") if isinstance(policy, dict) else {}
+        if not isinstance(defaults, dict):
+            result = {
+                "tasks": [],
+                "load_status": "default_tasks_invalid",
+                "load_reason": "configs/taskqueue-policy.yaml default_tasks must be a mapping.",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
+        expected: List[Dict[str, Any]] = []
+        for domain, items in defaults.items():
+            if not isinstance(items, list):
+                continue
+            domain_text = str(domain or "").strip().upper()
+            if not domain_text:
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                module = str(item.get("module") or "").strip()
+                kind = str(item.get("kind") or "module").strip() or "module"
+                group_key = str(item.get("group_key") or "").strip()
+                title = str(item.get("title") or module or kind).strip() or "default task"
+                expected.append({
+                    "task_id": "default_" + safe_id(group_key or f"{domain_text}_{module or kind}", "task"),
+                    "title": title,
+                    "category": domain_text.lower(),
+                    "domain": domain_text,
+                    "kind": kind,
+                    "module": module,
+                    "priority_class": str(item.get("priority_class") or "background"),
+                    "status": "expected_default",
+                    "group_key": group_key,
+                    "cooldown_sec": int(item.get("cooldown_sec", 0) or 0),
+                    "state_reason": "configured_default_task",
+                })
+        result = {
+            "tasks": expected,
+            "load_status": "ok",
+            "load_reason": "loaded",
+        }
+        self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+        return result
+
+    def _expected_default_tasks(self) -> List[Dict[str, Any]]:
+        result = self._expected_default_tasks_result()
+        loaded = result.get("tasks", [])
+        return loaded if isinstance(loaded, list) else []
+
+    def _task_state_payload(self, tasks: List[Dict[str, Any]], expected_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        result = expected_result or self._expected_default_tasks_result()
+        expected = result.get("tasks", [])
+        if not isinstance(expected, list):
+            expected = []
+        load_status = str(result.get("load_status") or "unknown")
+        load_reason = str(result.get("load_reason") or "")
+        expected_keys = {str(t.get("group_key") or "") for t in expected if t.get("group_key")}
+        actual_keys = {str(t.get("group_key") or "") for t in tasks if isinstance(t, dict) and t.get("group_key")}
+        present_count = len(expected_keys.intersection(actual_keys))
+        missing_count = max(0, len(expected) - present_count)
+        if load_status != "ok":
+            reason = "default_tasks_policy_unavailable"
+            note = load_reason or "Default task policy could not be loaded."
+        elif not expected:
+            reason = "no_default_tasks_configured"
+            note = "No default tasks are configured for the task queue policy."
+        elif missing_count == 0:
+            reason = "default_tasks_present"
+            note = "Configured default tasks are present in the task panel state."
+        elif not tasks or present_count == 0:
+            reason = "default_tasks_configured_not_materialized"
+            note = "Default tasks are configured in taskqueue-policy.yaml but are not present in the GUI task store."
+        else:
+            reason = "default_tasks_partially_present"
+            note = "Some configured default tasks are not present in the GUI task store."
+        return {
+            "state_reason": reason,
+            "visible_note": note,
+            "default_tasks_load_status": load_status,
+            "default_tasks_load_reason": load_reason,
+            "default_tasks_configured": bool(expected),
+            "default_tasks_present": bool(expected) and missing_count == 0,
+            "expected_default_task_count": len(expected),
+            "missing_default_task_count": missing_count,
+            "actual_task_count": len(tasks),
+            "expected_default_tasks": expected,
+        }
+
+    def _record_task_state_reason(self, task_state: Dict[str, Any]) -> None:
+        reason = str(task_state.get("state_reason") or "")
+        if not reason:
+            return
+        with self._tasks_lock:
+            if reason == getattr(self, "_last_task_state_reason", ""):
+                return
+            self._last_task_state_reason = reason
+        try:
+            self.event_log.append("admin_gui.task_state", {
+                "state_reason": reason,
+                "visible_note": task_state.get("visible_note"),
+                "default_tasks_load_status": task_state.get("default_tasks_load_status"),
+                "default_tasks_configured": task_state.get("default_tasks_configured"),
+                "expected_default_task_count": task_state.get("expected_default_task_count"),
+                "missing_default_task_count": task_state.get("missing_default_task_count"),
+                "actual_task_count": task_state.get("actual_task_count"),
+            }, actor="admin_gui")
+        except Exception as exc:  # noqa: BLE001 - event logging must not break the request.
+            sys.stderr.write(f"[NoemaForge] _record_task_state_reason: failed to log event: {exc}\n")
+
     def tasks_list(self) -> Dict[str, Any]:
+        expected_result = self._expected_default_tasks_result()
         # Acquire _tasks_lock so reads are consistent with concurrent
         # task_create()/task_update() writes (same pattern as jobs_list/_jobs_lock).
         with self._tasks_lock:
             data = self.tasks_data()
             tasks = data.get("tasks", [])
+            if not isinstance(tasks, list):
+                tasks = []
             categories = {}
             for t in tasks:
+                if not isinstance(t, dict):
+                    continue
                 categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
-        return {"ok": True, "version": RUNTIME_VERSION, "tasks": tasks, "summary": {"total": len(tasks), "by_category": categories, "pending": sum(1 for t in tasks if t.get("status") == "pending"), "blocked": sum(1 for t in tasks if t.get("status") == "blocked")}}
+        task_state = self._task_state_payload(tasks, expected_result)
+        self._record_task_state_reason(task_state)
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "tasks": tasks,
+            "expected_default_tasks": task_state["expected_default_tasks"],
+            "task_state": task_state,
+            "summary": {
+                "total": len(tasks),
+                "by_category": categories,
+                "pending": sum(1 for t in tasks if isinstance(t, dict) and t.get("status") == "pending"),
+                "blocked": sum(1 for t in tasks if isinstance(t, dict) and t.get("status") == "blocked"),
+                "state_reason": task_state["state_reason"],
+                "expected_default_task_count": task_state["expected_default_task_count"],
+                "missing_default_task_count": task_state["missing_default_task_count"],
+            },
+        }
 
     def task_create(self, body: Dict[str, Any]) -> Dict[str, Any]:
         with self._tasks_lock:
