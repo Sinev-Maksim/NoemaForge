@@ -43,6 +43,7 @@ let _confirmPipelineId = '';
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
+const CANONICAL_MAIN_BACKEND_SOCKET = '/run/noemaforge/llm/backends/main.sock';
 
 const personaNames = {
   Admin: 'Admin', Optimizer: 'Optimizer', 'Model Evolution': 'Model Evolution', 'Dev Team': 'Dev Team',
@@ -857,16 +858,70 @@ async function refreshEpoch(showMessage=false){
 }
 function _gib(bytes){ return bytes != null ? (bytes / 1073741824).toFixed(1) + ' GiB' : '—'; }
 function _pct(v){ return v != null ? String(Math.round(v)) + '%' : '—'; }
+function _meminfoBytes(value){
+  const match = String(value || '').trim().match(/^(\d+)/);
+  return match ? Number(match[1]) * 1024 : null;
+}
+function _firstValue(...values){
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return null;
+}
+function _memoryBucket(memory, name){
+  const bucket = memory[name] || {};
+  if (name === 'ram') {
+    const total = _firstValue(bucket.total, memory.total, _meminfoBytes(memory.MemTotal));
+    const available = _firstValue(bucket.available, memory.available, _meminfoBytes(memory.MemAvailable));
+    const used = _firstValue(bucket.used, memory.used, total != null && available != null ? total - available : null);
+    const percent = _firstValue(bucket.percent, memory.percent, total ? used / total * 100 : null);
+    return {total, used, percent};
+  }
+  const total = _firstValue(bucket.total, memory.swap_total, _meminfoBytes(memory.SwapTotal));
+  const free = _firstValue(bucket.free, memory.swap_free, _meminfoBytes(memory.SwapFree));
+  const used = _firstValue(bucket.used, memory.swap_used, total != null && free != null ? total - free : null);
+  const percent = _firstValue(bucket.percent, memory.swap_percent, total ? used / total * 100 : null);
+  return {total, used, percent};
+}
+function _parseGpuCsv(text){
+  return String(text || '').trim().split('\n').map((line) => {
+    const parts = line.split(',').map((part) => part.trim());
+    if (parts.length < 6) return null;
+    return {
+      name: parts[0],
+      temperature_c: parts[1],
+      power_w: parts[2],
+      memory_used_mib: parts[3],
+      memory_total_mib: parts[4],
+      utilization_percent: parts[5],
+    };
+  }).filter(Boolean);
+}
+function _fmtGpuRows(hw){
+  const gpus = Array.isArray(hw.gpus) && hw.gpus.length ? hw.gpus : _parseGpuCsv(hw.nvidia_smi?.stdout);
+  if (!gpus.length) {
+    const reason = hw.nvidia_smi?.stderr || (hw.nvidia_smi?.available === false ? 'nvidia-smi unavailable' : '');
+    return [`GPU:   ${reason ? `not available (${reason})` : 'not available'}`];
+  }
+  const rows = [];
+  gpus.forEach((gpu, idx) => {
+    const label = gpus.length > 1 ? `GPU ${idx + 1}` : 'GPU';
+    rows.push(`${label}:   ${_na(gpu.name)}`);
+    rows.push(`  Temp: ${_na(gpu.temperature_c)} C · Power: ${_na(gpu.power_w)} W · Util: ${_na(gpu.utilization_percent)}%`);
+    rows.push(`  VRAM: ${_na(gpu.memory_used_mib)} / ${_na(gpu.memory_total_mib)} MiB`);
+  });
+  return rows;
+}
 function _fmtHardware(hw){
   if (!hw) return '—';
   const m = hw.memory || {};
+  const ram = _memoryBucket(m, 'ram');
+  const swap = _memoryBucket(m, 'swap');
   const lines = [
-    `RAM:   ${_gib(m.used)} / ${_gib(m.total)} (${_pct(m.percent)} used)`,
-    `Swap:  ${_gib(m.swap_used)} / ${_gib(m.swap_total)} (${_pct(m.swap_percent)} used)`,
+    `RAM:   ${_gib(ram.used)} / ${_gib(ram.total)} (${_pct(ram.percent)} used)`,
+    `Swap:  ${_gib(swap.used)} / ${_gib(swap.total)} (${_pct(swap.percent)} used)`,
   ];
-  const gpu = String(hw.nvidia_smi?.stdout || hw.nvidia_smi?.stderr || '').trim().split('\n')[0];
-  if (gpu) lines.push(`GPU:   ${gpu.slice(0, 140)}`);
-  return lines.join('\n');
+  return lines.concat(_fmtGpuRows(hw)).join('\n');
 }
 function _metricRow(label, value){ return `${label.padEnd(22)} ${value != null && value !== '' ? String(value) : '—'}`; }
 function _na(value){
@@ -875,12 +930,14 @@ function _na(value){
 }
 function _fmtSoftware(health){
   const h = health || {};
+  const gitReason = _na(h.git_metadata_reason || 'package/release install metadata only; git metadata not reported');
   return [
     _metricRow('Version:', _na(h.version)),
     _metricRow('Root:', _na(h.root)),
     _metricRow('State:', _na(h.state)),
     _metricRow('Git branch:', _na(h.git_branch)),
     _metricRow('Git head:', _na(h.git_head)),
+    _metricRow('Git metadata:', gitReason),
     _metricRow('CLI path:', _na(h.cli_path)),
     _metricRow('Install path:', _na(h.install_path)),
   ].join('\n');
@@ -908,6 +965,9 @@ function _fmtRuntimeState(runtime){
     return `  ${path}: ${state}`;
   });
   const fallbackSocketRows = Object.keys(sockets).map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  if (!socketRows.length && !fallbackSocketRows.some(row => row.includes(CANONICAL_MAIN_BACKEND_SOCKET))) {
+    fallbackSocketRows.unshift(`  ${CANONICAL_MAIN_BACKEND_SOCKET}: not reported`);
+  }
   const freshness = rt.state_freshness || {};
   return [
     'State freshness',
