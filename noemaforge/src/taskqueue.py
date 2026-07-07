@@ -92,6 +92,13 @@ from platform_paths import DEFAULT_PATHS as _pp
 
 
 DEFAULT_POLICY_PATH = str(_pp.root / "configs/taskqueue-policy.yaml")
+LIST_TASKS_SQL = """
+SELECT task_id, created_at, updated_at, domain, priority_class, status, kind, module, title, group_key, repeats, attempts, last_error
+FROM tasks
+{where_clause}
+ORDER BY created_at DESC
+LIMIT ?
+"""
 
 # Cooldown stamps for default background tasks.
 # We keep them outside the DB schema so they survive light DB maintenance and
@@ -371,6 +378,23 @@ def _connect(db_path: str) -> sqlite3.Connection:
     con.execute("PRAGMA synchronous=NORMAL;")
     _init_schema(con)
     return con
+
+
+def _where_clause(parts: List[str]) -> str:
+    if not parts:
+        return ""
+    allowed = {"domain=?", "status=?"}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError("unsupported_where_clause")
+    return "WHERE " + " AND ".join(parts)
+
+
+def _placeholders(count: int) -> str:
+    n = int(count)
+    if n <= 0 or n > 100:
+        raise ValueError("invalid_placeholder_count")
+    return ",".join("?" for _ in range(n))
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1095,15 +1119,9 @@ def list_tasks(
         if status:
             wh.append("status=?")
             args.append(str(status).strip().upper())
-        where = ("WHERE " + " AND ".join(wh)) if wh else ""
+        where = _where_clause(wh)
         rows = con.execute(
-            f"""
-            SELECT task_id, created_at, updated_at, domain, priority_class, status, kind, module, title, group_key, repeats, attempts, last_error
-            FROM tasks
-            {where}
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
+            LIST_TASKS_SQL.format(where_clause=where),
             tuple(args + [max(1, int(limit))]),
         ).fetchall()
         out: List[Dict[str, Any]] = []
@@ -1160,7 +1178,7 @@ def has_todo_with_priority_classes(
     db_path = _db_path(policy)
     con = _connect(db_path)
     try:
-        qmarks = ",".join(["?"] * len(prios))
+        qmarks = _placeholders(len(prios))
         row = con.execute(
             f"SELECT 1 FROM tasks WHERE status='TODO' AND lower(priority_class) IN ({qmarks}) LIMIT 1",
             tuple(prios),
@@ -1170,4 +1188,3 @@ def has_todo_with_priority_classes(
         return False
     finally:
         con.close()
-

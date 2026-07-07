@@ -123,6 +123,39 @@ class ProdReadyHotfixTests(unittest.TestCase):
             self.assertEqual("hotfix/prod-ready", health["git_branch"])
             self.assertEqual("/opt/noemaforge/bin/noemaforge", health["cli_path"])
             self.assertIn("install_path", health)
+            self.assertEqual("git checkout metadata available", health["git_metadata_reason"])
+
+    def test_memory_metrics_maps_proc_meminfo_to_named_fields(self) -> None:
+        metrics = ags._memory_metrics({
+            "MemTotal": "16777216 kB",
+            "MemAvailable": "4194304 kB",
+            "SwapTotal": "8388608 kB",
+            "SwapFree": "2097152 kB",
+        })
+
+        self.assertEqual(17179869184, metrics["ram"]["total"])
+        self.assertEqual(12884901888, metrics["ram"]["used"])
+        self.assertEqual(75.0, metrics["ram"]["percent"])
+        self.assertEqual(8589934592, metrics["swap"]["total"])
+        self.assertEqual(6442450944, metrics["swap"]["used"])
+        self.assertEqual(75.0, metrics["swap"]["percent"])
+        self.assertEqual(metrics["ram"]["used"], metrics["used"])
+        self.assertEqual(metrics["swap"]["used"], metrics["swap_used"])
+
+    def test_parse_nvidia_smi_maps_csv_to_named_gpu_fields(self) -> None:
+        rows = ags._parse_nvidia_smi_gpus({
+            "available": True,
+            "stdout": "NVIDIA GeForce RTX 3080 Ti, 53, 111.5, 2048, 12288, 17\n",
+            "stderr": "",
+        })
+
+        self.assertEqual(1, len(rows))
+        self.assertEqual("NVIDIA GeForce RTX 3080 Ti", rows[0]["name"])
+        self.assertEqual("53", rows[0]["temperature_c"])
+        self.assertEqual("111.5", rows[0]["power_w"])
+        self.assertEqual("2048", rows[0]["memory_used_mib"])
+        self.assertEqual("12288", rows[0]["memory_total_mib"])
+        self.assertEqual("17", rows[0]["utilization_percent"])
 
     def test_safe_opt_sync_preserves_local_llama_server_when_source_lacks_backend(self) -> None:
         with tempfile.TemporaryDirectory() as td:

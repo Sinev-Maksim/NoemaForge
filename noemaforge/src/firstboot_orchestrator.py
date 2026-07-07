@@ -34,6 +34,7 @@ import role_tournament
 import runtime_safety
 import model_inventory_normalize
 import model_profiles
+import pre_release_uat_fix_runtime
 from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
@@ -96,6 +97,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "model_selection_decision": os.path.join(state_dir, "model-selection-decision.json"),
         "rollback_plan": os.path.join(state_dir, "rollback_plan.json"),
         "model_run_records": os.path.join(state_dir, "model-run-records.json"),
+        "model_run_summary": os.path.join(state_dir, "model-run-summary.json"),
     }
     roles = candidate_map.get("roles") or {}
     chosen = {}
@@ -152,7 +154,17 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
     _write_json(paths["candidate_selection_plan"], plan)
     _write_json(paths["model_selection_decision"], decision)
     _write_json(paths["rollback_plan"], rollback)
-    _write_json(paths["model_run_records"], {"created_at": _nowz(), "records": tournament_doc.get("model_run_records") or []})
+    model_run_records = tournament_doc.get("model_run_records") or []
+    _write_json(paths["model_run_records"], {"created_at": _nowz(), "records": model_run_records})
+    _write_json(
+        paths["model_run_summary"],
+        {
+            "created_at": _nowz(),
+            **pre_release_uat_fix_runtime.summarize_model_run_records(
+                pre_release_uat_fix_runtime.normalize_model_run_records(model_run_records)
+            ),
+        },
+    )
     return paths
 
 

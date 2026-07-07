@@ -22,8 +22,6 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 // AutoDoc: refreshed 2026-04-09 (heuristic)
 // === End NoemaForge Autodoc File Header ===
 
-
-
 package main
 
 import (
@@ -38,6 +36,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -50,8 +49,10 @@ var safeModelRe = regexp.MustCompile(`^[A-Za-z0-9_.-]{1,80}$`)
 // Purpose: Provide the Go routine 'autoBackend'.
 // Inputs:
 //   - model string -> (string, bool)
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func autoBackend(model string) (string, bool) {
@@ -88,8 +89,10 @@ type cfg struct {
 // Purpose: Provide the Go routine 'parseBackends'.
 // Inputs:
 //   - s string -> map[string]string
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func parseBackends(s string) map[string]string {
@@ -117,8 +120,10 @@ func parseBackends(s string) map[string]string {
 // Purpose: Provide the Go routine 'getenvDefault'.
 // Inputs:
 //   - name, def string -> string
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func getenvDefault(name, def string) string {
@@ -134,8 +139,10 @@ func getenvDefault(name, def string) string {
 // Purpose: Provide the Go routine 'getenvInt64'.
 // Inputs:
 //   - name string, def int64 -> int64
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func getenvInt64(name string, def int64) int64 {
@@ -155,8 +162,10 @@ func getenvInt64(name string, def int64) int64 {
 // Purpose: Provide the Go routine 'main'.
 // Inputs:
 //   - No explicit parameters.
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func main() {
@@ -185,6 +194,9 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
 	mux.HandleFunc("/v1/health", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("ok")) })
+	mux.HandleFunc("/v1/models", func(w http.ResponseWriter, r *http.Request) {
+		handleModels(c, w, r)
+	})
 
 	for _, p := range []string{"/v1/chat/completions", "/v1/completions", "/v1/embeddings"} {
 		path := p
@@ -203,13 +215,49 @@ func main() {
 	}
 }
 
+func handleModels(c cfg, w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	ids := map[string]bool{}
+	for model := range c.Backends {
+		if safeModelRe.MatchString(model) {
+			ids[model] = true
+		}
+	}
+	if c.DefaultModel != "" && safeModelRe.MatchString(c.DefaultModel) {
+		ids[c.DefaultModel] = true
+	}
+	names := make([]string, 0, len(ids))
+	for id := range ids {
+		names = append(names, id)
+	}
+	sort.Strings(names)
+	data := make([]map[string]any, 0, len(ids))
+	for _, id := range names {
+		data = append(data, map[string]any{
+			"id":       id,
+			"object":   "model",
+			"owned_by": "noemaforge-local",
+		})
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"object": "list",
+		"data":   data,
+	})
+}
+
 // === NoemaForge Autodoc Function Header ===
 // Function: handleProxy(c cfg, w http.ResponseWriter, r *http.Request)
 // Purpose: Provide the Go routine 'handleProxy'.
 // Inputs:
 //   - c cfg, w http.ResponseWriter, r *http.Request
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func handleProxy(c cfg, w http.ResponseWriter, r *http.Request) {
@@ -274,8 +322,10 @@ func handleProxy(c cfg, w http.ResponseWriter, r *http.Request) {
 // Purpose: Provide the Go routine 'proxyUnix'.
 // Inputs:
 //   - ctx context.Context, sockPath, path string, body []byte, hdr http.Header -> (*http.Response, error)
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func proxyUnix(ctx context.Context, sockPath, path string, body []byte, hdr http.Header) (*http.Response, error) {
@@ -303,8 +353,10 @@ func proxyUnix(ctx context.Context, sockPath, path string, body []byte, hdr http
 // Purpose: Provide the Go routine 'logMiddleware'.
 // Inputs:
 //   - next http.Handler -> http.Handler
+//
 // Called by:
 //   - No external Go callsite detected; may be process entry, HTTP callback, or local helper.
+//
 // Outputs: Return values, HTTP responses, log lines, or socket side effects implemented in the body below.
 // === End NoemaForge Autodoc Function Header ===
 func logMiddleware(next http.Handler) http.Handler {
