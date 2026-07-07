@@ -816,6 +816,8 @@ function _fmtRuntimeState(runtime){
   const services = rt.service_states || {};
   const socketStates = rt.socket_states || {};
   const active = rt.active_model || {};
+  const startup = rt.startup_profile || {};
+  const transition = startup.transition || {};
   const serviceRows = Object.entries(services).map(([name, item]) => {
     const unit = item?.unit || name;
     const state = item?.state || 'unknown';
@@ -859,6 +861,16 @@ function _fmtRuntimeState(runtime){
     _metricRow('  Model realpath:', active.model_realpath),
     _metricRow('  Selection required:', active.selection_required ?? rt.model_selection_required),
     _metricRow('  Message:', active.message || '—'),
+    '',
+    'Startup profile',
+    _metricRow('  Safe minimal:', startup.safe_minimal_profile || 'minimal'),
+    _metricRow('  Default:', startup.default_profile),
+    _metricRow('  Session:', startup.session_profile),
+    _metricRow('  Last usable:', startup.last_known_usable_profile),
+    _metricRow('  Active:', startup.active_profile),
+    _metricRow('  Reason:', startup.active_reason || transition.reason),
+    _metricRow('  Transition:', transition.state),
+    _metricRow('  Test endpoint:', startup.api?.test_endpoint || '/api/startup/profile'),
   ].join('\n');
 }
 function _fmtProductMetrics(prod){
