@@ -18,6 +18,7 @@ let allMessages = {};
 let activeLocale = 'ru';
 let latestRaw = {};
 let pendingAction = null;
+let activeStageHandoff = null;
 let pipelineCatalog = [];
 let pipelineFilter = 'All';
 let jobStream = null;
@@ -293,6 +294,60 @@ function postStageHandoffToChat(handoff){
   const questions = Array.isArray(handoff.questions) ? handoff.questions : [];
   addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'));
 }
+function _setActiveStageHandoff(handoff){
+  if(!handoff || !handoff.run_id){
+    activeStageHandoff = null;
+    return;
+  }
+  const replyState = handoff.operator_reply_state || {};
+  activeStageHandoff = {
+    run_id: String(handoff.run_id || ''),
+    pipeline_id: String(handoff.pipeline_id || ''),
+    current_stage: String(handoff.current_stage || ''),
+    persona: String(handoff.persona || 'Pipeline'),
+    handoff_version: String(handoff.handoff_version || ''),
+    state: String(replyState.state || 'waiting_for_operator_reply'),
+  };
+}
+function _clearActiveStageHandoff(runId, stage){
+  if(!activeStageHandoff) return;
+  if(runId && String(activeStageHandoff.run_id) !== String(runId)) return;
+  if(stage && String(activeStageHandoff.current_stage) !== String(stage)) return;
+  activeStageHandoff = null;
+}
+function _panelForRun(runId){
+  if(!runId) return null;
+  return Array.from(document.querySelectorAll('.pipeline-run-panel')).find(panel => String(panel.dataset.runId || '') === String(runId)) || null;
+}
+async function _sendActiveStageHandoffReply(text){
+  const handoff = activeStageHandoff ? {...activeStageHandoff} : null;
+  if(!handoff || !handoff.run_id) return null;
+  const reply = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/reply`, {
+    stage: handoff.current_stage,
+    message: text,
+    action: 'reply',
+    source: 'chat_input',
+    allow_degraded: true,
+  });
+  const status = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/status`);
+  const panel = _panelForRun(handoff.run_id);
+  if(panel) _updatePipelineRunPanel(panel, status);
+  _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  return {
+    ...reply,
+    mode: 'pipeline_stage_handoff_response',
+    reply: reply.ok === false
+      ? `Pipeline handoff reply rejected: ${reply.error || 'unknown error'}`
+      : `Operator reply recorded for pipeline ${handoff.pipeline_id || status.pipeline_id || handoff.run_id}, stage ${handoff.current_stage || status.current_stage || 'stage'}.`,
+    route: {id:'pipeline_handoff_reply', intent:'pipeline_handoff_reply', pipeline_id:handoff.pipeline_id || status.pipeline_id, run_id:handoff.run_id},
+    status_after_reply: status,
+    stage_handoff: status.stage_handoff || null,
+    operator_reply_state: status.operator_reply_state || reply.operator_reply_state,
+    handoff_reply_mode: status.handoff_reply_mode,
+    handoff_reply_limitation: status.handoff_reply_limitation,
+    handoff_next_action: status.handoff_next_action,
+  };
+}
 async function _replyStageHandoff(panel, handoff, input, messageNode){
   const runId = String(handoff?.run_id || panel.dataset.runId || '');
   const text = String(input.value || '').trim();
@@ -305,6 +360,7 @@ async function _replyStageHandoff(panel, handoff, input, messageNode){
     messageNode.textContent = 'Reply saved.';
     const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
     _updatePipelineRunPanel(panel, status);
+    _clearActiveStageHandoff(runId, handoff.current_stage);
   }catch(e){
     messageNode.textContent = `Reply error: ${e.message || String(e)}`;
   }
@@ -375,9 +431,11 @@ function _renderStageHandoff(panel, handoff){
     panel.insertBefore(box, refreshBtn || null);
   }
   box._handoff = handoff;
+  const replyState = handoff.operator_reply_state || {};
+  if(replyState.state === 'operator_reply_recorded') _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  else _setActiveStageHandoff(handoff);
   box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
   box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
-  const replyState = handoff.operator_reply_state || {};
   const quality = handoff.output_quality || {};
   const actions = Array.isArray(handoff.next_actions || handoff.suggested_actions) ? (handoff.next_actions || handoff.suggested_actions).join(' · ') : '—';
   box.querySelector('.stage-handoff-meta').textContent = `Output: ${quality.quality || (quality.exists ? 'placeholder' : 'missing')} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${actions}`;
@@ -510,7 +568,9 @@ function _updatePipelineRunPanel(panel, status){
   const quality = status.stage_output_quality || {};
   const blocker = status.actionable_blocker || {};
   const nextActions = Array.isArray(status.next_actions) && status.next_actions.length ? status.next_actions.join(' · ') : '—';
-  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${nextActions}`;
+  const handoffMode = status.handoff_reply_mode && status.handoff_reply_mode !== 'none' ? ` · Mode: ${status.handoff_reply_mode}` : '';
+  const handoffNext = status.handoff_next_action ? ` · Handoff next: ${status.handoff_next_action}` : '';
+  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'}${handoffMode}${handoffNext} · Next: ${nextActions}`;
   let blockerLine = panel.querySelector('.pipeline-run-blocker');
   if(blocker && blocker.message){
     if(!blockerLine){
@@ -521,6 +581,17 @@ function _updatePipelineRunPanel(panel, status){
     blockerLine.textContent = `Blocker: ${blocker.message}`;
   }else if(blockerLine){
     blockerLine.remove();
+  }
+  let limitationLine = panel.querySelector('.pipeline-run-handoff-limitation');
+  if(status.handoff_reply_limitation){
+    if(!limitationLine){
+      limitationLine = document.createElement('div');
+      limitationLine.className = 'pipeline-run-handoff-limitation muted';
+      panel.insertBefore(limitationLine, panel.querySelector('.pipeline-run-refresh'));
+    }
+    limitationLine.textContent = status.handoff_reply_limitation;
+  }else if(limitationLine){
+    limitationLine.remove();
   }
   if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
     activeRunIds.delete(String(panel.dataset.runId || ''));
@@ -730,7 +801,9 @@ async function sendAdmin(){
   try{
     const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
     let result;
-    if(modePick){
+    if(activeStageHandoff?.run_id){
+      result = await _sendActiveStageHandoffReply(text);
+    }else if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
       result.type = 'model_selection';
       // Persist the selected mode to session so it survives page refresh.

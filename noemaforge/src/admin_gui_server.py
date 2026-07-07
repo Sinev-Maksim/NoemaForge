@@ -3043,6 +3043,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         stage = safe_id(str(body.get("stage") or status.get("current_stage") or "stage"))
         message = str(body.get("message") or "").strip()
         action = str(body.get("action") or "reply").strip() or "reply"
+        source = str(body.get("source") or "stage_handoff").strip() or "stage_handoff"
         if not message:
             return {"ok": False, "error": "message required", "run_id": run_id, "stage": stage}
         run_dir = Path(str(status.get("run_dir") or ""))
@@ -3051,11 +3052,11 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         ts = now_iso()
         decisions = run_dir / "decisions.md"
         with decisions.open("a", encoding="utf-8") as fh:
-            fh.write(f"\n## {ts} - operator reply for {stage}\n\n- Action: `{action}`\n- Message: {message}\n")
+            fh.write(f"\n## {ts} - operator reply for {stage}\n\n- Action: `{action}`\n- Source: `{source}`\n- Message: {message}\n")
         inputs_dir = run_dir / "stage_inputs"
         inputs_dir.mkdir(parents=True, exist_ok=True)
         jsonl = inputs_dir / f"{stage}-operator-replies.jsonl"
-        rec = {"ts": ts, "run_id": run_id, "pipeline_id": status.get("pipeline_id"), "stage": stage, "action": action, "message": message}
+        rec = {"ts": ts, "run_id": run_id, "pipeline_id": status.get("pipeline_id"), "stage": stage, "action": action, "source": source, "message": message}
         with jsonl.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
         return {"ok": True, "version": RUNTIME_VERSION, "run_id": run_id, "stage": stage, "decisions_path": str(decisions), "stage_input_path": str(jsonl), "operator_reply_state": {"state": "operator_reply_recorded", "reply_count": self._operator_reply_state(run_dir, stage).get("reply_count", 1)}}
@@ -3103,10 +3104,24 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         question = self._clarification_question_from(raw)
         needs_clarification = bool(raw.get("clarification_required") or raw.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
         stage_handoff = self._stage_handoff_from_status(raw, run_id, current_stage, status)
+        handoff_reply_mode = "none"
+        handoff_reply_limitation = ""
+        handoff_next_action = ""
         if stage_handoff:
             needs_clarification = True
             question = stage_handoff["questions"][0]
             operator_reply_state = stage_handoff.get("operator_reply_state") or operator_reply_state
+            is_degraded_readonly = bool(self.runtime_degraded_status().get("degraded_readonly", {}).get("active"))
+            handoff_reply_mode = "degraded_readonly" if is_degraded_readonly else "normal"
+            if operator_reply_state.get("state") == "operator_reply_recorded":
+                handoff_next_action = "continue_after_reply"
+            else:
+                handoff_next_action = "record_operator_reply"
+            if is_degraded_readonly:
+                handoff_reply_limitation = (
+                    "Degraded-readonly mode records the operator reply as handoff state; "
+                    "continuing still requires explicit degraded approval."
+                )
         actionable_blocker = None
         for ev in reversed(raw.get("events") or []):
             payload = ev.get("payload") if isinstance(ev, dict) else {}
@@ -3146,7 +3161,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             if pending_changed:
                 persona = (stage_handoff or {}).get("persona") or self._pipeline_persona(str(raw.get("pipeline_id") or ""))
                 self.save_message("admin", question, persona=persona, intent="pipeline_clarification", raw=raw)
-        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "pipeline_scope_policy": pipeline_def.get("pipeline_scope_policy") or {}, "pipeline_scope": (pipeline_def.get("pipeline_scope_policy") or {}).get("scope") or pipeline_def.get("pipeline_scope"), "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": waiting_reason, "stage_handoff": stage_handoff, "stage_progress": stage_progress, "stage_progress_changed": stage_progress_changed, "stable_status_hash": stable_status_hash, "last_worker_execution_state": last_worker_execution_state, "operator_reply_state": operator_reply_state, "stage_output_quality": stage_output_quality, "output_path": raw.get("output_path") or stage_output_quality.get("path"), "output_quality": raw.get("output_quality") or stage_output_quality, "worker_resolution": last_worker_execution_state.get("worker_resolution") or raw.get("worker_resolution") or {}, "next_actions": next_actions, "actionable_blocker": actionable_blocker, "error": raw.get("error") or result.get("stderr")}
+        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "pipeline_scope_policy": pipeline_def.get("pipeline_scope_policy") or {}, "pipeline_scope": (pipeline_def.get("pipeline_scope_policy") or {}).get("scope") or pipeline_def.get("pipeline_scope"), "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": waiting_reason, "stage_handoff": stage_handoff, "stage_progress": stage_progress, "stage_progress_changed": stage_progress_changed, "stable_status_hash": stable_status_hash, "last_worker_execution_state": last_worker_execution_state, "operator_reply_state": operator_reply_state, "handoff_reply_mode": handoff_reply_mode, "handoff_reply_limitation": handoff_reply_limitation, "handoff_next_action": handoff_next_action, "stage_output_quality": stage_output_quality, "output_path": raw.get("output_path") or stage_output_quality.get("path"), "output_quality": raw.get("output_quality") or stage_output_quality, "worker_resolution": last_worker_execution_state.get("worker_resolution") or raw.get("worker_resolution") or {}, "next_actions": next_actions, "actionable_blocker": actionable_blocker, "error": raw.get("error") or result.get("stderr")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]
