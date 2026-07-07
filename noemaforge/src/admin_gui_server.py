@@ -72,6 +72,7 @@ import production_ai_contracts
 import admin_gui_routes
 import model_profiles
 import selection_refresh_runtime as selection_refresh
+from persona_rules_renderer import render_persona_rules
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
@@ -1478,9 +1479,42 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "max_active_llms": safety.get("max_active_llms", 1),
                 "degraded": "deterministic fallback is used when local LLM chat is unavailable",
             },
+            "render_hints": [
+                {
+                    "type": "StatusCard",
+                    "title": "Runtime boundary",
+                    "status": "explicit approval required for heavy or privileged actions",
+                },
+                {
+                    "type": "Gauge",
+                    "title": "Active LLM limit",
+                    "value": safety.get("max_active_llms", 1),
+                    "max": 1,
+                    "unit": "worker",
+                },
+                {
+                    "type": "Table",
+                    "title": "Routing rules",
+                    "columns": ["Area", "Rule"],
+                    "rows": [
+                        ["Dialogue", "conversational unless clarification is pending"],
+                        ["Pipeline", "explicit pipeline id/name or card click required"],
+                        ["Privileged/heavy action", "operator approval required"],
+                    ],
+                },
+            ],
             "raw_persona": persona,
         }
-        return {"ok": True, "version": RUNTIME_VERSION, "rules": rules}
+        rendered = render_persona_rules(rules)
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "rules": rules,
+            "rendered_rules": rendered,
+            "visuals": rendered.get("visuals", []),
+            "raw_json_available": True,
+            "audit": {"raw_rules_field": "rules"},
+        }
 
     def persona_switch(self, name: str) -> Dict[str, Any]:
         name = str(name or "").strip()[:64] or "Admin"
