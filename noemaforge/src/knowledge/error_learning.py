@@ -36,6 +36,19 @@ from typing import Any, Dict, Iterable, List, Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 SQL_PATH = ROOT / 'sql' / 'error_learning_loop.sqlite.sql'
+LIST_ERRORS_SQL = 'SELECT * FROM error_events {where_clause} ORDER BY created_at DESC LIMIT ?'
+EXPORT_REGRESSION_SQL = 'SELECT * FROM regression_cases WHERE {where_clause} ORDER BY promoted_at ASC'
+
+
+def _where_clause(parts: List[str], *, prefix: bool = True) -> str:
+    if not parts:
+        return ''
+    allowed = {'component=?', 'review_status=?', 'case_status=?'}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError('unsupported_where_clause')
+    joined = ' AND '.join(parts)
+    return (' WHERE ' + joined) if prefix else joined
 
 
 def _nowz() -> str:
@@ -219,10 +232,7 @@ class ErrorLearningStore:
         if str(review_status or '').strip():
             wh.append('review_status=?')
             vals.append(str(review_status))
-        sql = 'SELECT * FROM error_events'
-        if wh:
-            sql += ' WHERE ' + ' AND '.join(wh)
-        sql += ' ORDER BY created_at DESC LIMIT ?'
+        sql = LIST_ERRORS_SQL.format(where_clause=_where_clause(wh))
         vals.append(int(limit))
         con = self._connect()
         rows = con.execute(sql, tuple(vals)).fetchall()
@@ -380,7 +390,7 @@ class ErrorLearningStore:
         if str(component or '').strip():
             wh.append('component=?')
             vals.append(str(component))
-        sql = 'SELECT * FROM regression_cases WHERE ' + ' AND '.join(wh) + ' ORDER BY promoted_at ASC'
+        sql = EXPORT_REGRESSION_SQL.format(where_clause=_where_clause(wh, prefix=False))
         rows = con.execute(sql, tuple(vals)).fetchall()
         con.close()
         grouped: Dict[str, List[Dict[str, Any]]] = {}

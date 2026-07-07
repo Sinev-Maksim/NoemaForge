@@ -62,6 +62,14 @@ class TestHardwareCardD001(unittest.TestCase):
         self.assertIsNotNone(m, "_fmtHardware body not found")
         self.assertNotIn("JSON.stringify", m.group(1))
 
+    def test_fmt_hardware_maps_meminfo_and_gpu_fields(self):
+        self.assertIn("function _memoryBucket(", self.src)
+        self.assertIn("function _parseGpuCsv(", self.src)
+        self.assertIn("function _fmtGpuRows(", self.src)
+        self.assertIn("temperature_c", self.src)
+        self.assertIn("memory_used_mib", self.src)
+        self.assertIn("memory_total_mib", self.src)
+
 
 class TestProductMetricsCardD004(unittest.TestCase):
     """D-004: product metrics card shows labeled rows, not raw JSON."""
@@ -115,6 +123,11 @@ class TestProductMetricsCardD004(unittest.TestCase):
         m = re.search(r'function _metricRow\(label, value\)\s*\{(.+?)\}', self.src)
         self.assertIsNotNone(m, "_metricRow body not found")
         self.assertIn("padEnd", m.group(1))
+
+    def test_software_card_explains_missing_git_metadata(self):
+        self.assertIn("Git metadata:", self.src)
+        self.assertIn("git_metadata_reason", self.src)
+        self.assertIn("package/release install metadata only", self.src)
 
 
 if __name__ == "__main__":

@@ -52,5 +52,17 @@
   "depth.until_stop": "до остановки",
   "pipeline.new": "+ Новый пайплайн",
   "pipeline.search": "Поиск пайплайна...",
+  "message.original": "Оригинал на английском",
+  "admin.reply.smalltalk": "Я на месте. NoemaForge работает локально: могу вести диалог, открыть Dev Team, подготовить эволюцию модели или показать статус эпохи.",
+  "admin.reply.model_selection_ready": "Режим отбора выбран: {mode}. Область: {scope}. План отбора модели создан; кандидаты, решение и rollback-plan прикреплены как артефакты. Эпоха НЕ применена без отдельного approve/apply.",
+  "admin.reply.model_evolution_ready": "Measured model-evolution cycle готов. Артефакты: baseline snapshot, mutation plan, candidate profile, scorecard и rollback plan. Production-веса не менялись автоматически.",
+  "pipeline.run.started": "Запускаю pipeline {pipeline_id} по стандартному сценарию. Run: {run_id}.",
+  "pipeline.clarification.forwarded": "Уточнение для pipeline {pipeline_id} принято и передано в run {run_id}: {text}",
+  "pipeline.clarification.failed": "Не удалось передать уточнение в pipeline {pipeline_id} / run {run_id}: {error}",
+  "pipeline.clarification.question": "Уточните параметры для продолжения pipeline.",
+  "pipeline.handoff.message": "Для {persona} нужен handoff на этапе `{stage}`: {reason}. Dashboard не должен считать этот placeholder завершённой работой этапа.",
+  "pipeline.handoff.admin_note": "Примечание Admin: предоставьте реальный результат этапа, запишите решение оператора или явно пропустите этап; английский оригинал доступен для аудита.",
+  "pipeline.handoff.question.output": "{persona}: предоставьте реальный результат или решение оператора для этапа `{stage}`.",
+  "pipeline.handoff.question.decision": "Какое решение, риск и следующий handoff нужно записать перед продолжением?",
   "role.user": "Пользователь"
 }

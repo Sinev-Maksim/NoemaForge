@@ -84,6 +84,17 @@ class UATRuntimeTests(unittest.TestCase):
             with self.subTest(pipeline_id=good):
                 self.assertIsNotNone(uat_runtime._SAFE_PIPELINE_ID.fullmatch(good))
 
+    def test_pipeline_run_command_allowlist_is_single_fixed_entry(self) -> None:
+        allowlist = uat_runtime._pipeline_run_command_allowlist(
+            PACKAGE_ROOT, "public_mwp", "request", "run_id", True,
+        )
+
+        self.assertEqual(list(allowlist), [uat_runtime._PIPELINE_RUN_COMMAND])
+        argv = allowlist[uat_runtime._PIPELINE_RUN_COMMAND]
+        self.assertEqual(argv[0], sys.executable)
+        self.assertEqual(argv[2:5], ["run", "public_mwp", "--task-id"])
+        self.assertIn("--dry-run", argv)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -119,7 +119,27 @@ def _assets_dir() -> str:
 # Key locals:
 #   - f
 # === End NoemaForge Autodoc Function Header ===
+def _read_static_asset(assets_dir: str, request_path: str) -> tuple[str, bytes]:
+    path = request_path
+    if path == "/":
+        path = "/index.html"
+    if path.startswith("/"):
+        path = path[1:]
+    path = os.path.normpath(path).replace("\\", "/")
+
+    assets_real = os.path.realpath(assets_dir)
+    full_real = os.path.realpath(os.path.join(assets_real, path))
+    if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
+        raise PermissionError("bad path")
+    if not os.path.isfile(full_real):
+        raise FileNotFoundError(path)
+    with open(full_real, "rb") as f:
+        return full_real, f.read()
+
+
 def _read_file(path: str) -> bytes:
+    if not os.path.isabs(path):
+        raise ValueError("absolute_path_required")
     with open(path, "rb") as f:
         return f.read()
 
@@ -284,31 +304,13 @@ def _make_handler(ctx: _ServerCtx, assets_dir: str):
             if path == "/api/snapshot":
                 return self._json(ctx.snapshot())
 
-            # Static
-            if path == "/":
-                path = "/index.html"
-            if path.startswith("/"):
-                path = path[1:]
-            path = os.path.normpath(path).replace("\\", "/")
-
-            full = os.path.join(assets_dir, path)
-            # Canonical path containment check: resolve symlinks and any
-            # remaining '..' sequences, then verify the result stays inside
-            # assets_dir. Prefix-based startswith("..") alone does not prevent
-            # drive-letter or symlink escapes (CWE-22).
-            assets_real = os.path.realpath(assets_dir)
-            full_real = os.path.realpath(full)
-            if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
-                return self._json({"error": "bad path"}, code=400)
-
-            # Past this barrier only the canonical, containment-checked path is
-            # used for every filesystem operation (CWE-22): the raw `full` is no
-            # longer touched, so user input cannot select a file outside assets_dir.
-            if not os.path.isfile(full_real):
-                return self._json({"error": "not found", "path": path}, code=404)
-
             try:
-                return self._bytes(_read_file(full_real), _guess_type(full_real))
+                full_real, payload = _read_static_asset(assets_dir, path)
+                return self._bytes(payload, _guess_type(full_real))
+            except PermissionError:
+                return self._json({"error": "bad path"}, code=400)
+            except FileNotFoundError:
+                return self._json({"error": "not found", "path": path}, code=404)
             except Exception as e:
                 return self._json({"error": "read failed", "details": str(e)}, code=500)
 
