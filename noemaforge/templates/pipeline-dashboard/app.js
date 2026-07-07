@@ -443,7 +443,13 @@ async function _workTowardNormalMode(messageNode){
     const {mode, composite_top_n} = selectionModePayload();
     const result = await api('/api/model-selection/continue', {mode, composite_top_n, recovery:'normal-mode recovery'});
     absorbResult(result);
-    messageNode.textContent = 'Normal-mode recovery job/plan created. Use the exact operator command from the job card; the dashboard did not fake normal mode.';
+    const transition = result.transition_payload || {};
+    if(result.action_state === 'plan_only' || transition.state === 'plan_only'){
+      const label = transition.next_action_label || result.next_action_label || 'Run approved normal-mode selection';
+      messageNode.textContent = `Normal-mode recovery is plan-only; no corrective process is running. Next action: ${label}. Use the exact operator command from the job card.`;
+    }else{
+      messageNode.textContent = result.reply || 'Normal-mode recovery state updated.';
+    }
     addMessage('Admin', messageNode.textContent);
     await refreshJobs();
   }catch(e){
@@ -948,8 +954,12 @@ function renderJobs(jobs){
       job.append(btn);
     }
     job.append(makeNode('b', '', j.kind));
-    job.append(makeNode('span', '', `${j.status} · ${j.job_id}`));
+    const actionStateValue = j.action_state_label || j.action_state;
+    const actionState = actionStateValue ? ` · ${actionStateValue}` : '';
+    job.append(makeNode('span', '', `${j.status}${actionState} · ${j.job_id}`));
+    if(j.next_action_label) job.append(makeNode('span', '', `Next: ${j.next_action_label}`));
     job.append(makeNode('code', '', j.command || ''));
+    if(j.next_action_command) job.append(makeNode('code', '', j.next_action_command));
     return job;
   }));
 }

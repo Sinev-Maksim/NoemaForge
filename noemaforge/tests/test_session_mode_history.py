@@ -187,6 +187,11 @@ class TestAppJsSessionMode(unittest.TestCase):
     def test_app_js_reads_selected_mode_from_session(self) -> None:
         self.assertIn("selected_mode", self._appjs)
 
+    def test_app_js_names_normal_mode_plan_only_state(self) -> None:
+        self.assertIn("Normal-mode recovery is plan-only", self._appjs)
+        self.assertIn("transition_payload", self._appjs)
+        self.assertIn("Next: ${j.next_action_label}", self._appjs)
+
 
 if __name__ == "__main__":
     unittest.main()
