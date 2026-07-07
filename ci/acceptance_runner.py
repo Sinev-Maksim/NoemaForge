@@ -38,7 +38,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import xml.etree.ElementTree as ET
+from html import escape
 from pathlib import Path
 from typing import Any, Dict, List
 from urllib.parse import urlparse
@@ -520,18 +520,31 @@ def case_contract_epoch_immutability(results: Path) -> Dict[str, Any]:
 
 
 def _junit(cases: List[Dict[str, Any]], results: Path) -> None:
-    suite = ET.Element("testsuite", name="noemaforge-acceptance",
-                       tests=str(len(cases)),
-                       failures=str(sum(1 for c in cases if c["status"] == "fail")),
-                       skipped=str(sum(1 for c in cases if c["status"] in ("skip", "pending"))),
-                       timestamp=_now())
+    attrs = {
+        "name": "noemaforge-acceptance",
+        "tests": str(len(cases)),
+        "failures": str(sum(1 for c in cases if c["status"] == "fail")),
+        "skipped": str(sum(1 for c in cases if c["status"] in ("skip", "pending"))),
+        "timestamp": _now(),
+    }
+    attr_text = " ".join(f'{key}="{escape(value, quote=True)}"' for key, value in attrs.items())
+    lines = ["<?xml version='1.0' encoding='utf-8'?>", f"<testsuite {attr_text}>"]
     for case in cases:
-        tc = ET.SubElement(suite, "testcase", name=case["name"], classname=case.get("tier", ""))
+        case_attrs = {
+            "name": str(case["name"]),
+            "classname": str(case.get("tier", "")),
+        }
+        case_attr_text = " ".join(f'{key}="{escape(value, quote=True)}"' for key, value in case_attrs.items())
         if case["status"] == "fail":
-            ET.SubElement(tc, "failure", message=json.dumps(case.get("detail", {}))[:500])
+            msg = escape(json.dumps(case.get("detail", {}))[:500], quote=True)
+            lines.append(f"  <testcase {case_attr_text}><failure message=\"{msg}\" /></testcase>")
         elif case["status"] in ("skip", "pending"):
-            ET.SubElement(tc, "skipped", message=case["status"])
-    ET.ElementTree(suite).write(str(results / "junit.xml"), encoding="utf-8", xml_declaration=True)
+            msg = escape(str(case["status"]), quote=True)
+            lines.append(f"  <testcase {case_attr_text}><skipped message=\"{msg}\" /></testcase>")
+        else:
+            lines.append(f"  <testcase {case_attr_text} />")
+    lines.append("</testsuite>")
+    (results / "junit.xml").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main(argv: List[str] | None = None) -> int:

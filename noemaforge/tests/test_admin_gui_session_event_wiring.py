@@ -112,6 +112,83 @@ class TestSessionCurrentMethod(unittest.TestCase):
         self.assertEqual(r1["session"]["session_id"], r2["session"]["session_id"])
 
 
+class TestFreshGuiSessionReset(unittest.TestCase):
+    """A new GUI server session must detach old live context and start on Admin."""
+
+    def setUp(self) -> None:
+        self._td = tempfile.TemporaryDirectory()
+        self.td = Path(self._td.name)
+        self.srv = _make_server(self.td)
+
+    def tearDown(self) -> None:
+        self._td.cleanup()
+
+    def _write_previous_dev_context(self) -> None:
+        previous = {
+            "conversation_id": "conv_previous",
+            "session_id": "gui_previous",
+            "created_at": "2026-07-04T00:00:00Z",
+            "updated_at": "2026-07-04T00:01:00Z",
+            "locale": "en",
+            "active_persona": "Dev Team",
+            "pending_intent": "pipeline_clarification",
+            "pending_payload": {"pipeline_id": "dev_pipeline_member_cells"},
+            "messages": [
+                {"role": "admin", "persona": "Dev Team", "text": "old dev context"},
+            ],
+            "artifacts": [],
+            "jobs": [],
+        }
+        self.srv._write_json(self.srv.conversation_file(), previous)
+
+    def test_begin_gui_session_creates_new_marker_and_admin_context(self) -> None:
+        self._write_previous_dev_context()
+
+        conv = self.srv._begin_gui_session()
+        session = self.srv.session_current()["session"]
+
+        self.assertTrue(session["session_id"].startswith("gui_"))
+        self.assertNotEqual(session["session_id"], "gui_previous")
+        self.assertEqual(conv["session_id"], session["session_id"])
+        self.assertEqual(conv["active_persona"], "Admin")
+        self.assertEqual(conv["live_context_branch"], "Admin")
+        self.assertEqual(conv["messages"], [])
+        self.assertIsNone(conv["pending_intent"])
+        self.assertTrue(Path(conv["previous_conversation_archive"]).exists())
+
+        archived = json.loads(Path(conv["previous_conversation_archive"]).read_text(encoding="utf-8"))
+        self.assertEqual(archived["active_persona"], "Dev Team")
+        self.assertEqual(archived["messages"][0]["text"], "old dev context")
+
+    def test_first_message_after_restart_routes_conversation_through_admin(self) -> None:
+        self._write_previous_dev_context()
+        self.srv._begin_gui_session()
+        self.srv.root = self.td
+        self.srv.state = self.td / "state"
+        self.srv.state.mkdir(parents=True, exist_ok=True)
+        self.srv.evolution_state = self.td / "evolution"
+        self.srv.evolution_state.mkdir(parents=True, exist_ok=True)
+        self.srv.review_dir = self.td / "review"
+        (self.srv.review_dir / "sr" / "inbox").mkdir(parents=True, exist_ok=True)
+        (self.srv.review_dir / "ssr" / "inbox").mkdir(parents=True, exist_ok=True)
+
+        with patch.object(self.srv, "conversational_admin_reply", return_value={"reply": "hello", "backend": "fallback"}):
+            result = self.srv.admin_message(
+                "hello",
+                execute=False,
+                prepare_media=False,
+                allow_degraded=False,
+                apply=False,
+                locale="en",
+            )
+
+        self.assertTrue(result["ok"])
+        live = json.loads(self.srv.conversation_file().read_text(encoding="utf-8"))
+        admin_replies = [m for m in live["messages"] if m.get("role") == "admin"]
+        self.assertEqual(admin_replies[-1]["persona"], "Admin")
+        self.assertEqual(live["active_persona"], "Admin")
+
+
 # ---------------------------------------------------------------------------
 # EventLog wiring — events_api()
 # ---------------------------------------------------------------------------

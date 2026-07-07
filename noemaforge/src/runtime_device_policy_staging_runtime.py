@@ -172,6 +172,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server._jobs_lock = threading.Lock()
     server._tasks_lock = threading.Lock()
     server._conv_lock = threading.Lock()
+    server._session_device_policy_override = None
 
     def read_json(path: Path, default: Any) -> Any:
         key = _display_path(Path(path))
@@ -254,20 +255,23 @@ def _workflow_report(policy: Dict[str, Any], *, package_root: Path) -> Dict[str,
         doc = response.get("policy", {})
         if not response.get("ok"):
             failures.append(f"{key}_policy_set_failed")
+        session_override = doc.get("session_override") if isinstance(doc.get("session_override"), dict) else {}
         if doc.get("pending_apply") is not True:
             failures.append(f"{key}_pending_apply_not_true")
         if doc.get("applies_on") != expected_applies_on:
             failures.append(f"{key}_applies_on_mismatch:{doc.get('applies_on')}")
+        if session_override.get("policy") != doc.get("policy"):
+            failures.append(f"{key}_session_override_missing")
         note = str(doc.get("note") or "") + " " + str(response.get("reply") or "")
-        if "currently running model" not in note or "backend restart" not in note:
+        if "currently running model" not in note or "backend restart" not in note or "session-only override" not in note:
             failures.append(f"{key}_staging_note_incomplete")
     if sequence["cuda"].get("policy", {}).get("policy") != "gpu":
         failures.append("cuda_alias_not_normalized_to_gpu")
     if sequence["invalid"].get("ok") is not False:
         failures.append("invalid_policy_not_rejected")
     store_keys = "\n".join(sequence.get("store_keys") or [])
-    if "device-policy.json" not in store_keys:
-        failures.append("device_policy_state_not_persisted")
+    if "device-policy.json" in store_keys:
+        failures.append("device_policy_session_state_persisted")
     if any("jobs" in key for key in sequence.get("store_keys") or []):
         failures.append("device_policy_created_job_instead_of_staging")
     return {"failures": failures, "sequence": sequence}

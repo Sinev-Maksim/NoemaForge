@@ -200,6 +200,7 @@ def build_offline_dashboard_server(*, package_root: Path | str) -> Any:
     server = object.__new__(admin_gui_server.AdminGuiServer)
     server.root = root
     server.state = root / "_offline" / "pipeline-state"
+    server.gui_state_dir = root / "_offline" / "gui"
     server.health = lambda: {"ok": True, "version": RUNTIME_VERSION, "api": ["/api/dashboard", "/api/dashboard/state", "/api/gui/state"]}
     server.dashboard_state = lambda: {"ok": True, "version": RUNTIME_VERSION, "source": "offline_dashboard_api_fixture"}
     server.conversation_history = lambda: {"conversation_id": "conv_dashboard_api", "messages": [], "artifacts": []}

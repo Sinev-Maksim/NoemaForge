@@ -75,6 +75,13 @@ DEFAULT_DB_PATH = os.environ.get("NOEMAFORGE_ROADMAP_DB", str(_pp.data_root / "r
 DEFAULT_EXPORT_DIR = str(_pp.data_root / "roadmaps/exports")
 
 
+def _placeholders(count: int) -> str:
+    n = int(count)
+    if n <= 0 or n > 100:
+        raise ValueError("invalid_placeholder_count")
+    return ",".join("?" for _ in range(n))
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
 # Purpose: Implement the routine ' nowz'.
@@ -365,7 +372,7 @@ def list_signals_since(
     con = _connect(db_path)
     try:
         if roles:
-            qs = ",".join(["?"] * len(roles))
+            qs = _placeholders(len(roles))
             rows = con.execute(
                 f"""
                 SELECT signal_id, created_at, target_role, key, title, description,

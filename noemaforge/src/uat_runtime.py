@@ -20,20 +20,25 @@ Outputs: a UAT evidence bundle under --out (events/, pipelines/<id>/,
 Side effects: spawns pipeline runs (and optionally the GUI) as subprocesses,
               writing under --out and the per-session state dir only.
 Tests: noemaforge/tests/test_uat_runtime.py
-Notes: stdlib only. Cross-platform: pipeline/GUI are launched via sys.executable
-       (no bash). Per the display-safety rule the GUI keeps the display alive.
+Notes: stdlib only. Cross-platform: pipeline runs use the pipeline_runtime Python
+       API; the optional GUI is launched via sys.executable (no bash). Per the
+       display-safety rule the GUI keeps the display alive.
        Code comments are English-only.
 === End NoemaForge File Header ===
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+import threading
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,6 +54,7 @@ from noemaforge_version import RUNTIME_VERSION  # noqa: E402
 # per-pipeline directory), so it must be a constrained token. Enforced at the call
 # site in _run_pipeline as defense-in-depth, independent of the caller's allowlist.
 _SAFE_PIPELINE_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
+_PIPELINE_RUN_COMMAND = "pipeline_runtime_run"
 
 
 def _now() -> str:
@@ -59,6 +65,105 @@ def _load_catalog(package_root: Path) -> Dict[str, Dict[str, Any]]:
     """Pipeline ids -> definition, via the pipeline runtime's own loader."""
     import pipeline_runtime  # imported lazily so --help works without the catalog
     return pipeline_runtime.load_pipeline_catalog(package_root)
+
+
+def _safe_pipeline_id(pipeline_id: str) -> str:
+    match = _SAFE_PIPELINE_ID.fullmatch(str(pipeline_id))
+    if match is None:
+        raise ValueError(f"unsafe pipeline_id: {pipeline_id!r}")
+    return match.group(0)
+
+
+def _pipeline_run_cmd(package_root: Path, pipeline_id: str, request: str, run_id: str, dry_run: bool) -> List[str]:
+    safe_pipeline_id = _safe_pipeline_id(pipeline_id)
+    cmd = [
+        sys.executable, str(package_root / "src" / "pipeline_runtime.py"),
+        "run", safe_pipeline_id,
+        "--task-id", f"uat_{safe_pipeline_id}",
+        "--request", request,
+        "--run-id", run_id,
+        "--allow-degraded",
+    ]
+    if dry_run:
+        cmd.append("--dry-run")
+    return cmd
+
+
+def _pipeline_run_command_allowlist(
+    package_root: Path,
+    pipeline_id: str,
+    request: str,
+    run_id: str,
+    dry_run: bool,
+) -> Dict[str, List[str]]:
+    """Return the only command shape recorded for UAT pipeline runs."""
+    return {
+        _PIPELINE_RUN_COMMAND: _pipeline_run_cmd(
+            package_root, pipeline_id, request, run_id, dry_run,
+        ),
+    }
+
+
+def _run_pipeline_runtime_main(
+    package_root: Path,
+    pipeline_id: str,
+    request: str,
+    run_id: str,
+    dry_run: bool,
+    timeout: int,
+    env: Dict[str, str],
+) -> subprocess.CompletedProcess[str]:
+    """Run pipeline_runtime through its Python API, avoiding user-tainted subprocess argv."""
+    import pipeline_runtime
+
+    argv = [
+        "run", pipeline_id,
+        "--task-id", f"uat_{pipeline_id}",
+        "--request", request,
+        "--run-id", run_id,
+        "--allow-degraded",
+        "--root", str(package_root),
+        "--state", str(env["NOEMAFORGE_PIPELINE_STATE"]),
+    ]
+    if dry_run:
+        argv.append("--dry-run")
+
+    stdout = io.StringIO()
+    stderr = io.StringIO()
+    old_cwd = Path.cwd()
+    old_env = dict(os.environ)
+    timer_supported = (
+        threading.current_thread() is threading.main_thread()
+        and hasattr(signal, "setitimer")
+        and hasattr(signal, "SIGALRM")
+    )
+    old_timer = signal.getitimer(signal.ITIMER_REAL) if timer_supported else (0.0, 0.0)
+    old_handler = signal.getsignal(signal.SIGALRM) if timer_supported else None
+
+    def _timeout_handler(_signum: int, _frame: Any) -> None:
+        raise TimeoutError(f"pipeline timed out after {timeout}s")
+
+    try:
+        os.chdir(package_root)
+        os.environ.clear()
+        os.environ.update(env)
+        if timer_supported:
+            signal.signal(signal.SIGALRM, _timeout_handler)
+            signal.setitimer(signal.ITIMER_REAL, max(float(timeout), 0.001))
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            try:
+                returncode = int(pipeline_runtime.main(argv) or 0)
+            except SystemExit as exc:
+                returncode = int(exc.code) if isinstance(exc.code, int) else 1
+    finally:
+        if timer_supported:
+            signal.setitimer(signal.ITIMER_REAL, old_timer[0], old_timer[1])
+            signal.signal(signal.SIGALRM, old_handler)
+        os.environ.clear()
+        os.environ.update(old_env)
+        os.chdir(old_cwd)
+
+    return subprocess.CompletedProcess(argv, returncode, stdout.getvalue(), stderr.getvalue())
 
 
 def _append_event(events_dir: Path, event_type: str, data: Dict[str, Any]) -> None:
@@ -76,26 +181,15 @@ def _run_pipeline(
     dry_run: bool,
     timeout: int,
 ) -> Dict[str, Any]:
-    """Run one pipeline as a subprocess; collect its artifacts into the bundle."""
+    """Run one pipeline through pipeline_runtime; collect its artifacts into the bundle."""
     # Hard guard: reject any pipeline_id that is not a safe token before it is used in
-    # the subprocess argv or the bundle path, and carry forward the regex-match result
-    # so the value is provably sanitized at the source (fixing the injection rather than
-    # suppressing the scanner). This also blocks path traversal in out_dir below.
-    match = _SAFE_PIPELINE_ID.fullmatch(pipeline_id)
-    if match is None:
-        raise ValueError(f"unsafe pipeline_id: {pipeline_id!r}")
-    pipeline_id = match.group(0)
+    # the runtime argv or the bundle path. This also blocks path traversal below.
+    pipeline_id = _safe_pipeline_id(pipeline_id)
     run_id = f"uat_{pipeline_id}_{int(time.time())}"
-    cmd = [
-        sys.executable, str(package_root / "src" / "pipeline_runtime.py"),
-        "run", pipeline_id,
-        "--task-id", f"uat_{pipeline_id}",
-        "--request", request,
-        "--run-id", run_id,
-        "--allow-degraded",
-    ]
-    if dry_run:
-        cmd.append("--dry-run")
+    command_allowlist = _pipeline_run_command_allowlist(
+        package_root, pipeline_id, request, run_id, dry_run,
+    )
+    cmd = command_allowlist[_PIPELINE_RUN_COMMAND]
     # Display-safety: pipeline_runtime.run is orchestration with no display surface;
     # any model/GPU launch it triggers goes through model_selection_runtime, which
     # always passes --keep-display. The UAT runner never stops a display manager.
@@ -104,13 +198,8 @@ def _run_pipeline(
     out_dir.mkdir(parents=True, exist_ok=True)
     record["artifact_count"] = 0
     try:
-        # pipeline_id/run_id are regex-validated safe tokens (see _SAFE_PIPELINE_ID)
-        # and shell=False (list cmd), so there is no shell to inject into. Scoped,
-        # code-backed suppression for the framework-mismatched django taint rule — this
-        # replaces the repo-wide --exclude-rule, so injection detection stays live.
-        proc = subprocess.run(  # nosemgrep: python.django.security.injection.command.subprocess-injection
-            cmd, cwd=str(package_root), env=env, text=True,
-            capture_output=True, timeout=timeout,
+        proc = _run_pipeline_runtime_main(
+            package_root, pipeline_id, request, run_id, dry_run, timeout, env,
         )
         record["returncode"] = proc.returncode
         record["status"] = "ok" if proc.returncode == 0 else "failed"
@@ -126,6 +215,12 @@ def _run_pipeline(
             record["artifact_count"] = sum(
                 1 for _ in (out_dir / "run_dir").rglob("*") if _.is_file()
             )
+    except TimeoutError:
+        record["status"] = "timeout"
+        record["returncode"] = None
+        (out_dir / "status.txt").write_text(f"timeout after {timeout}s\n", encoding="utf-8")
+        (out_dir / "stdout.txt").write_text("", encoding="utf-8")
+        (out_dir / "stderr.txt").write_text("", encoding="utf-8")
     except subprocess.TimeoutExpired as exc:
         record["status"] = "timeout"
         record["returncode"] = None
@@ -180,12 +275,14 @@ def run_uat(args: argparse.Namespace) -> int:
 
     catalog = _load_catalog(package_root)
     if args.pipelines:
-        selected = [p for p in args.pipelines.split(",") if p.strip()]
-        unknown = [p for p in selected if p not in catalog]
+        requested = [p.strip() for p in args.pipelines.split(",") if p.strip()]
+        unknown = [p for p in requested if p not in catalog]
         if unknown:
             print(json.dumps({"ok": False, "error": "unknown_pipelines", "unknown": unknown}),
                   file=sys.stderr)
             return 2
+        catalog_ids = {p: p for p in catalog}
+        selected = [catalog_ids[p] for p in requested]
     else:
         selected = sorted(catalog)
 

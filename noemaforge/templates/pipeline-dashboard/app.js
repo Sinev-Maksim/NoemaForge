@@ -18,6 +18,7 @@ let allMessages = {};
 let activeLocale = 'ru';
 let latestRaw = {};
 let pendingAction = null;
+let activeStageHandoff = null;
 let pipelineCatalog = [];
 let pipelineFilter = 'All';
 let jobStream = null;
@@ -42,6 +43,8 @@ let _confirmPipelineId = '';
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
+const CANONICAL_MAIN_BACKEND_SOCKET = '/run/noemaforge/llm/backends/main.sock';
+
 const INACTIVITY_REFRESH_VISIBLE_MS = 1000;
 const INACTIVITY_REFRESH_HIDDEN_MS = 30000;
 const DASHBOARD_REFRESH_VISIBLE_MS = 10000;
@@ -69,6 +72,24 @@ function makeNode(tag, className='', text=''){
 }
 function replaceWithNodes(target, nodes){ target.replaceChildren(...nodes); }
 function showMuted(target, text){ replaceWithNodes(target, [makeNode('p', 'muted', text)]); }
+function taskStateReasonLabel(reason){
+  const labels = {
+    default_tasks_policy_unavailable: t('tasks.state.default_tasks_policy_unavailable', 'Default task policy unavailable'),
+    no_default_tasks_configured: t('tasks.state.no_default_tasks_configured', 'No default tasks configured'),
+    default_tasks_present: t('tasks.state.default_tasks_present', 'Default tasks present'),
+    default_tasks_configured_not_materialized: t('tasks.state.default_tasks_configured_not_materialized', 'Default tasks not materialized'),
+    default_tasks_partially_present: t('tasks.state.default_tasks_partially_present', 'Some default tasks missing'),
+  };
+  return labels[reason] || t('tasks.state.unavailable', 'Task panel state unavailable');
+}
+function taskStateNote(taskState){
+  const reason = String(taskState?.state_reason || '');
+  const note = makeNode('div', 'task-state-note');
+  if(reason) note.title = reason;
+  note.append(makeNode('b', '', taskStateReasonLabel(reason)));
+  note.append(makeNode('span', '', taskState?.visible_note || 'Task panel state is unavailable.'));
+  return note;
+}
 function safeLocalUrl(value){
   if(!value) return '';
   try{
@@ -302,6 +323,60 @@ function postStageHandoffToChat(handoff){
   const questions = Array.isArray(handoff.questions) ? handoff.questions : [];
   addMessage(persona, [handoff.message || 'Stage handoff required.', ...questions].join('\n'));
 }
+function _setActiveStageHandoff(handoff){
+  if(!handoff || !handoff.run_id){
+    activeStageHandoff = null;
+    return;
+  }
+  const replyState = handoff.operator_reply_state || {};
+  activeStageHandoff = {
+    run_id: String(handoff.run_id || ''),
+    pipeline_id: String(handoff.pipeline_id || ''),
+    current_stage: String(handoff.current_stage || ''),
+    persona: String(handoff.persona || 'Pipeline'),
+    handoff_version: String(handoff.handoff_version || ''),
+    state: String(replyState.state || 'waiting_for_operator_reply'),
+  };
+}
+function _clearActiveStageHandoff(runId, stage){
+  if(!activeStageHandoff) return;
+  if(runId && String(activeStageHandoff.run_id) !== String(runId)) return;
+  if(stage && String(activeStageHandoff.current_stage) !== String(stage)) return;
+  activeStageHandoff = null;
+}
+function _panelForRun(runId){
+  if(!runId) return null;
+  return Array.from(document.querySelectorAll('.pipeline-run-panel')).find(panel => String(panel.dataset.runId || '') === String(runId)) || null;
+}
+async function _sendActiveStageHandoffReply(text){
+  const handoff = activeStageHandoff ? {...activeStageHandoff} : null;
+  if(!handoff || !handoff.run_id) return null;
+  const reply = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/reply`, {
+    stage: handoff.current_stage,
+    message: text,
+    action: 'reply',
+    source: 'chat_input',
+    allow_degraded: true,
+  });
+  const status = await api(`/api/pipeline/run/${encodeURIComponent(handoff.run_id)}/status`);
+  const panel = _panelForRun(handoff.run_id);
+  if(panel) _updatePipelineRunPanel(panel, status);
+  _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  return {
+    ...reply,
+    mode: 'pipeline_stage_handoff_response',
+    reply: reply.ok === false
+      ? `Pipeline handoff reply rejected: ${reply.error || 'unknown error'}`
+      : `Operator reply recorded for pipeline ${handoff.pipeline_id || status.pipeline_id || handoff.run_id}, stage ${handoff.current_stage || status.current_stage || 'stage'}.`,
+    route: {id:'pipeline_handoff_reply', intent:'pipeline_handoff_reply', pipeline_id:handoff.pipeline_id || status.pipeline_id, run_id:handoff.run_id},
+    status_after_reply: status,
+    stage_handoff: status.stage_handoff || null,
+    operator_reply_state: status.operator_reply_state || reply.operator_reply_state,
+    handoff_reply_mode: status.handoff_reply_mode,
+    handoff_reply_limitation: status.handoff_reply_limitation,
+    handoff_next_action: status.handoff_next_action,
+  };
+}
 async function _replyStageHandoff(panel, handoff, input, messageNode){
   const runId = String(handoff?.run_id || panel.dataset.runId || '');
   const text = String(input.value || '').trim();
@@ -314,6 +389,7 @@ async function _replyStageHandoff(panel, handoff, input, messageNode){
     messageNode.textContent = 'Reply saved.';
     const status = await api(`/api/pipeline/run/${encodeURIComponent(runId)}/status`);
     _updatePipelineRunPanel(panel, status);
+    _clearActiveStageHandoff(runId, handoff.current_stage);
   }catch(e){
     messageNode.textContent = `Reply error: ${e.message || String(e)}`;
   }
@@ -384,9 +460,11 @@ function _renderStageHandoff(panel, handoff){
     panel.insertBefore(box, refreshBtn || null);
   }
   box._handoff = handoff;
+  const replyState = handoff.operator_reply_state || {};
+  if(replyState.state === 'operator_reply_recorded') _clearActiveStageHandoff(handoff.run_id, handoff.current_stage);
+  else _setActiveStageHandoff(handoff);
   box.querySelector('.stage-handoff-title').textContent = `${handoff.persona || 'Pipeline'} · ${handoff.current_stage || 'stage'}`;
   box.querySelector('.stage-handoff-message').textContent = handoff.message || 'Stage handoff required.';
-  const replyState = handoff.operator_reply_state || {};
   const quality = handoff.output_quality || {};
   const actions = Array.isArray(handoff.next_actions || handoff.suggested_actions) ? (handoff.next_actions || handoff.suggested_actions).join(' · ') : '—';
   box.querySelector('.stage-handoff-meta').textContent = `Output: ${quality.quality || (quality.exists ? 'placeholder' : 'missing')} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${actions}`;
@@ -452,7 +530,13 @@ async function _workTowardNormalMode(messageNode){
     const {mode, composite_top_n} = selectionModePayload();
     const result = await api('/api/model-selection/continue', {mode, composite_top_n, recovery:'normal-mode recovery'});
     absorbResult(result);
-    messageNode.textContent = 'Normal-mode recovery job/plan created. Use the exact operator command from the job card; the dashboard did not fake normal mode.';
+    const transition = result.transition_payload || {};
+    if(result.action_state === 'plan_only' || transition.state === 'plan_only'){
+      const label = transition.next_action_label || result.next_action_label || 'Run approved normal-mode selection';
+      messageNode.textContent = `Normal-mode recovery is plan-only; no corrective process is running. Next action: ${label}. Use the exact operator command from the job card.`;
+    }else{
+      messageNode.textContent = result.reply || 'Normal-mode recovery state updated.';
+    }
     addMessage('Admin', messageNode.textContent);
     await refreshJobs();
   }catch(e){
@@ -513,7 +597,9 @@ function _updatePipelineRunPanel(panel, status){
   const quality = status.stage_output_quality || {};
   const blocker = status.actionable_blocker || {};
   const nextActions = Array.isArray(status.next_actions) && status.next_actions.length ? status.next_actions.join(' · ') : '—';
-  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'} · Next: ${nextActions}`;
+  const handoffMode = status.handoff_reply_mode && status.handoff_reply_mode !== 'none' ? ` · Mode: ${status.handoff_reply_mode}` : '';
+  const handoffNext = status.handoff_next_action ? ` · Handoff next: ${status.handoff_next_action}` : '';
+  metaLine.textContent = `Stage state: ${progress.state || status.status || '—'} · Output: ${quality.quality || 'missing'} · Reply: ${replyState.state || 'waiting_for_operator_reply'}${handoffMode}${handoffNext} · Next: ${nextActions}`;
   let blockerLine = panel.querySelector('.pipeline-run-blocker');
   if(blocker && blocker.message){
     if(!blockerLine){
@@ -524,6 +610,17 @@ function _updatePipelineRunPanel(panel, status){
     blockerLine.textContent = `Blocker: ${blocker.message}`;
   }else if(blockerLine){
     blockerLine.remove();
+  }
+  let limitationLine = panel.querySelector('.pipeline-run-handoff-limitation');
+  if(status.handoff_reply_limitation){
+    if(!limitationLine){
+      limitationLine = document.createElement('div');
+      limitationLine.className = 'pipeline-run-handoff-limitation muted';
+      panel.insertBefore(limitationLine, panel.querySelector('.pipeline-run-refresh'));
+    }
+    limitationLine.textContent = status.handoff_reply_limitation;
+  }else if(limitationLine){
+    limitationLine.remove();
   }
   if(['completed','done','failed','cancelled'].includes(String(status.status || '').toLowerCase())){
     activeRunIds.delete(String(panel.dataset.runId || ''));
@@ -733,7 +830,9 @@ async function sendAdmin(){
   try{
     const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
     let result;
-    if(modePick){
+    if(activeStageHandoff?.run_id){
+      result = await _sendActiveStageHandoffReply(text);
+    }else if(modePick){
       result = await api('/api/model-selection/plan', {request:`GUI pending model selection: ${text}`, mode:modePick.mode, composite_top_n:modePick.composite_top_n, scope:pendingAction.scope || 'dev team'});
       result.type = 'model_selection';
       // Persist the selected mode to session so it survives page refresh.
@@ -787,30 +886,102 @@ async function refreshEpoch(showMessage=false){
 }
 function _gib(bytes){ return bytes != null ? (bytes / 1073741824).toFixed(1) + ' GiB' : '—'; }
 function _pct(v){ return v != null ? String(Math.round(v)) + '%' : '—'; }
+function _meminfoBytes(value){
+  const match = String(value || '').trim().match(/^(\d+)/);
+  return match ? Number(match[1]) * 1024 : null;
+}
+function _firstValue(...values){
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') return value;
+  }
+  return null;
+}
+function _memoryBucket(memory, name){
+  const bucket = memory[name] || {};
+  if (name === 'ram') {
+    const total = _firstValue(bucket.total, memory.total, _meminfoBytes(memory.MemTotal));
+    const available = _firstValue(bucket.available, memory.available, _meminfoBytes(memory.MemAvailable));
+    const used = _firstValue(bucket.used, memory.used, total != null && available != null ? total - available : null);
+    const percent = _firstValue(bucket.percent, memory.percent, total ? used / total * 100 : null);
+    return {total, used, percent};
+  }
+  const total = _firstValue(bucket.total, memory.swap_total, _meminfoBytes(memory.SwapTotal));
+  const free = _firstValue(bucket.free, memory.swap_free, _meminfoBytes(memory.SwapFree));
+  const used = _firstValue(bucket.used, memory.swap_used, total != null && free != null ? total - free : null);
+  const percent = _firstValue(bucket.percent, memory.swap_percent, total ? used / total * 100 : null);
+  return {total, used, percent};
+}
+function _parseGpuCsv(text){
+  return String(text || '').trim().split('\n').map((line) => {
+    const parts = line.split(',').map((part) => part.trim());
+    if (parts.length < 6) return null;
+    return {
+      name: parts[0],
+      temperature_c: parts[1],
+      power_w: parts[2],
+      memory_used_mib: parts[3],
+      memory_total_mib: parts[4],
+      utilization_percent: parts[5],
+    };
+  }).filter(Boolean);
+}
+function _fmtGpuRows(hw){
+  const gpus = Array.isArray(hw.gpus) && hw.gpus.length ? hw.gpus : _parseGpuCsv(hw.nvidia_smi?.stdout);
+  if (!gpus.length) {
+    const reason = hw.nvidia_smi?.stderr || (hw.nvidia_smi?.available === false ? 'nvidia-smi unavailable' : '');
+    return [`GPU:   ${reason ? `not available (${reason})` : 'not available'}`];
+  }
+  const rows = [];
+  gpus.forEach((gpu, idx) => {
+    const label = gpus.length > 1 ? `GPU ${idx + 1}` : 'GPU';
+    rows.push(`${label}:   ${_na(gpu.name)}`);
+    rows.push(`  Temp: ${_na(gpu.temperature_c)} C · Power: ${_na(gpu.power_w)} W · Util: ${_na(gpu.utilization_percent)}%`);
+    rows.push(`  VRAM: ${_na(gpu.memory_used_mib)} / ${_na(gpu.memory_total_mib)} MiB`);
+  });
+  return rows;
+}
 function _fmtHardware(hw){
   if (!hw) return '—';
   const m = hw.memory || {};
+  const ram = _memoryBucket(m, 'ram');
+  const swap = _memoryBucket(m, 'swap');
   const lines = [
-    `RAM:   ${_gib(m.used)} / ${_gib(m.total)} (${_pct(m.percent)} used)`,
-    `Swap:  ${_gib(m.swap_used)} / ${_gib(m.swap_total)} (${_pct(m.swap_percent)} used)`,
+    `RAM:   ${_gib(ram.used)} / ${_gib(ram.total)} (${_pct(ram.percent)} used)`,
+    `Swap:  ${_gib(swap.used)} / ${_gib(swap.total)} (${_pct(swap.percent)} used)`,
   ];
-  const gpu = String(hw.nvidia_smi?.stdout || hw.nvidia_smi?.stderr || '').trim().split('\n')[0];
-  if (gpu) lines.push(`GPU:   ${gpu.slice(0, 140)}`);
-  return lines.join('\n');
+  return lines.concat(_fmtGpuRows(hw)).join('\n');
 }
 function _metricRow(label, value){ return `${label.padEnd(22)} ${value != null && value !== '' ? String(value) : '—'}`; }
+function _metricCellRow(label, cell, formatter){
+  const c = cell && typeof cell === 'object' && Object.prototype.hasOwnProperty.call(cell, 'value')
+    ? cell
+    : {value: cell, source: 'legacy telemetry field'};
+  const value = c.value;
+  const present = !(value == null || value === '' || (Array.isArray(value) && value.length === 0));
+  if (!present) {
+    const reason = c.reason || 'not present in source artifact';
+    const source = c.source ? ` (${c.source})` : '';
+    return _metricRow(label, `missing: ${reason}${source}`);
+  }
+  let rendered = formatter ? formatter(value) : value;
+  if (Array.isArray(rendered)) rendered = rendered.length ? rendered.join(', ') : 'none';
+  const source = c.source ? ` [${c.source}]` : '';
+  return _metricRow(label, `${rendered}${source}`);
+}
 function _na(value){
   const text = value == null ? '' : String(value).trim();
   return text || 'not available';
 }
 function _fmtSoftware(health){
   const h = health || {};
+  const gitReason = _na(h.git_metadata_reason || 'package/release install metadata only; git metadata not reported');
   return [
     _metricRow('Version:', _na(h.version)),
     _metricRow('Root:', _na(h.root)),
     _metricRow('State:', _na(h.state)),
     _metricRow('Git branch:', _na(h.git_branch)),
     _metricRow('Git head:', _na(h.git_head)),
+    _metricRow('Git metadata:', gitReason),
     _metricRow('CLI path:', _na(h.cli_path)),
     _metricRow('Install path:', _na(h.install_path)),
   ].join('\n');
@@ -818,27 +989,52 @@ function _fmtSoftware(health){
 function _fmtRuntimeState(runtime){
   const rt = runtime || {};
   const policy = rt.device_policy || {};
+  const persistent = policy.persistent_default || {};
+  const sessionOverride = policy.session_override || {};
+  const effective = policy.effective_policy || {};
   const sockets = rt.sockets || {};
+  const services = rt.service_states || {};
+  const socketStates = rt.socket_states || {};
   const active = rt.active_model || {};
-  const requiredSockets = [
-    '/run/noemaforge/llm/gateway.sock',
-    '/run/noemaforge/llm/backends/main.sock',
-    '/run/brainos/llm/gateway.sock',
-  ];
-  const socketPaths = [...new Set([...requiredSockets, ...Object.keys(sockets)])];
-  const socketRows = socketPaths.map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  const startup = rt.startup_profile || {};
+  const transition = startup.transition || {};
+  const serviceRows = Object.entries(services).map(([name, item]) => {
+    const unit = item?.unit || name;
+    const state = item?.state || 'unknown';
+    return `  ${unit}: ${state}`;
+  });
+  const socketRows = Object.entries(socketStates).map(([name, item]) => {
+    const path = item?.path || name;
+    const state = item?.state || (item?.present ? 'present' : 'missing');
+    return `  ${path}: ${state}`;
+  });
+  const fallbackSocketRows = Object.keys(sockets).map(path => `  ${path}: ${sockets[path] ? 'present' : 'missing'}`);
+  if (!socketRows.length && !fallbackSocketRows.some(row => row.includes(CANONICAL_MAIN_BACKEND_SOCKET))) {
+    fallbackSocketRows.unshift(`  ${CANONICAL_MAIN_BACKEND_SOCKET}: not reported`);
+  }
+  const freshness = rt.state_freshness || {};
   return [
+    'State freshness',
+    _metricRow('  State:', freshness.state || 'unknown'),
+    _metricRow('  Observed at:', freshness.observed_at || rt.observed_at || '—'),
+    '',
+    'Services',
+    serviceRows.length ? serviceRows.join('\n') : '  not available',
+    '',
     'Device policy',
-    _metricRow('  Policy:', policy.policy || policy.mode || '—'),
+    _metricRow('  Safe default:', policy.safe_default?.policy || 'cpu'),
+    _metricRow('  Persistent default:', persistent.policy ? `${persistent.policy}${persistent.configured ? '' : ' (not configured)'}` : 'not configured'),
+    _metricRow('  Session override:', sessionOverride.policy ? `${sessionOverride.policy} (session only)` : 'none'),
+    _metricRow('  Effective:', effective.policy || policy.policy || policy.mode || '—'),
     _metricRow('  Pending apply:', policy.pending_apply),
-    _metricRow('  Applies on:', policy.applies_on),
-    _metricRow('  Updated at:', policy.updated_at),
+    _metricRow('  Applies on:', effective.applies_on || policy.applies_on),
+    _metricRow('  Updated at:', effective.updated_at || policy.updated_at),
     _metricRow('  Note:', policy.note),
-    _metricRow('  GPU allowed:', policy.gpu_allowed),
-    _metricRow('  Max active LLMs:', policy.max_active_llms),
+    _metricRow('  GPU policy:', effective.gpu_policy || policy.gpu_policy),
+    _metricRow('  Max active workers:', effective.max_active_heavy_workers || policy.max_active_heavy_workers || policy.max_active_llms),
     '',
     'Sockets',
-    socketRows.length ? socketRows.join('\n') : '  not available',
+    socketRows.length ? socketRows.join('\n') : (fallbackSocketRows.length ? fallbackSocketRows.join('\n') : '  not available'),
     '',
     'Active model',
     _metricRow('  State:', active.state || (rt.model_selection_required ? 'missing' : '—')),
@@ -848,22 +1044,51 @@ function _fmtRuntimeState(runtime){
     _metricRow('  Model realpath:', active.model_realpath),
     _metricRow('  Selection required:', active.selection_required ?? rt.model_selection_required),
     _metricRow('  Message:', active.message || '—'),
+    '',
+    'Startup profile',
+    _metricRow('  Safe minimal:', startup.safe_minimal_profile || 'minimal'),
+    _metricRow('  Default:', startup.default_profile),
+    _metricRow('  Session:', startup.session_profile),
+    _metricRow('  Last usable:', startup.last_known_usable_profile),
+    _metricRow('  Active:', startup.active_profile),
+    _metricRow('  Reason:', startup.active_reason || transition.reason),
+    _metricRow('  Transition:', transition.state),
+    _metricRow('  Test endpoint:', startup.api?.test_endpoint || '/api/startup/profile'),
   ].join('\n');
 }
 function _fmtProductMetrics(prod){
   if (!prod) return '—';
   const ms = prod.model_selection || {};
   const cm = prod.creative_media || {};
+  const metrics = ms.metrics || {};
+  const state = metrics.staffing_state || ms.staffing_state;
+  const degradedNote = ms.staffing_state === 'degraded_selected'
+    ? [
+        'degraded_selected',
+        ms.status_explanation || 'Mandatory core roles are staffed, but selected role quality is below target thresholds.',
+        `Next action: ${ms.next_action || 'Review degraded roles and continue only with explicit degraded approval or rerun model selection.'}`,
+        '',
+      ]
+    : (ms.status_explanation ? ['Model selection', ms.status_explanation, ms.next_action ? `Next action: ${ms.next_action}` : '', ''] : []);
   const rows = [
-    _metricRow('Selected model:', ms.current_main_model || ms.main_model || '—'),
-    _metricRow('Selection status:', ms.staffing_state || '—'),
-    _metricRow('Score:', ms.selection_score != null ? ms.selection_score : '—'),
-    _metricRow('Pass rate:', ms.pass_rate != null ? _pct(ms.pass_rate * 100) : '—'),
-    _metricRow('JSON parse rate:', ms.json_parse_rate != null ? _pct(ms.json_parse_rate * 100) : '—'),
-    _metricRow('Quality score:', ms.quality_score != null ? ms.quality_score : '—'),
-    _metricRow('Avg latency (s):', ms.avg_latency_s != null ? ms.avg_latency_s : '—'),
-    _metricRow('Failed tasks:', ms.failed_tasks != null ? ms.failed_tasks : '—'),
-    _metricRow('Top-N composite:', ms.selected_composite_top_n != null ? ms.selected_composite_top_n : '—'),
+    ...degradedNote.filter(Boolean),
+    _metricCellRow('Selected model:', metrics.current_main_model || ms.current_main_model || ms.main_model),
+    _metricCellRow('Selection status:', state),
+    _metricCellRow('Selected count:', metrics.selected_model_count || ms.selected_model_count),
+    _metricCellRow('Role coverage:', metrics.role_coverage),
+    _metricCellRow('Target-met roles:', metrics.target_met_roles),
+    _metricCellRow('Degraded roles:', metrics.degraded_roles),
+    _metricCellRow('Unstaffed roles:', metrics.unstaffed_roles),
+    _metricCellRow('Missing mandatory:', metrics.missing_mandatory_core_roles || ms.missing_mandatory_core_roles),
+    _metricCellRow('Warnings:', metrics.warnings),
+    _metricCellRow('Score:', metrics.selection_score || ms.selection_score),
+    _metricCellRow('Pass rate:', metrics.pass_rate || ms.pass_rate, v => _pct(Number(v) * 100)),
+    _metricCellRow('JSON parse rate:', metrics.json_parse_rate || ms.json_parse_rate, v => _pct(Number(v) * 100)),
+    _metricCellRow('Quality score:', metrics.quality_score || ms.quality_score),
+    _metricCellRow('Avg latency (s):', metrics.avg_latency_s || ms.avg_latency_s),
+    _metricCellRow('Failed tasks:', metrics.failed_tasks || ms.failed_tasks),
+    _metricCellRow('Selection mode:', metrics.selection_mode),
+    _metricCellRow('Top-N composite:', metrics.selected_composite_top_n || ms.selected_composite_top_n),
     cm.status ? _metricRow('Creative media:', cm.status) : null,
   ].filter(Boolean);
   return rows.join('\n');
@@ -876,11 +1101,15 @@ async function refreshTelemetry(){
     el('version-line').textContent = mismatch ? `NoemaForge / version mismatch: API ${health.version} telemetry ${st.version}` : `NoemaForge / ${apiVersion || 'not available'}`;
     el('hardware-status').textContent = 'ok';
     el('runtime-status').textContent = st.runtime?.main_backend?.stdout || st.runtime?.main_backend?.returncode || 'runtime';
-    el('product-status').textContent = st.product?.model_selection?.staffing_state || '—';
+    const productState = st.product?.model_selection?.staffing_state || '—';
+    el('product-status').textContent = productState;
+    el('product-status').title = st.product?.model_selection?.status_explanation || '';
     el('hardware-metrics').textContent = _fmtHardware(st.hardware);
     renderRuntimeObserverCards(st.runtime?.observer_cards || []);
     el('software-metrics').textContent = _fmtSoftware(health);
     el('runtime-metrics').textContent = _fmtRuntimeState(st.runtime);
+    const effectiveDevicePolicy = st.runtime?.device_policy?.effective_policy?.policy || st.runtime?.device_policy?.policy;
+    if (effectiveDevicePolicy && el('device-policy')) el('device-policy').value = effectiveDevicePolicy;
     el('product-metrics').textContent = _fmtProductMetrics(st.product);
   }catch(e){ el('hardware-status').textContent = 'error'; }
 }
@@ -888,15 +1117,37 @@ async function refreshTasks(){
   try{
     const st = await api('/api/tasks');
     const tasks = st.tasks || [];
-    el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked`;
+    const taskState = st.task_state || {};
+    const expectedDefaults = st.expected_default_tasks || taskState.expected_default_tasks || [];
+    const stateSuffix = taskState.state_reason ? ` · ${taskStateReasonLabel(taskState.state_reason)}` : '';
+    el('task-summary').title = taskState.state_reason ? String(taskState.state_reason) : '';
+    el('task-summary').textContent = `${st.summary?.pending || 0} pending · ${st.summary?.blocked || 0} blocked${stateSuffix}`;
     const target = el('tasks');
-    if(!tasks.length){ showMuted(target, 'No tasks yet.'); return; }
-    replaceWithNodes(target, tasks.slice(-8).reverse().map(x => {
+    if(!tasks.length){
+      const nodes = [];
+      nodes.push(taskStateNote(taskState));
+      if(expectedDefaults.length){
+        nodes.push(...expectedDefaults.slice(0, 8).map(x => {
+          const task = makeNode('div', 'task expected-task');
+          task.append(makeNode('b', '', x.title || x.module || x.kind || 'Default task'));
+          task.append(makeNode('span', '', `${x.domain || x.category || 'default'} · ${x.priority_class || 'background'} · expected`));
+          return task;
+        }));
+      }else{
+        nodes.push(makeNode('p', 'muted', 'No tasks yet.'));
+      }
+      replaceWithNodes(target, nodes);
+      return;
+    }
+    const nodes = [];
+    if(taskState.state_reason && taskState.state_reason !== 'default_tasks_present') nodes.push(taskStateNote(taskState));
+    nodes.push(...tasks.slice(-8).reverse().map(x => {
       const task = makeNode('div', 'task');
       task.append(makeNode('b', '', x.title));
       task.append(makeNode('span', '', `${x.category} · p=${x.priority} · ${x.status}`));
       return task;
     }));
+    replaceWithNodes(target, nodes);
   }catch(e){ showMuted(el('tasks'), 'tasks unavailable'); }
 }
 const CANCELLABLE_JOB_STATES = new Set(['queued','starting','running','needs_privilege']);
@@ -923,8 +1174,12 @@ function renderJobs(jobs){
       job.append(btn);
     }
     job.append(makeNode('b', '', j.kind));
-    job.append(makeNode('span', '', `${j.status} · ${j.job_id}`));
+    const actionStateValue = j.action_state_label || j.action_state;
+    const actionState = actionStateValue ? ` · ${actionStateValue}` : '';
+    job.append(makeNode('span', '', `${j.status}${actionState} · ${j.job_id}`));
+    if(j.next_action_label) job.append(makeNode('span', '', `Next: ${j.next_action_label}`));
     job.append(makeNode('code', '', j.command || ''));
+    if(j.next_action_command) job.append(makeNode('code', '', j.next_action_command));
     return job;
   }));
 }
@@ -1003,7 +1258,7 @@ function updateDashboardRefreshCadence(){
 async function showPersonaRules(){
   try{
     const st = await api('/api/persona/rules');
-    showModal('Persona rules', st.rules || st);
+    showPersonaRulesModal(st);
   }catch(e){ addMessage('Admin', `Persona rules error: ${String(e)}`, 'error'); }
 }
 async function pollEvents(){
@@ -1056,7 +1311,8 @@ async function continueSelection(){
 }
 async function reinventoryVault(){ try{ const r = await api('/api/vault/reinventory', {}); absorbResult(r); refreshJobs(); }catch(e){ addMessage('Admin', `Vault inventory error: ${String(e)}`, 'error'); } }
 async function stopWorkflow(){ try{ absorbResult(await api('/api/workflow/stop', {reason:'operator_clicked_stop'})); }catch(e){ addMessage('Admin', `Stop error: ${String(e)}`, 'error'); } }
-async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function setDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {policy:el('device-policy').value, scope:'session'}); absorbResult(r); }catch(e){ addMessage('Admin', `Device policy error: ${String(e)}`, 'error'); } }
+async function resetDevicePolicy(){ try{ const r = await api('/api/runtime/device-policy', {reset_to_safe_default:true, scope:'session'}); absorbResult(r); el('device-policy').value = 'cpu'; }catch(e){ addMessage('Admin', `Device policy reset error: ${String(e)}`, 'error'); } }
 async function loadUsecases(){
   try{
     const data = await api('/api/usecases');
@@ -1307,7 +1563,61 @@ function showPipelineDiagram(id, data){
   const body=el('modal-body');body.textContent='';body.appendChild(wrap);
   el('modal').classList.remove('hidden');
 }
-function showModal(title, obj){ el('modal-title').textContent = title; el('modal-body').textContent = typeof obj === 'string' ? obj : JSON.stringify(obj,null,2); el('modal').classList.remove('hidden'); }
+function _jsonPre(obj){
+  const pre = makeNode('pre', '', typeof obj === 'string' ? obj : JSON.stringify(obj, null, 2));
+  return pre;
+}
+function showModal(title, obj){
+  el('modal-title').textContent = title;
+  replaceWithNodes(el('modal-body'), [_jsonPre(obj)]);
+  el('modal').classList.remove('hidden');
+}
+function _personaRulesVisualText(visual){
+  const parts = [];
+  if(visual.status) parts.push(`Status: ${visual.status}`);
+  if(visual.value != null) parts.push(`Value: ${visual.value}${visual.max != null ? ` / ${visual.max}` : ''}${visual.unit ? ` ${visual.unit}` : ''}`);
+  if(Array.isArray(visual.rows)) parts.push(`${visual.rows.length} rows`);
+  if(Array.isArray(visual.points)) parts.push(`${visual.points.length} points`);
+  if(Array.isArray(visual.events)) parts.push(`${visual.events.length} events`);
+  return parts.join('\n') || (visual.source || 'persona_rules');
+}
+function showPersonaRulesModal(payload){
+  const rendered = payload.rendered_rules || {};
+  const sections = Array.isArray(rendered.sections) ? rendered.sections : [];
+  const visuals = Array.isArray(payload.visuals) ? payload.visuals : (Array.isArray(rendered.visuals) ? rendered.visuals : []);
+  const root = makeNode('div', 'persona-rules-view');
+  if(sections.length){
+    sections.forEach(section => {
+      const card = makeNode('section', 'persona-rule-section');
+      card.append(makeNode('h3', '', section.title || 'Persona rules'));
+      const lines = Array.isArray(section.lines) ? section.lines : [];
+      const list = makeNode('ul');
+      lines.forEach(line => list.append(makeNode('li', '', String(line || '').replace(/^- /, ''))));
+      card.append(list);
+      root.append(card);
+    });
+  }else{
+    root.append(_jsonPre(rendered.text || 'No readable persona rules are available.'));
+  }
+  if(visuals.length){
+    const grid = makeNode('div', 'persona-visual-grid');
+    visuals.forEach(visual => {
+      const card = makeNode('div', 'persona-visual');
+      card.dataset.renderHint = String(visual.type || '');
+      card.append(makeNode('b', '', `${visual.type || 'Visual'} · ${visual.title || 'Persona rules'}`));
+      card.append(makeNode('span', 'muted', _personaRulesVisualText(visual)));
+      grid.append(card);
+    });
+    root.append(grid);
+  }
+  const audit = makeNode('details', 'audit-card');
+  audit.append(makeNode('summary', '', 'Raw JSON audit'));
+  audit.append(_jsonPre(payload.rules || payload));
+  root.append(audit);
+  el('modal-title').textContent = 'Persona rules';
+  replaceWithNodes(el('modal-body'), [root]);
+  el('modal').classList.remove('hidden');
+}
 async function addTaskDialog(){ const title = prompt('Task title:'); if(!title) return; const cat = prompt('Category:', 'gui') || 'general'; const priority = Number(prompt('Priority 1-100:', '50') || 50); const r = await api('/api/tasks/create', {title, category:cat, priority}); absorbResult(r); refreshTasks(); }
 async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
@@ -1385,6 +1695,7 @@ if (typeof window !== 'undefined' && window.document === document) {
   el('depth-minutes').addEventListener('input', _updateDepthNotice);
   el('depth-until-stop').addEventListener('change', _updateDepthNotice);
   el('device-policy').addEventListener('change', setDevicePolicy);
+  el('device-policy-reset').addEventListener('click', resetDevicePolicy);
   el('tasks-refresh').addEventListener('click', refreshTasks);
   el('task-add').addEventListener('click', addTaskDialog);
   el('public-showcase-load').addEventListener('click', loadPublicShowcase);

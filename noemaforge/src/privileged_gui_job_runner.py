@@ -19,14 +19,15 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import importlib
 import json
 import os
 import re
 import shlex
 import subprocess
 import sys
+import threading
 import time
-import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Sequence
@@ -44,6 +45,7 @@ SELECTED_TODO_APPROVED_GUI_JOBS = "Add polkit/root job-runner for approved privi
 SELECTED_TODOS = [SELECTED_TODO_EPOCH_APPLY, SELECTED_TODO_APPROVED_GUI_JOBS]
 VALID_STATUSES = {"draft", "shadow", "stable", "retired"}
 SAFE_ID_RE = re.compile(r"^[A-Za-z0-9_.:/-]{1,220}$")
+XML_ENTITY_RE = re.compile(r"<!\s*ENTITY\b", re.IGNORECASE)
 DEFAULT_POLICY_REF = "configs/privileged-gui-job-runner-policy.json"
 DEFAULT_EXAMPLE_REF = "prelaunch/governance/privileged_gui_job_runner.example.json"
 REGISTRY_REFS = [
@@ -64,6 +66,20 @@ REGISTRY_REFS = [
     "docs/backlog/ROADMAP_AND_TODO.md",
     "docs/history/CHANGELOG.md",
 ]
+
+try:
+    ET = importlib.import_module("defusedxml.ElementTree")
+    _DEFUSED_XML = True
+except Exception:  # pragma: no cover - depends on optional security extra
+    ET = importlib.import_module("xml.etree.ElementTree")
+    _DEFUSED_XML = False
+
+
+def _parse_policy_xml(path: Path):
+    data = path.read_text(encoding="utf-8", errors="replace")
+    if not _DEFUSED_XML and XML_ENTITY_RE.search(data):
+        raise ValueError("unsafe_xml_entity")
+    return ET.fromstring(data)
 
 
 def _nowz() -> str:
@@ -490,12 +506,17 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     server.model_selection_state = data_root / "model-selection"
     server.dev_team_state = data_root / "dev-team"
     server.data_root = data_root
+    server.bootstrap_dir = data_root / "bootstrap"
+    server.modelstore_dir = data_root / "modelstore"
     server.gui_state_dir = data_root / "gui"
     server.jobs_dir = data_root / "jobs"
     server.tasks_dir = data_root / "tasks"
     server.review_dir = data_root / "review"
     server.runtime_dir = data_root / "runtime"
     server.ui_dir = root / "templates" / "pipeline-dashboard"
+    server._jobs_lock = threading.Lock()
+    server._tasks_lock = threading.Lock()
+    server._conv_lock = threading.Lock()
 
     def read_json(path: Path, default: Any) -> Any:
         key = _display_path(Path(path))
@@ -711,8 +732,7 @@ def _polkit_report(*, package_root: Path) -> Dict[str, Any]:
     path = package_root / "share" / "polkit-1" / "actions" / "org.noemaforge.privileged-jobs.policy"
     failures: List[str] = []
     try:
-        tree = ET.parse(path)
-        root = tree.getroot()
+        root = _parse_policy_xml(path)
         actions = [item for item in root.findall("action") if item.attrib.get("id") == POLKIT_ACTION]
         if len(actions) != 1:
             failures.append(f"polkit_action_count_invalid:{len(actions)}")
