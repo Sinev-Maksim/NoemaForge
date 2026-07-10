@@ -205,7 +205,7 @@ jobs:
     #      fork PRs cannot reach it (a fork cannot push to this repo's branches);
     #   2. event_name == 'push' makes that explicit and survives a future trigger add;
     #   3. the actor allowlist restricts it to the maintainer even among collaborators.
-    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim'
+    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: [self-hosted, Windows, codex]
     timeout-minutes: 45
     permissions:
