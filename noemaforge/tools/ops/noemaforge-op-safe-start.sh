@@ -5,7 +5,7 @@
 # Purpose: Idempotently start the safe NoemaForge core with explicit LLM profile: runtime-only, CPU bootstrap LLM, or manual heavy LLM.
 # Callers: sudo noemaforge safe-start, sudo noemaforge start, sudo noemaforge up.
 # Safety: Keeps backend-manager/modelscan timers disabled unless --enable-managers is explicitly supplied.
-# Version: 0.32.1 live-reboot-stabilization
+# Version: 0.33.0
 # === End NoemaForge File Header ===
 set -euo pipefail
 
@@ -16,6 +16,7 @@ source "$ROOT/tools/ops/noemaforge-op-common.sh"
 LOCK_MODE="wait"
 LOCK_WAIT_SECONDS="300"
 ENABLE_MANAGERS="0"
+PERSIST_SERVICES="0"
 SKIP_REPAIR="0"
 WAIT_HEALTH="1"
 FORCE_RESTART="0"
@@ -65,12 +66,13 @@ stop_main_backend() {
 
 usage() { cat <<'EOH'
 Usage:
-  sudo noemaforge safe-start [--wait|--direct] [--llm-profile=runtime_only|bootstrap_cpu_llm|heavy_manual]
+  sudo noemaforge safe-start [--wait|--direct] [--llm-profile=runtime_only|bootstrap_cpu_llm|heavy_manual] [--persist-services]
 
 Starts safe NoemaForge runtime:
   - disables backend-manager/modelscan timers by default;
   - runs runtime-safety repair/check when available;
   - starts noemaforge-llm-gateway and noemaforge-toolproxy;
+  - does not persistently enable services unless --persist-services is explicit;
   - starts LLM backend only with --llm-profile=bootstrap_cpu_llm or --llm-profile=heavy_manual;
   - runtime_only enforces no active main backend unless --preserve-existing-llm is explicit;
   - blocks heavy model starts unless --llm-profile=heavy_manual/--allow-heavy is explicit;
@@ -90,6 +92,7 @@ EOH
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --enable-managers|--full) ENABLE_MANAGERS="1"; shift ;;
+    --persist-services|--enable-services) PERSIST_SERVICES="1"; shift ;;
     --no-health-wait) WAIT_HEALTH="0"; shift ;;
     --skip-repair) SKIP_REPAIR="1"; shift ;;
     --restart|--force-restart) FORCE_RESTART="1"; shift ;;
@@ -129,8 +132,8 @@ if [[ "$AVAILABLE_GB" -lt "$MIN_AVAILABLE_GB" ]]; then
 fi
 
 if [[ "$ENABLE_MANAGERS" != "1" ]]; then
-  echo "[noemaforge-safe-start] keeping backend-manager/modelscan timers disabled."
-  systemctl disable --now noemaforge-llm-backends-manager.timer noemaforge-modelscan.timer 2>/dev/null || true
+  echo "[noemaforge-safe-start] keeping backend-manager/modelscan timers stopped for this session."
+  systemctl stop noemaforge-llm-backends-manager.timer noemaforge-modelscan.timer 2>/dev/null || true
   systemctl stop noemaforge-llm-backends-manager.service 2>/dev/null || true
 fi
 
@@ -160,7 +163,6 @@ if [[ "$LLM_PROFILE" == "runtime_only" ]]; then
     echo "[noemaforge-safe-start] runtime_only profile: preserving existing LLM because --preserve-existing-llm was supplied."
   else
     echo "[noemaforge-safe-start] runtime_only profile: enforcing no active main backend."
-    systemctl disable "$MAIN_UNIT" 2>/dev/null || true
     stop_main_backend
   fi
 fi
@@ -186,11 +188,15 @@ else
   echo "[noemaforge-safe-start] runtime_only profile: skipping modelstore/backend start."
 fi
 
-echo "[noemaforge-safe-start] enabling safe core services..."
-if [[ "$LLM_PROFILE" == "runtime_only" ]]; then
-  systemctl enable noemaforge-llm-gateway.service noemaforge-toolproxy.service 2>/dev/null || true
+if [[ "$PERSIST_SERVICES" == "1" ]]; then
+  echo "[noemaforge-safe-start] --persist-services requested: enabling selected services."
+  if [[ "$LLM_PROFILE" == "runtime_only" ]]; then
+    systemctl enable noemaforge-llm-gateway.service noemaforge-toolproxy.service 2>/dev/null || true
+  else
+    systemctl enable noemaforge-llm-gateway.service noemaforge-toolproxy.service "$MAIN_UNIT" 2>/dev/null || true
+  fi
 else
-  systemctl enable noemaforge-llm-gateway.service noemaforge-toolproxy.service "$MAIN_UNIT" 2>/dev/null || true
+  echo "[noemaforge-safe-start] starting safe core without changing persistent unit enablement."
 fi
 
 echo "[noemaforge-safe-start] starting gateway/toolproxy..."
@@ -258,7 +264,11 @@ fi
 
 if [[ "$ENABLE_MANAGERS" == "1" ]]; then
   echo "[noemaforge-safe-start] --enable-managers requested: starting manager timers after safe core."
-  systemctl enable --now noemaforge-modelscan.timer noemaforge-llm-backends-manager.timer 2>/dev/null || true
+  if [[ "$PERSIST_SERVICES" == "1" ]]; then
+    systemctl enable --now noemaforge-modelscan.timer noemaforge-llm-backends-manager.timer 2>/dev/null || true
+  else
+    systemctl start noemaforge-modelscan.timer noemaforge-llm-backends-manager.timer 2>/dev/null || true
+  fi
 fi
 
 echo

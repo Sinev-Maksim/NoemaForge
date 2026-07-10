@@ -275,6 +275,17 @@
     ],
     "handoff": "single active text LLM; media backends remain explicit-only and manual/profile gated; no microphone/camera capture without operator command"
   },
+  "media_team": {
+    "coordinator": "media_operator",
+    "roles": [
+      "metadata_reader",
+      "adapter_planner",
+      "privacy_reviewer",
+      "artifact_reviewer",
+      "operator_handoff"
+    ],
+    "handoff": "single active LLM; media/admin adapters are plan-only by default, with live capture and generation behind explicit operator consent"
+  },
   "model_evolution_team": {
     "coordinator": "administrator",
     "roles": [

@@ -72,10 +72,10 @@ Recommended safe launch path right now:
                                         Start CPU bootstrap LLM when explicitly allowed.
   sudo systemctl start noemaforge-llama@main.service
                                         Explicit/manual heavy backend start only.
-  noemaforge smoke                           Health/chat smoke through backend and gateway.
+  noemaforge smoke --profile runtime_only    Validate gateway-only runtime profile.
   sudo noemaforge manager reconcile --plan    Preview single-active-model reconcile actions.
   sudo noemaforge manager reconcile           Reconcile with runtime_desired_count=1.
-  noemaforge smoke                            Re-check after reconcile.
+  noemaforge smoke                            Re-check backend + gateway after reconcile.
   sudo noemaforge manager enable              Enable manager/modelscan timers in conservative mode.
 
 First installation / Vault path:
@@ -139,7 +139,7 @@ Safe runtime commands:
   sudo noemaforge safe-start [--wait|--direct] --llm-profile=runtime_only|bootstrap_cpu_llm|heavy_manual
                                                     Start safe core with explicit LLM profile.
   sudo noemaforge autostart-safe --mode gui|wogui      Run gated safe-start according to boot mode/profile.
-  noemaforge smoke                                    Backend + gateway health/chat smoke test.
+  noemaforge smoke [--profile runtime_only]          Profile-aware backend/gateway smoke test.
   sudo noemaforge pause [--wait|--direct]             Pause NoemaForge runtime before GUI recovery; alias: stop.
   sudo noemaforge stop [--wait|--direct]              Stop NoemaForge runtime; does NOT close Firefox/Nautilus.
   sudo noemaforge stop --close-gui-heavy              Explicitly close Firefox/Nautilus too.
@@ -215,7 +215,12 @@ EOF
 log(){ printf '[noemaforge] %s\n' "$*"; }
 fail(){ printf '[noemaforge][ERROR] %s\n' "$*" >&2; exit 1; }
 require_root(){ [[ $EUID -eq 0 ]] || fail "Run with sudo."; }
-require_op(){ [[ -x "$OP_DIR/$1" ]] || fail "Missing operation script: $OP_DIR/$1"; }
+require_op(){
+  local path="$OP_DIR/$1"
+  [[ -e "$path" ]] || fail "Missing operation script: $path"
+  [[ -r "$path" ]] || fail "Operation script is not readable: $path"
+  [[ -x "$path" ]] || fail "Operation script is not executable: $path"
+}
 
 cmd_fix_perms() {
   require_root
@@ -643,10 +648,10 @@ Current target: make NoemaForge fully operational without repeating destructive 
    sudo noemaforge manager disable
 
 1. Start the safe core:
-   sudo noemaforge safe-start --wait
+   sudo noemaforge safe-start --wait --llm-profile=runtime_only
 
-2. Verify local LLM path:
-   noemaforge smoke
+2. Verify runtime_only core:
+   noemaforge smoke --profile runtime_only
 
 3. Preview and test the automatic backend manager once, guarded by runtime-safety
    and the runtime_desired_count=1 invariant:
@@ -1423,4 +1428,3 @@ case "$cmd" in
   -h|--help|help) usage ;;
   *) printf "[noemaforge][ERROR] unknown command: %s\n\n" "$cmd" >&2; usage >&2; exit 2 ;;
 esac
-

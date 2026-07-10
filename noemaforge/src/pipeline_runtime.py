@@ -3431,6 +3431,7 @@ def build_parser() -> argparse.ArgumentParser:
     pat.set_defaults(func=patterns_cmd)
 
     val = sub.add_parser("validate")
+    val.add_argument("--json", action="store_true")  # output is JSON; flag retained for CLI symmetry
     val.set_defaults(func=validate)
 
     doc = sub.add_parser("doctor")

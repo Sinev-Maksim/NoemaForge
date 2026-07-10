@@ -9,10 +9,21 @@ on:
 permissions:
   contents: read
 
+# Autonomous push pipelines may be triggered repeatedly by Codex/Claude loops.
+# Keep one active run and, by GitHub's default single-pending behavior, only the
+# latest pending run per branch/workflow. This avoids an unbounded stale-SHA queue
+# while still letting the current run finish and the latest state be checked next.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # ─── Stage 1: lint + compile on Claude push ───────────────────────────────
   validate-claude-push:
-    if: github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/claude/')
+    # Historical job id: validates trusted in-repo Claude and Codex pushes.
+    # Claude branches stop after this preflight; Codex branches continue into
+    # the Windows self-hosted codex-review job.
+    if: github.actor == 'Sinev-Maksim' && (startsWith(github.ref, 'refs/heads/claude/') || startsWith(github.ref, 'refs/heads/codex/'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -198,6 +209,11 @@ jobs:
   # ─── Stage 2: Codex review (self-hosted Windows Codex CLI) ────────────────
   codex-review:
     needs: validate-claude-push
+    # Codex is a writer/review lane only for codex/** pushes in this workflow.
+    # Claude branches are remediation/integration lanes: they consume CodeRabbit,
+    # quality, acceptance, and Semgrep signals, then push fixes back to the PR.
+    # Dynamic A/B ownership belongs to the agent coordinator layer planned for
+    # 0.33.1; until then, branch routing remains the hard safety boundary.
     # Self-hosted runner safety (public repo): this job runs on the maintainer's
     # own Windows machine, so it must only ever fire for trusted, in-repo pushes.
     # Defense in depth — three independent guards:
@@ -205,7 +221,7 @@ jobs:
     #      fork PRs cannot reach it (a fork cannot push to this repo's branches);
     #   2. event_name == 'push' makes that explicit and survives a future trigger add;
     #   3. the actor allowlist restricts it to the maintainer even among collaborators.
-    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim'
+    if: github.event_name == 'push' && github.actor == 'Sinev-Maksim' && startsWith(github.ref, 'refs/heads/codex/')
     runs-on: [self-hosted, Windows, codex]
     timeout-minutes: 45
     permissions:
