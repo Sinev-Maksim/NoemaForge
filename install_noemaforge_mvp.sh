@@ -119,6 +119,9 @@ normalize_opt_payload(){
         missing=$((missing+1))
       fi
     done < "$manifest"
+  else
+    echo "[install][ERROR] executable manifest not found: $manifest" >&2
+    return 1
   fi
   find "$opt_root" -perm /020 -print -quit | grep -q . && {
     echo "[install][ERROR] /opt/noemaforge contains group-writable payload after normalization" >&2

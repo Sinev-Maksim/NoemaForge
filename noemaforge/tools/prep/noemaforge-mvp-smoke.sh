@@ -176,8 +176,8 @@ pipeline_lifecycle_cmd="$NOEMAFORGE_BIN pipeline approve $RUN_ID --allow-degrade
 pipeline_lifecycle_rc=0
 if [[ -n "$RUN_ID" ]]; then
   {
-    "$NOEMAFORGE_BIN" pipeline approve "$RUN_ID" --allow-degraded
-    "$NOEMAFORGE_BIN" pipeline advance "$RUN_ID" --stage status_check --status in_progress --note smoke --allow-degraded
+    "$NOEMAFORGE_BIN" pipeline approve "$RUN_ID" --allow-degraded &&
+    "$NOEMAFORGE_BIN" pipeline advance "$RUN_ID" --stage status_check --status in_progress --note smoke --allow-degraded &&
     "$NOEMAFORGE_BIN" pipeline doctor "$RUN_ID"
   } >"$pipeline_lifecycle_dir/stdout.txt" 2>"$pipeline_lifecycle_dir/stderr.txt" || pipeline_lifecycle_rc=$?
 else
