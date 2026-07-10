@@ -25,6 +25,9 @@ import pipeline_runtime
 def test_public_mwp_pipeline_lifecycle(tmp_path, capsys, monkeypatch):
     root = Path(__file__).resolve().parents[1]
     state = tmp_path / 'state'
+    staffing = tmp_path / 'firstboot-staffing-summary.json'
+    staffing.write_text(json.dumps({'staffing_state': 'complete'}), encoding='utf-8')
+    monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
     pipeline_runtime.main(['--root', str(root), '--state', str(state), 'validate'])
     validate = json.loads(capsys.readouterr().out)
     assert validate['ok'] is True
@@ -83,7 +86,10 @@ def test_degraded_selected_blocks_without_explicit_override_and_allows_smoke_ove
     staffing.write_text(json.dumps({'staffing_state': 'degraded_selected'}), encoding='utf-8')
     monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
 
-    pipeline_runtime.main(['--root', str(root), '--state', str(state), 'run', 'public_mwp', '--task-id', 'pytest', '--request', 'smoke'])
+    pipeline_runtime.main([
+        '--root', str(root), '--state', str(state),
+        'run', 'public_mwp', '--task-id', 'pytest', '--request', 'smoke', '--allow-degraded',
+    ])
     created = json.loads(capsys.readouterr().out)
     run_id = created['run_id']
 
