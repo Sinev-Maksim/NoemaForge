@@ -902,10 +902,6 @@ prelaunch/tools/windows_original/library_windows_smart_launcher/library_pipeline
 prelaunch/tools/windows_original/library_windows_smart_launcher/oapen_bulk_download_safe.py
 prelaunch/tools/noemaforge_03113_patched11_validation_logger.sh
 prelaunch/tools/noemaforge_validation_logger.sh
-pytest/Lib/site-packages/pip/_vendor/distro/distro.py
-pytest/Lib/site-packages/pip/_vendor/requests/certs.py
-PyYAML/Lib/site-packages/pip/_vendor/distro/distro.py
-PyYAML/Lib/site-packages/pip/_vendor/requests/certs.py
 sense/edge/metrics_schema.py
 sense/edge/mqtt_adapter.py
 sense/edge/serial_adapter.py
