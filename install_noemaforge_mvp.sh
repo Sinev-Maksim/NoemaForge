@@ -120,7 +120,7 @@ normalize_opt_payload(){
       fi
     done < "$manifest"
   fi
-  find "$opt_root" -perm /020 -print -quit | grep -q . && {
+  find "$opt_root" \( -type f -o -type d \) -perm /020 -print -quit | grep -q . && {
     echo "[install][ERROR] /opt/noemaforge contains group-writable payload after normalization" >&2
     return 1
   }

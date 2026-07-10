@@ -18,6 +18,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 import pipeline_runtime
 
@@ -93,10 +95,9 @@ def test_degraded_selected_blocks_without_explicit_override_and_allows_smoke_ove
     created = json.loads(capsys.readouterr().out)
     run_id = created['run_id']
 
-    try:
+    with pytest.raises(SystemExit) as exc_info:
         pipeline_runtime.main(['--root', str(root), '--state', str(state), 'approve', run_id])
-    except SystemExit as exc:
-        assert exc.code == 3
+    assert exc_info.value.code == 3
     blocked = json.loads(capsys.readouterr().out)
     assert blocked['reason'] == 'degraded_readonly'
     assert blocked['staffing_state'] == 'degraded_selected'

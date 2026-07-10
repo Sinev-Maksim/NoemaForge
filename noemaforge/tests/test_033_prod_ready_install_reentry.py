@@ -18,6 +18,9 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
     def test_installer_normalizes_opt_payload_modes_in_rootfs_install(self) -> None:
         script = PROJECT_ROOT / "install_noemaforge_mvp.sh"
         with tempfile.TemporaryDirectory(prefix="noemaforge-rootfs-") as rootfs:
+            existing_opt = Path(rootfs) / "opt" / "noemaforge"
+            existing_opt.mkdir(parents=True)
+            (existing_opt / "existing-symlink").symlink_to("bin/noemaforge")
             result = subprocess.run(
                 [str(script), "--rootfs", rootfs, "--with-share", "/mnt/noemaforge-share"],
                 cwd=str(PROJECT_ROOT),
@@ -41,9 +44,12 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
             group_writable = [
                 str(path.relative_to(opt_root))
                 for path in opt_root.rglob("*")
-                if path.is_file() and (path.stat().st_mode & stat.S_IWGRP)
+                if not path.is_symlink()
+                and (path.is_file() or path.is_dir())
+                and (path.stat().st_mode & stat.S_IWGRP)
             ]
             self.assertEqual([], group_writable[:10])
+            self.assertTrue((opt_root / "existing-symlink").is_symlink())
 
     def test_safe_start_does_not_enable_units_without_persist_flag(self) -> None:
         script = ROOT / "tools" / "ops" / "noemaforge-op-safe-start.sh"
