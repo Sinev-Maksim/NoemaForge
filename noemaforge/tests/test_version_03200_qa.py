@@ -114,7 +114,8 @@ class Version03200QATests(unittest.TestCase):
             with self.subTest(path=path):
                 text = path.read_text(encoding="utf-8")
                 self.assertIn("from noemaforge_version import RUNTIME_VERSION", text)
-                self.assertNotIn(f'RUNTIME_VERSION = "0.32.1"', text)
+                stale_assignment = f'{"RUNTIME_VERSION"} = "0.32.1"'
+                self.assertNotIn(stale_assignment, text)
 
         cli = (PACKAGE_ROOT / "bin" / "noemaforge").read_text(encoding="utf-8")
         first_run_audit = (PACKAGE_ROOT / "tools" / "prep" / "noemaforge-first-run-audit.sh").read_text(encoding="utf-8")

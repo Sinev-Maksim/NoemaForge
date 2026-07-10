@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: systemd/noemaforge-modelscan.timer
 # Zone: release/package
-# Version: 0.32.2
+# Version: 0.33.0
 # Created: 2026-06-08
 # Modified: 2026-06-08
 # Purpose: Schedule the ModelStore registry scan (noemaforge-modelscan.service).

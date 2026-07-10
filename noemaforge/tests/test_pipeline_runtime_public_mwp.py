@@ -18,6 +18,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 import pipeline_runtime
 
@@ -25,6 +27,9 @@ import pipeline_runtime
 def test_public_mwp_pipeline_lifecycle(tmp_path, capsys, monkeypatch):
     root = Path(__file__).resolve().parents[1]
     state = tmp_path / 'state'
+    staffing = tmp_path / 'firstboot-staffing-summary.json'
+    staffing.write_text(json.dumps({'staffing_state': 'complete'}), encoding='utf-8')
+    monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
     pipeline_runtime.main(['--root', str(root), '--state', str(state), 'validate'])
     validate = json.loads(capsys.readouterr().out)
     assert validate['ok'] is True
@@ -83,14 +88,16 @@ def test_degraded_selected_blocks_without_explicit_override_and_allows_smoke_ove
     staffing.write_text(json.dumps({'staffing_state': 'degraded_selected'}), encoding='utf-8')
     monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
 
-    pipeline_runtime.main(['--root', str(root), '--state', str(state), 'run', 'public_mwp', '--task-id', 'pytest', '--request', 'smoke'])
+    pipeline_runtime.main([
+        '--root', str(root), '--state', str(state),
+        'run', 'public_mwp', '--task-id', 'pytest', '--request', 'smoke', '--allow-degraded',
+    ])
     created = json.loads(capsys.readouterr().out)
     run_id = created['run_id']
 
-    try:
+    with pytest.raises(SystemExit) as exc_info:
         pipeline_runtime.main(['--root', str(root), '--state', str(state), 'approve', run_id])
-    except SystemExit as exc:
-        assert exc.code == 3
+    assert exc_info.value.code == 3
     blocked = json.loads(capsys.readouterr().out)
     assert blocked['reason'] == 'degraded_readonly'
     assert blocked['staffing_state'] == 'degraded_selected'
