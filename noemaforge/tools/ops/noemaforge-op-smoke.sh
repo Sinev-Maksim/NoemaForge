@@ -20,7 +20,11 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --json) JSON_ONLY="1"; shift ;;
     --debug) DEBUG="1"; shift ;;
-    --profile) PROFILE="$2"; shift 2 ;;
+    --profile)
+      [[ $# -ge 2 && -n "$2" ]] || { echo "[noemaforge-smoke][ERROR] --profile requires a value" >&2; exit 2; }
+      PROFILE="$2"
+      shift 2
+      ;;
     --profile=*) PROFILE="${1#*=}"; shift ;;
     --runtime-only|--runtime_only) PROFILE="runtime_only"; shift ;;
     --gateway-only-ok|--allow-gateway-only) ALLOW_GATEWAY_ONLY="1"; shift ;;

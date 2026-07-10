@@ -57,6 +57,7 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
         script = ROOT / "tools" / "ops" / "noemaforge-op-smoke.sh"
         text = script.read_text(encoding="utf-8")
         self.assertIn("--profile runtime_only", text)
+        self.assertIn("--profile requires a value", text)
         self.assertIn("skipped_expected_runtime_only", text)
         self.assertIn("main backend intentionally absent for runtime_only profile", text)
 
