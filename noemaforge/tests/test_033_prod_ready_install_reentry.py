@@ -60,6 +60,19 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
         self.assertIn("--profile requires a value", text)
         self.assertIn("skipped_expected_runtime_only", text)
         self.assertIn("main backend intentionally absent for runtime_only profile", text)
+        env = os.environ.copy()
+        env["NOEMAFORGE_ROOT"] = str(ROOT)
+        help_result = subprocess.run(
+            [str(ROOT / "bin" / "noemaforge"), "smoke", "--help"],
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=False,
+            timeout=10,
+        )
+        self.assertEqual(0, help_result.returncode, help_result.stderr)
+        self.assertIn("--profile runtime_only", help_result.stdout)
 
     def test_mvp_smoke_failure_records_have_artifact_metadata(self) -> None:
         script = ROOT / "tools" / "prep" / "noemaforge-mvp-smoke.sh"
