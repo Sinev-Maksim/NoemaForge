@@ -33,7 +33,7 @@ def _load_server():
         "_platform_paths": types.ModuleType("_platform_paths"),
     }
     stubs["production_ai_contracts"].new_trace_id = lambda *a, **kw: "stub-trace"
-    setattr(stubs["noemaforge_version"], "RUNTIME_VERSION", "0.33.0-test")
+    stubs["noemaforge_version"].__dict__["RUNTIME_VERSION"] = "0.33.0-test"
 
     class _FakePaths:
         root = Path(".")
