@@ -51,6 +51,15 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
             self.assertEqual([], group_writable[:10])
             self.assertTrue((opt_root / "existing-symlink").is_symlink())
 
+    def test_executable_manifest_references_only_packaged_files(self) -> None:
+        manifest = ROOT / "tools" / "prep" / "executable_manifest.txt"
+        missing = []
+        for raw in manifest.read_text(encoding="utf-8").splitlines():
+            rel = raw.split("#", 1)[0].strip()
+            if rel and not (PROJECT_ROOT / rel).is_file():
+                missing.append(rel)
+        self.assertEqual([], missing)
+
     def test_safe_start_does_not_enable_units_without_persist_flag(self) -> None:
         script = ROOT / "tools" / "ops" / "noemaforge-op-safe-start.sh"
         text = script.read_text(encoding="utf-8")
