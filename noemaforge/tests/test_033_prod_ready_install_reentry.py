@@ -95,7 +95,7 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
         for path in (ROOT / "systemd").rglob("*"):
             if path.is_file() and path.suffix in {".service", ".timer", ".conf"}:
                 text = path.read_text(encoding="utf-8")
-                if "# Version: 0.32.1" in text:
+                if "# Version: 0.32." in text:
                     stale.append(str(path.relative_to(ROOT)))
         self.assertEqual([], stale)
         installer = (PROJECT_ROOT / "install_noemaforge_mvp.sh").read_text(encoding="utf-8")
