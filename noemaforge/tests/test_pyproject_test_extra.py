@@ -15,3 +15,10 @@ def test_test_extra_declares_collection_dependencies() -> None:
         for requirement in pyproject["project"]["optional-dependencies"]["test"]
     }
     assert {"pytest", "pyyaml", "jsonschema"} <= test_extra
+
+
+def test_dev_extra_keeps_pytest_constraint_aligned_with_test_extra() -> None:
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    extras = pyproject["project"]["optional-dependencies"]
+    assert "pytest>=8,<9" in extras["test"]
+    assert "pytest>=8,<9" in extras["dev"]

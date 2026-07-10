@@ -21,7 +21,7 @@ test = [
 # Keep this in sync with noemaforge/tests imports so target-host UAT can
 # bootstrap from a clean venv with `python -m pip install -e ".[dev]"`.
 dev = [
-    "pytest",
+    "pytest>=8,<9",
     "pyyaml",
     "jsonschema",
 ]
