@@ -25,12 +25,24 @@ while [[ $# -gt 0 ]]; do
       PROFILE="$2"
       shift 2
       ;;
-    --profile=*) PROFILE="${1#*=}"; shift ;;
+    --profile=*)
+      PROFILE="${1#*=}"
+      [[ -n "$PROFILE" ]] || { echo "[noemaforge-smoke][ERROR] --profile requires a non-empty value" >&2; exit 2; }
+      shift ;;
     --runtime-only|--runtime_only) PROFILE="runtime_only"; shift ;;
     --gateway-only-ok|--allow-gateway-only) ALLOW_GATEWAY_ONLY="1"; shift ;;
-    --backend-sock=*) BACKEND_SOCK="${1#*=}"; shift ;;
-    --gateway-sock=*) GATEWAY_SOCK="${1#*=}"; shift ;;
-    --timeout=*) TIMEOUT="${1#*=}"; shift ;;
+    --backend-sock=*)
+      BACKEND_SOCK="${1#*=}"
+      [[ -n "$BACKEND_SOCK" ]] || { echo "[noemaforge-smoke][ERROR] --backend-sock requires a non-empty value" >&2; exit 2; }
+      shift ;;
+    --gateway-sock=*)
+      GATEWAY_SOCK="${1#*=}"
+      [[ -n "$GATEWAY_SOCK" ]] || { echo "[noemaforge-smoke][ERROR] --gateway-sock requires a non-empty value" >&2; exit 2; }
+      shift ;;
+    --timeout=*)
+      TIMEOUT="${1#*=}"
+      [[ "$TIMEOUT" =~ ^[0-9]+$ && "$TIMEOUT" -gt 0 ]] || { echo "[noemaforge-smoke][ERROR] --timeout requires a positive integer" >&2; exit 2; }
+      shift ;;
     -h|--help|help)
       cat <<'EOH'
 Usage:

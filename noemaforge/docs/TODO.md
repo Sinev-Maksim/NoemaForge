@@ -2034,3 +2034,30 @@ P2:
 - share-automount-reboot-readiness-core
 - target-live-validation-readiness-core
 - blocked_by_external_target
+
+
+## 0.33.0 closeout → 0.33.1 agent coordinator backlog
+
+Status: added from the 0.33.0 prod-ready handoff/review hardening cycle.
+
+### 0.33.0 closeout
+
+- [ ] Keep the active 0.33.0 work on the synchronized final integration PR.
+- [ ] Do not start broad 0.33.1 implementation until 0.33.0 is green and reviewed.
+- [ ] Verify Python and installed CLI pipeline validation paths.
+- [ ] Verify quality gate, acceptance, Semgrep, P0 ledger, and CodeRabbit review.
+- [ ] Verify no local runner artifacts are tracked in the final PR.
+- [ ] Record target-host runtime validation separately from CI evidence.
+- [ ] Retire or close draft/source PRs after the final integration PR lands.
+
+### 0.33.1 coordinator MVP
+
+- [ ] Add serialized agent task state with lease expiry and fencing.
+- [ ] Add dynamic A/B role assignment: idle agent claims writer or reviewer work.
+- [ ] Enforce `writer.agent != reviewer.agent` by default.
+- [ ] Add `/claim`, `/handoff`, `/heartbeat`, `/release`, `/resolve` commands.
+- [ ] Make reviewer/remediator consume CodeRabbit, quality, acceptance, Semgrep,
+      and merge-conflict signals.
+- [ ] Add stable coordinator audit events.
+- [ ] Consider protected environment / CODEOWNERS / merge queue only after the
+      basic coordinator is stable.
