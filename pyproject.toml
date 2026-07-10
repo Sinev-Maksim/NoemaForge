@@ -11,6 +11,10 @@ readme = "README.md"
 license = {file = "LICENSE"}
 
 [project.optional-dependencies]
+test = [
+  "pytest>=8,<9",
+]
+
 # Dependencies required to collect and run the repository test suite.
 # Keep this in sync with noemaforge/tests imports so target-host UAT can
 # bootstrap from a clean venv with `python -m pip install -e ".[dev]"`.
