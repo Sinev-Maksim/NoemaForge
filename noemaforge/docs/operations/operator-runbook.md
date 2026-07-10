@@ -14,7 +14,18 @@ plan-then-apply; privileged commands carry `--keep-display`.
 ```bash
 curl http://127.0.0.1:8765/api/health        # control-plane health
 noema doctor                                  # 0.33.0: backend matrix, profiles, epoch, policy status
+noemaforge pipeline validate --json           # catalog consistency
+noemaforge smoke --profile runtime_only       # gateway/toolproxy-only profile
 ```
+
+For install/re-entry diagnostics, `runtime_only` means gateway and ToolProxy only.
+Do not interpret the intentionally missing main backend socket as a failed install.
+Use the backend-required smoke only after `bootstrap_cpu_llm` or a manual backend
+start.
+
+`noemaforge mvp-smoke --json` writes per-check artifacts under the reported
+`state/checks/<check_id>/` directory. Each failed check should include the command,
+exit code, stdout, stderr and report path in the top-level JSON.
 
 ## Jobs
 

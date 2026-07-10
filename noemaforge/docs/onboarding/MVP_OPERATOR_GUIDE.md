@@ -17,10 +17,23 @@ noemaforge pipeline dashboard-state --out /tmp/noemaforge-dashboard-state.json
 ## Start/stop runtime
 
 ```bash
-sudo noemaforge safe-start --wait --restart
-noemaforge smoke --debug
+sudo noemaforge safe-start --wait --llm-profile=runtime_only
+noemaforge smoke --profile runtime_only --debug
 sudo noemaforge pause --wait
 ```
+
+Use `runtime_only` for safe-core re-entry: gateway and ToolProxy are validated,
+while the main backend is intentionally absent. Start a CPU bootstrap backend only
+with an explicit profile:
+
+```bash
+sudo noemaforge safe-start --wait --llm-profile=bootstrap_cpu_llm
+noemaforge smoke --debug
+```
+
+Manual boot mode stays manual after diagnostic `safe-start`. Persistent boot
+changes go through `noemaforge boot-mode` or an explicit `--persist-services`
+operator command.
 
 ## Ask the local model without curl
 
@@ -44,8 +57,14 @@ A NoemaForge pipeline is a sequence of stage context packets and auditable artif
 
 ```bash
 noemaforge pipeline run evolution --task-id fix-001 --project noemaforge --request "fix operator CLI"
+noemaforge pipeline validate --json
 noemaforge pipeline summary <run_id>
 noemaforge pipeline next <run_id>
 noemaforge pipeline artifact add <run_id> --stage intake --type markdown --path outputs/fix.md --meta summary="implementation note"
 noemaforge pipeline export <run_id>
 ```
+
+On a degraded-but-selected staffing baseline, production mutations are blocked as
+`degraded_readonly`. The MVP smoke uses an explicit smoke-scoped degraded override
+only inside its temporary state directory; do not treat that as a general approval
+to mutate production runs.

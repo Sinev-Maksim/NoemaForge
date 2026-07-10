@@ -90,6 +90,49 @@ install_default_once(){ local src="$1" rel="$2" mode="${3:-0644}"; [[ "$DRY_RUN"
 install_symlink(){ local src="$1" dst="$2"; [[ "$DRY_RUN" == 1 ]] && { echo "link $dst -> $src"; return 0; }; mkdir -p "$(dirname "$(target "$dst")")"; ln -sfn "$src" "$(target "$dst")"; }
 backup_one(){ local p="$1" t; t="$(target "$p")"; if [[ "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ( -e "$t" || -L "$t" ) ]]; then mkdir -p "$BACKUP/backup-root/$(dirname "${p#/}")"; cp -a "$t" "$BACKUP/backup-root/${p#/}" 2>/dev/null || true; fi; }
 ensure_dir_preserve(){ local p="$1" mode="$2" t; t="$(target "$p")"; [[ -d "$t" ]] && return 0; install -d -m "$mode" "$t"; }
+normalize_opt_payload(){
+  local opt_root manifest rel abs missing=0
+  opt_root="$(target /opt/noemaforge)"
+  manifest="$opt_root/tools/prep/executable_manifest.txt"
+  [[ "$DRY_RUN" == 1 ]] && { echo "normalize /opt/noemaforge owner=root:root dirs=0755 files=0644 manifest_exec=0755"; return 0; }
+  [[ -d "$opt_root" ]] || return 0
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    chown -R root:root "$opt_root"
+  fi
+  find "$opt_root" -type d -exec chmod 0755 {} +
+  find "$opt_root" -type f -exec chmod 0644 {} +
+  find "$opt_root/bin" -maxdepth 1 -type f -exec chmod 0755 {} + 2>/dev/null || true
+  if [[ -f "$manifest" ]]; then
+    while IFS= read -r rel || [[ -n "$rel" ]]; do
+      rel="${rel%%#*}"
+      rel="${rel#"${rel%%[![:space:]]*}"}"
+      rel="${rel%"${rel##*[![:space:]]}"}"
+      [[ -z "$rel" ]] && continue
+      case "$rel" in
+        noemaforge/*) abs="$opt_root/${rel#noemaforge/}" ;;
+        *) continue ;;
+      esac
+      if [[ -f "$abs" ]]; then
+        chmod 0755 "$abs"
+      else
+        echo "[install][ERROR] executable manifest entry missing after install: /opt/noemaforge/${rel#noemaforge/}" >&2
+        missing=$((missing+1))
+      fi
+    done < "$manifest"
+  fi
+  find "$opt_root" -perm /020 -print -quit | grep -q . && {
+    echo "[install][ERROR] /opt/noemaforge contains group-writable payload after normalization" >&2
+    return 1
+  }
+  [[ "$missing" -eq 0 ]]
+}
+remove_stale_hotfix_dropins(){
+  local unit
+  [[ "$DRY_RUN" == 1 ]] && { echo "remove stale systemd hotfix drop-ins for noemaforge units"; return 0; }
+  for unit in noemaforge-llm-gateway.service noemaforge-toolproxy.service; do
+    find "$(target /etc/systemd/system/$unit.d)" -maxdepth 1 -type f -name '*hotfix*' -delete 2>/dev/null || true
+  done
+}
 preflight_install_update(){
   local os_pretty os_version
   echo "[install][preflight] debian_13_trixie_compatible=check"
@@ -194,9 +237,7 @@ if command -v rsync >/dev/null 2>&1; then
 else
   cp -a "$PKG_DIR/noemaforge/." "$(target /opt/noemaforge)/"
 fi
-# Guarantee the CLI entrypoint is executable even if the package was delivered without mode bits
-# (e.g. a zip). rsync/cp -a preserve modes, so this is belt-and-suspenders for the canonical CLI.
-[[ -e "$(target /opt/noemaforge)/bin/noemaforge" ]] && chmod 0755 "$(target /opt/noemaforge)/bin/noemaforge" || true
+normalize_opt_payload
 
 for h in noemaforge-stop noemaforge-reboot-safe noemaforge-sel-fix noemaforge-vault-mount-ro noemaforge-model-advisor noemaforge-safe-start noemaforge-smoke noemaforge-manager noemaforge-monitor noemaforge-chat noemaforge-interpret noemaforge-toolproxy-diag gui-status gui-rescue gui-start noemaforge-health noemaforge-safe-mode noemaforge-llm-memory-override noemaforge-start-llm-safe noemaforge-llm-stop noemaforge-service-stop; do
   [[ -f "$PKG_DIR/helpers/$h" ]] && install_file "$PKG_DIR/helpers/$h" "/usr/local/sbin/$h" 0755
@@ -324,6 +365,7 @@ if [[ -d "$PKG_DIR/noemaforge/systemd/dropins" ]]; then
     install_file "$f" "/etc/systemd/system/$rel" 0644
   done
 fi
+remove_stale_hotfix_dropins
 mkdir -p "$(target /etc/noemaforge)"
 if [[ ! -e "$(target /etc/noemaforge/boot-mode)" ]]; then
   printf 'manual

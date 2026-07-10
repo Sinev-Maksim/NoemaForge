@@ -215,7 +215,12 @@ EOF
 log(){ printf '[noemaforge] %s\n' "$*"; }
 fail(){ printf '[noemaforge][ERROR] %s\n' "$*" >&2; exit 1; }
 require_root(){ [[ $EUID -eq 0 ]] || fail "Run with sudo."; }
-require_op(){ [[ -x "$OP_DIR/$1" ]] || fail "Missing operation script: $OP_DIR/$1"; }
+require_op(){
+  local path="$OP_DIR/$1"
+  [[ -e "$path" ]] || fail "Missing operation script: $path"
+  [[ -r "$path" ]] || fail "Operation script is not readable: $path"
+  [[ -x "$path" ]] || fail "Operation script is not executable: $path"
+}
 
 cmd_fix_perms() {
   require_root
@@ -1423,4 +1428,3 @@ case "$cmd" in
   -h|--help|help) usage ;;
   *) printf "[noemaforge][ERROR] unknown command: %s\n\n" "$cmd" >&2; usage >&2; exit 2 ;;
 esac
-

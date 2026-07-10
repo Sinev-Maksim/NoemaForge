@@ -19,6 +19,54 @@ recalibration: [`Claude_stats.md`](../../Claude_stats.md) at the project root._
 Auto-escalation: if a delegated tier fails twice (tests/review), it escalates one
 tier up (S→M→L) and the miss is logged in `Claude_stats.md`.
 
+## 0.33.0 Prod-Ready Re-Entry TODOs
+
+Reconciled during the 0.33.0 install/re-entry hardening loop for issues #212-#221.
+
+### 0.33.0 release blockers
+
+- [x] Fix installed `/opt/noemaforge` payload integrity: root-owned immutable
+  payload, non-group-writable files, and executable bits restored from
+  `tools/prep/executable_manifest.txt`. _(M · sonnet)_
+- [x] Keep `safe-start` as start-now by default; persistent systemd enablement now
+  requires explicit `--persist-services` or boot-mode policy. _(M · sonnet)_
+- [x] Make `runtime_only` smoke profile-aware: gateway health is checked and the
+  intentionally missing main backend is reported as an expected skip. _(M · sonnet)_
+- [x] Make `mvp-smoke --json` actionable: failed checks include command, exit code,
+  stdout, stderr and report paths under the smoke state directory. _(M · sonnet)_
+- [x] Restore catalog consistency for media/admin pipelines by defining
+  `media_team`; `noemaforge pipeline validate` and `--json` pass locally. _(S · haiku)_
+- [x] Represent degraded staffing intentionally in MVP smoke by using a
+  smoke-scoped `--allow-degraded` override only inside temporary smoke state. _(M · sonnet)_
+- [x] Clean packaged systemd metadata for 0.33.0 and remove stale `*hotfix*`
+  drop-ins during install. _(S · haiku)_
+
+### Post-0.33.0
+
+- [ ] Review whether all package `tools/prep/*.sh` and `tools/ops/*.sh` entries
+  should remain executable in source, or whether `executable_manifest.txt` should
+  be narrowed to only directly invoked entrypoints. _(M · sonnet)_
+- [ ] Replace the ad hoc manifest/checksum regeneration commands with a first-class
+  0.33.x `regen_evidence.py` helper that updates manifests, sidecars and root/package
+  checksums in one documented command. _(M · sonnet)_
+
+### Research/design
+
+- [ ] Decide whether `runtime_only` smoke should include a ToolProxy live socket
+  check by default or keep ToolProxy validation in `toolproxy diag`/`mvp-smoke`.
+  _(L · opus)_
+
+### Target-host/manual validation
+
+- [ ] Capture target-host clean install evidence: `/opt/noemaforge` ownership/modes,
+  no group-writable payload, executable smoke/preflight/operator scripts, and no
+  stale hotfix drop-ins after install. _(target-gated · M)_
+- [ ] Capture target-host manual boot-mode evidence: `safe-start --llm-profile=runtime_only`
+  starts gateway/ToolProxy for the session without enabling them persistently. _(target-gated · M)_
+- [ ] Capture target-host runtime evidence: `smoke --profile runtime_only`,
+  `pipeline validate --json`, and `mvp-smoke --json` with archived state/check
+  artifact paths. _(target-gated · M)_
+
 ## Optimizations
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
