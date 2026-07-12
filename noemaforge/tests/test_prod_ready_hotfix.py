@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import os
+import json
 import stat
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -89,6 +91,72 @@ class ProdReadyHotfixTests(unittest.TestCase):
             self.assertFalse(result["ok"])
             self.assertEqual("model_selection_required", result["error"])
             self.assertTrue(result["model_selection_required"])
+
+    def test_runtime_status_warns_on_manifest_source_realpath_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as td, mock.patch.object(ags, "run_json", return_value={"ok": False, "stdout": "inactive", "returncode": 3}):
+            srv = _server(Path(td))
+            main_dir = srv.modelstore_dir / "models" / "main"
+            main_dir.mkdir(parents=True)
+            chosen = srv.modelstore_dir / "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf"
+            manifest_source = srv.modelstore_dir / "qwen2-5-coder-3b-instruct-q4-k-m.gguf"
+            chosen.write_text("chosen", encoding="utf-8")
+            manifest_source.write_text("manifest", encoding="utf-8")
+            (main_dir / "model.gguf").symlink_to(chosen)
+            (main_dir / "noemaforge-model.json").write_text(json.dumps({
+                "model_id": "qwen2-5-coder-3b-instruct-q4-k-m",
+                "display_name": "Qwen2.5 Coder 3B",
+                "source": str(manifest_source),
+            }), encoding="utf-8")
+
+            status = srv.runtime_status()
+            self.assertTrue(status["model_selection_required"])
+            self.assertFalse(status["metadata_consistency"]["ok"])
+            self.assertIn("source_realpath_mismatch", status["metadata_consistency"]["mismatches"])
+            self.assertNotEqual("ready", status["active_model"]["state"])
+            self.assertIn("metadata mismatch", status["active_model"]["message"].lower())
+            card = [c for c in status["observer_cards"] if c["id"] == "main-model-manifest"][0]
+            self.assertEqual("warn", card["status"])
+
+    def test_runtime_status_accepts_manifest_source_same_realpath(self) -> None:
+        with tempfile.TemporaryDirectory() as td, mock.patch.object(ags, "run_json", return_value={"ok": False, "stdout": "inactive", "returncode": 3}):
+            srv = _server(Path(td))
+            main_dir = srv.modelstore_dir / "models" / "main"
+            main_dir.mkdir(parents=True)
+            chosen = srv.modelstore_dir / "qwen2.5-coder-0.5b-instruct-q4_k_m.gguf"
+            chosen.write_text("chosen", encoding="utf-8")
+            (main_dir / "model.gguf").symlink_to(chosen)
+            (main_dir / "noemaforge-model.json").write_text(json.dumps({
+                "model_id": "qwen2-5-coder-0.5b-instruct-q4-k-m",
+                "display_name": "Qwen2.5 Coder 0.5B",
+                "source": str(chosen),
+            }), encoding="utf-8")
+
+            status = srv.runtime_status()
+            self.assertFalse(status["model_selection_required"])
+            self.assertTrue(status["metadata_consistency"]["ok"])
+            self.assertEqual("ready", status["active_model"]["state"])
+            self.assertEqual("", status["active_model"]["message"])
+
+    def test_version_audit_accepts_installed_payload_version_layout(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "VERSION").write_text("0.33.0\n", encoding="utf-8")
+            (root / "docs").mkdir()
+            (root / "docs" / "VERSION").write_text("0.33.0\n", encoding="utf-8")
+            (root / "src").mkdir()
+            (root / "src" / "noemaforge_version.py").write_text(
+                'RUNTIME_VERSION = "0.33.0"\n',
+                encoding="utf-8",
+            )
+
+            proc = subprocess.run(
+                ["bash", str(ROOT / "tools" / "prep" / "noemaforge-version-audit.sh"), "--root", str(root), "--expected", "0.33.0", "--json"],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            self.assertEqual(0, proc.returncode, proc.stdout + proc.stderr)
+            self.assertTrue(json.loads(proc.stdout)["ok"])
 
     def test_epoch_status_exposes_missing_model_selection_fields(self) -> None:
         with tempfile.TemporaryDirectory() as td:

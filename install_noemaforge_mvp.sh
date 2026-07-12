@@ -32,6 +32,8 @@ if [[ -z "$VERSION" ]]; then
   echo "[install][ERROR] cannot read a release version from \$PKG_DIR/VERSION or \$PKG_DIR/noemaforge/VERSION; refusing to install a version-less package." >&2
   exit 1
 fi
+PACKAGE_VERSION_FILE="$PKG_DIR/VERSION"
+[[ -r "$PACKAGE_VERSION_FILE" ]] || PACKAGE_VERSION_FILE="$PKG_DIR/noemaforge/VERSION"
 ROOTFS="/"
 DATA_ROOT="/var/lib/noemaforge"
 MODEL_PROFILE="minimal"
@@ -79,7 +81,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) echo "ERROR: unsupported model profile: $MODEL_PROFILE" >&2; exit 2 ;; esac
-if [[ "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ${EUID:-$(id -u)} -ne 0 ]]; then
+if [[ "$SELFTEST" != 1 && "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ${EUID:-$(id -u)} -ne 0 ]]; then
   echo "ERROR: run live install as root" >&2
   exit 1
 fi
@@ -204,6 +206,7 @@ if [[ "$SELFTEST" == 1 ]]; then
     "$PKG_DIR/noemaforge/src/model_evolution_runtime.py"
   find "$PKG_DIR/noemaforge/src" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
   echo "[install] selftest: CLI/API surfaces are covered by targeted verification; package syntax validation passed"
+  exit 0
 fi
 cat <<PLAN
 NoemaForge ${VERSION} install plan
@@ -239,6 +242,11 @@ if command -v rsync >/dev/null 2>&1; then
   rsync -a "$PKG_DIR/noemaforge/" "$(target /opt/noemaforge)/"
 else
   cp -a "$PKG_DIR/noemaforge/." "$(target /opt/noemaforge)/"
+fi
+install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/VERSION 0644
+install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/docs/VERSION 0644
+if [[ -d "$(target /opt/noemaforge/noemaforge/src)" ]]; then
+  install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/noemaforge/VERSION 0644
 fi
 normalize_opt_payload
 

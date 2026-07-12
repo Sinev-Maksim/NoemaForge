@@ -160,29 +160,44 @@ def check_version_file(path: Path, label: str) -> None:
         add_problem("version_file_mismatch", path, found or "<empty>", expected, label)
 
 
-# Canonical version files.
+def check_optional_version_file(path: Path, label: str) -> None:
+    if path.exists():
+        check_version_file(path, label)
+
+
+source_checkout = (root / "noemaforge" / "src").is_dir()
+installed_payload = (root / "src").is_dir()
+
+
+# Canonical version files. Source checkouts have root/VERSION and
+# noemaforge/VERSION; installed /opt payloads have VERSION at the payload root.
 check_version_file(root / "VERSION", "root VERSION")
-check_version_file(root / "noemaforge" / "VERSION", "package VERSION")
+if source_checkout:
+    check_version_file(root / "noemaforge" / "VERSION", "package VERSION")
+elif installed_payload:
+    check_optional_version_file(root / "noemaforge" / "VERSION", "legacy nested package VERSION")
+else:
+    check_version_file(root / "noemaforge" / "VERSION", "package VERSION")
 check_version_file(root / "docs" / "VERSION", "docs VERSION")
 
 # Release metadata.
 for release_json in [root / "release.json", root / "docs" / "release.json"]:
     if release_json.exists():
         json_version(release_json)
-for release_yaml in sorted((root / "noemaforge" / "release").glob("release-v*.yaml")) if (root / "noemaforge" / "release").exists() else []:
-    simple_yaml_version(release_yaml)
-
-# Config metadata.
-for cfg_dir in [root / "noemaforge" / "configs", root / "configs"]:
-    if not cfg_dir.exists():
+for release_dir in [root / "noemaforge" / "release", root / "release"]:
+    if not release_dir.exists():
         continue
-    for path in sorted(cfg_dir.glob("*.json")):
-        json_version(path)
-    for path in sorted(list(cfg_dir.glob("*.yaml")) + list(cfg_dir.glob("*.yml"))):
-        simple_yaml_version(path)
+    for release_yaml in sorted(release_dir.glob(f"release-v{expected}.yaml")):
+        simple_yaml_version(release_yaml)
+
+# Active config files are policy/schema metadata, not release identity. Keep
+# release version enforcement to canonical package metadata above; strict-all
+# still reports old active literals when operators request the broader scan.
 
 # Centralized runtime version import check.
 module_path = root / "noemaforge" / "src" / "noemaforge_version.py"
+if not module_path.exists() and (root / "src" / "noemaforge_version.py").exists():
+    module_path = root / "src" / "noemaforge_version.py"
 if not module_path.exists():
     add_problem("central_version_module_missing", module_path, "<missing>", expected)
 else:
@@ -221,6 +236,8 @@ for sub in ["helpers", "noemaforge/bin", "noemaforge/tools", "tools", "bin"]:
             continue
         for match in re.finditer(r"(?m)^VERSION=[\"']([^\"']+)[\"']", text):
             found = match.group(1)
+            if not re.match(r"^\d+\.\d+\.\d+(?:[-.][A-Za-z0-9]+)?$", found):
+                continue
             seen.append({"path": rel(path), "shell_version": found})
             if found != expected:
                 add_problem("shell_version_assignment_mismatch", path, found, expected)

@@ -648,6 +648,7 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn("manifest_exists", src)
         self.assertIn("manifest_path", src)
         self.assertIn("model_realpath", src)
+        self.assertIn("metadata_consistency", src)
         self.assertIn("selection_required", src)
         self.assertIn("/run/noemaforge/llm/backends/main.sock", src)
         self.assertNotIn("runtime-fingerprint", html)
