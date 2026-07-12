@@ -481,6 +481,9 @@ def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]
     backend_socket_state = str(backend_socket_doc.get("state") or "unknown")
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
+    metadata_consistency = runtime.get("metadata_consistency") if isinstance(runtime.get("metadata_consistency"), dict) else {}
+    manifest_status = "ok" if model_name and metadata_consistency.get("ok", True) else "warn"
+    manifest_evidence = metadata_consistency.get("message") or "modelstore main manifest"
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
     effective_policy = policy.get("effective_policy") if isinstance(policy.get("effective_policy"), dict) else {}
     session_override = policy.get("session_override") if isinstance(policy.get("session_override"), dict) else None
@@ -493,9 +496,45 @@ def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]
         {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": gateway_socket_state, "status": gateway_socket_doc.get("status") or ("ok" if gateway_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if gateway_socket_state == "present" else "not_affirmed", "evidence": gateway_socket_doc.get("path") or _path_key(CANONICAL_LLM_GATEWAY_SOCKET), "observed_at": observed_at},
         {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": backend_service.get("status") or ("ok" if backend_state == "active" else "warn"), "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": backend_service.get("evidence") or f"systemctl is-active {MAIN_BACKEND_SERVICE_UNIT}", "observed_at": observed_at},
         {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": backend_socket_state, "status": backend_socket_doc.get("status") or ("ok" if backend_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if backend_socket_state == "present" else "not_affirmed", "evidence": backend_socket_doc.get("path") or _path_key(CANONICAL_LLM_MAIN_BACKEND_SOCKET), "observed_at": observed_at},
-        {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
+        {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": metadata_consistency.get("state") or model_name or "missing", "status": manifest_status, "smoke_affirmation": "affirmed" if manifest_status == "ok" else "not_affirmed", "evidence": manifest_evidence},
         {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
     ]
+
+
+def model_metadata_consistency(main_manifest: Dict[str, Any], manifest_path: Path, model_link: Path) -> Dict[str, Any]:
+    model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+    source_value = str(main_manifest.get("source") or "").strip() if isinstance(main_manifest, dict) else ""
+    display_name = str(main_manifest.get("display_name") or "").strip() if isinstance(main_manifest, dict) else ""
+    model_id = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+    mismatches: List[str] = []
+    source_realpath = ""
+    source_exists = False
+    if source_value:
+        source_path = Path(source_value)
+        if not source_path.is_absolute():
+            source_path = manifest_path.parent / source_path
+        source_exists = source_path.exists()
+        if source_exists:
+            source_realpath = str(source_path.resolve())
+            if model_realpath and source_realpath != model_realpath:
+                mismatches.append("source_realpath_mismatch")
+        elif model_realpath and Path(source_value).name and Path(source_value).name != Path(model_realpath).name:
+            mismatches.append("source_basename_mismatch")
+    ok = not mismatches
+    message = "" if ok else "Model metadata mismatch: manifest source does not match model.gguf realpath."
+    return {
+        "ok": ok,
+        "state": "consistent" if ok else "mismatch",
+        "status": "ok" if ok else "warn",
+        "message": message,
+        "mismatches": mismatches,
+        "model_id": model_id,
+        "display_name": display_name,
+        "manifest_source": source_value,
+        "manifest_source_exists": source_exists,
+        "manifest_source_realpath": source_realpath,
+        "model_realpath": model_realpath,
+    }
 
 
 # NOEMAFORGE_PIPELINE_EDITOR_PACK_GUI_TOKENS:
@@ -2256,15 +2295,21 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         model_realpath = str(model_link.resolve()) if model_link.exists() else ""
         model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
         manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
-        active_model_ready = bool(model_name and model_realpath and manifest_exists)
+        effective_manifest_path = manifest_path if manifest_path.exists() else legacy_manifest_path
+        metadata_consistency = model_metadata_consistency(main_manifest, effective_manifest_path, model_link)
+        active_model_ready = bool(model_name and model_realpath and manifest_exists and metadata_consistency["ok"])
+        model_message = "" if active_model_ready else (
+            metadata_consistency["message"] or "Model selection required: run model selection and refresh/apply epoch."
+        )
         active_model = {
             "state": "ready" if active_model_ready else "missing",
             "model_id": model_name,
             "model_realpath": model_realpath,
-            "manifest_path": str(manifest_path if manifest_path.exists() else legacy_manifest_path),
+            "manifest_path": str(effective_manifest_path),
             "manifest_exists": manifest_exists,
+            "metadata_consistency": metadata_consistency,
             "selection_required": not active_model_ready,
-            "message": "" if active_model_ready else "Model selection required: run model selection and refresh/apply epoch.",
+            "message": model_message,
         }
         state_freshness = {
             "state": "fresh",
@@ -2283,6 +2328,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
             "gateway": svc,
             "main_backend": main,
             "main_manifest": main_manifest,
+            "metadata_consistency": metadata_consistency,
             "selected_model": active_model,
             "active_model": active_model,
             "model_selection_required": not active_model_ready,
@@ -2646,6 +2692,9 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         model_realpath = str(model_link.resolve()) if model_link.exists() else ""
         model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
         manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
+        effective_manifest_path = manifest_path if manifest_path.exists() else legacy_manifest_path
+        metadata_consistency = model_metadata_consistency(main_manifest, effective_manifest_path, model_link)
+        model_ready = bool(model_name and model_realpath and manifest_exists and metadata_consistency["ok"])
         status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
         staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
         decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
@@ -2657,7 +2706,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 break
         latest_plan = self._read_json(latest_msel / "candidate-selection-plan.json", {}) if latest_msel else {}
         latest_decision = self._read_json(latest_msel / "model-selection-decision.json", {}) if latest_msel else {}
-        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(manifest_path if manifest_path.exists() else legacy_manifest_path), "selection_required": not bool(model_name and model_realpath and manifest_exists)}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan), "model_selection_required": not bool(model_name and model_realpath and manifest_exists), "operator_action": "" if bool(model_name and model_realpath and manifest_exists) else "Run model selection, then refresh/apply epoch."}
+        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan), "model_selection_required": not model_ready, "operator_action": "" if model_ready else (metadata_consistency["message"] or "Run model selection, then refresh/apply epoch.")}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("model-selection")

@@ -21,6 +21,12 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
             existing_opt = Path(rootfs) / "opt" / "noemaforge"
             existing_opt.mkdir(parents=True)
             (existing_opt / "existing-symlink").symlink_to("bin/noemaforge")
+            legacy_src = existing_opt / "noemaforge" / "src"
+            legacy_src.mkdir(parents=True)
+            (legacy_src / "noemaforge_version.py").write_text(
+                "RUNTIME_" 'VERSION = "0.33.0"\n',
+                encoding="utf-8",
+            )
             result = subprocess.run(
                 [str(script), "--rootfs", rootfs, "--with-share", "/mnt/noemaforge-share"],
                 cwd=str(PROJECT_ROOT),
@@ -50,6 +56,27 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
             ]
             self.assertEqual([], group_writable[:10])
             self.assertTrue((opt_root / "existing-symlink").is_symlink())
+            self.assertEqual("0.33.0", (opt_root / "VERSION").read_text(encoding="utf-8").strip())
+            self.assertEqual("0.33.0", (opt_root / "docs" / "VERSION").read_text(encoding="utf-8").strip())
+            self.assertEqual("0.33.0", (opt_root / "noemaforge" / "VERSION").read_text(encoding="utf-8").strip())
+            audit = subprocess.run(
+                [
+                    "bash",
+                    str(ROOT / "tools" / "prep" / "noemaforge-version-audit.sh"),
+                    "--root",
+                    str(opt_root),
+                    "--expected",
+                    "0.33.0",
+                    "--json",
+                ],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=30,
+            )
+            self.assertEqual(0, audit.returncode, audit.stdout + audit.stderr)
+            self.assertTrue(json.loads(audit.stdout)["ok"])
 
     def test_executable_manifest_references_only_packaged_files(self) -> None:
         manifest = ROOT / "tools" / "prep" / "executable_manifest.txt"

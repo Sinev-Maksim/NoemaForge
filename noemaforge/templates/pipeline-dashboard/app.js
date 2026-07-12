@@ -1071,6 +1071,7 @@ function _fmtRuntimeState(runtime){
   const services = rt.service_states || {};
   const socketStates = rt.socket_states || {};
   const active = rt.active_model || {};
+  const metadataConsistency = active.metadata_consistency || rt.metadata_consistency || {};
   const startup = rt.startup_profile || {};
   const transition = startup.transition || {};
   const serviceRows = Object.entries(services).map(([name, item]) => {
@@ -1117,6 +1118,8 @@ function _fmtRuntimeState(runtime){
     _metricRow('  Manifest exists:', active.manifest_exists),
     _metricRow('  Manifest path:', active.manifest_path),
     _metricRow('  Model realpath:', active.model_realpath),
+    _metricRow('  Metadata consistency:', metadataConsistency.state || (metadataConsistency.ok === false ? 'mismatch' : 'consistent')),
+    _metricRow('  Metadata message:', metadataConsistency.message || '—'),
     _metricRow('  Selection required:', active.selection_required ?? rt.model_selection_required),
     _metricRow('  Message:', active.message || '—'),
     '',
