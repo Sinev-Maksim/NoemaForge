@@ -238,6 +238,21 @@ class EpochManifestSyncTests(unittest.TestCase):
             self.assertTrue(status["apply_available"])
             self.assertEqual("newer_unapplied_selection", status["apply_actionability"]["reason"])
 
+    def test_non_numeric_epoch_id_fails_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            run = srv.model_selection_state / "runs" / "msel_20260713T120000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "dry_run": False, "proposed_epoch_id": "epoch-7"})
+            _write_json(run / "model-selection-decision.json", {"kind": "ModelSelectionDecision", "ready_to_apply": True, "epoch_id": "epoch-7"})
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("selection_epoch_not_newer", status["apply_actionability"]["reason"])
+
     def test_july_firstboot_ready_without_epoch_is_actionable_before_apply(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)

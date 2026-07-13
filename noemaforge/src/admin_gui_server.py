@@ -577,13 +577,13 @@ def _selection_doc_ready_to_apply(plan: Dict[str, Any], decision: Dict[str, Any]
 
 def _epoch_is_newer(proposed_epoch_id: str, applied_epoch_id: str) -> bool:
     if not applied_epoch_id:
-        return True
+        return proposed_epoch_id.isdigit() if proposed_epoch_id else True
     if not proposed_epoch_id or proposed_epoch_id == applied_epoch_id:
         return False
     try:
         return int(proposed_epoch_id) > int(applied_epoch_id)
     except ValueError:
-        return proposed_epoch_id > applied_epoch_id
+        return False
 
 
 def selection_apply_actionability(plan: Dict[str, Any], decision: Dict[str, Any], applied_epoch_id: str) -> Dict[str, Any]:
