@@ -62,6 +62,40 @@ def _server(tmp: Path) -> ags.AdminGuiServer:
     return srv
 
 
+def _write_json(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _write_ready_main(srv: ags.AdminGuiServer, tmp: Path) -> None:
+    main = srv.modelstore_dir / "models" / "main"
+    main.mkdir(parents=True)
+    artifact = tmp / "selected.gguf"
+    artifact.write_bytes(b"model")
+    (main / "model.gguf").symlink_to(artifact)
+    _write_json(main / "noemaforge-model.json", {"model_id": "qwen-0-5b", "display_name": "Qwen 0.5B", "source": str(artifact)})
+
+
+def _write_july_firstboot_selection(srv: ags.AdminGuiServer) -> None:
+    _write_json(
+        srv.bootstrap_dir / "candidate-selection-plan.json",
+        {
+            "kind": "CandidateSelectionPlan",
+            "created_at": "2026-07-03T12:00:00Z",
+            "dry_run": False,
+        },
+    )
+    _write_json(
+        srv.bootstrap_dir / "model-selection-decision.json",
+        {
+            "kind": "ModelSelectionDecision",
+            "created_at": "2026-07-03T12:00:01Z",
+            "ready_to_apply": True,
+            "requires_confirmation_before_epoch_switch": True,
+        },
+    )
+
+
 class AdminUxRoutingTests(unittest.TestCase):
     def test_continue_dialogue_is_conversation_not_pipeline(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -129,6 +163,158 @@ class AdminUxRoutingTests(unittest.TestCase):
             self.assertIn("runtime unavailable", result["reply"])
             pipeline_action.assert_called_once()
             self.assertEqual("pipeline_clarification", srv.conversation_history()["pending_intent"])
+
+
+class EpochManifestSyncTests(unittest.TestCase):
+    def test_same_inode_different_symlink_paths_is_consistent(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            artifact = tmp / "models" / "selected.gguf"
+            artifact.parent.mkdir()
+            artifact.write_bytes(b"model")
+            source_link = tmp / "source-link.gguf"
+            model_link = tmp / "main" / "model.gguf"
+            model_link.parent.mkdir()
+            source_link.symlink_to(artifact)
+            model_link.symlink_to(artifact)
+
+            result = ags.model_metadata_consistency({"model_id": "selected", "source": str(source_link)}, tmp / "main" / "noemaforge-model.json", model_link)
+
+            self.assertTrue(result["ok"])
+            self.assertEqual("consistent", result["state"])
+
+    def test_different_artifacts_fail_consistency(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            artifact_a = tmp / "a.gguf"
+            artifact_b = tmp / "b.gguf"
+            artifact_a.write_bytes(b"a")
+            artifact_b.write_bytes(b"b")
+            model_link = tmp / "model.gguf"
+            model_link.symlink_to(artifact_b)
+
+            result = ags.model_metadata_consistency({"model_id": "selected", "source": str(artifact_a)}, tmp / "noemaforge-model.json", model_link)
+
+            self.assertFalse(result["ok"])
+            self.assertIn("source_realpath_mismatch", result["mismatches"])
+
+    def test_missing_manifest_source_fails_consistency(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            artifact = tmp / "model.gguf"
+            artifact.write_bytes(b"model")
+
+            result = ags.model_metadata_consistency({"model_id": "selected"}, tmp / "noemaforge-model.json", artifact)
+
+            self.assertFalse(result["ok"])
+            self.assertIn("source_missing", result["mismatches"])
+
+    def test_already_applied_epoch_has_no_apply_available(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            _write_json(srv.bootstrap_dir / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "dry_run": False, "proposed_epoch_id": "00006"})
+            _write_json(srv.bootstrap_dir / "model-selection-decision.json", {"kind": "ModelSelectionDecision", "ready_to_apply": True, "epoch_id": "00006"})
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("selection_epoch_already_applied", status["apply_actionability"]["reason"])
+
+    def test_newer_unapplied_epoch_has_apply_available(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            run = srv.model_selection_state / "runs" / "msel_20260713T120000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "dry_run": False, "proposed_epoch_id": "00007"})
+            _write_json(run / "model-selection-decision.json", {"kind": "ModelSelectionDecision", "ready_to_apply": True, "epoch_id": "00007"})
+
+            status = srv.epoch_status()
+
+            self.assertTrue(status["apply_available"])
+            self.assertEqual("newer_unapplied_selection", status["apply_actionability"]["reason"])
+
+    def test_july_firstboot_ready_without_epoch_is_actionable_before_apply(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "selection_ready_no_apply"})
+            _write_july_firstboot_selection(srv)
+
+            status = srv.epoch_status()
+
+            self.assertTrue(status["apply_available"])
+            self.assertEqual("ready_selection_without_epoch_id", status["apply_actionability"]["reason"])
+            self.assertEqual("firstboot", status["apply_actionability"]["source"])
+
+    def test_july_firstboot_ready_without_epoch_is_not_actionable_after_apply(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            _write_july_firstboot_selection(srv)
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("selection_without_epoch_already_applied", status["apply_actionability"]["reason"])
+
+    def test_old_may_candidate_selection_requested_does_not_resurrect_applied_firstboot(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            _write_july_firstboot_selection(srv)
+            run = srv.model_selection_state / "runs" / "msel_20260501T090000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "created_at": "2026-05-01T09:00:00Z", "dry_run": False})
+            _write_json(run / "model-selection-decision.json", {"kind": "ChatModelSelectionDecision", "created_at": "2026-05-01T09:00:01Z", "status": "candidate_selection_requested"})
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("firstboot", status["apply_actionability"]["source"])
+
+    def test_newer_not_ready_selection_blocks_fallback_to_older_firstboot(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "selection_ready_no_apply"})
+            _write_july_firstboot_selection(srv)
+            run = srv.model_selection_state / "runs" / "msel_20260713T120000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "created_at": "2026-07-13T12:00:00Z", "dry_run": False})
+            _write_json(run / "model-selection-decision.json", {"kind": "ChatModelSelectionDecision", "created_at": "2026-07-13T12:00:01Z", "status": "rejected", "ready_to_apply": False})
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("selection_not_ready_to_apply", status["apply_actionability"]["reason"])
+            self.assertEqual("latest_model_selection", status["apply_actionability"]["source"])
+            self.assertFalse(status["firstboot"]["authoritative"])
+
+    def test_newer_explicit_ready_selection_is_actionable(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            _write_july_firstboot_selection(srv)
+            run = srv.model_selection_state / "runs" / "msel_20260713T120000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "created_at": "2026-07-13T12:00:00Z", "dry_run": False, "proposed_epoch_id": "00007"})
+            _write_json(run / "model-selection-decision.json", {"kind": "ChatModelSelectionDecision", "created_at": "2026-07-13T12:00:01Z", "status": "apply_command_ready", "epoch_id": "00007"})
+
+            status = srv.epoch_status()
+
+            self.assertTrue(status["apply_available"])
+            self.assertEqual("newer_unapplied_selection", status["apply_actionability"]["reason"])
+            self.assertEqual("latest_model_selection", status["apply_actionability"]["source"])
 
 
 class PipelineStatusAndArtifactTests(unittest.TestCase):

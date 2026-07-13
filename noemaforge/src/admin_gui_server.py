@@ -509,17 +509,24 @@ def model_metadata_consistency(main_manifest: Dict[str, Any], manifest_path: Pat
     mismatches: List[str] = []
     source_realpath = ""
     source_exists = False
-    if source_value:
+    if not source_value:
+        mismatches.append("source_missing")
+    else:
         source_path = Path(source_value)
         if not source_path.is_absolute():
             source_path = manifest_path.parent / source_path
         source_exists = source_path.exists()
-        if source_exists:
+        if not source_exists:
+            mismatches.append("source_missing")
+        elif not model_realpath:
+            mismatches.append("model_link_missing")
+        else:
             source_realpath = str(source_path.resolve())
-            if model_realpath and source_realpath != model_realpath:
+            try:
+                if not os.path.samefile(source_path, model_link):
+                    mismatches.append("source_realpath_mismatch")
+            except OSError:
                 mismatches.append("source_realpath_mismatch")
-        elif model_realpath and Path(source_value).name and Path(source_value).name != Path(model_realpath).name:
-            mismatches.append("source_basename_mismatch")
     ok = not mismatches
     message = "" if ok else "Model metadata mismatch: manifest source does not match model.gguf realpath."
     return {
@@ -535,6 +542,99 @@ def model_metadata_consistency(main_manifest: Dict[str, Any], manifest_path: Pat
         "manifest_source_realpath": source_realpath,
         "model_realpath": model_realpath,
     }
+
+
+def _selection_doc_epoch_id(doc: Dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for key in ("proposed_epoch_id", "epoch_id", "applied_epoch_id"):
+        value = str(doc.get(key) or "").strip()
+        if value:
+            return value
+    selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
+    value = str(selection.get("proposed_epoch_id") or selection.get("epoch_id") or "").strip()
+    return value
+
+
+def _selection_doc_ready_to_apply(plan: Dict[str, Any], decision: Dict[str, Any]) -> bool:
+    if not isinstance(plan, dict):
+        plan = {}
+    if not isinstance(decision, dict):
+        decision = {}
+    if bool(plan.get("dry_run")) or bool(decision.get("dry_run")):
+        return False
+    status = str(decision.get("status") or "").strip().lower()
+    # Explicit apply-ready states accepted here:
+    # - firstboot ModelSelectionDecision.ready_to_apply == true
+    # - chat/apply decisions with status apply_command_ready or ready_to_apply
+    # candidate_selection_requested is only a plan/review state and is not actionable.
+    if status and status not in {"apply_command_ready", "ready_to_apply"}:
+        return False
+    if decision.get("ready_to_apply") is True:
+        return True
+    return status in {"apply_command_ready", "ready_to_apply"}
+
+
+def _epoch_is_newer(proposed_epoch_id: str, applied_epoch_id: str) -> bool:
+    if not applied_epoch_id:
+        return True
+    if not proposed_epoch_id or proposed_epoch_id == applied_epoch_id:
+        return False
+    try:
+        return int(proposed_epoch_id) > int(applied_epoch_id)
+    except ValueError:
+        return proposed_epoch_id > applied_epoch_id
+
+
+def selection_apply_actionability(plan: Dict[str, Any], decision: Dict[str, Any], applied_epoch_id: str) -> Dict[str, Any]:
+    proposed_epoch_id = _selection_doc_epoch_id(decision) or _selection_doc_epoch_id(plan)
+    ready = _selection_doc_ready_to_apply(plan, decision)
+    if not ready:
+        return {"apply_available": False, "reason": "selection_not_ready_to_apply", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    if not proposed_epoch_id:
+        if applied_epoch_id:
+            return {"apply_available": False, "reason": "selection_without_epoch_already_applied", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        return {"apply_available": True, "reason": "ready_selection_without_epoch_id", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+    if applied_epoch_id and proposed_epoch_id == applied_epoch_id:
+        return {"apply_available": False, "reason": "selection_epoch_already_applied", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    if not _epoch_is_newer(proposed_epoch_id, applied_epoch_id):
+        return {"apply_available": False, "reason": "selection_epoch_not_newer", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    return {"apply_available": True, "reason": "newer_unapplied_selection", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+
+
+def _selection_timestamp_value(doc: Dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for key in ("created_at", "updated_at", "generated_at"):
+        value = str(doc.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _selection_sort_key(source: str, plan: Dict[str, Any], decision: Dict[str, Any], run_dir: str = "") -> Tuple[int, str, str]:
+    ts = _selection_timestamp_value(decision) or _selection_timestamp_value(plan)
+    if not ts and run_dir:
+        match = re.search(r"msel_(\d{8}T\d{6}Z)", Path(run_dir).name)
+        if match:
+            ts = match.group(1)
+    has_selection = int(bool(plan or decision))
+    return (has_selection, ts, source)
+
+
+def authoritative_selection_record(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    candidates = [rec for rec in records if rec.get("plan") or rec.get("decision")]
+    if not candidates:
+        return {}
+    return max(
+        candidates,
+        key=lambda rec: _selection_sort_key(
+            str(rec.get("source") or ""),
+            rec.get("plan") if isinstance(rec.get("plan"), dict) else {},
+            rec.get("decision") if isinstance(rec.get("decision"), dict) else {},
+            str(rec.get("run_dir") or ""),
+        ),
+    )
 
 
 # NOEMAFORGE_PIPELINE_EDITOR_PACK_GUI_TOKENS:
@@ -2298,8 +2398,9 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         effective_manifest_path = manifest_path if manifest_path.exists() else legacy_manifest_path
         metadata_consistency = model_metadata_consistency(main_manifest, effective_manifest_path, model_link)
         active_model_ready = bool(model_name and model_realpath and manifest_exists and metadata_consistency["ok"])
+        default_model_message = "Model selection required: run model selection and refresh/apply epoch."
         model_message = "" if active_model_ready else (
-            metadata_consistency["message"] or "Model selection required: run model selection and refresh/apply epoch."
+            default_model_message if not manifest_exists else (metadata_consistency["message"] or default_model_message)
         )
         active_model = {
             "state": "ready" if active_model_ready else "missing",
@@ -2706,7 +2807,19 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 break
         latest_plan = self._read_json(latest_msel / "candidate-selection-plan.json", {}) if latest_msel else {}
         latest_decision = self._read_json(latest_msel / "model-selection-decision.json", {}) if latest_msel else {}
-        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan), "model_selection_required": not model_ready, "operator_action": "" if model_ready else (metadata_consistency["message"] or "Run model selection, then refresh/apply epoch.")}
+        applied_epoch_id = str(status.get("applied_epoch_id") or "").strip()
+        latest_actionability = selection_apply_actionability(latest_plan, latest_decision, applied_epoch_id) if latest_msel else {"apply_available": False, "reason": "no_latest_model_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        firstboot_actionability = selection_apply_actionability(candidate_plan, decision, applied_epoch_id) if candidate_plan or decision else {"apply_available": False, "reason": "no_firstboot_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        selection_records = [
+            {"source": "firstboot", "plan": candidate_plan, "decision": decision, "run_dir": str(self.bootstrap_dir), "actionability": firstboot_actionability},
+            {"source": "latest_model_selection", "plan": latest_plan, "decision": latest_decision, "run_dir": str(latest_msel) if latest_msel else "", "actionability": latest_actionability},
+        ]
+        authoritative = authoritative_selection_record(selection_records)
+        actionability = dict(authoritative.get("actionability") or {"apply_available": False, "reason": "no_authoritative_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id})
+        actionability["source"] = str(authoritative.get("source") or "")
+        actionability["authoritative"] = bool(authoritative)
+        operator_action = "" if model_ready else ("Run model selection, then refresh/apply epoch." if not manifest_exists else (metadata_consistency["message"] or "Run model selection, then refresh/apply epoch."))
+        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready, "applied_epoch_id": applied_epoch_id}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan, "apply_actionability": firstboot_actionability, "authoritative": actionability.get("source") == "firstboot"}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision, "apply_actionability": latest_actionability, "authoritative": actionability.get("source") == "latest_model_selection"}, "progress": self.model_selection_progress(), "apply_available": bool(actionability.get("apply_available")), "apply_actionability": actionability, "model_selection_required": not model_ready, "operator_action": operator_action}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("model-selection")
