@@ -280,6 +280,41 @@ class EpochManifestSyncTests(unittest.TestCase):
             self.assertFalse(status["apply_available"])
             self.assertEqual("selection_without_epoch_already_applied", status["apply_actionability"]["reason"])
 
+    def test_current_contract_epoch_blocks_equal_selection_when_status_lacks_applied_epoch(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            epochs = srv.data_root / "contracts" / "epochs"
+            (epochs / "00006").mkdir(parents=True)
+            (epochs / "current_epoch.txt").write_text("00006\n", encoding="utf-8")
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot"})
+            run = srv.model_selection_state / "runs" / "msel_20260713T120000Z_normal"
+            _write_json(run / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "dry_run": False, "proposed_epoch_id": "00006"})
+            _write_json(run / "model-selection-decision.json", {"kind": "ModelSelectionDecision", "ready_to_apply": True, "epoch_id": "00006"})
+
+            status = srv.epoch_status()
+
+            self.assertFalse(status["apply_available"])
+            self.assertEqual("selection_epoch_already_applied", status["apply_actionability"]["reason"])
+            self.assertEqual("00006", status["current_epoch"]["contract_current_epoch_id"])
+
+    def test_epoch_apply_refuses_when_authoritative_selection_is_not_actionable(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            srv = _server(tmp)
+            _write_ready_main(srv, tmp)
+            _write_json(srv.bootstrap_dir / "firstboot-status.json", {"state": "applied_no_reboot", "applied_epoch_id": "00006"})
+            _write_json(srv.bootstrap_dir / "candidate-selection-plan.json", {"kind": "CandidateSelectionPlan", "dry_run": False, "proposed_epoch_id": "00006"})
+            _write_json(srv.bootstrap_dir / "model-selection-decision.json", {"kind": "ModelSelectionDecision", "ready_to_apply": True, "epoch_id": "00006"})
+
+            with mock.patch.object(srv, "create_job") as create_job, mock.patch.object(srv, "save_message"):
+                result = srv.epoch_apply({})
+
+            self.assertFalse(result["ok"])
+            self.assertEqual("selection_epoch_already_applied", result["reason"])
+            create_job.assert_not_called()
+
     def test_old_may_candidate_selection_requested_does_not_resurrect_applied_firstboot(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)

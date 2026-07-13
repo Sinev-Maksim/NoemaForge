@@ -602,6 +602,25 @@ def selection_apply_actionability(plan: Dict[str, Any], decision: Dict[str, Any]
     return {"apply_available": True, "reason": "newer_unapplied_selection", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
 
 
+def _contract_current_epoch_id(data_root: Path) -> str:
+    epochs_dir = data_root / "contracts" / "epochs"
+    txt = epochs_dir / "current_epoch.txt"
+    try:
+        if txt.exists():
+            value = txt.read_text(encoding="utf-8").strip()
+            if value:
+                return value
+    except OSError:
+        pass
+    current = epochs_dir / "current"
+    try:
+        if current.exists():
+            return current.resolve().name
+    except OSError:
+        pass
+    return ""
+
+
 def _selection_timestamp_value(doc: Dict[str, Any]) -> str:
     if not isinstance(doc, dict):
         return ""
@@ -2807,7 +2826,9 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
                 break
         latest_plan = self._read_json(latest_msel / "candidate-selection-plan.json", {}) if latest_msel else {}
         latest_decision = self._read_json(latest_msel / "model-selection-decision.json", {}) if latest_msel else {}
-        applied_epoch_id = str(status.get("applied_epoch_id") or "").strip()
+        status_applied_epoch_id = str(status.get("applied_epoch_id") or "").strip()
+        contract_current_epoch_id = _contract_current_epoch_id(self.data_root)
+        applied_epoch_id = status_applied_epoch_id or (contract_current_epoch_id if contract_current_epoch_id and contract_current_epoch_id != "00000" else "")
         latest_actionability = selection_apply_actionability(latest_plan, latest_decision, applied_epoch_id) if latest_msel else {"apply_available": False, "reason": "no_latest_model_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
         firstboot_actionability = selection_apply_actionability(candidate_plan, decision, applied_epoch_id) if candidate_plan or decision else {"apply_available": False, "reason": "no_firstboot_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
         selection_records = [
@@ -2819,7 +2840,7 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         actionability["source"] = str(authoritative.get("source") or "")
         actionability["authoritative"] = bool(authoritative)
         operator_action = "" if model_ready else ("Run model selection, then refresh/apply epoch." if not manifest_exists else (metadata_consistency["message"] or "Run model selection, then refresh/apply epoch."))
-        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready, "applied_epoch_id": applied_epoch_id}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan, "apply_actionability": firstboot_actionability, "authoritative": actionability.get("source") == "firstboot"}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision, "apply_actionability": latest_actionability, "authoritative": actionability.get("source") == "latest_model_selection"}, "progress": self.model_selection_progress(), "apply_available": bool(actionability.get("apply_available")), "apply_actionability": actionability, "model_selection_required": not model_ready, "operator_action": operator_action}
+        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready, "applied_epoch_id": applied_epoch_id, "status_applied_epoch_id": status_applied_epoch_id, "contract_current_epoch_id": contract_current_epoch_id}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan, "apply_actionability": firstboot_actionability, "authoritative": actionability.get("source") == "firstboot"}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision, "apply_actionability": latest_actionability, "authoritative": actionability.get("source") == "latest_model_selection"}, "progress": self.model_selection_progress(), "apply_available": bool(actionability.get("apply_available")), "apply_actionability": actionability, "model_selection_required": not model_ready, "operator_action": operator_action}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("model-selection")
@@ -2900,7 +2921,17 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
 
     def epoch_apply(self, body: Dict[str, Any]) -> Dict[str, Any]:
         status = self.epoch_status()
-        plan = status.get("latest_model_selection", {}).get("plan") or status.get("firstboot", {}).get("candidate_plan") or {}
+        actionability = status.get("apply_actionability") if isinstance(status.get("apply_actionability"), dict) else {}
+        if not actionability.get("apply_available"):
+            reply = "Epoch transition is not available for the authoritative model selection record."
+            out = {"ok": False, "version": RUNTIME_VERSION, "reply": reply, "reason": actionability.get("reason") or "epoch_apply_not_available", "apply_actionability": actionability, "status": status}
+            self.save_message("system", reply, persona="Optimizer", intent="epoch_apply", artifacts=[], raw=out)
+            return out
+        source = str(actionability.get("source") or "")
+        if source == "firstboot":
+            plan = status.get("firstboot", {}).get("candidate_plan") or {}
+        else:
+            plan = status.get("latest_model_selection", {}).get("plan") or {}
         mode = str(body.get("mode") or plan.get("mode") or "normal")
         scope = str(body.get("scope") or plan.get("scope") or "active runtime")
         composite_top_n = int(body.get("composite_top_n") or plan.get("composite_top_n") or 0)
