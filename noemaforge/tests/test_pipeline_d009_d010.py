@@ -69,12 +69,19 @@ class TestD009PersonaGreeting(unittest.TestCase):
         body = m.group(1)
         self.assertIn("_confirmPipelineId", body)
 
-    def test_ok_handler_records_launch_time(self):
+    def test_direct_launch_records_launch_time(self):
+        run_idx = self.src.find("async function runPipelineDirect")
+        region = self.src[run_idx: run_idx + 400]
+        self.assertIn("_launchHistory.set", region,
+                      "Direct launch must record launch timestamp")
+        self.assertIn("Date.now()", region)
+
+    def test_ok_handler_stages_request_instead_of_launching(self):
         ok_idx = self.src.find("pipeline-confirm-ok")
         region = self.src[ok_idx: ok_idx + 400]
-        self.assertIn("_launchHistory.set", region,
-                      "OK handler must record launch timestamp")
-        self.assertIn("Date.now()", region)
+        self.assertIn("stagePipelineRequestFromConfirm", region)
+        self.assertNotIn("_launchHistory.set", region)
+        self.assertNotIn("runPipelineDirect", region)
 
 
 class TestD009BackendPersonaField(unittest.TestCase):
@@ -169,8 +176,11 @@ class TestD010RepeatLaunchGuard(unittest.TestCase):
         # Find the event listener registration (second occurrence)
         cont_listener_idx = self.src.find("pipeline-confirm-continue", cont_idx + 1)
         self.assertGreater(cont_listener_idx, 0)
-        region = self.src[cont_listener_idx: cont_listener_idx + 300]
-        self.assertIn("admin-message", region)
+        region = self.src[cont_listener_idx: cont_listener_idx + 400]
+        helper_idx = self.src.find("function stagePipelineRequestFromConfirm")
+        helper = self.src[helper_idx: helper_idx + 500]
+        self.assertIn("stagePipelineRequestFromConfirm", region)
+        self.assertIn("admin-message", helper)
         self.assertIn("Продолжи", region)
 
     def test_continue_handler_no_launch_history_update(self):

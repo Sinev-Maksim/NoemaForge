@@ -852,13 +852,13 @@ class FrontendSourceGuards(unittest.TestCase):
         self.assertIn("api('/api/pipeline/run'", src)
         self.assertIn("btn.addEventListener('click', ()=>startPipeline(p.id))", src)
 
-    def test_confirm_ok_no_longer_prefills_chat(self) -> None:
+    def test_confirm_ok_prefills_chat_without_direct_launch(self) -> None:
         src = APP_JS.read_text(encoding="utf-8")
         start = src.index("el('pipeline-confirm-ok').addEventListener")
         end = src.index("const pipelineConfirmContinue", start)
         body = src[start:end]
-        self.assertIn("runPipelineDirect(id, req)", body)
-        self.assertNotIn("el('admin-message').value = req", body)
+        self.assertIn("stagePipelineRequestFromConfirm(id, req", body)
+        self.assertNotIn("runPipelineDirect(id, req)", body)
 
     def test_persona_rules_ui_is_wired(self) -> None:
         src = APP_JS.read_text(encoding="utf-8")

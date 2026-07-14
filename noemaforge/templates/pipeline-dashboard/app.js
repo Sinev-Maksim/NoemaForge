@@ -1501,6 +1501,14 @@ function startPipeline(id){
   el('pipeline-confirm-req').focus();
   el('pipeline-confirm-req').select();
 }
+function stagePipelineRequestFromConfirm(id, request, label){
+  const req = String(request || '').trim();
+  if(!req || !id) return;
+  const input = el('admin-message');
+  input.value = req;
+  input.focus();
+  addMessage('Admin', `${label || 'Pipeline request'} inserted into the chat input. Review it, then press Send to start ${id}.`);
+}
 function pipelineById(id){ return pipelineCatalog.find(p => p.id === id) || {id:id || 'new_pipeline', description:'', stages:['intake','plan','review']}; }
 function movePipelineStage(from, to){
   const stages = pipelineEditorState.stages;
@@ -1859,7 +1867,7 @@ if (typeof window !== 'undefined' && window.document === document) {
     _closePipelineConfirm();
 
     if (!req || !id) return;
-    runPipelineDirect(id, req);
+    stagePipelineRequestFromConfirm(id, req, 'Pipeline request');
   });
 
   const pipelineConfirmContinue = el('pipeline-confirm-continue');
@@ -1874,7 +1882,7 @@ if (typeof window !== 'undefined' && window.document === document) {
 
       if (!id) return;
 
-      runPipelineDirect(id, `Продолжи ${id} по текущему сценарию`);
+      stagePipelineRequestFromConfirm(id, `Продолжи ${id} по текущему сценарию`, 'Continue request');
     });
   }
 

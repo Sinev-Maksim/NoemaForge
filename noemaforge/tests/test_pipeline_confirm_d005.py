@@ -44,6 +44,7 @@ class TestPipelineConfirmDialogExists(unittest.TestCase):
 
     def test_confirm_ok_button(self):
         self.assertIn('id="pipeline-confirm-ok"', self.html)
+        self.assertIn("Insert request", self.html)
 
     def test_confirm_cancel_button(self):
         self.assertIn('id="pipeline-confirm-cancel"', self.html)
@@ -103,17 +104,26 @@ class TestConfirmOkInsertsIntoChat(unittest.TestCase):
         # Find the ok click handler block.
         ok_idx = self.src.find("pipeline-confirm-ok")
         self.assertGreater(ok_idx, 0)
-        region = self.src[ok_idx: ok_idx + 400]
-        self.assertIn("admin-message", region,
-                      "OK handler must reference admin-message")
-        self.assertIn(".value", region,
+        region = self.src[ok_idx: ok_idx + 500]
+        self.assertIn("stagePipelineRequestFromConfirm", region,
+                      "OK handler must stage the request into the chat composer")
+        helper_idx = self.src.find("function stagePipelineRequestFromConfirm")
+        self.assertGreater(helper_idx, 0)
+        helper = self.src[helper_idx: helper_idx + 500]
+        self.assertIn("admin-message", helper,
+                      "OK helper must reference admin-message")
+        self.assertIn(".value", helper,
                       "OK handler must set .value on admin-message")
+        self.assertIn("addMessage", helper,
+                      "OK handler must show a visible confirmation")
 
     def test_ok_handler_no_direct_api_run(self):
         ok_idx = self.src.find("pipeline-confirm-ok")
-        region = self.src[ok_idx: ok_idx + 400]
+        region = self.src[ok_idx: ok_idx + 500]
         self.assertNotIn("/api/pipeline/run", region,
                          "OK handler must not call /api/pipeline/run")
+        self.assertNotIn("runPipelineDirect", region,
+                         "OK handler must not start the pipeline directly")
 
     def test_cancel_handler_closes_dialog(self):
         cancel_idx = self.src.find("pipeline-confirm-cancel")
