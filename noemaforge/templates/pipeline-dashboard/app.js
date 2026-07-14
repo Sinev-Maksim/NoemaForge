@@ -1715,13 +1715,16 @@ async function loadLocaleMessages(){
     const loc = await api('/api/locales');
     allMessages = loc.messages || {};
     if(Array.isArray(loc.locales)){
-      replaceWithNodes(el('locale-select'), loc.locales.map(x => {
-        const option=makeNode('option','',x);
-        option.value=String(x);
-        return option;
-      }));
       activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en');
-      el('locale-select').value = activeLocale;
+      const localeSelect = el('locale-select');
+      if(localeSelect){
+        replaceWithNodes(localeSelect, loc.locales.map(x => {
+          const option=makeNode('option','',x);
+          option.value=String(x);
+          return option;
+        }));
+        localeSelect.value = activeLocale;
+      }
     }
     applyLocaleMessages();
   }catch(e){}
@@ -1733,7 +1736,7 @@ async function startup(){
   let sessionPayload = null;
   try{
     sessionPayload = await api('/api/session/current');
-    const msgs = (sessionPayload.session || {}).messages || [];
+    const msgs = sessionPayload?.session?.messages || [];
     if(msgs.length > 0){ renderConversation(sessionPayload.session); restoredFromSession = true; }
   }catch(_){}
   const selected_mode = sessionPayload?.session?.selected_mode;
