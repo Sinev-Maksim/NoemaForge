@@ -1701,30 +1701,73 @@ async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
+function sessionArtifacts(session){
+  if(Array.isArray(session?.artifacts)) return session.artifacts;
+  const out = [];
+  const messages = Array.isArray(session?.messages) ? session.messages : [];
+  messages.forEach(msg => {
+    if(Array.isArray(msg?.artifacts)) out.push(...msg.artifacts);
+  });
+  return out;
+}
+function mergedArtifacts(primary, fallback){
+  const out = [];
+  const seen = new Set();
+  [primary, fallback].forEach(items => {
+    if(!Array.isArray(items)) return;
+    items.forEach(item => {
+      const key = [artifactPath(item), item?.label || '', item?.type || ''].join('|');
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  });
+  return out;
+}
+async function loadLocaleMessages(){
+  try{
+    const loc = await api('/api/locales');
+    allMessages = loc.messages || {};
+    if(Array.isArray(loc.locales)){
+      activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en');
+      const localeSelect = el('locale-select');
+      if(localeSelect){
+        replaceWithNodes(localeSelect, loc.locales.map(x => {
+          const option=makeNode('option','',x);
+          option.value=String(x);
+          return option;
+        }));
+        localeSelect.value = activeLocale;
+      }
+    }
+    applyLocaleMessages();
+  }catch(e){}
+}
 async function startup(){
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
+  await loadLocaleMessages();
   // Try session-based restore first (persists across page refresh); fall back to dashboard state.
   let restoredFromSession = false;
+  let sessionPayload = null;
   try{
-    const sess = await api('/api/session/current');
-    const msgs = (sess.session || {}).messages || [];
-    if(msgs.length > 0){ renderConversation(sess.session); restoredFromSession = true; }
+    sessionPayload = await api('/api/session/current');
+    const msgs = sessionPayload?.session?.messages || [];
+    if(msgs.length > 0){ renderConversation(sessionPayload.session); restoredFromSession = true; }
   }catch(_){}
-  if(!restoredFromSession){
-    try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+  const selected_mode = sessionPayload?.session?.selected_mode;
+  const selected_composite_top_n = Number(sessionPayload?.session?.selected_composite_top_n || 0);
+  if(selected_mode){
+    restoredSelectionMode = {mode:selected_mode, composite_top_n:selected_composite_top_n};
+    if(el('selection-mode')){ el('selection-mode').value = selected_composite_top_n ? `${selected_mode} ${selected_composite_top_n}` : selected_mode; }
   }
-  try{ const loc = await api('/api/locales'); allMessages = loc.messages || {}; if(Array.isArray(loc.locales)){ replaceWithNodes(el('locale-select'), loc.locales.map(x => { const option=makeNode('option','',x); option.value=String(x); return option; })); activeLocale = loc.locales.includes('en') ? 'en' : (loc.locales[0] || 'en'); el('locale-select').value = activeLocale; } applyLocaleMessages(); }catch(e){}
-  // Restore selected mode from the session store; conversation state is rendered below.
   try{
-    const sess = await api('/api/session/current');
-    const selected_mode = sess?.session?.selected_mode;
-    const selected_composite_top_n = Number(sess?.session?.selected_composite_top_n || 0);
-    if(selected_mode){
-      restoredSelectionMode = {mode:selected_mode, composite_top_n:selected_composite_top_n};
-      if(el('selection-mode')){ el('selection-mode').value = selected_composite_top_n ? `${selected_mode} ${selected_composite_top_n}` : selected_mode; }
-    }
-  }catch(_){}
-  try{ const st = await loadDashboardBackendState(); renderConversation(st.conversation || {}); renderArtifacts(st.conversation?.artifacts || []); if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url); }catch(e){ addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.')); }
+    const st = await loadDashboardBackendState();
+    if(!restoredFromSession) renderConversation(st.conversation || {});
+    renderArtifacts(mergedArtifacts(st.conversation?.artifacts || [], sessionArtifacts(sessionPayload?.session)));
+    if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url);
+  }catch(e){
+    if(restoredFromSession) renderArtifacts(sessionArtifacts(sessionPayload?.session));
+    if(!restoredFromSession) addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.'));
+  }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
   _updateMessageRunModeNotice();
   _updateDepthNotice();
