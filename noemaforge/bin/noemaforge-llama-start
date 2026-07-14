@@ -62,7 +62,7 @@ def _artifact_for(model_id: str) -> str:
 
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
-        print("usage: noemaforge-llama-start <model_id> <socket_path> [extra llama-server args...]", file=sys.stderr)
+        print("usage: noemaforge-llama-start <model_id> <socket_path>", file=sys.stderr)
         return 2
     model_id = argv[1].strip()
     sock = argv[2].strip()
