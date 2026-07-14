@@ -73,12 +73,12 @@ def main(argv: list[str]) -> int:
     if not runtime_safety.safe_backend_id(model_id):
         print(f"[noemaforge-llama-start][ERROR] refusing unsafe/non-head backend id: {model_id}", file=sys.stderr)
         return 71
-    ok_server, llama_server = _validated_llama_server()
+    ok_server, reason_server = _validated_llama_server()
     if not ok_server:
-        print(f"[noemaforge-llama-start][ERROR] {llama_server}", file=sys.stderr)
+        print(f"[noemaforge-llama-start][ERROR] {reason_server}", file=sys.stderr)
         return 70
-    if not os.path.exists(llama_server) or not os.access(llama_server, os.X_OK):
-        print(f"[noemaforge-llama-start][ERROR] llama-server is missing or not executable: {llama_server}", file=sys.stderr)
+    if not os.path.exists(DEFAULT_LLAMA_SERVER) or not os.access(DEFAULT_LLAMA_SERVER, os.X_OK):
+        print(f"[noemaforge-llama-start][ERROR] llama-server is missing or not executable: {DEFAULT_LLAMA_SERVER}", file=sys.stderr)
         return 70
     artifact = _artifact_for(model_id)
     ok_rt, reason_rt, meta_rt = runtime_safety.validate_artifact_path(artifact)
@@ -99,7 +99,8 @@ def main(argv: list[str]) -> int:
         return 71
     Path(os.path.dirname(sock)).mkdir(parents=True, exist_ok=True)
     cmd = [
-        llama_server,
+        DEFAULT_LLAMA_SERVER,
+        "--keep-display",
         "--model", artifact,
         "--host", sock,
         "--device", "none",
@@ -107,7 +108,7 @@ def main(argv: list[str]) -> int:
         "--no-kv-offload",
     ] + extra
     print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
-    os.execv(llama_server, cmd)
+    os.execv(DEFAULT_LLAMA_SERVER, cmd)
     return 127
 
 

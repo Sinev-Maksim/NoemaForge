@@ -55,6 +55,8 @@ class SecurityAlert299Tests(unittest.TestCase):
         exec_path, argv = execv_mock.call_args.args
         self.assertEqual(launcher.DEFAULT_LLAMA_SERVER, exec_path)
         self.assertEqual(launcher.DEFAULT_LLAMA_SERVER, argv[0])
+        self.assertIn("--keep-display", argv)
+        self.assertLess(argv.index("--keep-display"), argv.index("--model"))
         self.assertIn("--threads", argv)
 
 
