@@ -17,8 +17,10 @@ import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -44,6 +46,7 @@ DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
 DEFAULT_STATUS = str(_pp.data_root / "bootstrap/firstboot-status.json")
 DEFAULT_EVENTS = str(_pp.data_root / "bootstrap/firstboot-events.jsonl")
 STATE_DIR = str(_pp.data_root / "bootstrap")
+_MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS = 300
 
 
 def _load_yaml(path: str) -> Dict[str, Any]:
@@ -66,6 +69,94 @@ def _write_json(path: str, obj: Any) -> None:
 
 def _nowz() -> str:
     return firstboot_status._nowz()
+
+
+def _pid_is_active(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name != "posix":
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def _main_alias_lock_status(lock_dir: Path) -> Dict[str, Any]:
+    if not lock_dir.exists():
+        return {"stale": True, "reason": "lock_missing"}
+    if not lock_dir.is_dir():
+        return {"stale": False, "reason": "lock_path_not_directory", "lock_dir": str(lock_dir)}
+
+    owner_path = lock_dir / "owner.json"
+    try:
+        lock_age = max(0.0, time.time() - lock_dir.stat().st_mtime)
+    except OSError:
+        lock_age = 0.0
+
+    owner: Dict[str, Any] = {}
+    if owner_path.is_file():
+        try:
+            parsed = json.loads(owner_path.read_text(encoding="utf-8"))
+            if isinstance(parsed, dict):
+                owner = parsed
+        except Exception as exc:
+            return {
+                "stale": lock_age > _MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS,
+                "reason": "owner_metadata_unreadable",
+                "error": str(exc),
+                "lock_age_seconds": lock_age,
+            }
+    else:
+        return {
+            "stale": lock_age > _MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS,
+            "reason": "owner_metadata_missing",
+            "lock_age_seconds": lock_age,
+        }
+
+    hostname = str(owner.get("hostname") or "")
+    current_hostname = socket.gethostname()
+    if hostname and hostname != current_hostname:
+        return {"stale": False, "reason": "owner_host_unverifiable", "owner": owner}
+
+    try:
+        pid = int(owner.get("pid") or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    if _pid_is_active(pid):
+        return {"stale": False, "reason": "owner_pid_active", "owner": owner}
+    return {"stale": True, "reason": "owner_pid_inactive", "owner": owner}
+
+
+def _acquire_main_alias_lock(lock_dir: Path) -> Tuple[bool, Dict[str, Any]]:
+    owner = {"pid": os.getpid(), "hostname": socket.gethostname(), "created_at": _nowz()}
+    for _attempt in range(2):
+        try:
+            lock_dir.mkdir()
+            try:
+                (lock_dir / "owner.json").write_text(
+                    json.dumps(owner, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            except Exception as exc:
+                shutil.rmtree(str(lock_dir), ignore_errors=True)
+                return False, {"reason": "owner_metadata_write_failed", "error": str(exc)}
+            return True, {"owner": owner}
+        except FileExistsError:
+            status = _main_alias_lock_status(lock_dir)
+            if not status.get("stale"):
+                return False, status
+            try:
+                shutil.rmtree(str(lock_dir))
+            except Exception as exc:
+                status["cleanup_error"] = str(exc)
+                return False, status
+    return False, {"reason": "lock_reacquire_race", "stale": False}
 
 
 def _normalize_selection_mode(value: str) -> str:
@@ -437,10 +528,14 @@ def _ensure_main_alias(modelstore_root: str, selected_model_id: str) -> Dict[str
         }
     dst.mkdir(parents=True, exist_ok=True)
     lock_dir = dst / ".materialize-main.lock"
-    try:
-        lock_dir.mkdir()
-    except FileExistsError:
-        return {"main_model_id": selected_model_id, "aliased": False, "reason": "main_alias_materialization_locked"}
+    lock_acquired, lock_status = _acquire_main_alias_lock(lock_dir)
+    if not lock_acquired:
+        return {
+            "main_model_id": selected_model_id,
+            "aliased": False,
+            "reason": "main_alias_materialization_locked",
+            "lock": lock_status,
+        }
     active_files = [dst / "model.gguf", dst / "manifest.yaml", dst / "noemaforge-model.json", dst / "brainos-model.json"]
     staging_dir = None
     try:
@@ -528,10 +623,7 @@ def _ensure_main_alias(modelstore_root: str, selected_model_id: str) -> Dict[str
     finally:
         if staging_dir is not None and staging_dir.exists():
             shutil.rmtree(str(staging_dir), ignore_errors=True)
-        try:
-            lock_dir.rmdir()
-        except OSError:
-            pass
+        shutil.rmtree(str(lock_dir), ignore_errors=True)
 
 
 def orchestrate(

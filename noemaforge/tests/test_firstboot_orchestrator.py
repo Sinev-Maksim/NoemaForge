@@ -135,6 +135,63 @@ def test_main_alias_restores_previous_active_files_on_replace_failure(tmp_path: 
     assert not any((main / ".staging").glob("alias-materialization-*"))
 
 
+def test_main_alias_recovers_stale_bare_materialization_lock(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"model")
+    os.symlink(str(artifact), src / "model.gguf")
+    (src / "manifest.yaml").write_text("display_name: Qwen 0.5B\n", encoding="utf-8")
+    lock_dir = main / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is True
+    assert (main / "model.gguf").resolve() == artifact
+    assert not lock_dir.exists()
+
+
+def test_main_alias_preserves_live_materialization_lock(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"model")
+    os.symlink(str(artifact), src / "model.gguf")
+    lock_dir = main / ".materialize-main.lock"
+    lock_dir.mkdir()
+    (lock_dir / "owner.json").write_text(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "hostname": firstboot_orchestrator.socket.gethostname(),
+                "created_at": firstboot_orchestrator._nowz(),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is False
+    assert result["reason"] == "main_alias_materialization_locked"
+    assert result["lock"]["reason"] == "owner_pid_active"
+    assert lock_dir.exists()
+
+
 def test_threshold_pass_true():
     assert firstboot_orchestrator._threshold_pass(
         {'pass_rate': 0.7, 'json_parse_rate': 0.9, 'quality_score': 0.6},
