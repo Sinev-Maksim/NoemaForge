@@ -62,10 +62,15 @@ import taskqueue
 from platform_paths import DEFAULT_PATHS as _pp
 
 PROJECTS_BASE = str(_pp.data_root / "projects")
-LIST_USER_TASKS_SQL = (
+LIST_USER_TASKS_COLUMNS = (
     "SELECT user_task_id, created_at, updated_at, project_id, session_id, title, description, kind, status, owner, "
     "priority_class, engine_task_id, worktree_id, plan_required, last_error, payload_json, metadata_json "
-    "FROM user_tasks {where_clause} ORDER BY created_at DESC LIMIT ?"
+)
+LIST_USER_TASKS_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_PROJECT_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE project_id=? ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_STATUS_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE status=? ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_PROJECT_STATUS_SQL = (
+    LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE project_id=? AND status=? ORDER BY created_at DESC LIMIT ?"
 )
 UPDATE_USER_TASK_COLUMNS = {
     "title": "title",
@@ -215,6 +220,17 @@ def _assignment(column: str) -> str:
     if not safe:
         raise ValueError("unsupported_update_column")
     return f"{safe}=?"
+
+
+def _list_user_tasks_query(project_id: str, status: str, limit: int) -> tuple[str, tuple[Any, ...]]:
+    safe_limit = max(1, int(limit))
+    if project_id and status:
+        return LIST_USER_TASKS_BY_PROJECT_STATUS_SQL, (project_id, status, safe_limit)
+    if project_id:
+        return LIST_USER_TASKS_BY_PROJECT_SQL, (project_id, safe_limit)
+    if status:
+        return LIST_USER_TASKS_BY_STATUS_SQL, (status, safe_limit)
+    return LIST_USER_TASKS_SQL, (safe_limit,)
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -616,18 +632,8 @@ def list_user_tasks(
     con.row_factory = sqlite3.Row
     try:
         _sync_engine_statuses(con)
-        wh, args = [], []
-        if project_id:
-            wh.append("project_id=?")
-            args.append(project_id)
-        if status:
-            wh.append("status=?")
-            args.append(status)
-        where = _where_clause(wh)
-        rows = con.execute(
-            LIST_USER_TASKS_SQL.format(where_clause=where),
-            tuple(args + [max(1, int(limit))]),
-        ).fetchall()
+        sql, query_args = _list_user_tasks_query(project_id, status, limit)
+        rows = con.execute(sql, query_args).fetchall()
         return {"ok": True, "tasks": [_row_to_task(con, r) for r in rows]}
     finally:
         con.close()

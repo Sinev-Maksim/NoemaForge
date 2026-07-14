@@ -159,6 +159,43 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             )
             self.assertEqual(1, len(taskqueue.list_tasks(policy=policy, domain="SECURITY")))
 
+    def test_user_task_listing_binds_filter_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-tasks-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="queued task",
+                status="queued",
+            )
+            task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="done task",
+                status="done",
+            )
+            task_tools.create_user_task(
+                policy=policy,
+                project_id="project-other",
+                title="other task",
+                status="queued",
+            )
+
+            self.assertEqual(2, len(task_tools.list_user_tasks(policy=policy, project_id="project-safe")["tasks"]))
+            self.assertEqual(2, len(task_tools.list_user_tasks(policy=policy, status="queued")["tasks"]))
+            self.assertEqual(
+                [],
+                task_tools.list_user_tasks(policy=policy, status="queued' OR 1=1 --")["tasks"],
+            )
+            self.assertEqual(
+                [],
+                task_tools.list_user_tasks(policy=policy, project_id="project-safe' OR 1=1 --")["tasks"],
+            )
+            self.assertEqual(
+                1,
+                len(task_tools.list_user_tasks(policy=policy, project_id="project-safe", status="done")["tasks"]),
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
