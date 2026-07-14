@@ -898,9 +898,7 @@ async function sendAdmin(){
   const input = el('admin-message');
   const text = input.value.trim();
   if(!text) return;
-  const stagedPipelineId = _stagedPipelineRequest?.text === text
-    ? _stagedPipelineRequest.pipeline_id
-    : '';
+  const stagedPipelineId = _stagedPipelineRequest?.pipeline_id || '';
   const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
   const runModePayload = modePick ? {} : messageRunModePayload();
   input.value = '';
@@ -926,7 +924,8 @@ async function sendAdmin(){
     }
     pendingBubble.remove();
     absorbResult(result);
-    if(stagedPipelineId) _launchHistory.set(stagedPipelineId, Date.now());
+    const resultPipelineId = result?.pipeline_id || result?.route?.pipeline_id || '';
+    if(stagedPipelineId && resultPipelineId === stagedPipelineId) _launchHistory.set(stagedPipelineId, Date.now());
   }catch(e){ pendingBubble.remove(); addMessage('Admin', `Error: ${String(e)}`, 'error'); }
   finally{ if(stagedPipelineId) _stagedPipelineRequest = null; _resetMessageRunMode(); el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }

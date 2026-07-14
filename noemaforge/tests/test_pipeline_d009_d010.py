@@ -81,7 +81,10 @@ class TestD009PersonaGreeting(unittest.TestCase):
         region = self.src[send_idx: send_idx + 2400]
         self.assertIn("_stagedPipelineRequest", region)
         self.assertIn("stagedPipelineId", region)
+        self.assertNotIn("_stagedPipelineRequest?.text === text", region)
+        self.assertIn("resultPipelineId === stagedPipelineId", region)
         self.assertIn("_launchHistory.set(stagedPipelineId, Date.now())", region)
+        self.assertIn("if(stagedPipelineId) _stagedPipelineRequest = null", region)
 
     def test_ok_handler_stages_request_instead_of_launching(self):
         ok_idx = self.src.find("pipeline-confirm-ok")
