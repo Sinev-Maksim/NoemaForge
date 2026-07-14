@@ -33,12 +33,230 @@ from __future__ import annotations
 
 import os
 import sys
+import json
 from pathlib import Path
 
 ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(ROOT, 'src'))
 
 import firstboot_orchestrator
+
+
+def test_main_alias_materialization_synchronizes_active_manifests(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    src.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"model")
+    os.symlink(str(artifact), src / "model.gguf")
+    (src / "manifest.yaml").write_text(
+        "model_id: qwen2-5-coder-0-5b-instruct-q4-k-m\n"
+        "display_name: Qwen 2.5 Coder 0.5B\n"
+        "source: stale-relative.gguf\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is True
+    main = modelstore / "models" / "main"
+    assert (main / "model.gguf").resolve() == artifact
+    assert (main / "manifest.yaml").is_file()
+    for name in ["noemaforge-model.json", "brainos-model.json"]:
+        manifest = json.loads((main / name).read_text(encoding="utf-8"))
+        assert manifest["model_id"] == "qwen2-5-coder-0-5b-instruct-q4-k-m"
+        assert manifest["display_name"] == "Qwen 2.5 Coder 0.5B"
+        assert manifest["source"] == str(artifact)
+        assert manifest["selection_provenance"]["reason"] == "firstboot_selected_main_model"
+
+
+def test_main_alias_replaces_stale_legacy_manifest(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"new-model")
+    os.symlink(str(artifact), src / "model.gguf")
+    (src / "manifest.yaml").write_text("display_name: Qwen 0.5B\n", encoding="utf-8")
+    (main / "brainos-model.json").write_text(json.dumps({"model_id": "old-3b", "source": "/old/3b.gguf"}), encoding="utf-8")
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    legacy = json.loads((main / "brainos-model.json").read_text(encoding="utf-8"))
+    assert legacy["model_id"] == "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    assert legacy["source"] == str(artifact)
+    assert "old-3b" not in (main / "brainos-model.json").read_text(encoding="utf-8")
+    rollback = Path(result["rollback_dir"])
+    assert json.loads((rollback / "brainos-model.json").read_text(encoding="utf-8"))["model_id"] == "old-3b"
+
+
+def test_main_alias_restores_previous_active_files_on_replace_failure(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    new_artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    old_artifact = tmp_path / "artifacts" / "old.gguf"
+    new_artifact.parent.mkdir()
+    new_artifact.write_bytes(b"new-model")
+    old_artifact.write_bytes(b"old-model")
+    os.symlink(str(new_artifact), src / "model.gguf")
+    os.symlink(str(old_artifact), main / "model.gguf")
+    (src / "manifest.yaml").write_text("display_name: Qwen 0.5B\n", encoding="utf-8")
+    (main / "brainos-model.json").write_text(json.dumps({"model_id": "old-3b", "source": str(old_artifact)}), encoding="utf-8")
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    real_replace = firstboot_orchestrator.os.replace
+    calls = {"count": 0}
+
+    def fail_second_replace(src_path, dst_path):
+        calls["count"] += 1
+        if calls["count"] == 2:
+            raise OSError("injected replace failure")
+        return real_replace(src_path, dst_path)
+
+    monkeypatch.setattr(firstboot_orchestrator.os, "replace", fail_second_replace)
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is False
+    assert result["reason"] == "main_alias_materialization_failed"
+    assert "injected replace failure" in result["error"]
+    assert (main / "model.gguf").resolve() == old_artifact
+    assert json.loads((main / "brainos-model.json").read_text(encoding="utf-8"))["model_id"] == "old-3b"
+    assert not (main / ".materialize-main.lock").exists()
+    assert not any((main / ".staging").glob("alias-materialization-*"))
+
+
+def test_main_alias_recovers_stale_bare_materialization_lock(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"model")
+    os.symlink(str(artifact), src / "model.gguf")
+    (src / "manifest.yaml").write_text("display_name: Qwen 0.5B\n", encoding="utf-8")
+    lock_dir = main / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is True
+    assert (main / "model.gguf").resolve() == artifact
+    assert not lock_dir.exists()
+
+
+def test_main_alias_stale_lock_cleanup_does_not_remove_concurrent_owner(tmp_path: Path, monkeypatch):
+    lock_dir = tmp_path / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+
+    real_rmtree = firstboot_orchestrator.shutil.rmtree
+    rmtree_targets = []
+
+    def record_rmtree(path, *args, **kwargs):
+        rmtree_targets.append(Path(path))
+        return real_rmtree(path, *args, **kwargs)
+
+    def lose_stale_rename_race(src, dst):
+        assert Path(src) == lock_dir
+        assert Path(dst).name.startswith(".materialize-main.lock.stale.")
+        real_rmtree(str(lock_dir), ignore_errors=True)
+        lock_dir.mkdir()
+        (lock_dir / "owner.json").write_text(
+            json.dumps(
+                {
+                    "pid": os.getpid(),
+                    "hostname": firstboot_orchestrator.socket.gethostname(),
+                    "created_at": firstboot_orchestrator._nowz(),
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        raise FileNotFoundError(str(src))
+
+    monkeypatch.setattr(firstboot_orchestrator.shutil, "rmtree", record_rmtree)
+    monkeypatch.setattr(firstboot_orchestrator.os, "rename", lose_stale_rename_race)
+
+    acquired, status = firstboot_orchestrator._acquire_main_alias_lock(lock_dir)
+
+    assert acquired is False
+    assert status["reason"] == "owner_pid_active"
+    assert (lock_dir / "owner.json").is_file()
+    assert lock_dir not in rmtree_targets
+
+
+def test_main_alias_stale_lock_cleanup_removes_only_quarantined_lock(tmp_path: Path, monkeypatch):
+    lock_dir = tmp_path / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+
+    real_rmtree = firstboot_orchestrator.shutil.rmtree
+    rmtree_targets = []
+
+    def record_rmtree(path, *args, **kwargs):
+        rmtree_targets.append(Path(path))
+        return real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(firstboot_orchestrator.shutil, "rmtree", record_rmtree)
+
+    acquired, status = firstboot_orchestrator._acquire_main_alias_lock(lock_dir)
+
+    assert acquired is True
+    assert status["owner"]["pid"] == os.getpid()
+    assert (lock_dir / "owner.json").is_file()
+    assert lock_dir not in rmtree_targets
+    assert any(path.name.startswith(".materialize-main.lock.stale.") for path in rmtree_targets)
+    assert not any(path.exists() for path in rmtree_targets if path.name.startswith(".materialize-main.lock.stale."))
+
+
+def test_main_alias_preserves_live_materialization_lock(tmp_path: Path, monkeypatch):
+    modelstore = tmp_path / "modelstore"
+    src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
+    main = modelstore / "models" / "main"
+    src.mkdir(parents=True)
+    main.mkdir(parents=True)
+    artifact = tmp_path / "artifacts" / "qwen-0.5b.gguf"
+    artifact.parent.mkdir()
+    artifact.write_bytes(b"model")
+    os.symlink(str(artifact), src / "model.gguf")
+    lock_dir = main / ".materialize-main.lock"
+    lock_dir.mkdir()
+    (lock_dir / "owner.json").write_text(
+        json.dumps(
+            {
+                "pid": os.getpid(),
+                "hostname": firstboot_orchestrator.socket.gethostname(),
+                "created_at": firstboot_orchestrator._nowz(),
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(firstboot_orchestrator.runtime_safety, "validate_modelstore_backend", lambda *a, **k: (True, "", {}))
+
+    result = firstboot_orchestrator._ensure_main_alias(str(modelstore), "qwen2-5-coder-0-5b-instruct-q4-k-m")
+
+    assert result["aliased"] is False
+    assert result["reason"] == "main_alias_materialization_locked"
+    assert result["lock"]["reason"] == "owner_pid_active"
+    assert lock_dir.exists()
 
 
 def test_threshold_pass_true():
