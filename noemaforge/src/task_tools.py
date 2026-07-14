@@ -632,12 +632,6 @@ def list_user_tasks(
     con.row_factory = sqlite3.Row
     try:
         _sync_engine_statuses(con)
-        wh = []
-        if project_id:
-            wh.append("project_id=?")
-        if status:
-            wh.append("status=?")
-        _where_clause(wh)
         sql, query_args = _list_user_tasks_query(project_id, status, limit)
         rows = con.execute(sql, query_args).fetchall()
         return {"ok": True, "tasks": [_row_to_task(con, r) for r in rows]}
