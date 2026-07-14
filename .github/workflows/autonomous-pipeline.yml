@@ -330,6 +330,25 @@ jobs:
           "CODEX_WORKTREE=$worktree" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Prepared source at $worktree"
 
+      - name: Windows collect-only guard for ToolProxy imports
+        if: steps.gate.outputs.paused != 'true'
+        shell: pwsh
+        timeout-minutes: 5
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location -LiteralPath $env:CODEX_WORKTREE
+          python -c "import pytest" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "pytest is not available in the Codex runner Python environment; install project test dependencies before running autonomous-pipeline.yml."
+            exit 1
+          }
+          $env:PYTHONPATH = "$env:CODEX_WORKTREE\noemaforge\src;$env:CODEX_WORKTREE\noemaforge\tests"
+          python -m pytest --collect-only -q `
+            noemaforge/tests/test_toolproxy_voice_chat.py `
+            noemaforge/tests/test_toolproxy_roundtrip_and_local_workflows.py `
+            noemaforge/tests/test_discord_bridge.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: Get diff vs release branch
         if: steps.gate.outputs.paused != 'true'
         shell: pwsh
