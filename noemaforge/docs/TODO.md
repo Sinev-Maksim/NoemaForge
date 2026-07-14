@@ -582,7 +582,7 @@ production readiness for non-engineer operators = NOT READY._
   path (`test_admin_state_glossary.py`).
 - [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
-- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
+- [x] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
 - [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
   highlighted, completed stages marked, errors with stage + short message, run id linked

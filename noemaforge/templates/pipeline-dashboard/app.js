@@ -40,6 +40,7 @@ let restoredSelectionMode = {mode:'full_composite', composite_top_n:4};
 const _REPEAT_WINDOW_MS = 60_000;
 const _launchHistory = new Map();
 let _confirmPipelineId = '';
+let _stagedPipelineRequest = null;
 
 const DASHBOARD_API_ENDPOINT = '/api/dashboard';
 const GUI_STATE_FALLBACK_ENDPOINT = '/api/gui/state';
@@ -897,6 +898,7 @@ async function sendAdmin(){
   const input = el('admin-message');
   const text = input.value.trim();
   if(!text) return;
+  const stagedPipelineId = _stagedPipelineRequest?.pipeline_id || '';
   const modePick = pendingAction?.type === 'model_selection' ? parseModeText(text) : null;
   const runModePayload = modePick ? {} : messageRunModePayload();
   input.value = '';
@@ -922,8 +924,10 @@ async function sendAdmin(){
     }
     pendingBubble.remove();
     absorbResult(result);
+    const resultPipelineId = result?.pipeline_id || result?.route?.pipeline_id || '';
+    if(stagedPipelineId && resultPipelineId === stagedPipelineId) _launchHistory.set(stagedPipelineId, Date.now());
   }catch(e){ pendingBubble.remove(); addMessage('Admin', `Error: ${String(e)}`, 'error'); }
-  finally{ _resetMessageRunMode(); el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
+  finally{ if(stagedPipelineId) _stagedPipelineRequest = null; _resetMessageRunMode(); el('admin-send').disabled = false; el('chat-status').textContent = t('status.ready','ready'); }
 }
 function shortenPath(path){ if(!path) return '—'; const parts = String(path).split('/'); return parts.slice(-2).join('/'); }
 const _STAFFING_LABELS = {
@@ -1482,10 +1486,6 @@ async function runPipelineDirect(id, request){
 function startPipeline(id){
   const info = pipelineById(id);
   const missingRequired = Array.isArray(info.required_parameters) ? info.required_parameters.filter(p => !p.default && !p.value) : [];
-  if(!missingRequired.length){
-    runPipelineDirect(id, `Запусти ${id} по стандартному сценарию`);
-    return;
-  }
   const codename = info.persona_codename || 'Атлас';
   const isRepeat = _launchHistory.has(id) && (Date.now() - _launchHistory.get(id)) < _REPEAT_WINDOW_MS;
   _confirmPipelineId = id;
@@ -1495,11 +1495,23 @@ function startPipeline(id){
   el('pipeline-confirm-persona').textContent = `→ Persona: ${codename}`;
   el('pipeline-confirm-repeat').classList.toggle('hidden', !isRepeat);
   el('pipeline-confirm-continue').classList.toggle('hidden', !isRepeat);
-  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию\n\nMissing: ${missingRequired.join(', ')}`;
+  const missingLine = missingRequired.length
+    ? `\n\nMissing: ${missingRequired.join(', ')}`
+    : '';
+  el('pipeline-confirm-req').value = `Запусти ${safeId} по стандартному сценарию${missingLine}`;
 
   el('pipeline-confirm').classList.remove('hidden');
   el('pipeline-confirm-req').focus();
   el('pipeline-confirm-req').select();
+}
+function stagePipelineRequestFromConfirm(id, request, label){
+  const req = String(request || '').trim();
+  if(!req || !id) return;
+  const input = el('admin-message');
+  input.value = req;
+  _stagedPipelineRequest = { pipeline_id: id, text: req };
+  input.focus();
+  addMessage('Admin', `${label || 'Pipeline request'} inserted into the chat input. Review it, then press Send to start ${id}.`);
 }
 function pipelineById(id){ return pipelineCatalog.find(p => p.id === id) || {id:id || 'new_pipeline', description:'', stages:['intake','plan','review']}; }
 function movePipelineStage(from, to){
@@ -1859,7 +1871,7 @@ if (typeof window !== 'undefined' && window.document === document) {
     _closePipelineConfirm();
 
     if (!req || !id) return;
-    runPipelineDirect(id, req);
+    stagePipelineRequestFromConfirm(id, req, 'Pipeline request');
   });
 
   const pipelineConfirmContinue = el('pipeline-confirm-continue');
@@ -1874,7 +1886,7 @@ if (typeof window !== 'undefined' && window.document === document) {
 
       if (!id) return;
 
-      runPipelineDirect(id, `Продолжи ${id} по текущему сценарию`);
+      stagePipelineRequestFromConfirm(id, `Продолжи ${id} по текущему сценарию`, 'Continue request');
     });
   }
 
