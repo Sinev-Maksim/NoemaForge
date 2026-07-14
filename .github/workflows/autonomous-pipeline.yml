@@ -337,7 +337,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           Set-Location -LiteralPath $env:CODEX_WORKTREE
-          python -m pip install pytest --quiet
+          python -c "import pytest" 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            python -m pip install pytest --quiet
+          }
           $env:PYTHONPATH = "$env:CODEX_WORKTREE\noemaforge\src;$env:CODEX_WORKTREE\noemaforge\tests"
           python -m pytest --collect-only -q `
             noemaforge/tests/test_toolproxy_voice_chat.py `

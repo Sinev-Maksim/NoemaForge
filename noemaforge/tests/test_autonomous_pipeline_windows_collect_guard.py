@@ -44,6 +44,9 @@ class AutonomousPipelineWindowsCollectGuardTests(unittest.TestCase):
         self.assertEqual("steps.gate.outputs.paused != 'true'", step["if"])
 
         run = step["run"]
+        self.assertIn('python -c "import pytest"', run)
+        self.assertIn("if ($LASTEXITCODE -ne 0)", run)
+        self.assertIn("python -m pip install pytest --quiet", run)
         self.assertIn("python -m pytest --collect-only -q", run)
         self.assertIn("noemaforge/tests/test_toolproxy_voice_chat.py", run)
         self.assertIn("noemaforge/tests/test_toolproxy_roundtrip_and_local_workflows.py", run)
