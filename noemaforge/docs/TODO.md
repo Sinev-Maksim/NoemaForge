@@ -176,10 +176,10 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
   Windows. No `resource` sys.modules shim (would defeat the `try/except ImportError` fallback in
   `sandbox`/`canary_runner`/`selftest_runtime`). Whole-suite `--collect-only` now exits 0
   (2206 collected). _(M · opus — DONE)_
-- [ ] **Windows collection regression guard (Codex #147 optimization)** — add the
-  `--collect-only` of the toolproxy/discord modules (or the whole suite) as a CI regression
-  check. Note: the failure mode is non-POSIX-only, so a Linux premerge runner would not catch a
-  Windows regression; a meaningful guard belongs on the self-hosted Windows runner. _(S · opus)_
+- [x] **Windows collection regression guard (Codex #147 optimization)** — DONE:
+  `.github/workflows/autonomous-pipeline.yml` now runs a self-hosted Windows
+  `pytest --collect-only` guard over the ToolProxy/Discord import regression modules
+  before Codex review, with a workflow contract test locking the guard shape. _(S · opus)_
 - [x] **POSIX/bash entrypoint tests (D2)** — DONE (#107): rewrote the five CLI tests to the Python entrypoint via a shared `_cli_bridge`; `test_autostart_policy_03103` + D3 runtime cases skip-with-reason. Was: `test_code_qa_0310`, `test_pipeline_p1_03021`,
   `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
   `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
