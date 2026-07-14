@@ -76,6 +76,13 @@ class TestD009PersonaGreeting(unittest.TestCase):
                       "Direct launch must record launch timestamp")
         self.assertIn("Date.now()", region)
 
+    def test_staged_chat_send_records_launch_time(self):
+        send_idx = self.src.find("async function sendAdmin")
+        region = self.src[send_idx: send_idx + 2400]
+        self.assertIn("_stagedPipelineRequest", region)
+        self.assertIn("stagedPipelineId", region)
+        self.assertIn("_launchHistory.set(stagedPipelineId, Date.now())", region)
+
     def test_ok_handler_stages_request_instead_of_launching(self):
         ok_idx = self.src.find("pipeline-confirm-ok")
         region = self.src[ok_idx: ok_idx + 400]

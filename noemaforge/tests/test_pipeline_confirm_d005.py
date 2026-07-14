@@ -90,6 +90,8 @@ class TestStartPipelineNoLongerCallsPrompt(unittest.TestCase):
         body = m.group(1)
         self.assertNotIn("/api/pipeline/run", body,
                          "startPipeline must not call /api/pipeline/run directly")
+        self.assertNotIn("runPipelineDirect", body,
+                         "startPipeline must not launch directly")
 
 
 class TestConfirmOkInsertsIntoChat(unittest.TestCase):
