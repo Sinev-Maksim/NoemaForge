@@ -130,6 +130,35 @@ class SqlAllowlistHelperTests(unittest.TestCase):
                 self.assertIn("book_id", store._table_columns(con, "books"))
                 self.assertEqual([], store._table_columns(con, "books); DROP TABLE books;--"))
 
+    def test_taskqueue_list_tasks_binds_filter_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-taskqueue-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            taskqueue.enqueue_task(
+                policy=policy,
+                domain="SECURITY",
+                kind="module",
+                module="scary_sweep",
+                title="security sweep",
+            )
+            taskqueue.enqueue_task(
+                policy=policy,
+                domain="WORK",
+                kind="module",
+                module="teamworker",
+                title="work item",
+            )
+
+            self.assertEqual(2, len(taskqueue.list_tasks(policy=policy, status="TODO")))
+            self.assertEqual(
+                [],
+                taskqueue.list_tasks(policy=policy, status="TODO' OR 1=1 --"),
+            )
+            self.assertEqual(
+                [],
+                taskqueue.list_tasks(policy=policy, domain="SECURITY' OR 1=1 --"),
+            )
+            self.assertEqual(1, len(taskqueue.list_tasks(policy=policy, domain="SECURITY")))
+
 
 if __name__ == "__main__":
     unittest.main()

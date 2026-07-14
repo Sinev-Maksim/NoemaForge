@@ -92,10 +92,11 @@ from platform_paths import DEFAULT_PATHS as _pp
 
 
 DEFAULT_POLICY_PATH = str(_pp.root / "configs/taskqueue-policy.yaml")
-LIST_TASKS_SQL = """
+LIST_TASKS_QUERY = """
 SELECT task_id, created_at, updated_at, domain, priority_class, status, kind, module, title, group_key, repeats, attempts, last_error
 FROM tasks
-{where_clause}
+WHERE (? = 0 OR domain = ?)
+  AND (? = 0 OR status = ?)
 ORDER BY created_at DESC
 LIMIT ?
 """
@@ -1111,18 +1112,17 @@ def list_tasks(
     db_path = _db_path(policy)
     con = _connect(db_path)
     try:
-        wh = []
-        args: List[Any] = []
-        if domain:
-            wh.append("domain=?")
-            args.append(str(domain).strip().upper())
-        if status:
-            wh.append("status=?")
-            args.append(str(status).strip().upper())
-        where = _where_clause(wh)
+        domain_filter = str(domain).strip().upper()
+        status_filter = str(status).strip().upper()
         rows = con.execute(
-            LIST_TASKS_SQL.format(where_clause=where),
-            tuple(args + [max(1, int(limit))]),
+            LIST_TASKS_QUERY,
+            (
+                1 if domain else 0,
+                domain_filter,
+                1 if status else 0,
+                status_filter,
+                max(1, int(limit)),
+            ),
         ).fetchall()
         out: List[Dict[str, Any]] = []
         for r in rows:
