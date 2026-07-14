@@ -73,7 +73,15 @@ class DashboardApiEndpointQaTests(unittest.TestCase):
         self.assertEqual(1, startup.count("loadDashboardBackendState()"))
         self.assertIn("if(!restoredFromSession) renderConversation(st.conversation || {})", startup)
         self.assertIn("renderArtifacts(st.conversation?.artifacts || [])", startup)
+        self.assertIn("if(restoredFromSession) renderArtifacts(sessionArtifacts(sessionPayload?.session))", startup)
         self.assertNotIn("try{ const st = await loadDashboardBackendState(); renderConversation", startup)
+
+    def test_frontend_session_restore_keeps_artifact_fallback(self) -> None:
+        app_js = self._app_js()
+
+        self.assertIn("function sessionArtifacts(session)", app_js)
+        self.assertIn("if(Array.isArray(session?.artifacts)) return session.artifacts", app_js)
+        self.assertIn("if(Array.isArray(msg?.artifacts)) out.push(...msg.artifacts)", app_js)
 
 
 if __name__ == "__main__":

@@ -1701,6 +1701,15 @@ async function loadDashboardBackendState(){
   try{ return await api(DASHBOARD_API_ENDPOINT); }
   catch(_){ return await api(GUI_STATE_FALLBACK_ENDPOINT); }
 }
+function sessionArtifacts(session){
+  if(Array.isArray(session?.artifacts)) return session.artifacts;
+  const out = [];
+  const messages = Array.isArray(session?.messages) ? session.messages : [];
+  messages.forEach(msg => {
+    if(Array.isArray(msg?.artifacts)) out.push(...msg.artifacts);
+  });
+  return out;
+}
 async function loadLocaleMessages(){
   try{
     const loc = await api('/api/locales');
@@ -1739,6 +1748,7 @@ async function startup(){
     renderArtifacts(st.conversation?.artifacts || []);
     if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url);
   }catch(e){
+    if(restoredFromSession) renderArtifacts(sessionArtifacts(sessionPayload?.session));
     if(!restoredFromSession) addMessage('Admin', t('startup.ready','Ready. Say “Hello”, ask Dev Team, model optimization, or media plan.'));
   }
   await Promise.allSettled([refreshEpoch(false), refreshTelemetry(), refreshTasks(), refreshJobs(), refreshInactivity(), refreshPersona(), _loadPersonaSelect(), loadUsecases(), loadPublicShowcase(), loadPipelines()]);
