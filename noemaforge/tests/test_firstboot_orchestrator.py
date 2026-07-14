@@ -159,6 +159,48 @@ def test_main_alias_recovers_stale_bare_materialization_lock(tmp_path: Path, mon
     assert not lock_dir.exists()
 
 
+def test_main_alias_stale_lock_cleanup_does_not_remove_concurrent_owner(tmp_path: Path, monkeypatch):
+    lock_dir = tmp_path / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+
+    real_rmtree = firstboot_orchestrator.shutil.rmtree
+    rmtree_targets = []
+
+    def record_rmtree(path, *args, **kwargs):
+        rmtree_targets.append(Path(path))
+        return real_rmtree(path, *args, **kwargs)
+
+    def lose_stale_rename_race(src, dst):
+        assert Path(src) == lock_dir
+        assert Path(dst).name.startswith(".materialize-main.lock.stale.")
+        real_rmtree(str(lock_dir), ignore_errors=True)
+        lock_dir.mkdir()
+        (lock_dir / "owner.json").write_text(
+            json.dumps(
+                {
+                    "pid": os.getpid(),
+                    "hostname": firstboot_orchestrator.socket.gethostname(),
+                    "created_at": firstboot_orchestrator._nowz(),
+                }
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+        raise FileNotFoundError(str(src))
+
+    monkeypatch.setattr(firstboot_orchestrator.shutil, "rmtree", record_rmtree)
+    monkeypatch.setattr(firstboot_orchestrator.os, "rename", lose_stale_rename_race)
+
+    acquired, status = firstboot_orchestrator._acquire_main_alias_lock(lock_dir)
+
+    assert acquired is False
+    assert status["reason"] == "owner_pid_active"
+    assert (lock_dir / "owner.json").is_file()
+    assert lock_dir not in rmtree_targets
+
+
 def test_main_alias_preserves_live_materialization_lock(tmp_path: Path, monkeypatch):
     modelstore = tmp_path / "modelstore"
     src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"

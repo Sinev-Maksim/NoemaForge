@@ -152,7 +152,12 @@ def _acquire_main_alias_lock(lock_dir: Path) -> Tuple[bool, Dict[str, Any]]:
             if not status.get("stale"):
                 return False, status
             try:
-                shutil.rmtree(str(lock_dir))
+                stale_dir = lock_dir.with_name(f"{lock_dir.name}.stale.{os.getpid()}")
+                shutil.rmtree(str(stale_dir), ignore_errors=True)
+                os.rename(str(lock_dir), str(stale_dir))
+                shutil.rmtree(str(stale_dir), ignore_errors=True)
+            except FileNotFoundError:
+                pass
             except Exception as exc:
                 status["cleanup_error"] = str(exc)
                 return False, status
