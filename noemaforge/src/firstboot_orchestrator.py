@@ -133,6 +133,20 @@ def _main_alias_lock_status(lock_dir: Path) -> Dict[str, Any]:
     return {"stale": True, "reason": "owner_pid_inactive", "owner": owner}
 
 
+def _break_stale_main_alias_lock(lock_dir: Path, status: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    stale_dir = lock_dir.with_name(f"{lock_dir.name}.stale.{os.getpid()}.{time.time_ns()}")
+    try:
+        shutil.rmtree(str(stale_dir), ignore_errors=True)
+        os.rename(str(lock_dir), str(stale_dir))
+        shutil.rmtree(str(stale_dir), ignore_errors=True)
+    except FileNotFoundError:
+        return True, status
+    except Exception as exc:
+        status["cleanup_error"] = str(exc)
+        return False, status
+    return True, status
+
+
 def _acquire_main_alias_lock(lock_dir: Path) -> Tuple[bool, Dict[str, Any]]:
     owner = {"pid": os.getpid(), "hostname": socket.gethostname(), "created_at": _nowz()}
     for _attempt in range(2):
@@ -151,15 +165,8 @@ def _acquire_main_alias_lock(lock_dir: Path) -> Tuple[bool, Dict[str, Any]]:
             status = _main_alias_lock_status(lock_dir)
             if not status.get("stale"):
                 return False, status
-            try:
-                stale_dir = lock_dir.with_name(f"{lock_dir.name}.stale.{os.getpid()}")
-                shutil.rmtree(str(stale_dir), ignore_errors=True)
-                os.rename(str(lock_dir), str(stale_dir))
-                shutil.rmtree(str(stale_dir), ignore_errors=True)
-            except FileNotFoundError:
-                pass
-            except Exception as exc:
-                status["cleanup_error"] = str(exc)
+            cleaned, status = _break_stale_main_alias_lock(lock_dir, status)
+            if not cleaned:
                 return False, status
     return False, {"reason": "lock_reacquire_race", "stale": False}
 

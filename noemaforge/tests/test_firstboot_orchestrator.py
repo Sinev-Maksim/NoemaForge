@@ -201,6 +201,31 @@ def test_main_alias_stale_lock_cleanup_does_not_remove_concurrent_owner(tmp_path
     assert lock_dir not in rmtree_targets
 
 
+def test_main_alias_stale_lock_cleanup_removes_only_quarantined_lock(tmp_path: Path, monkeypatch):
+    lock_dir = tmp_path / ".materialize-main.lock"
+    lock_dir.mkdir()
+    stale_time = firstboot_orchestrator.time.time() - firstboot_orchestrator._MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS - 10
+    os.utime(lock_dir, (stale_time, stale_time))
+
+    real_rmtree = firstboot_orchestrator.shutil.rmtree
+    rmtree_targets = []
+
+    def record_rmtree(path, *args, **kwargs):
+        rmtree_targets.append(Path(path))
+        return real_rmtree(path, *args, **kwargs)
+
+    monkeypatch.setattr(firstboot_orchestrator.shutil, "rmtree", record_rmtree)
+
+    acquired, status = firstboot_orchestrator._acquire_main_alias_lock(lock_dir)
+
+    assert acquired is True
+    assert status["owner"]["pid"] == os.getpid()
+    assert (lock_dir / "owner.json").is_file()
+    assert lock_dir not in rmtree_targets
+    assert any(path.name.startswith(".materialize-main.lock.stale.") for path in rmtree_targets)
+    assert not any(path.exists() for path in rmtree_targets if path.name.startswith(".materialize-main.lock.stale."))
+
+
 def test_main_alias_preserves_live_materialization_lock(tmp_path: Path, monkeypatch):
     modelstore = tmp_path / "modelstore"
     src = modelstore / "models" / "qwen2-5-coder-0-5b-instruct-q4-k-m"
