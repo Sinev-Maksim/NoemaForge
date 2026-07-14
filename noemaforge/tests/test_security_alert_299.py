@@ -70,26 +70,23 @@ class SecurityAlert299Tests(unittest.TestCase):
         exists_mock.assert_not_called()
         execl_mock.assert_not_called()
 
-    def test_packaged_llama_server_wrapper_consumes_keep_display_marker(self) -> None:
+    def test_packaged_llama_server_wrapper_does_not_expand_backend_path_overrides(self) -> None:
         wrapper = ROOT / "bin" / "llama-server"
         with tempfile.TemporaryDirectory() as td:
             tmp = Path(td)
             fake_backend = tmp / "llama-server-cpu"
             argv_file = tmp / "argv.txt"
-            env_file = tmp / "env.txt"
             fake_backend.write_text(
                 "#!/usr/bin/env bash\n"
-                "printf '%s\\n' \"$@\" >\"$TEST_ARGV_FILE\"\n"
-                "printf '%s\\n' \"${NOEMAFORGE_KEEP_DISPLAY:-}\" >\"$TEST_ENV_FILE\"\n",
+                "printf '%s\\n' \"$@\" >\"$TEST_ARGV_FILE\"\n",
                 encoding="utf-8",
             )
             os.chmod(fake_backend, 0o755)
             env = {
                 **os.environ,
-                "NOEMAFORGE_LLM_MODE": "cpu",
+                "NOEMAFORGE_LLM_MODE": "invalid",
                 "NOEMAFORGE_LLAMA_SERVER_CPU": str(fake_backend),
                 "TEST_ARGV_FILE": str(argv_file),
-                "TEST_ENV_FILE": str(env_file),
             }
 
             result = subprocess.run(
@@ -100,12 +97,17 @@ class SecurityAlert299Tests(unittest.TestCase):
                 text=True,
                 check=False,
             )
-            forwarded = argv_file.read_text(encoding="utf-8").splitlines()
-            keep_display = env_file.read_text(encoding="utf-8").strip()
 
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertEqual(["--model", "/tmp/model.gguf", "--threads", "2"], forwarded)
-        self.assertEqual("1", keep_display)
+        self.assertEqual(64, result.returncode, result.stderr)
+        self.assertFalse(argv_file.exists())
+        self.assertNotIn(str(fake_backend), result.stderr)
+
+    def test_packaged_llama_server_wrapper_consumes_keep_display_marker_before_exec(self) -> None:
+        wrapper_text = (ROOT / "bin" / "llama-server").read_text(encoding="utf-8")
+        self.assertIn("--keep-display|--no-display-stop)", wrapper_text)
+        self.assertIn("export NOEMAFORGE_KEEP_DISPLAY=1", wrapper_text)
+        self.assertNotIn("NOEMAFORGE_LLAMA_SERVER_CPU:-", wrapper_text)
+        self.assertNotIn("NOEMAFORGE_LLAMA_SERVER_CUDA:-", wrapper_text)
 
 
 if __name__ == "__main__":

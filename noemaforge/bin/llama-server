@@ -15,8 +15,8 @@
 set -euo pipefail
 
 MODE="${NOEMAFORGE_LLM_MODE:-auto}"
-REAL_CUDA="${NOEMAFORGE_LLAMA_SERVER_CUDA:-/opt/noemaforge/bin/llama-server-cuda}"
-REAL_CPU="${NOEMAFORGE_LLAMA_SERVER_CPU:-/opt/noemaforge/bin/llama-server-cpu}"
+REAL_CUDA="/opt/noemaforge/bin/llama-server-cuda"
+REAL_CPU="/opt/noemaforge/bin/llama-server-cpu"
 
 args=()
 for arg in "$@"; do
