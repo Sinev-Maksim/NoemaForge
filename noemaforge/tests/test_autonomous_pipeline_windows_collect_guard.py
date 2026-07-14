@@ -46,7 +46,9 @@ class AutonomousPipelineWindowsCollectGuardTests(unittest.TestCase):
         run = step["run"]
         self.assertIn('python -c "import pytest"', run)
         self.assertIn("if ($LASTEXITCODE -ne 0)", run)
-        self.assertIn("python -m pip install pytest --quiet", run)
+        self.assertIn("pytest is not available in the Codex runner Python environment", run)
+        self.assertIn("exit 1", run)
+        self.assertNotIn("python -m pip install", run)
         self.assertIn("python -m pytest --collect-only -q", run)
         self.assertIn("noemaforge/tests/test_toolproxy_voice_chat.py", run)
         self.assertIn("noemaforge/tests/test_toolproxy_roundtrip_and_local_workflows.py", run)

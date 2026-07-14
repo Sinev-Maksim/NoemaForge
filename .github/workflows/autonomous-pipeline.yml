@@ -339,7 +339,8 @@ jobs:
           Set-Location -LiteralPath $env:CODEX_WORKTREE
           python -c "import pytest" 2>$null
           if ($LASTEXITCODE -ne 0) {
-            python -m pip install pytest --quiet
+            Write-Error "pytest is not available in the Codex runner Python environment; install project test dependencies before running autonomous-pipeline.yml."
+            exit 1
           }
           $env:PYTHONPATH = "$env:CODEX_WORKTREE\noemaforge\src;$env:CODEX_WORKTREE\noemaforge\tests"
           python -m pytest --collect-only -q `
