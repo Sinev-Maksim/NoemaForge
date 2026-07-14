@@ -67,6 +67,9 @@ def main(argv: list[str]) -> int:
     model_id = argv[1].strip()
     sock = argv[2].strip()
     extra = argv[3:]
+    if extra:
+        print(f"[noemaforge-llama-start][ERROR] unsupported extra llama-server args: {extra!r}", file=sys.stderr)
+        return 2
     if not model_id or "/" in model_id or model_id.startswith("."):
         print(f"[noemaforge-llama-start][ERROR] invalid model_id={model_id!r}", file=sys.stderr)
         return 2
@@ -98,17 +101,17 @@ def main(argv: list[str]) -> int:
             print(f"[noemaforge-llama-start][ERROR] shard_meta={meta}", file=sys.stderr)
         return 71
     Path(os.path.dirname(sock)).mkdir(parents=True, exist_ok=True)
-    cmd = [
-        DEFAULT_LLAMA_SERVER,
+    print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
+    os.execl(
+        "/opt/noemaforge/bin/llama-server",
+        "/opt/noemaforge/bin/llama-server",
         "--keep-display",
         "--model", artifact,
         "--host", sock,
         "--device", "none",
         "--n-gpu-layers", "0",
         "--no-kv-offload",
-    ] + extra
-    print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
-    os.execv(DEFAULT_LLAMA_SERVER, cmd)
+    )
     return 127
 
 

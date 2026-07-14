@@ -32,14 +32,14 @@ class SecurityAlert299Tests(unittest.TestCase):
         launcher = _load_launcher()
         with mock.patch.dict(os.environ, {"NOEMAFORGE_LLAMA_SERVER": "/tmp/attacker/llama-server"}), \
                 mock.patch.object(launcher.os.path, "exists") as exists_mock, \
-                mock.patch.object(launcher.os, "execv") as execv_mock:
+                mock.patch.object(launcher.os, "execl") as execl_mock:
             rc = launcher.main(["noemaforge-llama-start", "main", "/tmp/noemaforge/main.sock"])
 
         self.assertEqual(70, rc)
         exists_mock.assert_not_called()
-        execv_mock.assert_not_called()
+        execl_mock.assert_not_called()
 
-    def test_execv_uses_only_literal_installed_llama_server_path(self) -> None:
+    def test_execl_uses_only_literal_installed_llama_server_path(self) -> None:
         launcher = _load_launcher()
         with tempfile.TemporaryDirectory() as td, \
                 mock.patch.dict(os.environ, {}, clear=True), \
@@ -47,18 +47,28 @@ class SecurityAlert299Tests(unittest.TestCase):
                 mock.patch.object(launcher.os, "access", return_value=True), \
                 mock.patch.object(launcher.runtime_safety, "validate_artifact_path", return_value=(True, "ok", {"realpath": "/tmp/model.gguf"})), \
                 mock.patch.object(launcher.gguf_select, "validate_artifact_path", return_value=(True, "ok", {})), \
-                mock.patch.object(launcher.os, "execv") as execv_mock:
+                mock.patch.object(launcher.os, "execl") as execl_mock:
             launcher.MODELSTORE = str(Path(td) / "modelstore")
-            rc = launcher.main(["noemaforge-llama-start", "main", str(Path(td) / "main.sock"), "--threads", "2"])
+            rc = launcher.main(["noemaforge-llama-start", "main", str(Path(td) / "main.sock")])
 
         self.assertEqual(127, rc)
-        execv_mock.assert_called_once()
-        exec_path, argv = execv_mock.call_args.args
+        execl_mock.assert_called_once()
+        exec_path, argv0, *argv = execl_mock.call_args.args
         self.assertEqual(launcher.DEFAULT_LLAMA_SERVER, exec_path)
-        self.assertEqual(launcher.DEFAULT_LLAMA_SERVER, argv[0])
+        self.assertEqual(launcher.DEFAULT_LLAMA_SERVER, argv0)
         self.assertIn("--keep-display", argv)
         self.assertLess(argv.index("--keep-display"), argv.index("--model"))
-        self.assertIn("--threads", argv)
+
+    def test_rejects_extra_llama_server_args_before_filesystem_or_exec(self) -> None:
+        launcher = _load_launcher()
+        with mock.patch.dict(os.environ, {}, clear=True), \
+                mock.patch.object(launcher.os.path, "exists") as exists_mock, \
+                mock.patch.object(launcher.os, "execl") as execl_mock:
+            rc = launcher.main(["noemaforge-llama-start", "main", "/tmp/noemaforge/main.sock", "--threads", "2"])
+
+        self.assertEqual(2, rc)
+        exists_mock.assert_not_called()
+        execl_mock.assert_not_called()
 
     def test_packaged_llama_server_wrapper_consumes_keep_display_marker(self) -> None:
         wrapper = ROOT / "bin" / "llama-server"
