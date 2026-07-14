@@ -1710,6 +1710,20 @@ function sessionArtifacts(session){
   });
   return out;
 }
+function mergedArtifacts(primary, fallback){
+  const out = [];
+  const seen = new Set();
+  [primary, fallback].forEach(items => {
+    if(!Array.isArray(items)) return;
+    items.forEach(item => {
+      const key = [artifactPath(item), item?.label || '', item?.type || ''].join('|');
+      if(seen.has(key)) return;
+      seen.add(key);
+      out.push(item);
+    });
+  });
+  return out;
+}
 async function loadLocaleMessages(){
   try{
     const loc = await api('/api/locales');
@@ -1748,7 +1762,7 @@ async function startup(){
   try{
     const st = await loadDashboardBackendState();
     if(!restoredFromSession) renderConversation(st.conversation || {});
-    renderArtifacts(st.conversation?.artifacts || []);
+    renderArtifacts(mergedArtifacts(st.conversation?.artifacts || [], sessionArtifacts(sessionPayload?.session)));
     if(st.persona?.portrait_url) setPersona(st.persona.active_persona || st.persona.persona?.role_key || 'Admin', st.persona.portrait_url);
   }catch(e){
     if(restoredFromSession) renderArtifacts(sessionArtifacts(sessionPayload?.session));

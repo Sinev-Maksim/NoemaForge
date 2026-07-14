@@ -75,7 +75,10 @@ class DashboardApiEndpointQaTests(unittest.TestCase):
         self.assertIn("if(localeSelect)", app_js)
         self.assertIn("const msgs = sessionPayload?.session?.messages || []", startup)
         self.assertIn("if(!restoredFromSession) renderConversation(st.conversation || {})", startup)
-        self.assertIn("renderArtifacts(st.conversation?.artifacts || [])", startup)
+        self.assertIn(
+            "renderArtifacts(mergedArtifacts(st.conversation?.artifacts || [], sessionArtifacts(sessionPayload?.session)))",
+            startup,
+        )
         self.assertIn("if(restoredFromSession) renderArtifacts(sessionArtifacts(sessionPayload?.session))", startup)
         self.assertNotIn("try{ const st = await loadDashboardBackendState(); renderConversation", startup)
 
@@ -85,6 +88,9 @@ class DashboardApiEndpointQaTests(unittest.TestCase):
         self.assertIn("function sessionArtifacts(session)", app_js)
         self.assertIn("if(Array.isArray(session?.artifacts)) return session.artifacts", app_js)
         self.assertIn("if(Array.isArray(msg?.artifacts)) out.push(...msg.artifacts)", app_js)
+        self.assertIn("function mergedArtifacts(primary, fallback)", app_js)
+        self.assertIn("const key = [artifactPath(item), item?.label || '', item?.type || ''].join('|')", app_js)
+        self.assertIn("if(seen.has(key)) return", app_js)
 
 
 if __name__ == "__main__":
