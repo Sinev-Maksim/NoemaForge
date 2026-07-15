@@ -412,6 +412,101 @@ class SqlAllowlistHelperTests(unittest.TestCase):
                 len(task_tools.list_user_tasks(policy=policy, project_id="project-safe", status="done")["tasks"]),
             )
 
+    def test_user_task_update_binds_patch_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-update-") as tmp:
+            db_path = Path(tmp) / "taskqueue.sqlite"
+            policy = {"queue": {"db_path": str(db_path)}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                status="queued",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            injected_title = "safe title', status='done"
+            updated = task_tools.update_user_task(
+                policy=policy,
+                user_task_id=task_id,
+                patch={
+                    "title": injected_title,
+                    "status": "queued' OR 1=1 --",
+                    "payload": {"note": "x'); DROP TABLE user_tasks; --"},
+                },
+            )
+
+            task = updated["task"]
+            self.assertEqual(injected_title, task["title"])
+            self.assertEqual("queued' OR 1=1 --", task["status"])
+            self.assertEqual({"note": "x'); DROP TABLE user_tasks; --"}, task["payload"])
+
+            con = sqlite3.connect(str(db_path))
+            try:
+                row_count = con.execute("SELECT COUNT(*) FROM user_tasks").fetchone()[0]
+                self.assertEqual(1, row_count)
+            finally:
+                con.close()
+
+    def test_user_task_update_preserves_falsy_patch_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-falsy-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                kind="generic",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            updated = task_tools.update_user_task(
+                policy=policy,
+                user_task_id=task_id,
+                patch={
+                    "title": 0,
+                    "description": False,
+                    "owner": 0,
+                    "status": False,
+                    "priority_class": 0,
+                    "worktree_id": False,
+                },
+            )["task"]
+
+            self.assertEqual("0", updated["title"])
+            self.assertEqual("False", updated["description"])
+            self.assertEqual("0", updated["owner"])
+            self.assertEqual("False", updated["status"])
+            self.assertEqual("0", updated["priority_class"])
+            self.assertEqual("False", updated["worktree_id"])
+
+    def test_user_task_update_rejects_empty_title_and_kind(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-not-null-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                kind="manual",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            with self.assertRaisesRegex(ValueError, "missing_title"):
+                task_tools.update_user_task(
+                    policy=policy,
+                    user_task_id=task_id,
+                    patch={"title": "   "},
+                )
+
+            with self.assertRaisesRegex(ValueError, "missing_kind"):
+                task_tools.update_user_task(
+                    policy=policy,
+                    user_task_id=task_id,
+                    patch={"kind": ""},
+                )
+
+            current = task_tools.get_user_task(policy=policy, user_task_id=task_id)["task"]
+            self.assertEqual("manual", current["kind"])
+            self.assertEqual("original", current["title"])
+
 
 if __name__ == "__main__":
     unittest.main()
