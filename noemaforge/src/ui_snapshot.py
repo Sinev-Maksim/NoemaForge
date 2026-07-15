@@ -103,20 +103,17 @@ TASK_ORDER_SQL = {
 }
 
 TASK_ORDER_KEY_BY_SQL = {sql: key for key, sql in TASK_ORDER_SQL.items()}
-TASK_FETCH_SQL = """
+TASK_FETCH_QUERIES = {
+    key: f"""
             SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
                    module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
             FROM tasks
             WHERE status=?
-            ORDER BY
-                CASE WHEN ?='claimed_created_desc' THEN claimed_at END DESC,
-                CASE WHEN ?='claimed_created_desc' THEN created_at END DESC,
-                CASE WHEN ?='priority_created' THEN prio_index END ASC,
-                CASE WHEN ?='priority_created' THEN created_at END ASC,
-                CASE WHEN ?='updated_desc' THEN updated_at END DESC,
-                CASE WHEN ?='created_desc' THEN created_at END DESC
+            ORDER BY {order_sql}
             LIMIT ?
             """
+    for key, order_sql in TASK_ORDER_SQL.items()
+}
 
 
 def _task_order_key(order_key: str) -> str:
@@ -504,15 +501,9 @@ def _tq_fetch(con: sqlite3.Connection, *, status: str, limit: int, order_sql: st
     try:
         order_key = _task_order_key(order_sql)
         rows = con.execute(
-            TASK_FETCH_SQL,
+            TASK_FETCH_QUERIES[order_key],
             (
                 status.upper(),
-                order_key,
-                order_key,
-                order_key,
-                order_key,
-                order_key,
-                order_key,
                 max(1, int(limit)),
             ),
         ).fetchall()

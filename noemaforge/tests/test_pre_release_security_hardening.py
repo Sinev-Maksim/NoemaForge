@@ -176,6 +176,11 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             ui_snapshot._task_order_sql("created_at DESC; DROP TABLE tasks")
 
     def test_ui_snapshot_task_fetch_uses_static_order_queries(self) -> None:
+        self.assertEqual(set(ui_snapshot.TASK_ORDER_SQL), set(ui_snapshot.TASK_FETCH_QUERIES))
+        for query in ui_snapshot.TASK_FETCH_QUERIES.values():
+            self.assertNotIn("CASE WHEN", query.upper())
+            self.assertEqual(2, query.count("?"))
+
         con = sqlite3.connect(":memory:")
         con.row_factory = sqlite3.Row
         try:
