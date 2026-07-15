@@ -76,10 +76,12 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
 
     def test_default_socket_keeps_environment_override(self) -> None:
         global diag
-        with patch.dict(os.environ, {"NOEMAFORGE_TOOLPROXY_SOCKET": "/tmp/env-toolproxy.sock"}):
+        try:
+            with patch.dict(os.environ, {"NOEMAFORGE_TOOLPROXY_SOCKET": "/tmp/env-toolproxy.sock"}):
+                diag = importlib.reload(diag)
+                self.assertEqual("/tmp/env-toolproxy.sock", diag.DEFAULT_SOCKET)
+        finally:
             diag = importlib.reload(diag)
-            self.assertEqual("/tmp/env-toolproxy.sock", diag.DEFAULT_SOCKET)
-        diag = importlib.reload(diag)
 
     def test_stat_path_uses_argv_not_shell_for_socket_paths(self) -> None:
         with patch("noemaforge_toolproxy_diag.subprocess.check_output", return_value="socket stat\n") as check:
