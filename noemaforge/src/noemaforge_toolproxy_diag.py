@@ -20,8 +20,16 @@ from typing import Any
 
 from platform_paths import DEFAULT_PATHS as _pp
 
+
+def _toolproxy_socket_default(paths: Any = _pp) -> str:
+    socket_path = paths.toolproxy_socket
+    if callable(socket_path):
+        socket_path = socket_path()
+    return str(socket_path)
+
+
 DEFAULT_TOKENS_DIR = os.environ.get("NOEMAFORGE_CAP_TOKENS_DIR", str(_pp.data_root / ".sys/cap_tokens"))
-DEFAULT_SOCKET = os.environ.get("NOEMAFORGE_TOOLPROXY_SOCKET", str(_pp.toolproxy_socket))
+DEFAULT_SOCKET = os.environ.get("NOEMAFORGE_TOOLPROXY_SOCKET", _toolproxy_socket_default())
 
 
 def sh(cmd: list[str], timeout: int = 20) -> str:

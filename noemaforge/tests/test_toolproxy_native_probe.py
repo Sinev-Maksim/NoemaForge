@@ -14,6 +14,7 @@ Notes: Code comments are English-only; user-facing localized text belongs in doc
 from __future__ import annotations
 
 import json
+import importlib
 import os
 import socket
 import sys
@@ -60,6 +61,25 @@ class FakeUnixSocket:
 
 
 class ToolProxyNativeProbeTests(unittest.TestCase):
+    def test_default_socket_fallback_resolves_platform_path_property(self) -> None:
+        self.assertNotIn("bound method", diag.DEFAULT_SOCKET)
+        self.assertNotIn("toolproxy_socket", diag.DEFAULT_SOCKET)
+        self.assertEqual(str(diag._pp.toolproxy_socket), diag.DEFAULT_SOCKET)
+
+    def test_default_socket_helper_accepts_legacy_method_shape(self) -> None:
+        class LegacyPaths:
+            def toolproxy_socket(self) -> str:
+                return "/tmp/legacy-toolproxy.sock"
+
+        self.assertEqual("/tmp/legacy-toolproxy.sock", diag._toolproxy_socket_default(LegacyPaths()))
+
+    def test_default_socket_keeps_environment_override(self) -> None:
+        global diag
+        with patch.dict(os.environ, {"NOEMAFORGE_TOOLPROXY_SOCKET": "/tmp/env-toolproxy.sock"}):
+            diag = importlib.reload(diag)
+            self.assertEqual("/tmp/env-toolproxy.sock", diag.DEFAULT_SOCKET)
+        diag = importlib.reload(diag)
+
     def test_probe_uses_native_json_envelope_and_half_closes_write_side(self) -> None:
         FakeUnixSocket.instances = []
         with patch("noemaforge_toolproxy_diag.socket.socket", side_effect=FakeUnixSocket):
