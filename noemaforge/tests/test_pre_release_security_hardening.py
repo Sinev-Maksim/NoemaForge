@@ -349,6 +349,32 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             )
             self.assertEqual(1, len(taskqueue.list_tasks(policy=policy, domain="SECURITY")))
 
+    def test_taskqueue_priority_class_filter_binds_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-taskqueue-priority-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            taskqueue.enqueue_task(
+                policy=policy,
+                domain="SECURITY",
+                kind="module",
+                priority_class="daily_sla",
+                module="scary_sweep",
+                title="security sweep",
+            )
+
+            self.assertTrue(
+                taskqueue.has_todo_with_priority_classes(
+                    policy=policy,
+                    priority_classes=["DAILY_SLA"],
+                )
+            )
+            self.assertFalse(
+                taskqueue.has_todo_with_priority_classes(
+                    policy=policy,
+                    priority_classes=["daily_sla') OR 1=1 --"],
+                )
+            )
+            self.assertEqual(1, len(taskqueue.list_tasks(policy=policy, status="TODO")))
+
     def test_user_task_listing_binds_filter_values(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf-user-tasks-") as tmp:
             policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
