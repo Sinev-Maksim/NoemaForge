@@ -286,6 +286,24 @@ class SqlAllowlistHelperTests(unittest.TestCase):
                 self.assertIn("book_id", store._table_columns(con, "books"))
                 self.assertEqual([], store._table_columns(con, "books); DROP TABLE books;--"))
 
+    def test_prep_store_import_ignores_untrusted_table_names(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-prep-store-import-") as tmp:
+            root = Path(tmp)
+            store = PrepStore(str(root / "prep.sqlite"))
+            payload_dir = root / "jsonl"
+            payload_dir.mkdir()
+            bad_table = "books); DROP TABLE books;--"
+            (payload_dir / f"{bad_table}.jsonl").write_text(
+                '{"book_id": "book_bad", "source_id": "src_bad"}\n',
+                encoding="utf-8",
+            )
+
+            result = store.import_jsonl(in_dir=str(payload_dir), tables=[bad_table])
+
+            self.assertEqual({"ok": True, "in_dir": str(payload_dir), "merge": "replace", "tables": {}}, result)
+            with store._connect() as con:
+                self.assertIn("books", store._all_tables(con))
+
     def test_scan_tg_schema_upgrade_uses_ddl_allowlist(self) -> None:
         with self.assertRaises(ValueError):
             scan_tg._message_schema_upgrade_sql("pi_bad_lines; DROP TABLE messages;--", "INTEGER")

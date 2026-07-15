@@ -132,6 +132,91 @@ EXPORT_SELECT_SQL = {
     "passage_origins": "SELECT * FROM passage_origins",
     "claim_origins": "SELECT * FROM claim_origins",
 }
+IMPORT_TABLE_COLUMNS = {
+    "books": (
+        "book_id", "source_id", "source_path", "source_mime", "source_size_bytes",
+        "book_title", "edition", "language", "book_checksum", "book_checksum_alg",
+        "canonicalization_profile", "enqueue_ts", "status", "last_error_code",
+        "last_error_message",
+    ),
+    "book_queue_entries": (
+        "ingest_queue_entry_id", "book_id", "queue_name", "ingest_queue_position",
+        "priority", "enqueued_at", "dequeued_at", "completed_at", "queue_status",
+        "worker_id", "lease_expires_at",
+    ),
+    "chapters": (
+        "chapter_id", "book_id", "chapter_no", "chapter_title", "chapter_path",
+        "raw_char_start", "raw_char_end",
+    ),
+    "sections": (
+        "section_id", "book_id", "chapter_id", "section_path", "section_title",
+        "section_level", "raw_char_start", "raw_char_end",
+    ),
+    "normalized_text_artifacts": (
+        "normalized_text_artifact_id", "book_id", "chapter_id", "section_id",
+        "artifact_scope", "normalization_version", "canonicalization_profile",
+        "normalized_text_checksum", "normalized_text_checksum_alg", "artifact_relpath",
+        "artifact_encoding", "text_length_chars", "created_at",
+    ),
+    "processing_runs": (
+        "run_id", "component", "book_id", "model_id", "model_version", "prompt_hash",
+        "profile_id", "policy_epoch", "code_version", "thresholds_json", "started_at",
+        "finished_at", "run_status", "error_code", "error_message",
+    ),
+    "sentences": (
+        "sentence_id", "book_id", "chapter_id", "section_id",
+        "normalized_text_artifact_id", "sentence_no", "paragraph_no", "char_start",
+        "char_end", "token_estimate", "text_hash", "text_hash_alg",
+    ),
+    "sentence_topic_maps": (
+        "sentence_topic_map_id", "sentence_id", "labeling_run_id", "topic_tags_json",
+        "topic_signature", "topic_confidence", "adjacency_group_id", "note",
+    ),
+    "adjacency_groups": (
+        "adjacency_group_id", "book_id", "chapter_id", "section_id", "built_run_id",
+        "sentence_start_id", "sentence_end_id", "topic_signature",
+        "topic_tags_union_json", "cohesion_score", "estimated_tokens",
+    ),
+    "split_nodes": (
+        "split_node_id", "book_id", "chapter_id", "section_id", "built_run_id",
+        "parent_split_node_id", "adjacency_group_id", "sentence_start_id",
+        "sentence_end_id", "char_start", "char_end", "estimated_tokens",
+        "split_strategy", "split_reason", "boundary_mode", "fragment_spec_json",
+        "split_depth", "leaf_sequence_no", "is_leaf", "chunk_quality_metrics_json",
+    ),
+    "passage_origins": (
+        "passage_origin_id", "passage_id", "book_id", "chapter_id", "section_id",
+        "normalized_text_artifact_id", "split_leaf_id", "sentence_start_id",
+        "sentence_end_id", "char_start", "char_end", "quote_fingerprint",
+        "extraction_run_id", "trace_level", "trace_completeness_score",
+    ),
+    "claim_origins": (
+        "claim_origin_id", "claim_id", "source_id", "book_id", "chapter_id",
+        "section_id", "normalized_text_artifact_id", "passage_id", "split_leaf_id",
+        "sentence_start_id", "sentence_end_id", "char_start", "char_end",
+        "primary_address_json", "evidence_spans_json", "claim_mode",
+        "quote_fingerprint", "extraction_run_id", "trace_level",
+        "trace_completeness_score",
+    ),
+}
+IMPORT_REPLACE_SQL = {
+    "books": "INSERT OR REPLACE INTO books (book_id, source_id, source_path, source_mime, source_size_bytes, book_title, edition, language, book_checksum, book_checksum_alg, canonicalization_profile, enqueue_ts, status, last_error_code, last_error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "book_queue_entries": "INSERT OR REPLACE INTO book_queue_entries (ingest_queue_entry_id, book_id, queue_name, ingest_queue_position, priority, enqueued_at, dequeued_at, completed_at, queue_status, worker_id, lease_expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "chapters": "INSERT OR REPLACE INTO chapters (chapter_id, book_id, chapter_no, chapter_title, chapter_path, raw_char_start, raw_char_end) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "sections": "INSERT OR REPLACE INTO sections (section_id, book_id, chapter_id, section_path, section_title, section_level, raw_char_start, raw_char_end) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "normalized_text_artifacts": "INSERT OR REPLACE INTO normalized_text_artifacts (normalized_text_artifact_id, book_id, chapter_id, section_id, artifact_scope, normalization_version, canonicalization_profile, normalized_text_checksum, normalized_text_checksum_alg, artifact_relpath, artifact_encoding, text_length_chars, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "processing_runs": "INSERT OR REPLACE INTO processing_runs (run_id, component, book_id, model_id, model_version, prompt_hash, profile_id, policy_epoch, code_version, thresholds_json, started_at, finished_at, run_status, error_code, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "sentences": "INSERT OR REPLACE INTO sentences (sentence_id, book_id, chapter_id, section_id, normalized_text_artifact_id, sentence_no, paragraph_no, char_start, char_end, token_estimate, text_hash, text_hash_alg) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "sentence_topic_maps": "INSERT OR REPLACE INTO sentence_topic_maps (sentence_topic_map_id, sentence_id, labeling_run_id, topic_tags_json, topic_signature, topic_confidence, adjacency_group_id, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+    "adjacency_groups": "INSERT OR REPLACE INTO adjacency_groups (adjacency_group_id, book_id, chapter_id, section_id, built_run_id, sentence_start_id, sentence_end_id, topic_signature, topic_tags_union_json, cohesion_score, estimated_tokens) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "split_nodes": "INSERT OR REPLACE INTO split_nodes (split_node_id, book_id, chapter_id, section_id, built_run_id, parent_split_node_id, adjacency_group_id, sentence_start_id, sentence_end_id, char_start, char_end, estimated_tokens, split_strategy, split_reason, boundary_mode, fragment_spec_json, split_depth, leaf_sequence_no, is_leaf, chunk_quality_metrics_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "passage_origins": "INSERT OR REPLACE INTO passage_origins (passage_origin_id, passage_id, book_id, chapter_id, section_id, normalized_text_artifact_id, split_leaf_id, sentence_start_id, sentence_end_id, char_start, char_end, quote_fingerprint, extraction_run_id, trace_level, trace_completeness_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+    "claim_origins": "INSERT OR REPLACE INTO claim_origins (claim_origin_id, claim_id, source_id, book_id, chapter_id, section_id, normalized_text_artifact_id, passage_id, split_leaf_id, sentence_start_id, sentence_end_id, char_start, char_end, primary_address_json, evidence_spans_json, claim_mode, quote_fingerprint, extraction_run_id, trace_level, trace_completeness_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+}
+IMPORT_IGNORE_SQL = {
+    table: sql.replace("INSERT OR REPLACE", "INSERT OR IGNORE", 1)
+    for table, sql in IMPORT_REPLACE_SQL.items()
+}
 
 
 class PrepStore:
@@ -188,6 +273,15 @@ class PrepStore:
         if n <= 0 or n > 200:
             raise ValueError("invalid_placeholder_count")
         return ", ".join("?" for _ in range(n))
+
+    def _import_table_columns(self, con: sqlite3.Connection, table: str) -> Sequence[str]:
+        expected = IMPORT_TABLE_COLUMNS.get(str(table))
+        if not expected:
+            raise ValueError("unknown_table")
+        actual = tuple(self._table_columns(con, str(table)))
+        if actual != expected:
+            raise ValueError("prep_store_schema_mismatch")
+        return expected
 
     def _init_db(self) -> None:
         sql = Path(self.sql_path).read_text(encoding="utf-8")
@@ -1082,12 +1176,8 @@ class PrepStore:
                 p = src / f"{table}.jsonl"
                 if table not in available or not p.exists():
                     continue
-                table_name = self._safe_table_name(con, table)
-                cols = self._table_columns(con, table_name)
-                placeholders = self._placeholders(len(cols))
-                column_list = self._column_list(con, table_name, cols)
-                verb = "INSERT OR REPLACE" if mode == "replace" else "INSERT OR IGNORE"
-                sql = f"{verb} INTO {table_name} ({column_list}) VALUES ({placeholders})"
+                cols = self._import_table_columns(con, table)
+                sql = IMPORT_REPLACE_SQL[table] if mode == "replace" else IMPORT_IGNORE_SQL[table]
                 count = 0
                 with open(p, "r", encoding="utf-8") as f:
                     for line in f:
