@@ -153,17 +153,17 @@ def _ensure_dir(p: str) -> None:
     os.makedirs(p, exist_ok=True)
 
 
-PREFILTER_ENTRY_IDS_SQL = "SELECT entry_id FROM entries WHERE {where_clause}"
-
-
-def _and_where(parts: List[str]) -> str:
-    if not parts:
-        raise ValueError("empty_where")
-    allowed = {"dims=?", "model_id=?", "tombstone=0", "stream_id=?", "project_id=?", "kind=?", "created_at>=?", "created_at<=?"}
-    for part in parts:
-        if part not in allowed:
-            raise ValueError("unsupported_where_clause")
-    return " AND ".join(parts)
+PREFILTER_ENTRY_IDS_SQL = """
+    SELECT entry_id FROM entries
+    WHERE dims=?
+      AND model_id=?
+      AND tombstone=0
+      AND (? OR stream_id=?)
+      AND (? OR project_id=?)
+      AND (? OR kind=?)
+      AND (? OR created_at>=?)
+      AND (? OR created_at<=?)
+"""
 
 
 @dataclass
@@ -409,7 +409,8 @@ class VStore:
             return
         man_path = str(row["manifest_path"])
         try:
-            man = json.loads(open(man_path, "r", encoding="utf-8").read())
+            with open(man_path, "r", encoding="utf-8") as f:
+                man = json.loads(f.read())
             man["state"] = "sealed"
             with open(man_path, "w", encoding="utf-8") as f:
                 json.dump(man, f, ensure_ascii=False, indent=2)
@@ -480,7 +481,8 @@ class VStore:
 
             sha = _sha256_file(str(seg["path"]))
             man_path = str(seg["manifest_path"])
-            man = json.loads(open(man_path, "r", encoding="utf-8").read())
+            with open(man_path, "r", encoding="utf-8") as f:
+                man = json.loads(f.read())
             man["count"] = new_count
             man["sha256"] = sha
             with open(man_path, "w", encoding="utf-8") as f:
@@ -693,29 +695,14 @@ class VStore:
     #   - args, con, cur, ids, q, where
     # === End NoemaForge Autodoc Function Header ===
     def _prefilter_entry_ids(self, dims: int, model_id: str, filters: Dict[str, Any]) -> set:
-        where = ["dims=?", "model_id=?", "tombstone=0"]
         args: List[Any] = [dims, model_id]
+        for key in ("stream_id", "project_id", "kind", "created_from", "created_to"):
+            disabled = 0 if key in filters else 1
+            args.extend([disabled, filters.get(key)])
 
-        if "stream_id" in filters:
-            where.append("stream_id=?")
-            args.append(filters["stream_id"])
-        if "project_id" in filters:
-            where.append("project_id=?")
-            args.append(filters["project_id"])
-        if "kind" in filters:
-            where.append("kind=?")
-            args.append(filters["kind"])
-        if "created_from" in filters:
-            where.append("created_at>=?")
-            args.append(filters["created_from"])
-        if "created_to" in filters:
-            where.append("created_at<=?")
-            args.append(filters["created_to"])
-
-        q = PREFILTER_ENTRY_IDS_SQL.format(where_clause=_and_where(where))
         con = self._connect()
         cur = con.cursor()
-        cur.execute(q, tuple(args))
+        cur.execute(PREFILTER_ENTRY_IDS_SQL, tuple(args))
         ids = {str(r[0]) for r in cur.fetchall()}
         con.close()
         return ids
