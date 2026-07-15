@@ -75,6 +75,21 @@ MESSAGE_SCHEMA_UPGRADES = {
     "pi_bad_lines": "INTEGER",
 }
 
+MESSAGE_SCHEMA_UPGRADE_SQL = {
+    "pi_post_severity": "ALTER TABLE messages ADD COLUMN pi_post_severity TEXT",
+    "pi_post_score": "ALTER TABLE messages ADD COLUMN pi_post_score INTEGER",
+    "pi_bad_lines": "ALTER TABLE messages ADD COLUMN pi_bad_lines INTEGER",
+}
+
+
+def _message_schema_upgrade_sql(column: str, column_type: str) -> str:
+    if MESSAGE_SCHEMA_UPGRADES.get(column) != column_type:
+        raise ValueError("unknown_message_schema_upgrade")
+    try:
+        return MESSAGE_SCHEMA_UPGRADE_SQL[column]
+    except KeyError as exc:
+        raise ValueError("unknown_message_schema_upgrade") from exc
+
 
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
@@ -253,7 +268,7 @@ def _init_db(con: sqlite3.Connection) -> None:
     # (SQLite doesn't support ADD COLUMN IF NOT EXISTS)
     for col, typ in MESSAGE_SCHEMA_UPGRADES.items():
         try:
-            con.execute(f"ALTER TABLE messages ADD COLUMN {col} {typ}")
+            con.execute(_message_schema_upgrade_sql(col, typ))
         except sqlite3.OperationalError:
             pass
 
