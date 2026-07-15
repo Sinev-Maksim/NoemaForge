@@ -12,13 +12,17 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "src"
+PREP = ROOT / "tools" / "prep"
 if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
+if str(PREP) not in sys.path:
+    sys.path.insert(0, str(PREP))
 
 import brainui  # noqa: E402
 import persona_runtime  # noqa: E402
 import prestart  # noqa: E402
 import privileged_gui_job_runner as pgr  # noqa: E402
+import scan_tg  # noqa: E402
 import task_tools  # noqa: E402
 import taskqueue  # noqa: E402
 import ui_snapshot  # noqa: E402
@@ -129,6 +133,40 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             with store._connect() as con:
                 self.assertIn("book_id", store._table_columns(con, "books"))
                 self.assertEqual([], store._table_columns(con, "books); DROP TABLE books;--"))
+
+    def test_scan_tg_schema_upgrade_uses_ddl_allowlist(self) -> None:
+        with self.assertRaises(ValueError):
+            scan_tg._message_schema_upgrade_sql("pi_bad_lines; DROP TABLE messages;--", "INTEGER")
+        with self.assertRaises(ValueError):
+            scan_tg._message_schema_upgrade_sql("pi_bad_lines", "INTEGER; DROP TABLE messages;--")
+
+        with tempfile.TemporaryDirectory(prefix="nf-scan-tg-") as tmp:
+            con = scan_tg._connect(Path(tmp) / "tg.sqlite")
+            try:
+                con.execute(
+                    """
+                    CREATE TABLE messages (
+                        chat_id TEXT,
+                        msg_id TEXT,
+                        date TEXT,
+                        sender TEXT,
+                        sender_id TEXT,
+                        text_clean TEXT,
+                        pi_severity TEXT,
+                        pi_score INTEGER,
+                        source_file TEXT,
+                        ingested_at TEXT,
+                        PRIMARY KEY(chat_id, msg_id)
+                    )
+                    """
+                )
+                scan_tg._init_db(con)
+                columns = {row[1] for row in con.execute("PRAGMA table_info(messages)").fetchall()}
+                self.assertIn("pi_post_severity", columns)
+                self.assertIn("pi_post_score", columns)
+                self.assertIn("pi_bad_lines", columns)
+            finally:
+                con.close()
 
     def test_taskqueue_list_tasks_binds_filter_values(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf-taskqueue-") as tmp:
