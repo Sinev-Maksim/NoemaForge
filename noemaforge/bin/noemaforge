@@ -1144,7 +1144,7 @@ cmd_toolproxy_diag() {
   case "$action" in
     diag|diagnose|status)
       shift || true
-      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" "$@"
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" diag "$@"
       ;;
     test|test-llm)
       shift || true

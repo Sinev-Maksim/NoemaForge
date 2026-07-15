@@ -40,7 +40,15 @@ def sh(cmd: list[str], timeout: int = 20) -> str:
 
 
 def stat_path(path: str) -> str:
-    return sh(["bash", "-lc", f"stat -c '%A %a %U:%G %F %n' {path} 2>/dev/null || true"]).strip()
+    try:
+        return subprocess.check_output(
+            ["stat", "-c", "%A %a %U:%G %F %n", path],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+        ).strip()
+    except Exception:
+        return ""
 
 
 def jprint(doc: dict[str, Any], pretty: bool = True) -> None:
@@ -276,6 +284,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub = ap.add_subparsers(dest="cmd")
 
     diag = sub.add_parser("diag")
+    diag.add_argument("--json", action="store_true", help="kept for compatibility; diag output is JSON for subcommands")
     diag.add_argument("--test-llm", action="store_true")
     diag.add_argument("--tokens-dir", default=DEFAULT_TOKENS_DIR)
     diag.add_argument("--socket", default=DEFAULT_SOCKET)

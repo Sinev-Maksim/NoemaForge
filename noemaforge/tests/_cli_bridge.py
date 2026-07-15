@@ -27,10 +27,10 @@ from typing import Callable, Dict, List, Sequence, Tuple
 
 
 def _toolproxy(rest: List[str]) -> List[str]:
-    # cmd_toolproxy_diag: diag/diagnose/status strip the action; test/test-llm
+    # cmd_toolproxy_diag: diag/diagnose/status normalize to diag; test/test-llm
     # become --test-llm; anything else passes through unchanged.
     if rest and rest[0] in ("diag", "diagnose", "status"):
-        return rest[1:]
+        return ["diag", *rest[1:]]
     if rest and rest[0] in ("test", "test-llm"):
         return ["--test-llm", *rest[1:]]
     return rest

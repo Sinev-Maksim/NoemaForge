@@ -17,6 +17,7 @@ import json
 import importlib
 import os
 import socket
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -80,6 +81,14 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
             self.assertEqual("/tmp/env-toolproxy.sock", diag.DEFAULT_SOCKET)
         diag = importlib.reload(diag)
 
+    def test_stat_path_uses_argv_not_shell_for_socket_paths(self) -> None:
+        with patch("noemaforge_toolproxy_diag.subprocess.check_output", return_value="socket stat\n") as check:
+            self.assertEqual("socket stat", diag.stat_path("/tmp/a socket; touch /tmp/nope"))
+
+        args = check.call_args.args[0]
+        self.assertEqual(["stat", "-c", "%A %a %U:%G %F %n", "/tmp/a socket; touch /tmp/nope"], args)
+        self.assertEqual(subprocess.DEVNULL, check.call_args.kwargs["stderr"])
+
     def test_probe_uses_native_json_envelope_and_half_closes_write_side(self) -> None:
         FakeUnixSocket.instances = []
         with patch("noemaforge_toolproxy_diag.socket.socket", side_effect=FakeUnixSocket):
@@ -105,6 +114,21 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
         self.assertNotIn("curl", text)
         self.assertNotIn("--unix-socket", text)
         self.assertNotIn("/health", text)
+
+    def test_cli_bridge_preserves_diag_subcommand_for_diag_options(self) -> None:
+        sys.path.insert(0, str(ROOT / "tests"))
+        from _cli_bridge import noemaforge_cli
+
+        argv = noemaforge_cli(ROOT, "toolproxy", "diag", "--socket", "/tmp/toolproxy.sock")
+        self.assertEqual("noemaforge_toolproxy_diag.py", Path(argv[1]).name)
+        self.assertEqual(["diag", "--socket", "/tmp/toolproxy.sock"], argv[2:])
+
+    def test_diag_subcommand_accepts_legacy_json_flag(self) -> None:
+        parser = diag.build_parser()
+        ns = parser.parse_args(["diag", "--json", "--socket", "/tmp/toolproxy.sock"])
+        self.assertEqual("diag", ns.cmd)
+        self.assertTrue(ns.json)
+        self.assertEqual("/tmp/toolproxy.sock", ns.socket)
 
 
 if __name__ == "__main__":
