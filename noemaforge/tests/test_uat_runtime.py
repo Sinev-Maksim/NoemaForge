@@ -138,12 +138,18 @@ class UATRuntimeTests(unittest.TestCase):
             uat_runtime._DEFAULT_UAT_BRANCH,
         )
 
-    def test_version_files_check_uses_package_docs_version(self) -> None:
+    def test_version_files_check_covers_all_tracked_release_versions(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_uat_version_files_") as tmp:
             project = Path(tmp)
             package = project / "noemaforge"
+            (project / "docs").mkdir(parents=True)
             (package / "docs").mkdir(parents=True)
-            for path in (project / "VERSION", package / "VERSION", package / "docs" / "VERSION"):
+            for path in (
+                project / "VERSION",
+                project / "docs" / "VERSION",
+                package / "VERSION",
+                package / "docs" / "VERSION",
+            ):
                 path.write_text(uat_runtime.RUNTIME_VERSION + "\n", encoding="utf-8")
 
             report = uat_runtime._check_version_files(
@@ -151,8 +157,16 @@ class UATRuntimeTests(unittest.TestCase):
             )
 
             self.assertTrue(report["ok"], report)
+            self.assertIn("docs/VERSION", report["detail"]["files"])
             self.assertIn("noemaforge/docs/VERSION", report["detail"]["files"])
-            self.assertNotIn("docs/VERSION", report["detail"]["files"])
+
+            (project / "docs" / "VERSION").write_text("0.0.0\n", encoding="utf-8")
+            report = uat_runtime._check_version_files(
+                project, package, expected_version=uat_runtime.RUNTIME_VERSION,
+            )
+
+            self.assertFalse(report["ok"], report)
+            self.assertIn("version_mismatch:docs/VERSION", report["detail"]["failures"])
 
     def test_git_branch_check_reports_launch_error(self) -> None:
         with mock.patch.object(uat_runtime, "_run_check_command", side_effect=OSError("git unavailable")):

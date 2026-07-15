@@ -172,7 +172,12 @@ def _check_git_branch_and_clean(
 
 
 def _check_version_files(project_root: Path, package_root: Path, *, expected_version: str) -> Dict[str, Any]:
-    refs = [project_root / "VERSION", package_root / "VERSION", package_root / "docs" / "VERSION"]
+    refs = [
+        project_root / "VERSION",
+        project_root / "docs" / "VERSION",
+        package_root / "VERSION",
+        package_root / "docs" / "VERSION",
+    ]
     values: Dict[str, str] = {}
     failures: List[str] = []
     for path in refs:
