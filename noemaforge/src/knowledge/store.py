@@ -83,6 +83,7 @@ FETCH_BY_ID_QUERIES = {
     "realm_bridges": "SELECT * FROM realm_bridges WHERE bridge_id=?",
     "trails": "SELECT * FROM trails WHERE trail_id=?",
 }
+FETCH_BY_ID_LIMIT = 1000
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1261,6 +1262,8 @@ class KnowledgeStore:
         query = FETCH_BY_ID_QUERIES.get(table)
         if not query:
             return []
+        if len(ids) > FETCH_BY_ID_LIMIT:
+            raise ValueError("invalid_fetch_id_count")
         con = self._connect()
         cur = con.cursor()
         rows = []

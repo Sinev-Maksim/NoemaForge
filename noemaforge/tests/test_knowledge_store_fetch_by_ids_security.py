@@ -49,6 +49,13 @@ class KnowledgeStoreFetchByIdsSecurityTests(unittest.TestCase):
 
             self.assertEqual(["source:two", "source:one"], [row["source_id"] for row in rows])
 
+    def test_fetch_by_ids_keeps_bounded_id_list(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nfg-kg-fetch-") as tmp:
+            store = KnowledgeStore(Path(tmp) / "kg.sqlite")
+
+            with self.assertRaisesRegex(ValueError, "invalid_fetch_id_count"):
+                store.fetch_by_ids("sources", [f"source:{idx}" for idx in range(1001)])
+
 
 if __name__ == "__main__":
     unittest.main()
