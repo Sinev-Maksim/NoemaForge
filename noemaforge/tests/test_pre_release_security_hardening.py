@@ -478,7 +478,7 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             self.assertEqual("0", updated["priority_class"])
             self.assertEqual("False", updated["worktree_id"])
 
-    def test_user_task_update_rejects_empty_title_and_defaults_empty_kind(self) -> None:
+    def test_user_task_update_rejects_empty_title_and_kind(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf-user-task-not-null-") as tmp:
             policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
             created = task_tools.create_user_task(
@@ -496,14 +496,16 @@ class SqlAllowlistHelperTests(unittest.TestCase):
                     patch={"title": "   "},
                 )
 
-            updated = task_tools.update_user_task(
-                policy=policy,
-                user_task_id=task_id,
-                patch={"kind": ""},
-            )["task"]
+            with self.assertRaisesRegex(ValueError, "missing_kind"):
+                task_tools.update_user_task(
+                    policy=policy,
+                    user_task_id=task_id,
+                    patch={"kind": ""},
+                )
 
-            self.assertEqual("generic", updated["kind"])
-            self.assertEqual("original", updated["title"])
+            current = task_tools.get_user_task(policy=policy, user_task_id=task_id)["task"]
+            self.assertEqual("manual", current["kind"])
+            self.assertEqual("original", current["title"])
 
 
 if __name__ == "__main__":

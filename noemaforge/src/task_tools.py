@@ -728,7 +728,9 @@ def update_user_task(
                         raise ValueError("missing_title")
                     value = text_value
                 elif key == "kind":
-                    value = text_value or "generic"
+                    if not text_value:
+                        raise ValueError("missing_kind")
+                    value = text_value
                 elif key in ("status", "priority_class"):
                     value = text_value
                 else:
