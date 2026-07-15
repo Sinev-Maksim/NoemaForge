@@ -87,6 +87,20 @@ UPDATE_USER_TASK_COLUMNS = {
     "metadata_json": "metadata_json",
     "updated_at": "updated_at",
 }
+UPDATE_USER_TASK_STATEMENTS = {
+    "title": "UPDATE user_tasks SET title=?, updated_at=? WHERE user_task_id=?",
+    "description": "UPDATE user_tasks SET description=?, updated_at=? WHERE user_task_id=?",
+    "kind": "UPDATE user_tasks SET kind=?, updated_at=? WHERE user_task_id=?",
+    "status": "UPDATE user_tasks SET status=?, updated_at=? WHERE user_task_id=?",
+    "owner": "UPDATE user_tasks SET owner=?, updated_at=? WHERE user_task_id=?",
+    "priority_class": "UPDATE user_tasks SET priority_class=?, updated_at=? WHERE user_task_id=?",
+    "worktree_id": "UPDATE user_tasks SET worktree_id=?, updated_at=? WHERE user_task_id=?",
+    "last_error": "UPDATE user_tasks SET last_error=?, updated_at=? WHERE user_task_id=?",
+    "session_id": "UPDATE user_tasks SET session_id=?, updated_at=? WHERE user_task_id=?",
+    "plan_required": "UPDATE user_tasks SET plan_required=?, updated_at=? WHERE user_task_id=?",
+    "payload_json": "UPDATE user_tasks SET payload_json=?, updated_at=? WHERE user_task_id=?",
+    "metadata_json": "UPDATE user_tasks SET metadata_json=?, updated_at=? WHERE user_task_id=?",
+}
 
 USER_TO_ENGINE = {
     "queued": "TODO",
@@ -703,28 +717,23 @@ def update_user_task(
         row = con.execute("SELECT payload_json, metadata_json FROM user_tasks WHERE user_task_id=?", (user_task_id,)).fetchone()
         if not row:
             raise ValueError("unknown_user_task")
-        fields = []
-        args: List[Any] = []
+        updates: List[tuple[str, Any]] = []
         simple = ["title", "description", "kind", "status", "owner", "priority_class", "worktree_id", "last_error", "session_id"]
         for key in simple:
             if key in patch:
-                fields.append(_assignment(key))
-                args.append((str(patch.get(key) or "").strip() or None) if key not in ("status", "priority_class") else str(patch.get(key) or "").strip())
+                value = (str(patch.get(key) or "").strip() or None) if key not in ("status", "priority_class") else str(patch.get(key) or "").strip()
+                updates.append((key, value))
         if "plan_required" in patch:
-            fields.append(_assignment("plan_required"))
-            args.append(1 if bool(patch.get("plan_required")) else 0)
+            updates.append(("plan_required", 1 if bool(patch.get("plan_required")) else 0))
         if "payload" in patch:
-            fields.append(_assignment("payload_json"))
-            args.append(json.dumps(patch.get("payload") or {}, ensure_ascii=False))
+            updates.append(("payload_json", json.dumps(patch.get("payload") or {}, ensure_ascii=False)))
         if "metadata" in patch:
-            fields.append(_assignment("metadata_json"))
-            args.append(json.dumps(patch.get("metadata") or {}, ensure_ascii=False))
-        if not fields:
+            updates.append(("metadata_json", json.dumps(patch.get("metadata") or {}, ensure_ascii=False)))
+        if not updates:
             return get_user_task(policy=policy, user_task_id=user_task_id)
-        fields.append(_assignment("updated_at"))
-        args.append(_nowz())
-        args.append(user_task_id)
-        con.execute(f"UPDATE user_tasks SET {', '.join(fields)} WHERE user_task_id=?", tuple(args))
+        updated_at = _nowz()
+        for key, value in updates:
+            con.execute(UPDATE_USER_TASK_STATEMENTS[key], (value, updated_at, user_task_id))
         _record_event(con, user_task_id, "updated", {"patch_keys": sorted(list((patch or {}).keys()))}, actor=actor)
         con.commit()
         row2 = con.execute(

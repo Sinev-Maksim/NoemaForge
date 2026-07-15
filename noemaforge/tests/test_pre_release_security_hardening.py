@@ -412,6 +412,41 @@ class SqlAllowlistHelperTests(unittest.TestCase):
                 len(task_tools.list_user_tasks(policy=policy, project_id="project-safe", status="done")["tasks"]),
             )
 
+    def test_user_task_update_binds_patch_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-update-") as tmp:
+            db_path = Path(tmp) / "taskqueue.sqlite"
+            policy = {"queue": {"db_path": str(db_path)}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                status="queued",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            injected_title = "safe title', status='done"
+            updated = task_tools.update_user_task(
+                policy=policy,
+                user_task_id=task_id,
+                patch={
+                    "title": injected_title,
+                    "status": "queued' OR 1=1 --",
+                    "payload": {"note": "x'); DROP TABLE user_tasks; --"},
+                },
+            )
+
+            task = updated["task"]
+            self.assertEqual(injected_title, task["title"])
+            self.assertEqual("queued' OR 1=1 --", task["status"])
+            self.assertEqual({"note": "x'); DROP TABLE user_tasks; --"}, task["payload"])
+
+            con = sqlite3.connect(str(db_path))
+            try:
+                row_count = con.execute("SELECT COUNT(*) FROM user_tasks").fetchone()[0]
+                self.assertEqual(1, row_count)
+            finally:
+                con.close()
+
 
 if __name__ == "__main__":
     unittest.main()
