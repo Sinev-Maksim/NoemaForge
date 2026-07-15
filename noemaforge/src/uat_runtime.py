@@ -29,7 +29,6 @@ Notes: stdlib only. Cross-platform: pipeline runs use the pipeline_runtime Pytho
 from __future__ import annotations
 
 import argparse
-import compileall
 import contextlib
 import importlib
 import io
@@ -40,7 +39,6 @@ import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 import tomllib
@@ -59,8 +57,8 @@ from noemaforge_version import RUNTIME_VERSION  # noqa: E402
 # site in _run_pipeline as defense-in-depth, independent of the caller's allowlist.
 _SAFE_PIPELINE_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _PIPELINE_RUN_COMMAND = "pipeline_runtime_run"
-_DEFAULT_UAT_BRANCH = "release/0.33.0-dev"
-_DEFAULT_UAT_VERSION = "0.33.0"
+_DEFAULT_UAT_VERSION = RUNTIME_VERSION
+_DEFAULT_UAT_BRANCH = f"release/{_DEFAULT_UAT_VERSION}-dev"
 _DEV_IMPORTS = ("pytest", "yaml", "jsonschema")
 
 
@@ -117,16 +115,44 @@ def _check_git_branch_and_clean(
     expected_branch: str,
     timeout: int,
 ) -> Dict[str, Any]:
-    branch = _run_check_command(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=project_root,
-        timeout=timeout,
-    )
-    status = _run_check_command(
-        ["git", "status", "--porcelain"],
-        cwd=project_root,
-        timeout=timeout,
-    )
+    branch_cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    status_cmd = ["git", "status", "--porcelain"]
+    try:
+        branch = _run_check_command(branch_cmd, cwd=project_root, timeout=timeout)
+        status = _run_check_command(status_cmd, cwd=project_root, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        return _check_result(
+            "git_branch_clean",
+            False,
+            message="expected branch and clean worktree",
+            detail={
+                "expected_branch": expected_branch,
+                "actual_branch": "",
+                "dirty_entries": [],
+                "branch_returncode": None,
+                "status_returncode": None,
+                "stderr": str(exc.stderr or "")[:4000],
+                "error": "timeout",
+                "cmd": list(exc.cmd) if exc.cmd else branch_cmd,
+                "timeout": timeout,
+            },
+        )
+    except OSError as exc:
+        return _check_result(
+            "git_branch_clean",
+            False,
+            message="expected branch and clean worktree",
+            detail={
+                "expected_branch": expected_branch,
+                "actual_branch": "",
+                "dirty_entries": [],
+                "branch_returncode": None,
+                "status_returncode": None,
+                "stderr": repr(exc)[:4000],
+                "error": "launch_error",
+                "cmd": branch_cmd,
+            },
+        )
     actual_branch = (branch.stdout or "").strip()
     dirty = [line for line in (status.stdout or "").splitlines() if line.strip()]
     ok = branch.returncode == 0 and status.returncode == 0 and actual_branch == expected_branch and not dirty
@@ -146,7 +172,7 @@ def _check_git_branch_and_clean(
 
 
 def _check_version_files(project_root: Path, package_root: Path, *, expected_version: str) -> Dict[str, Any]:
-    refs = [project_root / "VERSION", package_root / "VERSION", project_root / "docs" / "VERSION"]
+    refs = [project_root / "VERSION", package_root / "VERSION", package_root / "docs" / "VERSION"]
     values: Dict[str, str] = {}
     failures: List[str] = []
     for path in refs:
@@ -211,14 +237,20 @@ def _check_imports(imports: Sequence[str]) -> Dict[str, Any]:
 
 
 def _check_compileall(package_root: Path) -> Dict[str, Any]:
-    old_prefix = sys.pycache_prefix
-    with tempfile.TemporaryDirectory(prefix="nf_uat_compileall_") as pycache_dir:
-        sys.pycache_prefix = pycache_dir
+    failures: List[Dict[str, str]] = []
+    src_root = package_root / "src"
+    for path in sorted(src_root.rglob("*.py")):
+        rel = str(path.relative_to(package_root)).replace(os.sep, "/")
         try:
-            ok = compileall.compile_dir(str(package_root / "src"), quiet=1, force=True)
-        finally:
-            sys.pycache_prefix = old_prefix
-    return _check_result("compileall_src", bool(ok), message="noemaforge/src compiles with current interpreter")
+            compile(path.read_bytes(), str(path), "exec")
+        except Exception as exc:  # noqa: BLE001 - syntax/read failures are reported
+            failures.append({"file": rel, "error": repr(exc)})
+    return _check_result(
+        "compileall_src",
+        not failures,
+        message="noemaforge/src compiles with current interpreter",
+        detail={"failures": failures[:50], "failure_count": len(failures)},
+    )
 
 
 def _command_check(
@@ -249,6 +281,13 @@ def _command_check(
             False,
             message=message,
             detail={"cmd": list(cmd), "timeout": timeout, "stdout_tail": str(exc.stdout or "")[-4000:], "stderr_tail": str(exc.stderr or "")[-4000:]},
+        )
+    except OSError as exc:
+        return _check_result(
+            check_id,
+            False,
+            message=message,
+            detail={"cmd": list(cmd), "error": "launch_error", "stderr_tail": repr(exc)[-4000:]},
         )
 
 

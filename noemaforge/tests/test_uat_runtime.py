@@ -116,6 +116,68 @@ class UATRuntimeTests(unittest.TestCase):
             self.assertFalse((src / "__pycache__").exists())
             self.assertEqual([], list(src.rglob("*.pyc")))
 
+    def test_compileall_check_reports_syntax_failures_without_pycache(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_uat_compile_fail_") as tmp:
+            package = Path(tmp) / "noemaforge"
+            src = package / "src"
+            src.mkdir(parents=True)
+            (src / "bad.py").write_text("def broken(:\n", encoding="utf-8")
+
+            report = uat_runtime._check_compileall(package)
+
+            self.assertFalse(report["ok"], report)
+            self.assertEqual(1, report["detail"]["failure_count"])
+            self.assertEqual("src/bad.py", report["detail"]["failures"][0]["file"])
+            self.assertFalse((src / "__pycache__").exists())
+            self.assertEqual([], list(src.rglob("*.pyc")))
+
+    def test_default_uat_branch_is_derived_from_runtime_version(self) -> None:
+        self.assertEqual(uat_runtime.RUNTIME_VERSION, uat_runtime._DEFAULT_UAT_VERSION)
+        self.assertEqual(
+            f"release/{uat_runtime.RUNTIME_VERSION}-dev",
+            uat_runtime._DEFAULT_UAT_BRANCH,
+        )
+
+    def test_version_files_check_uses_package_docs_version(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_uat_version_files_") as tmp:
+            project = Path(tmp)
+            package = project / "noemaforge"
+            (package / "docs").mkdir(parents=True)
+            for path in (project / "VERSION", package / "VERSION", package / "docs" / "VERSION"):
+                path.write_text(uat_runtime.RUNTIME_VERSION + "\n", encoding="utf-8")
+
+            report = uat_runtime._check_version_files(
+                project, package, expected_version=uat_runtime.RUNTIME_VERSION,
+            )
+
+            self.assertTrue(report["ok"], report)
+            self.assertIn("noemaforge/docs/VERSION", report["detail"]["files"])
+            self.assertNotIn("docs/VERSION", report["detail"]["files"])
+
+    def test_git_branch_check_reports_launch_error(self) -> None:
+        with mock.patch.object(uat_runtime, "_run_check_command", side_effect=OSError("git unavailable")):
+            report = uat_runtime._check_git_branch_and_clean(
+                PACKAGE_ROOT.parent,
+                expected_branch=uat_runtime._DEFAULT_UAT_BRANCH,
+                timeout=5,
+            )
+
+        self.assertFalse(report["ok"], report)
+        self.assertEqual("launch_error", report["detail"]["error"])
+
+    def test_command_check_reports_launch_error(self) -> None:
+        with mock.patch.object(uat_runtime, "_run_check_command", side_effect=OSError("cannot spawn")):
+            report = uat_runtime._command_check(
+                "sample",
+                [sys.executable, "--version"],
+                cwd=PACKAGE_ROOT.parent,
+                timeout=5,
+                message="sample command",
+            )
+
+        self.assertFalse(report["ok"], report)
+        self.assertEqual("launch_error", report["detail"]["error"])
+
     def test_uat_check_report_fails_when_dev_import_is_missing(self) -> None:
         def fake_import(name: str):
             if name == "jsonschema":
@@ -125,7 +187,7 @@ class UATRuntimeTests(unittest.TestCase):
         args = Namespace(
             root=str(PACKAGE_ROOT),
             project_root=str(PACKAGE_ROOT.parent),
-            expected_branch="release/0.33.0-dev",
+            expected_branch=uat_runtime._DEFAULT_UAT_BRANCH,
             expected_version=uat_runtime.RUNTIME_VERSION,
             pytest_target=str(PACKAGE_ROOT / "tests" / "test_functional_branch_manifests.py"),
             collect_timeout=10,
@@ -154,7 +216,7 @@ class UATRuntimeTests(unittest.TestCase):
         args = Namespace(
             root=str(PACKAGE_ROOT),
             project_root=str(PACKAGE_ROOT.parent),
-            expected_branch="release/0.33.0-dev",
+            expected_branch=uat_runtime._DEFAULT_UAT_BRANCH,
             expected_version=uat_runtime.RUNTIME_VERSION,
             pytest_target=str(PACKAGE_ROOT / "tests" / "test_functional_branch_manifests.py"),
             collect_timeout=10,
