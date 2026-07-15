@@ -177,8 +177,9 @@ class SqlAllowlistHelperTests(unittest.TestCase):
 
     def test_ui_snapshot_task_fetch_uses_static_order_queries(self) -> None:
         self.assertEqual(set(ui_snapshot.TASK_ORDER_SQL), set(ui_snapshot.TASK_FETCH_QUERIES))
-        for query in ui_snapshot.TASK_FETCH_QUERIES.values():
+        for key, query in ui_snapshot.TASK_FETCH_QUERIES.items():
             self.assertNotIn("CASE WHEN", query.upper())
+            self.assertIn(f"ORDER BY {ui_snapshot.TASK_ORDER_SQL[key]}", query)
             self.assertEqual(2, query.count("?"))
 
         con = sqlite3.connect(":memory:")
@@ -247,6 +248,36 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             self.assertEqual(["task-safe"], [task["task_id"] for task in safe])
         finally:
             con.close()
+
+    def test_ui_snapshot_task_fetch_executes_prebuilt_query_only(self) -> None:
+        class _FakeCursor:
+            def fetchall(self) -> list:
+                return []
+
+        class _FakeConnection:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def execute(self, query: str, params: tuple) -> _FakeCursor:
+                self.calls.append((query, params))
+                return _FakeCursor()
+
+        for key, order_sql in ui_snapshot.TASK_ORDER_SQL.items():
+            for order_input in (key, order_sql):
+                con = _FakeConnection()
+                rows = ui_snapshot._tq_fetch(con, status="todo", limit="7", order_sql=order_input)
+                self.assertEqual([], rows)
+                self.assertEqual([(ui_snapshot.TASK_FETCH_QUERIES[key], ("TODO", 7))], con.calls)
+
+        con = _FakeConnection()
+        rows = ui_snapshot._tq_fetch(
+            con,
+            status="TODO",
+            limit=7,
+            order_sql="created_at DESC; DROP TABLE tasks;--",
+        )
+        self.assertEqual([], rows)
+        self.assertEqual([], con.calls)
 
     def test_prep_store_table_columns_use_bound_pragma(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf-prep-store-") as tmp:

@@ -541,10 +541,10 @@ def load_taskqueue(db_path: str) -> Dict[str, Any]:
         }
     try:
         summary = _tq_summary(con)
-        current = _tq_fetch(con, status="IN_PROGRESS", limit=5, order_sql="claimed_at DESC, created_at DESC")
-        next_tasks = _tq_fetch(con, status="TODO", limit=20, order_sql="prio_index ASC, created_at ASC")
-        recent_done = _tq_fetch(con, status="DONE", limit=20, order_sql="updated_at DESC")
-        deadletters = _tq_fetch(con, status="DEADLETTER", limit=20, order_sql="updated_at DESC")
+        current = _tq_fetch(con, status="IN_PROGRESS", limit=5, order_sql="claimed_created_desc")
+        next_tasks = _tq_fetch(con, status="TODO", limit=20, order_sql="priority_created")
+        recent_done = _tq_fetch(con, status="DONE", limit=20, order_sql="updated_desc")
+        deadletters = _tq_fetch(con, status="DEADLETTER", limit=20, order_sql="updated_desc")
         return {
             "db_path": db_path,
             "available": True,
