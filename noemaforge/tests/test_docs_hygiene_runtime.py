@@ -175,6 +175,15 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         self.assertEqual(1, len(result["hits"]))
         self.assertIn(f"forbidden_active_text:docs/legacy.md:3:{token}", result["failures"])
 
+    def test_agent_task_markdown_is_not_active_release_docs(self) -> None:
+        project = self.tmp_root / "project"
+        task_dir = project / ".noemaforge-agent-tasks" / "token-aware-0330-v3"
+        task_dir.mkdir(parents=True, exist_ok=True)
+        (task_dir / "task.md").write_text("# local task\n", encoding="utf-8")
+
+        self.assertEqual([], dhr._iter_markdown_files(project))
+        self.assertEqual([], dhr._iter_active_files(project))
+
     def test_policy_blocks_missing_required_refs(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
         payload = copy.deepcopy(dhr.load_policy(policy_path))

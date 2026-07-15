@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import io
 import json
 import os
@@ -40,9 +41,10 @@ import subprocess
 import sys
 import threading
 import time
+import tomllib
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 _SRC = Path(__file__).resolve().parent
 if str(_SRC) not in sys.path:
@@ -55,6 +57,9 @@ from noemaforge_version import RUNTIME_VERSION  # noqa: E402
 # site in _run_pipeline as defense-in-depth, independent of the caller's allowlist.
 _SAFE_PIPELINE_ID = re.compile(r"\A[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _PIPELINE_RUN_COMMAND = "pipeline_runtime_run"
+_DEFAULT_UAT_VERSION = RUNTIME_VERSION
+_DEFAULT_UAT_BRANCH = f"release/{_DEFAULT_UAT_VERSION}-dev"
+_DEV_IMPORTS = ("pytest", "yaml", "jsonschema")
 
 
 def _now() -> str:
@@ -65,6 +70,290 @@ def _load_catalog(package_root: Path) -> Dict[str, Dict[str, Any]]:
     """Pipeline ids -> definition, via the pipeline runtime's own loader."""
     import pipeline_runtime  # imported lazily so --help works without the catalog
     return pipeline_runtime.load_pipeline_catalog(package_root)
+
+
+def _project_root_from_package(package_root: Path) -> Path:
+    package = package_root.resolve()
+    return package.parent if package.name == "noemaforge" else package
+
+
+def _run_check_command(
+    cmd: Sequence[str],
+    *,
+    cwd: Path,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        list(cmd),
+        cwd=str(cwd),
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=timeout,
+        check=False,
+    )
+
+
+def _check_result(
+    check_id: str,
+    ok: bool,
+    *,
+    message: str = "",
+    detail: Dict[str, Any] | None = None,
+) -> Dict[str, Any]:
+    return {
+        "id": check_id,
+        "ok": bool(ok),
+        "message": message,
+        "detail": detail or {},
+    }
+
+
+def _check_git_branch_and_clean(
+    project_root: Path,
+    *,
+    expected_branch: str,
+    timeout: int,
+) -> Dict[str, Any]:
+    branch_cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    status_cmd = ["git", "status", "--porcelain"]
+    try:
+        branch = _run_check_command(branch_cmd, cwd=project_root, timeout=timeout)
+        status = _run_check_command(status_cmd, cwd=project_root, timeout=timeout)
+    except subprocess.TimeoutExpired as exc:
+        return _check_result(
+            "git_branch_clean",
+            False,
+            message="expected branch and clean worktree",
+            detail={
+                "expected_branch": expected_branch,
+                "actual_branch": "",
+                "dirty_entries": [],
+                "branch_returncode": None,
+                "status_returncode": None,
+                "stderr": str(exc.stderr or "")[:4000],
+                "error": "timeout",
+                "cmd": list(exc.cmd) if exc.cmd else branch_cmd,
+                "timeout": timeout,
+            },
+        )
+    except OSError as exc:
+        return _check_result(
+            "git_branch_clean",
+            False,
+            message="expected branch and clean worktree",
+            detail={
+                "expected_branch": expected_branch,
+                "actual_branch": "",
+                "dirty_entries": [],
+                "branch_returncode": None,
+                "status_returncode": None,
+                "stderr": repr(exc)[:4000],
+                "error": "launch_error",
+                "cmd": branch_cmd,
+            },
+        )
+    actual_branch = (branch.stdout or "").strip()
+    dirty = [line for line in (status.stdout or "").splitlines() if line.strip()]
+    ok = branch.returncode == 0 and status.returncode == 0 and actual_branch == expected_branch and not dirty
+    return _check_result(
+        "git_branch_clean",
+        ok,
+        message="expected branch and clean worktree",
+        detail={
+            "expected_branch": expected_branch,
+            "actual_branch": actual_branch,
+            "dirty_entries": dirty[:50],
+            "branch_returncode": branch.returncode,
+            "status_returncode": status.returncode,
+            "stderr": ((branch.stderr or "") + (status.stderr or "")).strip()[:4000],
+        },
+    )
+
+
+def _check_version_files(project_root: Path, package_root: Path, *, expected_version: str) -> Dict[str, Any]:
+    refs = [
+        project_root / "VERSION",
+        project_root / "docs" / "VERSION",
+        package_root / "VERSION",
+        package_root / "docs" / "VERSION",
+    ]
+    values: Dict[str, str] = {}
+    failures: List[str] = []
+    for path in refs:
+        rel = str(path.relative_to(project_root)).replace(os.sep, "/")
+        try:
+            values[rel] = path.read_text(encoding="utf-8").strip()
+        except FileNotFoundError:
+            values[rel] = ""
+            failures.append(f"missing:{rel}")
+    if RUNTIME_VERSION != expected_version:
+        failures.append("runtime_version_mismatch")
+    for rel, value in values.items():
+        if value != expected_version:
+            failures.append(f"version_mismatch:{rel}")
+    return _check_result(
+        "version_files",
+        not failures,
+        message="VERSION files and runtime version match expected release",
+        detail={"expected_version": expected_version, "runtime_version": RUNTIME_VERSION, "files": values, "failures": failures},
+    )
+
+
+def _normalize_requirement_name(requirement: str) -> str:
+    return re.split(r"[<>=!~\[]", requirement, maxsplit=1)[0].strip().lower().replace("_", "-")
+
+
+def _check_dev_dependency_contract(project_root: Path) -> Dict[str, Any]:
+    pyproject = project_root / "pyproject.toml"
+    try:
+        payload = tomllib.loads(pyproject.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001 - reported as a contract failure
+        return _check_result("dev_dependency_contract", False, message="pyproject.toml is readable", detail={"error": repr(exc)})
+    optional = payload.get("project", {}).get("optional-dependencies", {})
+    dev = optional.get("dev") if isinstance(optional, dict) else None
+    requirements = [_normalize_requirement_name(str(item)) for item in dev] if isinstance(dev, list) else []
+    required = {"pytest", "pyyaml", "jsonschema"}
+    present = set(requirements)
+    missing = sorted(required - present)
+    return _check_result(
+        "dev_dependency_contract",
+        not missing,
+        message='pyproject dev extra covers pytest, PyYAML and jsonschema for clean-venv UAT collection',
+        detail={"requirements": requirements, "missing": missing},
+    )
+
+
+def _check_imports(imports: Sequence[str]) -> Dict[str, Any]:
+    missing: List[str] = []
+    loaded: List[str] = []
+    for name in imports:
+        try:
+            importlib.import_module(name)
+            loaded.append(name)
+        except Exception as exc:  # noqa: BLE001 - importability is the contract
+            missing.append(f"{name}:{exc!r}")
+    return _check_result(
+        "dev_dependency_imports",
+        not missing,
+        message="clean-venv dev dependencies are importable",
+        detail={"imports": list(imports), "loaded": loaded, "missing": missing},
+    )
+
+
+def _check_compileall(package_root: Path) -> Dict[str, Any]:
+    failures: List[Dict[str, str]] = []
+    src_root = package_root / "src"
+    for path in sorted(src_root.rglob("*.py")):
+        rel = str(path.relative_to(package_root)).replace(os.sep, "/")
+        try:
+            compile(path.read_bytes(), str(path), "exec")
+        except Exception as exc:  # noqa: BLE001 - syntax/read failures are reported
+            failures.append({"file": rel, "error": repr(exc)})
+    return _check_result(
+        "compileall_src",
+        not failures,
+        message="noemaforge/src compiles with current interpreter",
+        detail={"failures": failures[:50], "failure_count": len(failures)},
+    )
+
+
+def _command_check(
+    check_id: str,
+    cmd: Sequence[str],
+    *,
+    cwd: Path,
+    timeout: int,
+    message: str,
+) -> Dict[str, Any]:
+    try:
+        proc = _run_check_command(cmd, cwd=cwd, timeout=timeout)
+        ok = proc.returncode == 0
+        return _check_result(
+            check_id,
+            ok,
+            message=message,
+            detail={
+                "cmd": list(cmd),
+                "returncode": proc.returncode,
+                "stdout_tail": (proc.stdout or "")[-4000:],
+                "stderr_tail": (proc.stderr or "")[-4000:],
+            },
+        )
+    except subprocess.TimeoutExpired as exc:
+        return _check_result(
+            check_id,
+            False,
+            message=message,
+            detail={"cmd": list(cmd), "timeout": timeout, "stdout_tail": str(exc.stdout or "")[-4000:], "stderr_tail": str(exc.stderr or "")[-4000:]},
+        )
+    except OSError as exc:
+        return _check_result(
+            check_id,
+            False,
+            message=message,
+            detail={"cmd": list(cmd), "error": "launch_error", "stderr_tail": repr(exc)[-4000:]},
+        )
+
+
+def build_uat_check_report(args: argparse.Namespace) -> Dict[str, Any]:
+    package_root = Path(args.root).resolve()
+    project_root = Path(args.project_root).resolve() if args.project_root else _project_root_from_package(package_root)
+    checks: List[Dict[str, Any]] = []
+
+    if not args.skip_git:
+        checks.append(_check_git_branch_and_clean(project_root, expected_branch=args.expected_branch, timeout=args.command_timeout))
+    checks.append(_check_version_files(project_root, package_root, expected_version=args.expected_version))
+    checks.append(_check_dev_dependency_contract(project_root))
+    checks.append(_check_imports(_DEV_IMPORTS))
+    checks.append(_check_compileall(package_root))
+
+    collect_target = args.pytest_target or str(package_root / "tests")
+    checks.append(_command_check(
+        "pytest_collect",
+        [sys.executable, "-m", "pytest", "--collect-only", "-q", collect_target],
+        cwd=project_root,
+        timeout=args.collect_timeout,
+        message="pytest collection succeeds before functional UAT execution",
+    ))
+    checks.append(_command_check(
+        "docs_hygiene",
+        [sys.executable, str(package_root / "src" / "docs_hygiene_runtime.py"), "--project-root", str(project_root), "--summary"],
+        cwd=project_root,
+        timeout=args.command_timeout,
+        message="docs hygiene release gate passes",
+    ))
+    checks.append(_command_check(
+        "uat_runner_help",
+        [sys.executable, str(package_root / "src" / "uat_runtime.py"), "--help"],
+        cwd=project_root,
+        timeout=args.command_timeout,
+        message="UAT runner entrypoint is importable and exposes help",
+    ))
+
+    failures = [check for check in checks if not check.get("ok")]
+    return {
+        "kind": "NoemaForgeUATBootstrapCheck",
+        "version": RUNTIME_VERSION,
+        "generated_at": _now(),
+        "ok": not failures,
+        "project_root": str(project_root),
+        "package_root": str(package_root),
+        "checks": checks,
+        "summary": {
+            "total": len(checks),
+            "passed": len(checks) - len(failures),
+            "failed": len(failures),
+            "failed_ids": [str(check.get("id")) for check in failures],
+        },
+        "live_evidence_claimed": False,
+    }
+
+
+def check_uat_bootstrap(args: argparse.Namespace) -> int:
+    report = build_uat_check_report(args)
+    print(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True))
+    return 0 if report["ok"] else 1
 
 
 def _safe_pipeline_id(pipeline_id: str) -> str:
@@ -361,6 +650,18 @@ def run_uat(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="noemaforge uat", description="One-command UAT runner.")
     sub = p.add_subparsers(dest="command", required=True)
+    check = sub.add_parser("check", help="validate clean-venv UAT bootstrap prerequisites without live execution")
+    check.add_argument("--root", default=os.environ.get("NOEMAFORGE_ROOT", "noemaforge"),
+                       help="package root (contains src/, configs/); defaults to $NOEMAFORGE_ROOT")
+    check.add_argument("--project-root", default="", help="project root; default: parent of package root")
+    check.add_argument("--expected-branch", default=_DEFAULT_UAT_BRANCH)
+    check.add_argument("--expected-version", default=_DEFAULT_UAT_VERSION)
+    check.add_argument("--pytest-target", default="", help="pytest collect target; default: <root>/tests")
+    check.add_argument("--collect-timeout", type=int, default=180, help="pytest collection timeout in seconds")
+    check.add_argument("--command-timeout", type=int, default=60, help="short command timeout in seconds")
+    check.add_argument("--skip-git", action="store_true", help="skip branch/clean-tree validation for isolated test fixtures")
+    check.set_defaults(func=check_uat_bootstrap)
+
     run = sub.add_parser("run", help="record events, (launch GUI,) run all pipelines, bundle artifacts")
     run.add_argument("--root", default=os.environ.get("NOEMAFORGE_ROOT", "noemaforge"),
                      help="package root (contains src/, configs/); defaults to $NOEMAFORGE_ROOT")
