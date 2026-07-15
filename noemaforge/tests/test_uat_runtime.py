@@ -112,10 +112,14 @@ class UATRuntimeTests(unittest.TestCase):
     def test_uat_out_dir_defaults_to_safe_temp_when_uat_dir_is_empty(self) -> None:
         resolved = uat_runtime._resolve_uat_out_dir(None, env={"UAT_DIR": ""})
 
-        self.assertTrue(str(resolved).startswith(str(Path(tempfile.gettempdir()).resolve())))
-        self.assertIn("noemaforge-uat-", resolved.name)
-        self.assertNotEqual(Path("/").resolve(), resolved)
-        self.assertFalse(str(resolved).startswith("/07_"))
+        try:
+            self.assertEqual(Path(tempfile.gettempdir()).resolve(), resolved.parent)
+            self.assertTrue(resolved.name.startswith("noemaforge-uat-"))
+            self.assertTrue(resolved.is_dir())
+            self.assertNotEqual(Path("/").resolve(), resolved)
+            self.assertFalse(str(resolved).startswith("/07_"))
+        finally:
+            shutil.rmtree(resolved, ignore_errors=True)
 
     def test_compileall_check_does_not_write_source_pycache(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_uat_compile_guard_") as tmp:

@@ -366,8 +366,7 @@ def _resolve_uat_out_dir(raw_out: str | None, *, env: Dict[str, str] | None = No
     from_env = str(env_map.get(_UAT_DIR_ENV, "")).strip()
     if from_env:
         return Path(from_env).expanduser().resolve()
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    return (Path(tempfile.gettempdir()) / f"noemaforge-uat-{stamp}-{os.getpid()}").resolve()
+    return Path(tempfile.mkdtemp(prefix="noemaforge-uat-")).resolve()
 
 
 def _safe_pipeline_id(pipeline_id: str) -> str:
