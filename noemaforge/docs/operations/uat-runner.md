@@ -32,7 +32,8 @@ importability of `pytest`, `yaml` and `jsonschema`, `compileall` for
 not launch the GUI, services, model backends, pipelines, downloads or target-host
 live checks.
 
-Options: `--out` (required), `--pipelines a,b` (default: all), `--request TEXT`
+Options: `--out` (defaults to `$UAT_DIR` or a safe temp directory),
+`--pipelines a,b` (default: all), `--request TEXT`
 (passed to each pipeline), `--timeout N` (per pipeline), `--gui/--no-gui`,
 `--dry-run`, `--keep-display` (on by default — display-safety rule).
 
