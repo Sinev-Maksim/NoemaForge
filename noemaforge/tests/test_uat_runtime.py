@@ -103,6 +103,20 @@ class UATRuntimeTests(unittest.TestCase):
         self.assertTrue(report["ok"], report)
         self.assertIn("jsonschema", report["detail"]["requirements"])
 
+    def test_uat_out_dir_uses_uat_dir_when_out_is_omitted(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_uat_env_") as tmp:
+            resolved = uat_runtime._resolve_uat_out_dir("", env={"UAT_DIR": tmp})
+
+            self.assertEqual(Path(tmp).resolve(), resolved)
+
+    def test_uat_out_dir_defaults_to_safe_temp_when_uat_dir_is_empty(self) -> None:
+        resolved = uat_runtime._resolve_uat_out_dir(None, env={"UAT_DIR": ""})
+
+        self.assertTrue(str(resolved).startswith(str(Path(tempfile.gettempdir()).resolve())))
+        self.assertIn("noemaforge-uat-", resolved.name)
+        self.assertNotEqual(Path("/").resolve(), resolved)
+        self.assertFalse(str(resolved).startswith("/07_"))
+
     def test_compileall_check_does_not_write_source_pycache(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_uat_compile_guard_") as tmp:
             package = Path(tmp) / "noemaforge"

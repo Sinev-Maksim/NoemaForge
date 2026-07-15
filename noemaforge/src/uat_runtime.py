@@ -39,6 +39,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import tomllib
@@ -60,6 +61,7 @@ _PIPELINE_RUN_COMMAND = "pipeline_runtime_run"
 _DEFAULT_UAT_VERSION = RUNTIME_VERSION
 _DEFAULT_UAT_BRANCH = f"release/{_DEFAULT_UAT_VERSION}-dev"
 _DEV_IMPORTS = ("pytest", "yaml", "jsonschema")
+_UAT_DIR_ENV = "UAT_DIR"
 
 
 def _now() -> str:
@@ -356,6 +358,18 @@ def check_uat_bootstrap(args: argparse.Namespace) -> int:
     return 0 if report["ok"] else 1
 
 
+def _resolve_uat_out_dir(raw_out: str | None, *, env: Dict[str, str] | None = None) -> Path:
+    env_map = os.environ if env is None else env
+    requested = str(raw_out or "").strip()
+    if requested:
+        return Path(requested).expanduser().resolve()
+    from_env = str(env_map.get(_UAT_DIR_ENV, "")).strip()
+    if from_env:
+        return Path(from_env).expanduser().resolve()
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return (Path(tempfile.gettempdir()) / f"noemaforge-uat-{stamp}-{os.getpid()}").resolve()
+
+
 def _safe_pipeline_id(pipeline_id: str) -> str:
     match = _SAFE_PIPELINE_ID.fullmatch(str(pipeline_id))
     if match is None:
@@ -550,7 +564,7 @@ def _launch_gui(package_root: Path, bundle: Path, env: Dict[str, str], keep_disp
 
 def run_uat(args: argparse.Namespace) -> int:
     package_root = Path(args.root).resolve()
-    bundle = Path(args.out).resolve()
+    bundle = _resolve_uat_out_dir(args.out)
     bundle.mkdir(parents=True, exist_ok=True)
     events_dir = bundle / "events"
     events_dir.mkdir(parents=True, exist_ok=True)
@@ -665,7 +679,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="record events, (launch GUI,) run all pipelines, bundle artifacts")
     run.add_argument("--root", default=os.environ.get("NOEMAFORGE_ROOT", "noemaforge"),
                      help="package root (contains src/, configs/); defaults to $NOEMAFORGE_ROOT")
-    run.add_argument("--out", required=True, help="logging/evidence bundle directory")
+    run.add_argument("--out", default="", help="logging/evidence bundle directory; default: $UAT_DIR or a safe temp directory")
     run.add_argument("--request", default="UAT smoke run", help="request text passed to each pipeline")
     run.add_argument("--pipelines", default="", help="comma-separated pipeline ids (default: all in catalog)")
     run.add_argument("--timeout", type=int, default=300, help="per-pipeline timeout (seconds)")
