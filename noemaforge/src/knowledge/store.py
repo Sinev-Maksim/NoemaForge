@@ -73,23 +73,17 @@ import uuid
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
-FETCH_BY_ID_TABLES = {
-    "sources": ("sources", "source_id"),
-    "passages": ("passages", "passage_id"),
-    "concepts": ("concepts", "concept_id"),
-    "claims": ("claims", "claim_id"),
-    "conflicts": ("conflicts", "conflict_id"),
-    "realms": ("realms", "realm_id"),
-    "realm_bridges": ("realm_bridges", "bridge_id"),
-    "trails": ("trails", "trail_id"),
+FETCH_BY_ID_QUERIES = {
+    "sources": "SELECT * FROM sources WHERE source_id=?",
+    "passages": "SELECT * FROM passages WHERE passage_id=?",
+    "concepts": "SELECT * FROM concepts WHERE concept_id=?",
+    "claims": "SELECT * FROM claims WHERE claim_id=?",
+    "conflicts": "SELECT * FROM conflicts WHERE conflict_id=?",
+    "realms": "SELECT * FROM realms WHERE realm_id=?",
+    "realm_bridges": "SELECT * FROM realm_bridges WHERE bridge_id=?",
+    "trails": "SELECT * FROM trails WHERE trail_id=?",
 }
-
-
-def _placeholders(count: int) -> str:
-    n = int(count)
-    if n <= 0 or n > 1000:
-        raise ValueError("invalid_placeholder_count")
-    return ",".join("?" for _ in range(n))
+FETCH_BY_ID_LIMIT = 1000
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1265,15 +1259,23 @@ class KnowledgeStore:
         ids = [str(x) for x in ids if str(x).strip()]
         if not ids:
             return []
-        table_spec = FETCH_BY_ID_TABLES.get(table)
-        if not table_spec:
+        query = FETCH_BY_ID_QUERIES.get(table)
+        if not query:
             return []
-        table_name, pk = table_spec
+        if len(ids) > FETCH_BY_ID_LIMIT:
+            raise ValueError("invalid_fetch_id_count")
         con = self._connect()
         cur = con.cursor()
-        q = f"SELECT * FROM {table_name} WHERE {pk} IN ({_placeholders(len(ids))})"
-        cur.execute(q, ids)
-        rows = [dict(r) for r in cur.fetchall()]
+        rows = []
+        seen = set()
+        for object_id in ids:
+            if object_id in seen:
+                continue
+            seen.add(object_id)
+            cur.execute(query, (object_id,))
+            row = cur.fetchone()
+            if row:
+                rows.append(dict(row))
         con.close()
         return rows
 
