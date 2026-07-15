@@ -21,7 +21,9 @@ import shutil
 import sys
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
+from unittest import mock
 
 _SRC = Path(__file__).resolve().parent.parent / "src"
 if str(_SRC) not in sys.path:
@@ -94,6 +96,70 @@ class UATRuntimeTests(unittest.TestCase):
         self.assertEqual(argv[0], sys.executable)
         self.assertEqual(argv[2:5], ["run", "public_mwp", "--task-id"])
         self.assertIn("--dry-run", argv)
+
+    def test_dev_extra_includes_jsonschema_for_clean_venv_collection(self) -> None:
+        report = uat_runtime._check_dev_dependency_contract(PACKAGE_ROOT.parent)
+
+        self.assertTrue(report["ok"], report)
+        self.assertIn("jsonschema", report["detail"]["requirements"])
+
+    def test_uat_check_report_fails_when_dev_import_is_missing(self) -> None:
+        def fake_import(name: str):
+            if name == "jsonschema":
+                raise ModuleNotFoundError("jsonschema")
+            return object()
+
+        args = Namespace(
+            root=str(PACKAGE_ROOT),
+            project_root=str(PACKAGE_ROOT.parent),
+            expected_branch="release/0.33.0-dev",
+            expected_version=uat_runtime.RUNTIME_VERSION,
+            pytest_target=str(PACKAGE_ROOT / "tests" / "test_functional_branch_manifests.py"),
+            collect_timeout=10,
+            command_timeout=10,
+            skip_git=True,
+        )
+        fake_command = uat_runtime._check_result("cmd", True)
+        with mock.patch.object(uat_runtime, "_command_check", return_value=fake_command), \
+                mock.patch.object(uat_runtime, "_check_compileall", return_value=uat_runtime._check_result("compileall_src", True)), \
+                mock.patch.object(uat_runtime.importlib, "import_module", side_effect=fake_import):
+            report = uat_runtime.build_uat_check_report(args)
+
+        self.assertFalse(report["ok"])
+        self.assertIn("dev_dependency_imports", report["summary"]["failed_ids"])
+        imports = [check for check in report["checks"] if check["id"] == "dev_dependency_imports"][0]
+        self.assertIn("jsonschema", imports["detail"]["missing"][0])
+        self.assertIs(report["live_evidence_claimed"], False)
+
+    def test_uat_check_report_uses_collect_docs_and_help_gates(self) -> None:
+        calls = []
+
+        def fake_command(check_id: str, cmd, **kwargs):
+            calls.append((check_id, list(cmd), kwargs))
+            return uat_runtime._check_result(check_id, True)
+
+        args = Namespace(
+            root=str(PACKAGE_ROOT),
+            project_root=str(PACKAGE_ROOT.parent),
+            expected_branch="release/0.33.0-dev",
+            expected_version=uat_runtime.RUNTIME_VERSION,
+            pytest_target=str(PACKAGE_ROOT / "tests" / "test_functional_branch_manifests.py"),
+            collect_timeout=10,
+            command_timeout=10,
+            skip_git=True,
+        )
+        with mock.patch.object(uat_runtime, "_command_check", side_effect=fake_command), \
+                mock.patch.object(uat_runtime, "_check_compileall", return_value=uat_runtime._check_result("compileall_src", True)), \
+                mock.patch.object(uat_runtime.importlib, "import_module", return_value=object()):
+            report = uat_runtime.build_uat_check_report(args)
+
+        self.assertTrue(report["ok"], report)
+        self.assertEqual([item[0] for item in calls], ["pytest_collect", "docs_hygiene", "uat_runner_help"])
+        collect_cmd = calls[0][1]
+        self.assertEqual(collect_cmd[:4], [sys.executable, "-m", "pytest", "--collect-only"])
+        self.assertIn("test_functional_branch_manifests.py", collect_cmd[-1])
+        self.assertIn("docs_hygiene_runtime.py", calls[1][1][1])
+        self.assertEqual(calls[2][1][-1], "--help")
 
 
 if __name__ == "__main__":
