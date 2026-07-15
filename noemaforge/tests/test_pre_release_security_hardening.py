@@ -26,6 +26,7 @@ import scan_tg  # noqa: E402
 import task_tools  # noqa: E402
 import taskqueue  # noqa: E402
 import ui_snapshot  # noqa: E402
+import vstore  # noqa: E402
 from knowledge.prep_store import PrepStore  # noqa: E402
 
 
@@ -116,6 +117,52 @@ class PrestartCanaryRunnerTests(unittest.TestCase):
             kwargs = run_mock.call_args.kwargs
             self.assertIs(kwargs["shell"], False)
             self.assertIn("--suite", run_mock.call_args.args[0])
+
+
+class VStoreSqlPrefilterTests(unittest.TestCase):
+    def test_query_prefilter_keeps_filter_values_parameterized(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-vstore-") as tmp:
+            store = vstore.VStore(
+                "security",
+                cfg=vstore.VStoreConfig(base_dir=tmp, max_items_per_segment=10),
+            )
+            store.upsert_many(
+                [
+                    {
+                        "entry_id": "safe-entry",
+                        "vector": [1.0, 0.0],
+                        "model_id": "model-a",
+                        "stream_id": "safe",
+                        "project_id": "project-a",
+                        "kind": "note",
+                    },
+                    {
+                        "entry_id": "other-entry",
+                        "vector": [0.9, 0.1],
+                        "model_id": "model-a",
+                        "stream_id": "other",
+                        "project_id": "project-a",
+                        "kind": "note",
+                    },
+                ]
+            )
+
+            safe = store.query(
+                [1.0, 0.0],
+                dims=2,
+                model_id="model-a",
+                filters={"stream_id": "safe"},
+            )
+            self.assertEqual([match["entry_id"] for match in safe["matches"]], ["safe-entry"])
+
+            injected = store.query(
+                [1.0, 0.0],
+                dims=2,
+                model_id="model-a",
+                filters={"stream_id": "safe' OR 1=1 --"},
+            )
+            self.assertEqual(injected["matches"], [])
+            self.assertTrue(store.entry_exists("safe-entry"))
 
 
 class SqlAllowlistHelperTests(unittest.TestCase):
