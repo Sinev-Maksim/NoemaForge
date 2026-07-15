@@ -1178,10 +1178,21 @@ def has_todo_with_priority_classes(
     db_path = _db_path(policy)
     con = _connect(db_path)
     try:
-        qmarks = _placeholders(len(prios))
+        con.execute("CREATE TEMP TABLE IF NOT EXISTS taskqueue_priority_filter(priority_class TEXT PRIMARY KEY)")
+        con.execute("DELETE FROM taskqueue_priority_filter")
+        con.executemany(
+            "INSERT OR IGNORE INTO taskqueue_priority_filter(priority_class) VALUES (?)",
+            ((prio,) for prio in prios),
+        )
         row = con.execute(
-            f"SELECT 1 FROM tasks WHERE status='TODO' AND lower(priority_class) IN ({qmarks}) LIMIT 1",
-            tuple(prios),
+            """
+            SELECT 1
+            FROM tasks
+            WHERE status=?
+              AND lower(priority_class) IN (SELECT priority_class FROM taskqueue_priority_filter)
+            LIMIT 1
+            """,
+            ("TODO",),
         ).fetchone()
         return bool(row)
     except Exception:
