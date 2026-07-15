@@ -103,6 +103,19 @@ class UATRuntimeTests(unittest.TestCase):
         self.assertTrue(report["ok"], report)
         self.assertIn("jsonschema", report["detail"]["requirements"])
 
+    def test_compileall_check_does_not_write_source_pycache(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_uat_compile_guard_") as tmp:
+            package = Path(tmp) / "noemaforge"
+            src = package / "src"
+            src.mkdir(parents=True)
+            (src / "sample.py").write_text("VALUE = 1\n", encoding="utf-8")
+
+            report = uat_runtime._check_compileall(package)
+
+            self.assertTrue(report["ok"], report)
+            self.assertFalse((src / "__pycache__").exists())
+            self.assertEqual([], list(src.rglob("*.pyc")))
+
     def test_uat_check_report_fails_when_dev_import_is_missing(self) -> None:
         def fake_import(name: str):
             if name == "jsonschema":

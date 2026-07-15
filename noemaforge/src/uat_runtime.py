@@ -40,6 +40,7 @@ import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import tomllib
@@ -210,7 +211,13 @@ def _check_imports(imports: Sequence[str]) -> Dict[str, Any]:
 
 
 def _check_compileall(package_root: Path) -> Dict[str, Any]:
-    ok = compileall.compile_dir(str(package_root / "src"), quiet=1, force=True)
+    old_prefix = sys.pycache_prefix
+    with tempfile.TemporaryDirectory(prefix="nf_uat_compileall_") as pycache_dir:
+        sys.pycache_prefix = pycache_dir
+        try:
+            ok = compileall.compile_dir(str(package_root / "src"), quiet=1, force=True)
+        finally:
+            sys.pycache_prefix = old_prefix
     return _check_result("compileall_src", bool(ok), message="noemaforge/src compiles with current interpreter")
 
 
