@@ -128,6 +128,7 @@ UX / operator interface:
   sudo noemaforge firstboot-archive                     Archive accepted firstboot baseline artifacts.
   sudo noemaforge forensic-bundle [OUT_DIR]              Create no-weights support bundle.
   noemaforge mvp-smoke [--json]                          Validate public MVP/MWP surface without running LLM.
+  noemaforge toolproxy probe                             Native JSON-over-UDS ToolProxy protocol probe.
   noemaforge toolproxy diag [--test-llm]                 Diagnose ToolProxy policy/token/socket path.
 
 Runtime safety:
@@ -690,6 +691,7 @@ UX layer:
   noemaforge monitor
   noemaforge tasks list
   noemaforge eval run --role system.guard/sr
+  noemaforge toolproxy probe
   noemaforge toolproxy diag --test-llm
 EOF
 }
