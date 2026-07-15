@@ -98,16 +98,38 @@ SCHEMA = "noemaforge.ui.snapshot/v1"
 TASK_ORDER_SQL = {
     "created_desc": "created_at DESC",
     "priority_created": "prio_index ASC, created_at ASC",
+    "updated_desc": "updated_at DESC",
+    "claimed_created_desc": "claimed_at DESC, created_at DESC",
 }
+
+TASK_ORDER_KEY_BY_SQL = {sql: key for key, sql in TASK_ORDER_SQL.items()}
+TASK_FETCH_SQL = """
+            SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
+                   module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
+            FROM tasks
+            WHERE status=?
+            ORDER BY
+                CASE WHEN ?='claimed_created_desc' THEN claimed_at END DESC,
+                CASE WHEN ?='claimed_created_desc' THEN created_at END DESC,
+                CASE WHEN ?='priority_created' THEN prio_index END ASC,
+                CASE WHEN ?='priority_created' THEN created_at END ASC,
+                CASE WHEN ?='updated_desc' THEN updated_at END DESC,
+                CASE WHEN ?='created_desc' THEN created_at END DESC
+            LIMIT ?
+            """
+
+
+def _task_order_key(order_key: str) -> str:
+    key = str(order_key or "").strip()
+    if key in TASK_ORDER_SQL:
+        return key
+    if key in TASK_ORDER_KEY_BY_SQL:
+        return TASK_ORDER_KEY_BY_SQL[key]
+    raise ValueError("unsupported_task_order")
 
 
 def _task_order_sql(order_key: str) -> str:
-    key = str(order_key or "").strip()
-    if key in TASK_ORDER_SQL:
-        return TASK_ORDER_SQL[key]
-    if key in set(TASK_ORDER_SQL.values()):
-        return key
-    raise ValueError("unsupported_task_order")
+    return TASK_ORDER_SQL[_task_order_key(order_key)]
 
 # Inbox snapshot caching: avoid rescanning inbox trees on every UI poll.
 INBOX_CACHE_TTL_SEC = float(os.environ.get("NOEMAFORGE_INBOX_CACHE_TTL_SEC", "10"))
@@ -480,17 +502,19 @@ def _tq_pick_fields(r: sqlite3.Row) -> Dict[str, Any]:
 # === End NoemaForge Autodoc Function Header ===
 def _tq_fetch(con: sqlite3.Connection, *, status: str, limit: int, order_sql: str) -> List[Dict[str, Any]]:
     try:
-        order_clause = _task_order_sql(order_sql)
+        order_key = _task_order_key(order_sql)
         rows = con.execute(
-            f"""
-            SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
-                   module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
-            FROM tasks
-            WHERE status=?
-            ORDER BY {order_clause}
-            LIMIT ?
-            """,
-            (status.upper(), max(1, int(limit))),
+            TASK_FETCH_SQL,
+            (
+                status.upper(),
+                order_key,
+                order_key,
+                order_key,
+                order_key,
+                order_key,
+                order_key,
+                max(1, int(limit)),
+            ),
         ).fetchall()
         return [_tq_pick_fields(r) for r in rows]
     except Exception:
