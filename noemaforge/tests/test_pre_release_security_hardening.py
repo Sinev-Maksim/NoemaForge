@@ -4,6 +4,7 @@ Focused regression tests for 0.33.0 pre-release security hardening.
 """
 from __future__ import annotations
 
+import sqlite3
 import sys
 import tempfile
 import unittest
@@ -173,6 +174,110 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             task_tools._assignment("status=?, title='pwned'")
         with self.assertRaises(ValueError):
             ui_snapshot._task_order_sql("created_at DESC; DROP TABLE tasks")
+
+    def test_ui_snapshot_task_fetch_uses_static_order_queries(self) -> None:
+        self.assertEqual(set(ui_snapshot.TASK_ORDER_SQL), set(ui_snapshot.TASK_FETCH_QUERIES))
+        for key, query in ui_snapshot.TASK_FETCH_QUERIES.items():
+            self.assertNotIn("CASE WHEN", query.upper())
+            self.assertIn(f"ORDER BY {ui_snapshot.TASK_ORDER_SQL[key]}", query)
+            self.assertEqual(2, query.count("?"))
+
+        con = sqlite3.connect(":memory:")
+        con.row_factory = sqlite3.Row
+        try:
+            con.execute(
+                """
+                CREATE TABLE tasks (
+                    task_id TEXT,
+                    created_at TEXT,
+                    updated_at TEXT,
+                    domain TEXT,
+                    priority_class TEXT,
+                    prio_index INTEGER,
+                    status TEXT,
+                    kind TEXT,
+                    module TEXT,
+                    title TEXT,
+                    group_key TEXT,
+                    repeats INTEGER,
+                    attempts INTEGER,
+                    claimed_by TEXT,
+                    claimed_at TEXT,
+                    lease_until TEXT,
+                    last_error TEXT
+                )
+                """
+            )
+            con.execute(
+                """
+                INSERT INTO tasks (
+                    task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
+                    module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "task-safe",
+                    "2026-07-15T01:00:00Z",
+                    "2026-07-15T01:05:00Z",
+                    "SECURITY",
+                    "normal",
+                    1,
+                    "TODO",
+                    "module",
+                    "ui_snapshot",
+                    "safe task",
+                    "",
+                    0,
+                    0,
+                    "",
+                    "",
+                    "",
+                    "",
+                ),
+            )
+
+            injected = ui_snapshot._tq_fetch(
+                con,
+                status="TODO",
+                limit=5,
+                order_sql="created_at DESC; DROP TABLE tasks;--",
+            )
+            self.assertEqual([], injected)
+
+            safe = ui_snapshot._tq_fetch(con, status="TODO", limit=5, order_sql="created_at DESC")
+            self.assertEqual(["task-safe"], [task["task_id"] for task in safe])
+        finally:
+            con.close()
+
+    def test_ui_snapshot_task_fetch_executes_prebuilt_query_only(self) -> None:
+        class _FakeCursor:
+            def fetchall(self) -> list:
+                return []
+
+        class _FakeConnection:
+            def __init__(self) -> None:
+                self.calls = []
+
+            def execute(self, query: str, params: tuple) -> _FakeCursor:
+                self.calls.append((query, params))
+                return _FakeCursor()
+
+        for key, order_sql in ui_snapshot.TASK_ORDER_SQL.items():
+            for order_input in (key, order_sql):
+                con = _FakeConnection()
+                rows = ui_snapshot._tq_fetch(con, status="todo", limit="7", order_sql=order_input)
+                self.assertEqual([], rows)
+                self.assertEqual([(ui_snapshot.TASK_FETCH_QUERIES[key], ("TODO", 7))], con.calls)
+
+        con = _FakeConnection()
+        rows = ui_snapshot._tq_fetch(
+            con,
+            status="TODO",
+            limit=7,
+            order_sql="created_at DESC; DROP TABLE tasks;--",
+        )
+        self.assertEqual([], rows)
+        self.assertEqual([], con.calls)
 
     def test_prep_store_table_columns_use_bound_pragma(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf-prep-store-") as tmp:
