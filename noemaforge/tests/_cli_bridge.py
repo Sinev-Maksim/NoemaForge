@@ -32,7 +32,7 @@ def _toolproxy(rest: List[str]) -> List[str]:
     if rest and rest[0] in ("diag", "diagnose", "status"):
         return ["diag", *rest[1:]]
     if rest and rest[0] in ("test", "test-llm"):
-        return ["--test-llm", *rest[1:]]
+        return ["diag", "--test-llm", *rest[1:]]
     return rest
 
 

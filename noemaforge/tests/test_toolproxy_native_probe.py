@@ -123,6 +123,14 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
         self.assertEqual("noemaforge_toolproxy_diag.py", Path(argv[1]).name)
         self.assertEqual(["diag", "--socket", "/tmp/toolproxy.sock"], argv[2:])
 
+    def test_cli_bridge_preserves_test_alias_options_under_diag_subcommand(self) -> None:
+        sys.path.insert(0, str(ROOT / "tests"))
+        from _cli_bridge import noemaforge_cli
+
+        argv = noemaforge_cli(ROOT, "toolproxy", "test", "--tokens-dir", "/tmp/caps")
+        self.assertEqual("noemaforge_toolproxy_diag.py", Path(argv[1]).name)
+        self.assertEqual(["diag", "--test-llm", "--tokens-dir", "/tmp/caps"], argv[2:])
+
     def test_diag_subcommand_accepts_legacy_json_flag(self) -> None:
         parser = diag.build_parser()
         ns = parser.parse_args(["diag", "--json", "--socket", "/tmp/toolproxy.sock"])

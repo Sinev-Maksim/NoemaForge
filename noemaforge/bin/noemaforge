@@ -1148,7 +1148,7 @@ cmd_toolproxy_diag() {
       ;;
     test|test-llm)
       shift || true
-      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" --test-llm "$@"
+      NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" diag --test-llm "$@"
       ;;
     *) NOEMAFORGE_ROOT="$ROOT" /usr/bin/python3 "$ROOT/src/noemaforge_toolproxy_diag.py" "$@" ;;
   esac
