@@ -447,6 +447,64 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             finally:
                 con.close()
 
+    def test_user_task_update_preserves_falsy_patch_values(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-falsy-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                kind="generic",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            updated = task_tools.update_user_task(
+                policy=policy,
+                user_task_id=task_id,
+                patch={
+                    "title": 0,
+                    "description": False,
+                    "owner": 0,
+                    "status": False,
+                    "priority_class": 0,
+                    "worktree_id": False,
+                },
+            )["task"]
+
+            self.assertEqual("0", updated["title"])
+            self.assertEqual("False", updated["description"])
+            self.assertEqual("0", updated["owner"])
+            self.assertEqual("False", updated["status"])
+            self.assertEqual("0", updated["priority_class"])
+            self.assertEqual("False", updated["worktree_id"])
+
+    def test_user_task_update_rejects_empty_title_and_defaults_empty_kind(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-user-task-not-null-") as tmp:
+            policy = {"queue": {"db_path": str(Path(tmp) / "taskqueue.sqlite")}}
+            created = task_tools.create_user_task(
+                policy=policy,
+                project_id="project-safe",
+                title="original",
+                kind="manual",
+            )
+            task_id = created["task"]["user_task_id"]
+
+            with self.assertRaisesRegex(ValueError, "missing_title"):
+                task_tools.update_user_task(
+                    policy=policy,
+                    user_task_id=task_id,
+                    patch={"title": "   "},
+                )
+
+            updated = task_tools.update_user_task(
+                policy=policy,
+                user_task_id=task_id,
+                patch={"kind": ""},
+            )["task"]
+
+            self.assertEqual("generic", updated["kind"])
+            self.assertEqual("original", updated["title"])
+
 
 if __name__ == "__main__":
     unittest.main()

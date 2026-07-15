@@ -721,7 +721,18 @@ def update_user_task(
         simple = ["title", "description", "kind", "status", "owner", "priority_class", "worktree_id", "last_error", "session_id"]
         for key in simple:
             if key in patch:
-                value = (str(patch.get(key) or "").strip() or None) if key not in ("status", "priority_class") else str(patch.get(key) or "").strip()
+                raw_value = patch.get(key)
+                text_value = str(raw_value).strip() if raw_value is not None else ""
+                if key == "title":
+                    if not text_value:
+                        raise ValueError("missing_title")
+                    value = text_value
+                elif key == "kind":
+                    value = text_value or "generic"
+                elif key in ("status", "priority_class"):
+                    value = text_value
+                else:
+                    value = text_value or None
                 updates.append((key, value))
         if "plan_required" in patch:
             updates.append(("plan_required", 1 if bool(patch.get("plan_required")) else 0))
