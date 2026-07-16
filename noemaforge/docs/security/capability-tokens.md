@@ -29,6 +29,13 @@ Deny-by-default: absent a valid token, the call is rejected. The policy intent (
 proxy boundary and the rule sketch, and [`../architecture/contract-epochs.md`](../architecture/contract-epochs.md)
 for how epochs scope what a token may authorize.
 
+For native ToolProxy JSON-over-socket calls, the token is a top-level `token`
+field. The caller identity is not read from top-level `actor` or `role`; it is
+read from `meta.role`, `meta.project_id`, `meta.run_id`, and
+`meta.stream_id`. These `meta` fields are part of the capability binding and
+must match the token's `issued_to` record. See the canonical envelope in
+[`../architecture/toolproxy-capabilities.md`](../architecture/toolproxy-capabilities.md#native-request-envelope).
+
 ## Why it matters
 
 A reviewer can confirm tools are not callable "from the agent directly" — only via a scoped,

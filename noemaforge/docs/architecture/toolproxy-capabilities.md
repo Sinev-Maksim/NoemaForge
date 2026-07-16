@@ -36,6 +36,37 @@ allow if {
 }
 ```
 
+## Native request envelope
+
+Native ToolProxy calls use JSON over the ToolProxy Unix socket. Operators and
+scripts must put the bearer token in the top-level `token` field and identity
+binding fields inside `meta`; top-level `actor`, top-level `role`, or missing
+`meta.stream_id` are not equivalent and should be expected to return a
+structured deny.
+
+```json
+{
+  "action": "llm.chat",
+  "token": "<capability token>",
+  "args": {
+    "messages": [{"role": "user", "content": "Return exactly: OK"}],
+    "max_tokens": 8
+  },
+  "meta": {
+    "role": "architect",
+    "project_id": "noemaforge-toolproxy-diag",
+    "run_id": "diag",
+    "stream_id": "dev.work",
+    "trace_id": "toolproxy-diag-<id>"
+  }
+}
+```
+
+ToolProxy verifies that the token record's `issued_to.role`,
+`issued_to.project_id`, and `issued_to.run_id` match `meta.role`,
+`meta.project_id`, and `meta.run_id`, then checks `meta.stream_id` against the
+active epoch, stream catalog, registry, and policy before executing the action.
+
 ## Boundary
 
 ToolProxy sits between the control plane's planned actions and the execution plane. It cannot

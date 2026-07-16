@@ -77,19 +77,41 @@ def send_toolproxy(req: dict[str, Any], sock_path: str = DEFAULT_SOCKET, timeout
         return {"ok": False, "error": "non_json_toolproxy_response", "raw": raw[:2000]}
 
 
-def probe_toolproxy(sock_path: str = DEFAULT_SOCKET, timeout: float = 5.0) -> dict[str, Any]:
-    req = {
-        "token": "toolproxy-probe.invalid",
-        "action": "operator.status",
+def build_toolproxy_request(
+    *,
+    action: str,
+    token: str,
+    role: str,
+    project_id: str,
+    run_id: str,
+    stream_id: str,
+    args: dict[str, Any] | None = None,
+    trace_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "action": str(action),
+        "token": str(token),
+        "args": args or {},
         "meta": {
-            "stream_id": "dev.work",
-            "role": "operator",
-            "project_id": "noemaforge-toolproxy-probe",
-            "run_id": "probe",
-            "trace_id": "toolproxy-probe",
+            "role": str(role),
+            "project_id": str(project_id),
+            "run_id": str(run_id),
+            "stream_id": str(stream_id),
+            "trace_id": str(trace_id or ""),
         },
-        "args": {},
     }
+
+
+def probe_toolproxy(sock_path: str = DEFAULT_SOCKET, timeout: float = 5.0) -> dict[str, Any]:
+    req = build_toolproxy_request(
+        action="operator.status",
+        token="toolproxy-probe.invalid",
+        role="operator",
+        project_id="noemaforge-toolproxy-probe",
+        run_id="probe",
+        stream_id="dev.work",
+        trace_id="toolproxy-probe",
+    )
     try:
         response = send_toolproxy(req, sock_path=sock_path, timeout=timeout)
     except Exception as exc:
@@ -145,23 +167,21 @@ def issue_test_token(tokens_dir: str = DEFAULT_TOKENS_DIR) -> str:
 def test_llm_chat(tokens_dir: str = DEFAULT_TOKENS_DIR, sock_path: str = DEFAULT_SOCKET) -> dict[str, Any]:
     token = issue_test_token(tokens_dir)
     trace_id = "toolproxy-diag-" + str(int(time.time()))
-    req = {
-        "token": token,
-        "action": "llm.chat",
-        "meta": {
-            "stream_id": "dev.work",
-            "role": "architect",
-            "project_id": "noemaforge-toolproxy-diag",
-            "run_id": "diag",
-            "trace_id": trace_id,
-        },
-        "args": {
+    req = build_toolproxy_request(
+        action="llm.chat",
+        token=token,
+        role="architect",
+        project_id="noemaforge-toolproxy-diag",
+        run_id="diag",
+        stream_id="dev.work",
+        trace_id=trace_id,
+        args={
             "model": "main",
             "messages": [{"role": "user", "content": "Return exactly: OK"}],
             "max_tokens": 8,
             "temperature": 0,
         },
-    }
+    )
     res = send_toolproxy(req, sock_path=sock_path)
     res["trace_id_sent"] = trace_id
     res["token_prefix"] = token.split(".")[0] + ".***" if "." in token else token[:16] + "***"
