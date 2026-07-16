@@ -26,8 +26,8 @@
 # === End NoemaForge File Header ===
 
 param(
-    [string]$VaultRoot = 'E:\Vault',
-    [string]$OutDir = 'E:\Vault\manifests\noemaforge-metadata-export\diagnose'
+    [string]$VaultRoot = 'E:\noemaforge-lab\data\Vault',
+    [string]$OutDir = 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export\diagnose'
 )
 
 $ErrorActionPreference = 'Stop'

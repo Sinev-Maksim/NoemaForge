@@ -34,6 +34,22 @@ import noemaforge_prep_core as prep_core
 
 
 class CrossPlatformPrepCoreRuntimeTests(unittest.TestCase):
+    def test_windows_release_validation_wrappers_default_to_official_vault_path(self) -> None:
+        export_wrapper = (ROOT / "tools" / "windows" / "Export-NoemaForge-E-Vault-Metadata.ps1").read_text(encoding="utf-8")
+        compare_wrapper = (ROOT / "tools" / "windows" / "Export-NoemaForge-E-Compare-Metadata.ps1").read_text(encoding="utf-8")
+        check_wrapper = (ROOT / "tools" / "windows" / "Check-NoemaForge-VaultRoot.ps1").read_text(encoding="utf-8")
+
+        canonical_vault = r"E:\noemaforge-lab\data\Vault"
+        canonical_out = r"E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export"
+        canonical_check_out = r"E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export\diagnose"
+
+        self.assertIn(f"[string]$VaultRoot = '{canonical_vault}'", export_wrapper)
+        self.assertIn(f"[string]$OutDir = '{canonical_out}'", export_wrapper)
+        self.assertIn(f"[string]$LabVaultRoot = '{canonical_vault}'", compare_wrapper)
+        self.assertIn(f"[string]$OutDir = '{canonical_out}'", compare_wrapper)
+        self.assertIn(f"[string]$VaultRoot = '{canonical_vault}'", check_wrapper)
+        self.assertIn(f"[string]$OutDir = '{canonical_check_out}'", check_wrapper)
+
     def test_workspace_policy_validates(self) -> None:
         policy = cpp.load_policy(ROOT / "configs" / "cross-platform-prep-core-policy.json")
         report = cpp.validate_cross_platform_prep_policy(policy, project_root=PROJECT_ROOT, package_root=ROOT)
