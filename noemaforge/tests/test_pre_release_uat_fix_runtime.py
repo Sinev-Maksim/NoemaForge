@@ -47,21 +47,36 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             {"model_id": "svc", "reason": "systemctl_start_failed:1"},
             {"model_id": "slow", "reason": "TimeoutError('timed out')"},
             {"model_id": "slow", "reason": "TimeoutError('timed out')"},
+            {"model_id": "bad-api", "selection_status": "invalid_backend_calls"},
+            {"model_id": "bad-api-2", "reason": "invalid_backend_calls"},
         ]
         summary = uatfix.summarize_model_run_records(records)
-        self.assertEqual(summary["model_runs"], 8)
+        self.assertEqual(summary["model_runs"], 10)
         self.assertEqual(summary["models_started"], 3)
         self.assertEqual(summary["classification_counts"]["completed"], 1)
         self.assertEqual(summary["classification_counts"]["partial_valid"], 1)
         self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
         self.assertEqual(summary["classification_counts"]["systemctl_start_failed"], 1)
         self.assertEqual(summary["classification_counts"]["timeout"], 2)
+        self.assertEqual(summary["classification_counts"]["invalid_backend_calls"], 2)
         self.assertEqual(summary["classification_counts"]["safety-filtered"], 1)
         self.assertEqual(summary["classification_counts"]["unknown"], 1)
-        self.assertEqual(summary["failed_model_ids"], ["old", "slow", "svc", "warm"])
+        self.assertEqual(summary["failed_model_ids"], ["bad-api", "bad-api-2", "old", "slow", "svc", "warm"])
         self.assertEqual(
             summary["failure_groups_by_model"],
             [
+                {
+                    "model_id": "bad-api",
+                    "logical_model_id": "",
+                    "classifications": ["invalid_backend_calls"],
+                    "reasons": ["invalid_backend_calls"],
+                },
+                {
+                    "model_id": "bad-api-2",
+                    "logical_model_id": "",
+                    "classifications": ["invalid_backend_calls"],
+                    "reasons": ["invalid_backend_calls"],
+                },
                 {
                     "model_id": "old",
                     "logical_model_id": "",
@@ -91,6 +106,12 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
         self.assertEqual(
             summary["failure_groups_by_reason"],
             [
+                {
+                    "classification": "invalid_backend_calls",
+                    "reason": "invalid_backend_calls",
+                    "count": 2,
+                    "model_ids": ["bad-api", "bad-api-2"],
+                },
                 {
                     "classification": "systemctl_start_failed",
                     "reason": "systemctl_start_failed:1",

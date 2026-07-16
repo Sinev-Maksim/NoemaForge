@@ -79,13 +79,16 @@ def extract_model_run_records(*artifacts: Any) -> List[Dict[str, Any]]:
 def classify_runtime_finding(record: Dict[str, Any]) -> str:
     """Stable runtime finding classes for release decision summaries."""
     reason = str(record.get("reason") or "").strip()
-    lowered = reason.lower()
+    selection_status = str(record.get("selection_status") or "").strip()
+    lowered = " ".join(part.lower() for part in (reason, selection_status) if part)
     if bool(record.get("partial_valid")):
         return "partial_valid"
     if lowered in {"", "completed"} and bool(record.get("started")):
         return "completed"
     if lowered == "default_safety_filter" or "default_safety_filter" in lowered:
         return "safety-filtered"
+    if "invalid_backend_calls" in lowered:
+        return "invalid_backend_calls"
     if "warmup_failed" in lowered:
         return "warmup_failed"
     if "timeout" in lowered or "timed out" in lowered:
@@ -95,16 +98,26 @@ def classify_runtime_finding(record: Dict[str, Any]) -> str:
     return "unknown"
 
 
+def _runtime_reason(record: Dict[str, Any]) -> str:
+    reason = str(record.get("reason") or "").strip()
+    if reason:
+        return reason
+    selection_status = str(record.get("selection_status") or "").strip()
+    if selection_status and selection_status != "completed":
+        return selection_status
+    return "completed"
+
+
 def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     materialized = list(records)
     classes = Counter(classify_runtime_finding(rec) for rec in materialized)
-    raw_reasons = Counter(str(rec.get("reason") or "completed") for rec in materialized)
+    raw_reasons = Counter(_runtime_reason(rec) for rec in materialized)
     failed_or_incomplete = [
         {
             "model_id": rec.get("model_id"),
             "logical_model_id": rec.get("logical_model_id"),
             "classification": classify_runtime_finding(rec),
-            "reason": rec.get("reason") or "completed",
+            "reason": _runtime_reason(rec),
         }
         for rec in materialized
         if classify_runtime_finding(rec) not in {"completed", "partial_valid", "safety-filtered"}
