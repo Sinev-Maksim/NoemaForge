@@ -653,6 +653,7 @@ def preflight_modelstore_staging(modelstore_root: str) -> Dict[str, Any]:
     manifest_path = probe_dir / "manifest.yaml"
     link_path = probe_dir / "model.gguf"
     cleanup_errors: List[str] = []
+    failure_doc: Optional[Dict[str, Any]] = None
     try:
         models_dir.mkdir(parents=True, exist_ok=True)
         probe_dir.mkdir(mode=0o770)
@@ -660,7 +661,7 @@ def preflight_modelstore_staging(modelstore_root: str) -> Dict[str, Any]:
         with open(manifest_path, "w", encoding="utf-8") as f:
             f.write("apiVersion: noemaforge.model/v1\nkind: ModelArtifact\npreflight: true\n")
     except Exception as e:
-        doc = {
+        failure_doc = {
             "apiVersion": "noemaforge.modelstore/v1",
             "kind": "ModelStoreStagingPreflight",
             "ok": False,
@@ -682,10 +683,9 @@ def preflight_modelstore_staging(modelstore_root: str) -> Dict[str, Any]:
         }
         try:
             st = models_dir.stat()
-            doc["models_dir_stat"] = {"mode_octal": oct(st.st_mode & 0o7777), "uid": st.st_uid, "gid": st.st_gid}
+            failure_doc["models_dir_stat"] = {"mode_octal": oct(st.st_mode & 0o7777), "uid": st.st_uid, "gid": st.st_gid}
         except Exception:
             pass
-        return doc
     finally:
         for path in (link_path, manifest_path):
             try:
@@ -700,6 +700,26 @@ def preflight_modelstore_staging(modelstore_root: str) -> Dict[str, Any]:
             pass
         except Exception as cleanup_error:
             cleanup_errors.append(f"{probe_dir}:{cleanup_error!r}")
+    if failure_doc is not None:
+        failure_doc["cleanup_errors"] = cleanup_errors
+        return failure_doc
+    if cleanup_errors:
+        return {
+            "apiVersion": "noemaforge.modelstore/v1",
+            "kind": "ModelStoreStagingPreflight",
+            "ok": False,
+            "modelstore_root": str(modelstore_root),
+            "models_dir": str(models_dir),
+            "probe_dir": str(probe_dir),
+            "checked": ["mkdir_model_dir", "create_model_symlink", "write_manifest"],
+            "cleanup_errors": cleanup_errors,
+            "reason": "cleanup_probe_dir_failed",
+            "message": "ModelStore staging preflight created probe artifacts but could not clean them completely.",
+            "operator_actions": [
+                "Inspect and remove the reported preflight probe artifacts before rerunning live role tournament.",
+                "Repair ModelStore ownership or permissions so the operator or NoemaForge service user can clean staging probes.",
+            ],
+        }
     return {
         "apiVersion": "noemaforge.modelstore/v1",
         "kind": "ModelStoreStagingPreflight",
@@ -1107,7 +1127,13 @@ def run_tournament(
     matrix = build_eligibility(inventory, roles)
     os.makedirs(state_dir, exist_ok=True)
     # Reset streaming progress artifacts at the beginning of each run.
-    stale_files = ["role-tournament-progress.json", "role-tournament-progress.jsonl", "model-run-records.json", "role-candidate-map.filtered.json"]
+    stale_files = [
+        "role-tournament-progress.json",
+        "role-tournament-progress.jsonl",
+        "model-run-records.json",
+        "role-candidate-map.filtered.json",
+        "modelstore-staging-preflight.json",
+    ]
     if _env_bool("NOEMAFORGE_TOURNAMENT_CLEAR_MODEL_HEALTH", False):
         stale_files.extend(["model-health-registry.json", "model-exclusion-list.json", "model-failure-report.json"])
     for stale_name in stale_files:

@@ -103,6 +103,69 @@ class RoleTournamentModelStorePreflightTests(unittest.TestCase):
         )
         self.assertEqual("complete", progress["phase"])
 
+    @unittest.skipIf(os.name == "nt", "ModelStore symlink staging is Linux target behavior")
+    def test_modelstore_staging_preflight_fails_closed_when_cleanup_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            modelstore = Path(raw) / "modelstore"
+
+            with mock.patch.object(rt.Path, "rmdir", side_effect=OSError("cleanup denied")):
+                report = rt.preflight_modelstore_staging(str(modelstore))
+
+            self.assertFalse(report["ok"], report)
+            self.assertEqual("cleanup_probe_dir_failed", report["reason"])
+            self.assertNotIn("cleanup_probe_dir", report["checked"])
+            self.assertTrue(report["cleanup_errors"])
+
+    def test_run_mode_with_no_ordered_candidates_clears_stale_preflight_failure(self) -> None:
+        inventory = {
+            "models": [
+                {
+                    "model_id": "alpha",
+                    "artifact_format": "gguf",
+                    "source_path": "/tmp/alpha.gguf",
+                    "capabilities": ["llm"],
+                    "runtime_family": "llama.cpp",
+                }
+            ]
+        }
+        catalog = {"roles": {"operator.admin/administrator": {"required_capabilities": ["llm"], "top_k": 1, "tasks_per_model": 1}}}
+
+        with tempfile.TemporaryDirectory() as raw:
+            state = Path(raw) / "state"
+            state.mkdir()
+            stale_preflight = state / "modelstore-staging-preflight.json"
+            stale_preflight.write_text(
+                json.dumps({
+                    "apiVersion": "noemaforge.modelstore/v1",
+                    "kind": "ModelStoreStagingPreflight",
+                    "ok": False,
+                    "reason": "stale previous failure",
+                }),
+                encoding="utf-8",
+            )
+
+            with mock.patch.object(rt, "runtime_state", return_value={"available": False, "implemented": False, "probe": {}}), \
+                 mock.patch.object(rt, "preflight_modelstore_staging") as preflight:
+                doc = rt.run_tournament(
+                    inventory,
+                    catalog,
+                    state_dir=str(state),
+                    modelstore_root="/var/lib/modelstore",
+                    runtime_mode="run",
+                    selection_mode="full",
+                )
+
+            candidate_map = load_json(state / "role-candidate-map.json")
+            preflight_exists_after_run = stale_preflight.exists()
+
+        preflight.assert_not_called()
+        self.assertFalse(preflight_exists_after_run)
+        self.assertEqual([], doc["model_run_records"])
+        self.assertEqual(
+            "no_candidates_after_thresholds",
+            candidate_map["selection_diagnostics"]["no_candidates_reason"],
+        )
+
     def test_cli_reports_preflight_failure_as_not_ok(self) -> None:
         inventory = {
             "models": [
