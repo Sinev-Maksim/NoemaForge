@@ -195,13 +195,28 @@ def forensic_artifact_paths(root: Path | str) -> Dict[str, Path]:
     return {key: base / name for key, name in FORENSIC_ARTIFACT_NAMES.items()}
 
 
-def _load_json_if_exists(path: Path) -> Any:
+def _load_json_artifact(path: Path) -> Dict[str, Any]:
+    result: Dict[str, Any] = {
+        "data": None,
+        "present": False,
+        "error": "",
+    }
     try:
-        if path.is_file():
-            return load_json_any(path)
-    except (OSError, json.JSONDecodeError):
-        return None
-    return None
+        if not path.is_file():
+            return result
+        result["present"] = True
+        result["data"] = load_json_any(path)
+        return result
+    except json.JSONDecodeError as exc:
+        result["error"] = f"parse_error:{exc.msg}"
+        return result
+    except OSError as exc:
+        result["error"] = f"read_error:{exc.__class__.__name__}"
+        return result
+
+
+def _load_json_if_exists(path: Path) -> Any:
+    return _load_json_artifact(path)["data"]
 
 
 def _selected_candidates(role_spec: Any) -> List[Dict[str, Any]]:
@@ -363,7 +378,8 @@ def reconcile_full_composite_artifacts(
     clear_model_health: bool = False,
 ) -> Dict[str, Any]:
     artifact_paths = forensic_artifact_paths(root)
-    loaded = {key: _load_json_if_exists(path) for key, path in artifact_paths.items()}
+    artifact_results = {key: _load_json_artifact(path) for key, path in artifact_paths.items()}
+    loaded = {key: artifact_results[key]["data"] for key in artifact_paths}
     decision_summary = summarize_model_selection_decision(loaded["decision"])
     staffing_summary = summarize_staffing_summary(loaded["staffing_summary"])
     candidate_map_summary = summarize_role_candidate_map(loaded["role_candidate_map"])
@@ -407,15 +423,24 @@ def reconcile_full_composite_artifacts(
     if loaded["composite_selection_plan"] and composite_summary["role_count"] and candidate_map_summary["role_count"] and composite_summary["role_count"] != candidate_map_summary["role_count"]:
         mismatches.append("composite_role_count_mismatch")
 
-    gate_blockers = list(dict.fromkeys([*evaluation_scope["blocking_reasons"], *mismatches]))
+    artifact_integrity_blockers: List[str] = []
+    for key, result in artifact_results.items():
+        if result["error"]:
+            artifact_integrity_blockers.append(f"{key}_artifact_{str(result['error']).split(':', 1)[0]}")
+        elif not result["present"]:
+            artifact_integrity_blockers.append(f"{key}_artifact_missing")
+
+    gate_blockers = list(dict.fromkeys([*evaluation_scope["blocking_reasons"], *mismatches, *artifact_integrity_blockers]))
     return {
-        "ok": True,
+        "ok": not artifact_integrity_blockers,
         "mode": mode,
         "dry_run": dry_run,
         "artifacts": {
             key: {
                 "path": str(path),
-                "present": loaded[key] is not None,
+                "present": bool(artifact_results[key]["present"]),
+                "loaded": loaded[key] is not None,
+                "error": str(artifact_results[key]["error"]),
             }
             for key, path in artifact_paths.items()
         },
@@ -429,8 +454,9 @@ def reconcile_full_composite_artifacts(
         },
         "mismatches": mismatches,
         "dry_run_evaluation_scope": evaluation_scope,
+        "artifact_integrity_blockers": artifact_integrity_blockers,
         "max_complexity_gate": {
-            "accepted": bool(evaluation_scope["ok_to_label_max_complexity"] and not mismatches),
+            "accepted": bool(evaluation_scope["ok_to_label_max_complexity"] and not mismatches and not artifact_integrity_blockers),
             "blocking_reasons": gate_blockers,
         },
     }
@@ -490,7 +516,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         clear_model_health=bool(args.clear_model_health),
     )
     print(json.dumps(report, ensure_ascii=False, indent=2))
-    return 0
+    return 0 if report["ok"] and report["max_complexity_gate"]["accepted"] else 1
 
 
 if __name__ == "__main__":
