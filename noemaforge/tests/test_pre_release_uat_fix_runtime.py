@@ -203,6 +203,128 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertIs(payload["ok"], False)
             self.assertEqual(payload["error"], "source_gate_failed")
 
+    def test_reconcile_full_composite_artifacts_flags_missing_model_run_evidence(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_mismatch_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": True,
+                "chosen_by_role": {
+                    "operator.admin/administrator": {"model_id": "m-admin"},
+                    "dev.work/solution_architect": {"model_id": "m-dev"},
+                },
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "degraded_selected",
+                "selected_roles": 2,
+                "target_met_roles": 2,
+                "selected_model_count": 2,
+                "selected_model_ids": ["m-admin", "m-dev"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "m-admin", "score": 0.91},
+                        "selected": [{"model_id": "m-admin", "score": 0.91}],
+                    },
+                    "dev.work/solution_architect": {
+                        "chosen": {"model_id": "m-dev", "score": 0.88},
+                        "selected": [{"model_id": "m-dev", "score": 0.88}],
+                    },
+                }
+            }), encoding="utf-8")
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {
+                    "operator.admin/administrator": {},
+                    "dev.work/solution_architect": {},
+                },
+                "model_run_records": [],
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps([]), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {
+                    "operator.admin/administrator": {"candidate_count": 1, "candidates": ["m-admin"]},
+                    "dev.work/solution_architect": {"candidate_count": 1, "candidates": ["m-dev"]},
+                },
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root, retry_failed_models=True)
+
+            self.assertEqual(report["mode"], "full_composite")
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+            self.assertIn("model_run_evidence_missing", report["max_complexity_gate"]["blocking_reasons"])
+            self.assertIn("measured_candidates_without_model_run_evidence", report["mismatches"])
+            self.assertIn("selected_roles_without_started_models", report["mismatches"])
+
+    def test_reconcile_full_composite_artifacts_accepts_consistent_retry_run(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_consistent_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": True,
+                "chosen_by_role": {
+                    "operator.admin/administrator": {"model_id": "m-admin"},
+                    "dev.work/solution_architect": {"model_id": "m-dev"},
+                },
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "selected",
+                "selected_roles": 2,
+                "target_met_roles": 2,
+                "selected_model_count": 2,
+                "selected_model_ids": ["m-admin", "m-dev"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "m-admin", "score": 0.91},
+                        "selected": [{"model_id": "m-admin", "score": 0.91}],
+                    },
+                    "dev.work/solution_architect": {
+                        "chosen": {"model_id": "m-dev", "score": 0.88},
+                        "selected": [{"model_id": "m-dev", "score": 0.88}],
+                    },
+                }
+            }), encoding="utf-8")
+            records = [
+                {"model_id": "m-admin", "started": True},
+                {"model_id": "m-dev", "started": True},
+                {"model_id": "m-qa", "started": True, "partial_valid": True},
+            ]
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {
+                    "operator.admin/administrator": {},
+                    "dev.work/solution_architect": {},
+                },
+                "model_run_records": records,
+                "composite_selection_plan": str(root / "composite-selection-plan.json"),
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps({"records": records}), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {
+                    "operator.admin/administrator": {"candidate_count": 1, "candidates": ["m-admin"]},
+                    "dev.work/solution_architect": {"candidate_count": 1, "candidates": ["m-dev"]},
+                },
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root, retry_failed_models=True)
+
+            self.assertEqual([], report["mismatches"])
+            self.assertTrue(report["dry_run_evaluation_scope"]["ok_to_label_max_complexity"])
+            self.assertTrue(report["max_complexity_gate"]["accepted"])
+
 
 if __name__ == "__main__":
     unittest.main()
