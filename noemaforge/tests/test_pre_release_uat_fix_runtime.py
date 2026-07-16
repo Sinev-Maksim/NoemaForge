@@ -173,6 +173,20 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual(summary["failed_model_ids"], ["m2"])
             self.assertEqual(summary["failure_groups_by_model"][0]["reasons"], ["warmup_failed"])
 
+    def test_summarize_artifacts_counts_generator_paths(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_artifact_summary_") as td:
+            root = Path(td)
+            one = root / "one.json"
+            two = root / "two.json"
+            one.write_text(json.dumps({"records": [{"model_id": "m1", "started": True}]}), encoding="utf-8")
+            two.write_text(json.dumps({"records": [{"model_id": "m2", "reason": "warmup_failed"}]}), encoding="utf-8")
+
+            summary = uatfix.summarize_artifacts(path for path in (one, two))
+
+            self.assertEqual(summary["artifact_count"], 2)
+            self.assertEqual(summary["model_runs"], 2)
+            self.assertEqual(summary["failed_model_ids"], ["m2"])
+
     def test_failure_report_is_emitted_for_early_helper_failure(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_failure_report_") as td:
             paths = uatfix.write_failure_report(Path(td), stem="release-decision-known-findings", error="source_gate_failed")

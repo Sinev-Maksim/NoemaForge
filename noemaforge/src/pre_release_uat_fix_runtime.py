@@ -183,9 +183,10 @@ def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, 
 
 
 def summarize_artifacts(paths: Iterable[Path]) -> Dict[str, Any]:
-    records = extract_model_run_records(*list(paths))
+    materialized_paths = list(paths)
+    records = extract_model_run_records(*materialized_paths)
     summary = summarize_model_run_records(records)
-    summary["artifact_count"] = len(list(paths))
+    summary["artifact_count"] = len(materialized_paths)
     summary["source"] = "raw_model_run_records"
     return summary
 
