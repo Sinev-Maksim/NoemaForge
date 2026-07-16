@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 import re
-import sys
 import unittest
 from pathlib import Path
 
@@ -33,11 +32,13 @@ class ReleaseHelperShellSafetyTests(unittest.TestCase):
         self.assertEqual([], offenders, "\n".join(offenders))
 
     def test_markdown_heredocs_use_quoted_delimiters(self) -> None:
-        markdown_heredoc = re.compile(r'>\s*["\']?[^"\']+\.md["\']?\s*<<\s*([A-Za-z0-9_]+)\s*$')
         offenders: list[str] = []
         for path in self._prep_scripts():
             for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-                if not markdown_heredoc.search(line):
+                if ".md" not in line or "<<" not in line:
+                    continue
+                delimiter = line.split("<<", 1)[1].lstrip()
+                if delimiter.startswith(("'", '"', "\\")):
                     continue
                 offenders.append(f"{path.relative_to(PROJECT_ROOT)}:{lineno}:{line.strip()}")
         self.assertEqual([], offenders, "\n".join(offenders))
