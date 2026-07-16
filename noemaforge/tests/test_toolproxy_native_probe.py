@@ -108,6 +108,27 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
         self.assertEqual("toolproxy-probe.invalid", payload["token"])
         self.assertEqual("dev.work", payload["meta"]["stream_id"])
 
+    def test_request_builder_keeps_identity_in_meta_only(self) -> None:
+        payload = diag.build_toolproxy_request(
+            action="llm.chat",
+            token="tok-example.secret",
+            role="architect",
+            project_id="noemaforge-toolproxy-diag",
+            run_id="diag",
+            stream_id="dev.work",
+            args={"messages": []},
+            trace_id="trace-1",
+        )
+
+        self.assertEqual({"action", "token", "args", "meta"}, set(payload))
+        self.assertNotIn("actor", payload)
+        self.assertNotIn("role", payload)
+        self.assertEqual("tok-example.secret", payload["token"])
+        self.assertEqual("architect", payload["meta"]["role"])
+        self.assertEqual("noemaforge-toolproxy-diag", payload["meta"]["project_id"])
+        self.assertEqual("diag", payload["meta"]["run_id"])
+        self.assertEqual("dev.work", payload["meta"]["stream_id"])
+
     def test_compat_helper_delegates_to_canonical_cli_without_raw_curl_probe(self) -> None:
         helper = PROJECT_ROOT / "helpers" / "noemaforge-toolproxy-diag"
         text = helper.read_text(encoding="utf-8")
@@ -116,6 +137,26 @@ class ToolProxyNativeProbeTests(unittest.TestCase):
         self.assertNotIn("curl", text)
         self.assertNotIn("--unix-socket", text)
         self.assertNotIn("/health", text)
+
+    def test_native_envelope_and_supported_smoke_path_are_documented(self) -> None:
+        architecture = (ROOT / "docs" / "architecture" / "toolproxy-capabilities.md").read_text(encoding="utf-8")
+        security = (ROOT / "docs" / "security" / "capability-tokens.md").read_text(encoding="utf-8")
+        runbook = (ROOT / "docs" / "operations" / "operator-runbook.md").read_text(encoding="utf-8")
+
+        for text in [architecture, security, runbook]:
+            self.assertIn("top-level `token`", text)
+            self.assertIn("meta.role", text)
+            self.assertIn("meta.project_id", text)
+            self.assertIn("meta.run_id", text)
+            self.assertIn("meta.stream_id", text)
+
+        self.assertIn('"action": "llm.chat"', architecture)
+        self.assertIn('"token": "<capability token>"', architecture)
+        self.assertIn("top-level `actor`", architecture)
+        self.assertIn("top-level `role`", architecture)
+        self.assertIn("noemaforge toolproxy diag --json", runbook)
+        self.assertIn("noemaforge toolproxy smoke --tokens-dir", runbook)
+        self.assertIn("noemaforge toolproxy smoke --live-llm --json", runbook)
 
     def test_cli_bridge_preserves_diag_subcommand_for_diag_options(self) -> None:
         sys.path.insert(0, str(ROOT / "tests"))
