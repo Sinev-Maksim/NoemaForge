@@ -91,6 +91,21 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
         self.assertIn("previously_failed_runtime_dominates", scope["blocking_reasons"])
         self.assertIn("models_started_unexpectedly_low", scope["blocking_reasons"])
 
+    def test_full_composite_without_model_run_evidence_is_not_max_complexity(self) -> None:
+        summary = uatfix.summarize_model_run_records([])
+
+        scope = uatfix.classify_full_composite_dry_run_scope(
+            summary,
+            mode="full_composite",
+            dry_run=True,
+            retry_failed_models=True,
+            clear_model_health=False,
+        )
+
+        self.assertEqual("conservative_health_filtered_dry_run", scope["scope"])
+        self.assertFalse(scope["ok_to_label_max_complexity"])
+        self.assertIn("model_run_evidence_missing", scope["blocking_reasons"])
+
     def test_full_composite_retry_run_can_be_labeled_max_complexity(self) -> None:
         records = [
             {"model_id": "a", "started": True},

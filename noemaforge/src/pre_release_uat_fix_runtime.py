@@ -144,6 +144,8 @@ def classify_full_composite_dry_run_scope(
         blocking_reasons.append("not_full_composite")
     if not dry_run:
         blocking_reasons.append("not_dry_run")
+    if model_runs <= 0:
+        blocking_reasons.append("model_run_evidence_missing")
     if persisted_health_reused:
         blocking_reasons.append("persisted_model_health_reused")
     if unexpectedly_low_started:
