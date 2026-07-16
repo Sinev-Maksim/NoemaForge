@@ -109,12 +109,63 @@ def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, 
         for rec in materialized
         if classify_runtime_finding(rec) not in {"completed", "partial_valid", "safety-filtered"}
     ]
+    failure_groups_by_model: List[Dict[str, Any]] = []
+    grouped_by_model: Dict[str, Dict[str, Any]] = {}
+    grouped_by_reason: Dict[tuple[str, str], Dict[str, Any]] = {}
+    for rec in failed_or_incomplete:
+        model_id = str(rec.get("model_id") or "").strip()
+        logical_model_id = str(rec.get("logical_model_id") or "").strip()
+        classification = str(rec.get("classification") or "unknown")
+        reason = str(rec.get("reason") or "completed")
+        if model_id not in grouped_by_model:
+            grouped_by_model[model_id] = {
+                "model_id": model_id,
+                "logical_model_id": logical_model_id,
+                "classifications": [],
+                "reasons": [],
+            }
+        model_group = grouped_by_model[model_id]
+        if classification not in model_group["classifications"]:
+            model_group["classifications"].append(classification)
+        if reason not in model_group["reasons"]:
+            model_group["reasons"].append(reason)
+
+        reason_key = (classification, reason)
+        if reason_key not in grouped_by_reason:
+            grouped_by_reason[reason_key] = {
+                "classification": classification,
+                "reason": reason,
+                "count": 0,
+                "model_ids": [],
+            }
+        reason_group = grouped_by_reason[reason_key]
+        reason_group["count"] += 1
+        if model_id and model_id not in reason_group["model_ids"]:
+            reason_group["model_ids"].append(model_id)
+
+    failure_groups_by_model = sorted(
+        grouped_by_model.values(),
+        key=lambda item: (
+            item["model_id"],
+            item["logical_model_id"],
+        ),
+    )
+    failure_groups_by_reason = sorted(
+        grouped_by_reason.values(),
+        key=lambda item: (
+            item["classification"],
+            item["reason"],
+        ),
+    )
     return {
         "model_runs": len(materialized),
         "models_started": sum(1 for rec in materialized if bool(rec.get("started"))),
         "classification_counts": dict(sorted(classes.items())),
         "reason_counts": dict(sorted(raw_reasons.items())),
         "failed_or_incomplete": failed_or_incomplete,
+        "failed_model_ids": [item["model_id"] for item in failure_groups_by_model if item["model_id"]],
+        "failure_groups_by_model": failure_groups_by_model,
+        "failure_groups_by_reason": failure_groups_by_reason,
     }
 
 

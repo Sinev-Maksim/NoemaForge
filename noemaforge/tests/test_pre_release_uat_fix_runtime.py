@@ -46,17 +46,77 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             {"model_id": "safe", "reason": "default_safety_filter"},
             {"model_id": "svc", "reason": "systemctl_start_failed:1"},
             {"model_id": "slow", "reason": "TimeoutError('timed out')"},
+            {"model_id": "slow", "reason": "TimeoutError('timed out')"},
         ]
         summary = uatfix.summarize_model_run_records(records)
-        self.assertEqual(summary["model_runs"], 7)
+        self.assertEqual(summary["model_runs"], 8)
         self.assertEqual(summary["models_started"], 3)
         self.assertEqual(summary["classification_counts"]["completed"], 1)
         self.assertEqual(summary["classification_counts"]["partial_valid"], 1)
         self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
         self.assertEqual(summary["classification_counts"]["systemctl_start_failed"], 1)
-        self.assertEqual(summary["classification_counts"]["timeout"], 1)
+        self.assertEqual(summary["classification_counts"]["timeout"], 2)
         self.assertEqual(summary["classification_counts"]["safety-filtered"], 1)
         self.assertEqual(summary["classification_counts"]["unknown"], 1)
+        self.assertEqual(summary["failed_model_ids"], ["old", "slow", "svc", "warm"])
+        self.assertEqual(
+            summary["failure_groups_by_model"],
+            [
+                {
+                    "model_id": "old",
+                    "logical_model_id": "",
+                    "classifications": ["unknown"],
+                    "reasons": ["previously_failed_runtime"],
+                },
+                {
+                    "model_id": "slow",
+                    "logical_model_id": "",
+                    "classifications": ["timeout"],
+                    "reasons": ["TimeoutError('timed out')"],
+                },
+                {
+                    "model_id": "svc",
+                    "logical_model_id": "",
+                    "classifications": ["systemctl_start_failed"],
+                    "reasons": ["systemctl_start_failed:1"],
+                },
+                {
+                    "model_id": "warm",
+                    "logical_model_id": "",
+                    "classifications": ["warmup_failed"],
+                    "reasons": ["warmup_failed"],
+                },
+            ],
+        )
+        self.assertEqual(
+            summary["failure_groups_by_reason"],
+            [
+                {
+                    "classification": "systemctl_start_failed",
+                    "reason": "systemctl_start_failed:1",
+                    "count": 1,
+                    "model_ids": ["svc"],
+                },
+                {
+                    "classification": "timeout",
+                    "reason": "TimeoutError('timed out')",
+                    "count": 2,
+                    "model_ids": ["slow"],
+                },
+                {
+                    "classification": "unknown",
+                    "reason": "previously_failed_runtime",
+                    "count": 1,
+                    "model_ids": ["old"],
+                },
+                {
+                    "classification": "warmup_failed",
+                    "reason": "warmup_failed",
+                    "count": 1,
+                    "model_ids": ["warm"],
+                },
+            ],
+        )
 
     def test_firstboot_selection_artifacts_write_model_run_summary(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_firstboot_summary_") as td:
@@ -89,6 +149,8 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual(summary["models_started"], 1)
             self.assertEqual(summary["classification_counts"]["completed"], 1)
             self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
+            self.assertEqual(summary["failed_model_ids"], ["m2"])
+            self.assertEqual(summary["failure_groups_by_model"][0]["reasons"], ["warmup_failed"])
 
     def test_failure_report_is_emitted_for_early_helper_failure(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_failure_report_") as td:
