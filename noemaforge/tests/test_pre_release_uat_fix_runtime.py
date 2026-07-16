@@ -374,6 +374,58 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertIn("model_run_records_artifact_parse_error", report["artifact_integrity_blockers"])
             self.assertIn("model_run_records_artifact_parse_error", report["max_complexity_gate"]["blocking_reasons"])
 
+    def test_reconcile_full_composite_artifacts_blocks_invalid_numeric_fields(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_invalid_fields_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": True,
+                "chosen_by_role": {"operator.admin/administrator": {"model_id": "m-admin"}},
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "selected",
+                "selected_roles": "not-a-number",
+                "target_met_roles": 1,
+                "selected_model_count": 1,
+                "selected_model_ids": ["m-admin"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "m-admin", "score": 0.91},
+                        "selected": [{"model_id": "m-admin", "score": 0.91}],
+                    },
+                }
+            }), encoding="utf-8")
+            records = [{"model_id": "m-admin", "started": True}, {"model_id": "m-extra", "started": True}]
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {"operator.admin/administrator": {}},
+                "model_run_records": records,
+                "composite_selection_plan": str(root / "composite-selection-plan.json"),
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps({"records": records}), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": "bad",
+                "roles": {"operator.admin/administrator": {"candidate_count": "bad", "candidates": ["m-admin"]}},
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root, retry_failed_models=True)
+
+            self.assertTrue(report["ok"])
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+            self.assertIn("staffing_summary_invalid_fields", report["mismatches"])
+            self.assertIn("composite_selection_plan_invalid_fields", report["mismatches"])
+            self.assertEqual(["selected_roles"], report["sources"]["firstboot_staffing_summary"]["invalid_fields"])
+            self.assertEqual(
+                ["roles.candidate_count", "top_n"],
+                report["sources"]["composite_selection_plan"]["invalid_fields"],
+            )
+
     def test_forensics_cli_returns_nonzero_when_gate_is_not_accepted(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_forensics_cli_fail_") as td:
             stdout = io.StringIO()

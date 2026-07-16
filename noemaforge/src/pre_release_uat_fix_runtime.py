@@ -247,6 +247,16 @@ def _candidate_looks_measured(candidate: Dict[str, Any]) -> bool:
     return str(candidate.get("selection_status") or "") in {"valid_measured", "reuse_verified", "reuse_with_warning"}
 
 
+def _safe_int(value: Any, *, field: str, invalid_fields: List[str], default: int = 0) -> int:
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        invalid_fields.append(field)
+        return default
+
+
 def summarize_model_selection_decision(decision: Any) -> Dict[str, Any]:
     doc = decision if isinstance(decision, dict) else {}
     chosen_by_role = doc.get("chosen_by_role") if isinstance(doc.get("chosen_by_role"), dict) else {}
@@ -273,14 +283,16 @@ def summarize_model_selection_decision(decision: Any) -> Dict[str, Any]:
 def summarize_staffing_summary(staffing: Any) -> Dict[str, Any]:
     doc = staffing if isinstance(staffing, dict) else {}
     selected_model_ids = sorted({str(item).strip() for item in (doc.get("selected_model_ids") or []) if str(item).strip()})
+    invalid_fields: List[str] = []
     return {
         "staffing_state": str(doc.get("staffing_state") or ""),
-        "selected_roles": int(doc.get("selected_roles") or 0),
-        "target_met_roles": int(doc.get("target_met_roles") or 0),
-        "selected_model_count": int(doc.get("selected_model_count") or len(selected_model_ids)),
+        "selected_roles": _safe_int(doc.get("selected_roles"), field="selected_roles", invalid_fields=invalid_fields),
+        "target_met_roles": _safe_int(doc.get("target_met_roles"), field="target_met_roles", invalid_fields=invalid_fields),
+        "selected_model_count": _safe_int(doc.get("selected_model_count"), field="selected_model_count", invalid_fields=invalid_fields, default=len(selected_model_ids)),
         "selected_model_ids": selected_model_ids,
         "missing_mandatory_core_roles": list(doc.get("missing_mandatory_core_roles") or []),
         "unstaffed_roles": list(doc.get("unstaffed_roles") or []),
+        "invalid_fields": invalid_fields,
     }
 
 
@@ -341,18 +353,27 @@ def summarize_composite_selection_plan(plan: Any) -> Dict[str, Any]:
     roles = doc.get("roles") if isinstance(doc.get("roles"), dict) else {}
     compositions = doc.get("compositions") if isinstance(doc.get("compositions"), list) else []
     candidate_counts = []
+    invalid_fields: List[str] = []
     for role_spec in roles.values():
         if not isinstance(role_spec, dict):
             continue
-        candidate_counts.append(int(role_spec.get("candidate_count") or len(role_spec.get("candidates") or [])))
+        candidate_counts.append(
+            _safe_int(
+                role_spec.get("candidate_count"),
+                field="roles.candidate_count",
+                invalid_fields=invalid_fields,
+                default=len(role_spec.get("candidates") or []),
+            )
+        )
     return {
-        "top_n": int(doc.get("top_n") or 0),
+        "top_n": _safe_int(doc.get("top_n"), field="top_n", invalid_fields=invalid_fields),
         "role_count": len(roles),
-        "estimated_compositions": int(doc.get("estimated_compositions") or 0),
-        "valid_compositions": int(doc.get("valid_compositions") or len(compositions)),
+        "estimated_compositions": _safe_int(doc.get("estimated_compositions"), field="estimated_compositions", invalid_fields=invalid_fields),
+        "valid_compositions": _safe_int(doc.get("valid_compositions"), field="valid_compositions", invalid_fields=invalid_fields, default=len(compositions)),
         "materialized": bool(doc.get("materialized")),
         "missing_candidate_roles": list(doc.get("missing_candidate_roles") or []),
         "total_candidate_slots": sum(candidate_counts),
+        "invalid_fields": sorted(set(invalid_fields)),
     }
 
 
@@ -422,6 +443,10 @@ def reconcile_full_composite_artifacts(
         mismatches.append("ready_to_apply_with_missing_mandatory_roles")
     if loaded["composite_selection_plan"] and composite_summary["role_count"] and candidate_map_summary["role_count"] and composite_summary["role_count"] != candidate_map_summary["role_count"]:
         mismatches.append("composite_role_count_mismatch")
+    if staffing_summary["invalid_fields"]:
+        mismatches.append("staffing_summary_invalid_fields")
+    if composite_summary["invalid_fields"]:
+        mismatches.append("composite_selection_plan_invalid_fields")
 
     artifact_integrity_blockers: List[str] = []
     for key, result in artifact_results.items():
