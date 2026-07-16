@@ -782,10 +782,10 @@ This document records the issues found during NoemaForge live GUI-mode first-sta
 
 ### NoemaForge minimal path: metadata export on Windows, one-command first boot on Trixie
 
-#### Windows: regenerate metadata for E:\Vault
+#### Windows: regenerate metadata for the lab Vault
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\Export-NoemaForge-E-Vault-Metadata.ps1 -VaultRoot 'E:\Vault' -OutDir 'E:\Vault\manifests\noemaforge-metadata-export' -RepoRoot 'C:\Users\sinev\!Projects\noemaforge' -PythonExe 'C:\ProgramData\anaconda3\python.exe' -RunScanVault
+powershell -ExecutionPolicy Bypass -File .\Export-NoemaForge-E-Vault-Metadata.ps1 -VaultRoot 'E:\noemaforge-lab\data\Vault' -OutDir 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export' -RepoRoot 'C:\Users\sinev\!Projects\noemaforge' -PythonExe 'C:\ProgramData\anaconda3\python.exe' -RunScanVault
 ```
 
 This does three things:
@@ -1547,7 +1547,7 @@ This pack prepares NoemaForge data on Windows before the real Trixie host runs t
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\windows\Export-NoemaForge-E-Vault-Metadata.ps1 \
   -VaultRoot 'E:\noemaforge-lab\data\Vault' \
-  -OutDir 'E:\Vault\manifests\noemaforge-metadata-export' \
+  -OutDir 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export' \
   -RepoRoot '<brain_root>' \
   -PythonExe '<python.exe>' \
   -RunScanVault
