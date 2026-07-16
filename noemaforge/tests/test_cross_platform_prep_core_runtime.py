@@ -49,6 +49,20 @@ class CrossPlatformPrepCoreRuntimeTests(unittest.TestCase):
         self.assertIn(f"[string]$OutDir = '{canonical_out}'", compare_wrapper)
         self.assertIn(f"[string]$VaultRoot = '{canonical_vault}'", check_wrapper)
         self.assertIn(f"[string]$OutDir = '{canonical_check_out}'", check_wrapper)
+        self.assertNotIn("[string]$OutDir = 'E:\\Vault\\manifests\\noemaforge-metadata-export'", export_wrapper)
+        self.assertNotIn("[string]$OutDir = 'E:\\Vault\\manifests\\noemaforge-metadata-export'", compare_wrapper)
+
+    def test_windows_metadata_docs_default_to_official_vault_output_path(self) -> None:
+        operator_guide = (ROOT / "docs" / "operations" / "OPERATOR_GUIDE.md").read_text(encoding="utf-8")
+        roadmap = (ROOT / "docs" / "backlog" / "ROADMAP_AND_TODO.md").read_text(encoding="utf-8")
+
+        stale_output_arg = "-OutDir 'E:\\Vault\\manifests\\noemaforge-metadata-export'"
+        canonical_output_arg = "-OutDir 'E:\\noemaforge-lab\\data\\Vault\\manifests\\noemaforge-metadata-export'"
+
+        self.assertIn(canonical_output_arg, operator_guide)
+        self.assertIn(canonical_output_arg, roadmap)
+        self.assertNotIn(stale_output_arg, operator_guide)
+        self.assertNotIn(stale_output_arg, roadmap)
 
     def test_workspace_policy_validates(self) -> None:
         policy = cpp.load_policy(ROOT / "configs" / "cross-platform-prep-core-policy.json")

@@ -1125,7 +1125,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\windows\noemaforge_che
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\windows\Export-NoemaForge-E-Vault-Metadata.ps1 \
   -VaultRoot 'E:\noemaforge-lab\data\Vault' \
-  -OutDir 'E:\Vault\manifests\noemaforge-metadata-export' \
+  -OutDir 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export' \
   -RepoRoot '<brain_root>' \
   -PythonExe '<python.exe>' \
   -RunScanVault
