@@ -118,10 +118,64 @@ def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, 
     }
 
 
+def classify_full_composite_dry_run_scope(
+    summary: Dict[str, Any],
+    *,
+    mode: str = "full_composite",
+    dry_run: bool = True,
+    retry_failed_models: bool = False,
+    clear_model_health: bool = False,
+    min_started_models: int = 2,
+    stale_health_dominance_ratio: float = 0.5,
+) -> Dict[str, Any]:
+    """Classify whether a full_composite dry-run really exercised max complexity."""
+    mode = str(mode or "").strip().lower()
+    model_runs = int(summary.get("model_runs") or 0)
+    models_started = int(summary.get("models_started") or 0)
+    reason_counts = summary.get("reason_counts") if isinstance(summary.get("reason_counts"), dict) else {}
+    stale_skips = int(reason_counts.get("previously_failed_runtime") or 0)
+    stale_ratio = round(stale_skips / max(1, model_runs), 4)
+    persisted_health_reused = bool(stale_skips and not (retry_failed_models or clear_model_health))
+    unexpectedly_low_started = bool(model_runs and models_started < max(1, int(min_started_models)))
+    stale_health_dominates = bool(model_runs and stale_ratio > float(stale_health_dominance_ratio))
+
+    blocking_reasons: List[str] = []
+    if mode != "full_composite":
+        blocking_reasons.append("not_full_composite")
+    if not dry_run:
+        blocking_reasons.append("not_dry_run")
+    if persisted_health_reused:
+        blocking_reasons.append("persisted_model_health_reused")
+    if unexpectedly_low_started:
+        blocking_reasons.append("models_started_unexpectedly_low")
+    if stale_health_dominates:
+        blocking_reasons.append("previously_failed_runtime_dominates")
+
+    max_complexity = bool(mode == "full_composite" and dry_run and not blocking_reasons)
+    return {
+        "scope": "max_complexity_evaluation_dry_run" if max_complexity else "conservative_health_filtered_dry_run",
+        "max_complexity_evaluation": max_complexity,
+        "ok_to_label_max_complexity": max_complexity,
+        "persisted_health_reused": persisted_health_reused,
+        "retry_failed_models": bool(retry_failed_models),
+        "clear_model_health": bool(clear_model_health),
+        "models_started": models_started,
+        "model_runs": model_runs,
+        "previously_failed_runtime": stale_skips,
+        "previously_failed_runtime_ratio": stale_ratio,
+        "blocking_reasons": blocking_reasons,
+        "next_actions": [] if max_complexity else [
+            "rerun full_composite with --clear-model-health or --retry-failed-models after operator review",
+            "use this result only as conservative degraded apply evidence, not as max-complexity evaluation evidence",
+        ],
+    }
+
+
 def summarize_artifacts(paths: Iterable[Path]) -> Dict[str, Any]:
-    records = extract_model_run_records(*list(paths))
+    materialized_paths = list(paths)
+    records = extract_model_run_records(*materialized_paths)
     summary = summarize_model_run_records(records)
-    summary["artifact_count"] = len(list(paths))
+    summary["artifact_count"] = len(materialized_paths)
     summary["source"] = "raw_model_run_records"
     return summary
 

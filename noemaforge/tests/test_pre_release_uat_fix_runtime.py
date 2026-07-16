@@ -58,6 +58,59 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
         self.assertEqual(summary["classification_counts"]["safety-filtered"], 1)
         self.assertEqual(summary["classification_counts"]["unknown"], 1)
 
+    def test_summarize_artifacts_counts_generator_paths_once(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_artifact_summary_") as td:
+            root = Path(td)
+            first = root / "one.json"
+            second = root / "two.json"
+            first.write_text(json.dumps({"records": [{"model_id": "a", "started": True}]}), encoding="utf-8")
+            second.write_text(json.dumps({"records": [{"model_id": "b", "reason": "warmup_failed"}]}), encoding="utf-8")
+
+            summary = uatfix.summarize_artifacts(path for path in [first, second])
+
+            self.assertEqual(summary["artifact_count"], 2)
+            self.assertEqual(summary["model_runs"], 2)
+
+    def test_full_composite_stale_health_collapse_is_not_max_complexity(self) -> None:
+        records = [{"model_id": "ok", "started": True}]
+        records.extend({"model_id": f"old-{idx}", "reason": "previously_failed_runtime"} for idx in range(22))
+        records.extend({"model_id": f"safe-{idx}", "reason": "default_safety_filter"} for idx in range(3))
+        summary = uatfix.summarize_model_run_records(records)
+
+        scope = uatfix.classify_full_composite_dry_run_scope(
+            summary,
+            mode="full_composite",
+            dry_run=True,
+            retry_failed_models=False,
+            clear_model_health=False,
+        )
+
+        self.assertEqual("conservative_health_filtered_dry_run", scope["scope"])
+        self.assertFalse(scope["ok_to_label_max_complexity"])
+        self.assertIn("persisted_model_health_reused", scope["blocking_reasons"])
+        self.assertIn("previously_failed_runtime_dominates", scope["blocking_reasons"])
+        self.assertIn("models_started_unexpectedly_low", scope["blocking_reasons"])
+
+    def test_full_composite_retry_run_can_be_labeled_max_complexity(self) -> None:
+        records = [
+            {"model_id": "a", "started": True},
+            {"model_id": "b", "started": True},
+            {"model_id": "c", "started": True, "partial_valid": True},
+        ]
+        summary = uatfix.summarize_model_run_records(records)
+
+        scope = uatfix.classify_full_composite_dry_run_scope(
+            summary,
+            mode="full_composite",
+            dry_run=True,
+            retry_failed_models=True,
+            clear_model_health=False,
+        )
+
+        self.assertEqual("max_complexity_evaluation_dry_run", scope["scope"])
+        self.assertTrue(scope["ok_to_label_max_complexity"])
+        self.assertEqual([], scope["blocking_reasons"])
+
     def test_firstboot_selection_artifacts_write_model_run_summary(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_firstboot_summary_") as td:
             root = Path(td)
@@ -89,6 +142,42 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual(summary["models_started"], 1)
             self.assertEqual(summary["classification_counts"]["completed"], 1)
             self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
+
+    def test_firstboot_selection_artifacts_record_stale_health_scope(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_firstboot_stale_scope_") as td:
+            root = Path(td)
+            tournament = {
+                "model_run_records": [
+                    {"model_id": "ok", "started": True, "roles": [{"role_key": "operator.admin/administrator"}]},
+                    {"model_id": "old-a", "reason": "previously_failed_runtime"},
+                    {"model_id": "old-b", "reason": "previously_failed_runtime"},
+                ]
+            }
+            candidate_map = {
+                "roles": {
+                    "operator.admin/administrator": {
+                        "selected": [{"model_id": "ok", "score": 0.9}]
+                    }
+                }
+            }
+            staffing = {"staffing_state": "degraded_selected", "selected_roles": 1, "target_met_roles": 1}
+            paths = firstboot_orchestrator._write_selection_artifacts(
+                state_dir=str(root),
+                mode="full_composite",
+                composite_top_n=0,
+                candidate_map=candidate_map,
+                tournament_doc=tournament,
+                staffing_summary=staffing,
+                dry_run=True,
+                retry_failed_models=False,
+                clear_model_health=False,
+            )
+            summary = json.loads(Path(paths["model_run_summary"]).read_text(encoding="utf-8"))
+            decision = json.loads(Path(paths["model_selection_decision"]).read_text(encoding="utf-8"))
+
+            self.assertTrue(decision["ready_to_apply"])
+            self.assertEqual("conservative_health_filtered_dry_run", summary["dry_run_evaluation_scope"]["scope"])
+            self.assertFalse(decision["dry_run_evaluation_scope"]["ok_to_label_max_complexity"])
 
     def test_failure_report_is_emitted_for_early_helper_failure(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_failure_report_") as td:
