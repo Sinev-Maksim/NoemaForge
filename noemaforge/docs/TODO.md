@@ -118,14 +118,17 @@ periodically so older reviews do not rot in comment threads.
   restores `sess.session.messages` (`renderConversation(sess.session)`) and
   `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
   addressed.)_
-- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+- [x] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
   `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
   byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
   both as a `!restoredFromSession` fallback *and* again unconditionally, so the
   dashboard-state conversation can clobber the session-restored conversation despite the
   "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
   and make the dashboard-state render a true fallback (keep persona/artifacts loading
-  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
+  unconditional). DONE/verified: current `startup()` has one `/api/locales` call, one
+  `loadDashboardBackendState()` call, preserves session-restored conversation, still
+  merges artifacts, and the persona-selector startup regression now inspects the actual
+  `startup()` body instead of the first unrelated `Promise.allSettled` block. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [x] **`.github/scripts/setup-environments.sh`** — drop the unused
