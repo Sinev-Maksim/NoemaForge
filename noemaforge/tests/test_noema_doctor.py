@@ -21,6 +21,7 @@ import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 SRC = Path(__file__).resolve().parents[1] / "src"
 PKG = Path(__file__).resolve().parents[1]  # noemaforge/
@@ -92,6 +93,14 @@ class NoemaDoctorTests(unittest.TestCase):
         r = self._report()
         ds = next(c for c in r["checks"] if c["id"] == "display_safety")
         self.assertIn("--keep-display", ds["detail"])
+
+    def test_sudo_availability_is_reported_without_invoking_sudo(self):
+        with mock.patch.object(nd.shutil, "which", return_value=None):
+            r = nd.collect_report(package_root=PKG, probe_admin=False)
+        sudo = next(c for c in r["checks"] if c["id"] == "sudo_available")
+        self.assertFalse(sudo["available"])
+        self.assertFalse(sudo["interactive_prompt_expected"])
+        self.assertEqual(sudo["level"], "warn")
 
     def test_format_human_renders_overall(self):
         text = nd.format_human(self._report())
