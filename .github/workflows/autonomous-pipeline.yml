@@ -470,6 +470,14 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
+          function Test-CodexExecOption([string] $helpText, [string] $flagName) {
+            if ([string]::IsNullOrWhiteSpace($helpText) -or [string]::IsNullOrWhiteSpace($flagName)) {
+              return $false
+            }
+            $pattern = "(?mi)(?:^|[\s,])$([regex]::Escape($flagName))(?:[\s,]|$)"
+            return [regex]::IsMatch($helpText, $pattern)
+          }
+
           # Parse a usage-limit reset time out of the Codex CLI log so the runner
           # can pause until then instead of re-failing Codex on every later push.
           function Get-CodexResetTime([string] $log) {
@@ -540,6 +548,42 @@ jobs:
             Write-SkipReview "Codex CLI is not logged in. Run: codex login (CODEX_HOME=$env:CODEX_HOME)."
             exit 0
           }
+
+          $helpPath = Join-Path $env:RUNNER_TEMP 'codex_exec_help.txt'
+          $capabilitiesPath = Join-Path $env:RUNNER_TEMP 'codex_exec_capabilities.json'
+          Remove-Item -LiteralPath $helpPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $capabilitiesPath -Force -ErrorAction SilentlyContinue
+
+          & $codex exec --help 2>&1 | Tee-Object -FilePath $helpPath
+          $helpExit = $LASTEXITCODE
+          $helpText = ''
+          if (Test-Path -LiteralPath $helpPath) {
+            $helpText = Get-Content -LiteralPath $helpPath -Raw
+          }
+          $sandboxFlag = $null
+          if (Test-CodexExecOption $helpText '--sandbox') {
+            $sandboxFlag = '--sandbox'
+          } elseif (Test-CodexExecOption $helpText '-s') {
+            $sandboxFlag = '-s'
+          }
+          $approvalModeFlag = $null
+          if (Test-CodexExecOption $helpText '--approval-mode') {
+            $approvalModeFlag = '--approval-mode'
+          }
+          $capabilities = [ordered]@{
+            help_exit_code = $helpExit
+            sandbox_flag = $sandboxFlag
+            approval_mode_flag = $approvalModeFlag
+            help_path = $helpPath
+          }
+          [System.IO.File]::WriteAllText(
+            $capabilitiesPath,
+            ($capabilities | ConvertTo-Json -Depth 4),
+            [System.Text.UTF8Encoding]::new($false)
+          )
+          if ($helpExit -ne 0) {
+            Write-Warning "Codex exec --help exited with code $helpExit; continuing with the most compatible prompt invocation."
+          }
           $maxDiffChars = 120000
           if ($diffText.Length -gt $maxDiffChars) {
             $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
@@ -571,6 +615,8 @@ jobs:
             "Do not modify files or push commits in this workflow run."
             "Use read-only inspection only."
             ""
+            "Detected Codex exec help options were captured to runner artifacts before invocation."
+            ""
             "Pre-executed validation digest (trusted CI output from ci/review_preflight.py):"
             '```text'
             $digestText
@@ -600,11 +646,20 @@ jobs:
           # be unavailable; the pre-flight digest embedded in the prompt
           # provides the validation results instead. GITHUB_TOKEN is also kept
           # out of this step's environment as defense in depth.
-          $prompt | & $codex exec `
-            -s read-only `
-            --skip-git-repo-check `
-            --output-last-message $reviewPath `
-            - 2>&1 | Tee-Object -FilePath $logPath
+          $codexArgs = @('exec')
+          if ($approvalModeFlag) {
+            $codexArgs += $approvalModeFlag
+            $codexArgs += 'never'
+          }
+          if ($sandboxFlag) {
+            $codexArgs += $sandboxFlag
+            $codexArgs += 'read-only'
+          }
+          $codexArgs += '--skip-git-repo-check'
+          $codexArgs += '--output-last-message'
+          $codexArgs += $reviewPath
+          $codexArgs += '-'
+          $prompt | & $codex @codexArgs 2>&1 | Tee-Object -FilePath $logPath
           $execExit = $LASTEXITCODE
 
           if ($execExit -ne 0) {
@@ -679,6 +734,13 @@ jobs:
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Codex CLI log was not created."
           }
 
+          if (Test-Path -LiteralPath $helpPath) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Codex exec help"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Full help output is in the uploaded artifact."
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
       - name: Upload review artifact
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -687,6 +749,8 @@ jobs:
           path: |
             codex_review.md
             ${{ runner.temp }}\codex_run.log
+            ${{ runner.temp }}\codex_exec_help.txt
+            ${{ runner.temp }}\codex_exec_capabilities.json
             ${{ runner.temp }}\codex-source\diff.patch
 
       - name: Post review as PR comment

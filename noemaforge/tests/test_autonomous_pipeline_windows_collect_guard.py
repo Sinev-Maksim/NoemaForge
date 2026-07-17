@@ -55,6 +55,24 @@ class AutonomousPipelineWindowsCollectGuardTests(unittest.TestCase):
         self.assertIn("noemaforge/tests/test_discord_bridge.py", run)
         self.assertIn("PYTHONPATH", run)
 
+    def test_codex_exec_help_probe_and_artifacts_are_plumbed(self) -> None:
+        steps = self.codex_job["steps"]
+        run_step = next(step for step in steps if step.get("name") == "Run Codex CLI review")
+        run = run_step["run"]
+
+        self.assertIn("exec --help", run)
+        self.assertIn("codex_exec_help.txt", run)
+        self.assertIn("codex_exec_capabilities.json", run)
+        self.assertIn("help_exit_code", run)
+        self.assertIn("sandbox_flag", run)
+        self.assertIn("approval_mode_flag", run)
+        self.assertIn("Test-CodexExecOption", run)
+        self.assertIn("--approval-mode", run)
+        self.assertIn("--sandbox", run)
+        self.assertIn("-s", run)
+        self.assertIn("never", run)
+        self.assertIn("read-only", run)
+
     def test_regression_guard_is_documented_in_todo(self) -> None:
         todo = (REPO / "noemaforge" / "docs" / "TODO.md").read_text(encoding="utf-8")
         self.assertIn("Windows collection regression guard", todo)
