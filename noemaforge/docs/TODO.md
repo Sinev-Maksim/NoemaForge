@@ -133,8 +133,14 @@ periodically so older reviews do not rot in comment threads.
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
-- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
-  runtime modules and unit tests into one shared helper. (Codex #31)
+- [x] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31) _(S · haiku —
+  DONE: `noemaforge/src/admin_gui_offline_fixture.py` now owns the shared offline
+  server scaffold + lock parity + optional in-memory JSON store; migrated
+  `stateful_admin_gui_runtime`, `runtime_device_policy_staging_runtime`,
+  `telemetry_card_truthfulness_runtime`, `task_workflow_runtime`,
+  `vault_reinventory_job_runtime`, `model_selection_continue_idempotency_runtime`,
+  plus the focused session/event/admin-UX unit tests.)_
 - [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
   (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
   `_write_job_file` through the guard (read returns None, write raises) so no job-file
