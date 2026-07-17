@@ -20,11 +20,100 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
         self.assertEqual(uatfix.gateway_socket_candidates()[0], "/run/noemaforge/llm/gateway.sock")
         self.assertIn("/run/noemaforge/llm-gateway.sock", uatfix.gateway_socket_candidates()[1:])
 
+    def test_gateway_probe_spec_uses_openai_models_over_canonical_unix_socket(self) -> None:
+        spec = uatfix.gateway_probe_spec()
+
+        self.assertEqual("/run/noemaforge/llm/gateway.sock", spec["socket"])
+        self.assertEqual("http://localhost/v1/models", spec["url"])
+        self.assertEqual("http_over_unix_socket", spec["protocol"])
+        self.assertIn("--unix-socket", spec["command"])
+        self.assertIn("/run/noemaforge/llm/gateway.sock", spec["command"])
+
     def test_contract_epoch_paths_use_epochs_current_and_epoch_dir(self) -> None:
         paths = uatfix.contract_epoch_paths("00006")
         self.assertEqual(paths["current"], "/var/lib/noemaforge/contracts/epochs/current")
         self.assertEqual(paths["epoch_dir"], "/var/lib/noemaforge/contracts/epochs/00006")
         self.assertNotIn("/contracts/current", paths["current"])
+
+    def test_resolve_current_epoch_state_reports_symlink_target(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_epoch_state_") as td:
+            root = Path(td) / "contracts"
+            epochs = root / "epochs"
+            epoch = epochs / "00006"
+            epoch.mkdir(parents=True)
+            (epochs / "current_epoch.txt").write_text("00006\n", encoding="utf-8")
+            try:
+                (epochs / "current").symlink_to(epoch)
+            except (OSError, NotImplementedError) as exc:
+                self.skipTest(f"symlink unavailable on this host: {exc}")
+
+            state = uatfix.resolve_current_epoch_state(root)
+
+            self.assertTrue(state["ok"], state)
+            self.assertEqual("00006", state["current_epoch_id"])
+            self.assertEqual(str(epoch), state["current_target"])
+            self.assertTrue(state["current_target_exists"])
+
+    def test_reconcile_post_apply_classifies_gateway_outage_with_backend_ok(self) -> None:
+        report = uatfix.reconcile_post_apply_forensics(
+            apply_summary={
+                "applied_epoch_id": "00006",
+                "post_backend_ok": True,
+                "post_gateway_ok": False,
+            },
+            firstboot_status={"state": "applied_no_reboot", "applied_epoch_id": "00006"},
+            current_epoch={
+                "current_epoch_id": "00006",
+                "current_target": "/var/lib/noemaforge/contracts/epochs/00006",
+            },
+            gateway_health={
+                "ok": False,
+                "socket": "/run/noemaforge/llm/gateway.sock",
+                "protocol": "http_over_unix_socket",
+                "socket_present": False,
+            },
+            backend_health={"ok": True, "socket": "/run/noemaforge/llm/backends/main.sock"},
+            toolproxy_diag={"ok": True},
+            prestart_requests={"requests": [{"id": "firstboot-roleaware"}]},
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual("gateway_outage", report["determination"])
+        self.assertEqual("/var/lib/noemaforge/contracts/epochs/00006", report["current_epoch_target"])
+        self.assertTrue(report["canonical_gateway_probe_used"])
+        self.assertIn("post_gateway_not_ok", report["blockers"])
+
+    def test_reconcile_post_apply_flags_wrong_gateway_smoke_path(self) -> None:
+        report = uatfix.reconcile_post_apply_forensics(
+            apply_summary={"applied_epoch_id": "00006", "post_backend_ok": True, "post_gateway_ok": False},
+            current_epoch={
+                "current_epoch_id": "00006",
+                "current_target": "/var/lib/noemaforge/contracts/epochs/00006",
+            },
+            gateway_health={
+                "ok": False,
+                "socket": "/run/noemaforge/llm-gateway.sock",
+                "protocol": "raw_unix",
+                "socket_present": True,
+            },
+            backend_health={"ok": True},
+        )
+
+        self.assertEqual("wrong_smoke_path_or_protocol", report["determination"])
+        self.assertFalse(report["canonical_gateway_probe_used"])
+
+    def test_reconcile_post_apply_detects_summary_helper_missing_epoch_target(self) -> None:
+        report = uatfix.reconcile_post_apply_forensics(
+            apply_summary={"applied_epoch_id": "00006", "post_backend_ok": True, "post_gateway_ok": True},
+            firstboot_status={"state": "applied_no_reboot", "applied_epoch_id": "00006"},
+            current_epoch={"current_epoch_id": "00006", "current_target": ""},
+            gateway_health={"ok": True, "socket": "/run/noemaforge/llm/gateway.sock"},
+            backend_health={"ok": True},
+        )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual("summary_helper_issue", report["determination"])
+        self.assertIn("current_epoch_target_missing", report["blockers"])
 
     def test_locate_operator_apply_excludes_plan_directory(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_apply_locator_") as td:
