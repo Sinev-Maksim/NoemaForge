@@ -85,6 +85,27 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual(summary["artifact_count"], 2)
             self.assertEqual(summary["model_runs"], 2)
 
+    def test_summarize_artifacts_normalizes_dict_list_and_string_shapes(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_artifact_shapes_") as td:
+            root = Path(td)
+            json_artifact = root / "artifact.json"
+            json_artifact.write_text(
+                json.dumps({"records": [{"model_id": "path", "started": True}]}),
+                encoding="utf-8",
+            )
+
+            summary = uatfix.summarize_artifacts([
+                json_artifact,
+                {"model_run_records": [{"model_id": "dict", "reason": "warmup_failed"}]},
+                [{"model_id": "list", "started": True, "partial_valid": True}],
+                "raw-string-artifact",
+            ])
+
+            self.assertEqual(summary["artifact_count"], 4)
+            self.assertEqual(summary["model_runs"], 4)
+            self.assertEqual(summary["models_started"], 2)
+            self.assertIn("unknown", summary["classification_counts"])
+
     def test_full_composite_stale_health_collapse_is_not_max_complexity(self) -> None:
         records = [{"model_id": "ok", "started": True}]
         records.extend({"model_id": f"old-{idx}", "reason": "previously_failed_runtime"} for idx in range(22))

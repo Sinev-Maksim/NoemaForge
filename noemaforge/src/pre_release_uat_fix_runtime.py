@@ -41,7 +41,34 @@ def load_json_any(path: Path) -> Any:
         return json.load(fh)
 
 
+def _materialize_artifact_value(value: Any) -> Any:
+    if isinstance(value, Path):
+        try:
+            return load_json_any(value)
+        except (OSError, json.JSONDecodeError):
+            return value
+    if isinstance(value, str):
+        text = value.strip()
+        if not text:
+            return value
+        candidate = Path(text)
+        if candidate.is_file():
+            try:
+                return load_json_any(candidate)
+            except (OSError, json.JSONDecodeError):
+                return value
+        if text[:1] in {"{", "["}:
+            try:
+                return json.loads(text)
+            except json.JSONDecodeError:
+                return value
+    return value
+
+
 def _as_list(value: Any) -> List[Any]:
+    value = _materialize_artifact_value(value)
+    if value is None:
+        return []
     if isinstance(value, list):
         return value
     if isinstance(value, dict):
@@ -49,14 +76,18 @@ def _as_list(value: Any) -> List[Any]:
             nested = value.get(key)
             if isinstance(nested, list):
                 return nested
-    return []
+        return [value]
+    return [value]
 
 
 def normalize_model_run_records(value: Any) -> List[Dict[str, Any]]:
     """Accept model-run artifacts stored as a list or wrapped in a dict."""
     records: List[Dict[str, Any]] = []
     for item in _as_list(value):
-        if isinstance(item, dict):
+        item = _materialize_artifact_value(item)
+        if isinstance(item, list):
+            records.extend(normalize_model_run_records(item))
+        elif isinstance(item, dict):
             records.append(item)
         else:
             records.append({"raw": item, "reason": "unknown"})
@@ -67,11 +98,6 @@ def extract_model_run_records(*artifacts: Any) -> List[Dict[str, Any]]:
     """Merge model-run records from common firstboot/tournament artifact shapes."""
     out: List[Dict[str, Any]] = []
     for artifact in artifacts:
-        if isinstance(artifact, (str, Path)):
-            try:
-                artifact = load_json_any(Path(artifact))
-            except (OSError, json.JSONDecodeError):
-                continue
         out.extend(normalize_model_run_records(artifact))
     return out
 
@@ -96,7 +122,12 @@ def classify_runtime_finding(record: Dict[str, Any]) -> str:
 
 
 def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
-    materialized = list(records)
+    if isinstance(records, (dict, str, Path)):
+        materialized = normalize_model_run_records(records)
+    else:
+        materialized = []
+        for rec in records:
+            materialized.extend(normalize_model_run_records(rec))
     classes = Counter(classify_runtime_finding(rec) for rec in materialized)
     raw_reasons = Counter(str(rec.get("reason") or "completed") for rec in materialized)
     failed_or_incomplete = [
