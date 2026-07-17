@@ -159,6 +159,7 @@ class RoleTournamentModelStorePreflightTests(unittest.TestCase):
             preflight_exists_after_run = stale_preflight.exists()
 
         preflight.assert_not_called()
+        self.assertEqual("run", doc["runtime_mode"])
         self.assertFalse(preflight_exists_after_run)
         self.assertEqual([], doc["model_run_records"])
         self.assertEqual(
@@ -217,6 +218,68 @@ class RoleTournamentModelStorePreflightTests(unittest.TestCase):
         self.assertFalse(payload["ok"])
         self.assertEqual("modelstore_staging_preflight_failed", payload["error"])
         self.assertIn("PermissionError", payload["reason"])
+
+    def test_cli_run_requires_selected_critical_runtime_role(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            inventory_path = root / "inventory.json"
+            catalog_path = root / "roles.yaml"
+            state = root / "state"
+            inventory_path.write_text(json.dumps({"models": []}), encoding="utf-8")
+            catalog_path.write_text("roles: {}\n", encoding="utf-8")
+            stdout = StringIO()
+            doc = {
+                "runtime_mode": "run",
+                "roles": {
+                    "media.photo/specialist": {"selected": [{"model_id": "vision-only"}]},
+                    "operator.admin/administrator": {"selected": []},
+                },
+            }
+            with mock.patch.object(rt, "run_tournament", return_value=doc), redirect_stdout(stdout):
+                rc = rt.main([
+                    "run",
+                    "--inventory", str(inventory_path),
+                    "--role-catalog", str(catalog_path),
+                    "--state-dir", str(state),
+                    "--runtime-mode", "run",
+                ])
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(73, rc)
+        self.assertFalse(payload["ok"])
+        self.assertEqual("no_selected_critical_models", payload["error"])
+        self.assertEqual(0, payload["critical_selected_models"])
+
+    def test_cli_success_reports_modelstore_preflight_path(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            inventory_path = root / "inventory.json"
+            catalog_path = root / "roles.yaml"
+            state = root / "state"
+            state.mkdir()
+            preflight_path = state / "modelstore-staging-preflight.json"
+            preflight_path.write_text(json.dumps({"ok": True}), encoding="utf-8")
+            inventory_path.write_text(json.dumps({"models": []}), encoding="utf-8")
+            catalog_path.write_text("roles: {}\n", encoding="utf-8")
+            stdout = StringIO()
+            doc = {
+                "runtime_mode": "run",
+                "modelstore_staging_preflight": str(preflight_path),
+                "roles": {"operator.admin/administrator": {"selected": [{"model_id": "alpha"}]}},
+            }
+            with mock.patch.object(rt, "run_tournament", return_value=doc), redirect_stdout(stdout):
+                rc = rt.main([
+                    "run",
+                    "--inventory", str(inventory_path),
+                    "--role-catalog", str(catalog_path),
+                    "--state-dir", str(state),
+                    "--runtime-mode", "run",
+                ])
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(0, rc)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(str(preflight_path), payload["modelstore_staging_preflight"])
 
 
 if __name__ == "__main__":

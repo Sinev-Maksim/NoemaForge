@@ -1159,7 +1159,7 @@ def run_tournament(
         for role_key, rec in matrix.get("roles", {}).items():
             role_results[role_key]["blocked"] = [m for m in rec.get("models") or [] if not m.get("runnable_now")]
             role_results[role_key]["probe_only"] = True
-        return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+        return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
 
     # Evaluate model once, then run every eligible role-specific pack while it is loaded.
     models_by_id = {str(m.get("model_id") or ""): m for m in inventory.get("models") or []}
@@ -1184,7 +1184,7 @@ def run_tournament(
                 "preflight": os.path.join(state_dir, "modelstore-staging-preflight.json"),
             })
             persist_model_run_records(state_dir, model_run_records)
-            return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+            return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
     for model_index, mid in enumerate(ordered, start=1):
         if time.time() >= total_deadline:
             emit_progress(state_dir, phase="total_timeout", selection_mode=selection_mode, processed_models=len(model_run_records), total_models=len(ordered))
@@ -1329,10 +1329,10 @@ def run_tournament(
             break
         if selection_mode == "normal" and all_roles_have_required_candidates(role_results):
             break
-    return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+    return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
 
 
-def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], model_run_records: List[Dict[str, Any]], state_dir: str, *, selection_mode: str = "normal", composite_top_n: int = -1) -> Dict[str, Any]:
+def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], model_run_records: List[Dict[str, Any]], state_dir: str, *, selection_mode: str = "normal", composite_top_n: int = -1, runtime_mode: str = "probe") -> Dict[str, Any]:
     shortlists_dir = os.path.join(state_dir, "role-shortlists")
     os.makedirs(shortlists_dir, exist_ok=True)
     health_registry = _load_model_health_registry(state_dir)
@@ -1394,13 +1394,16 @@ def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], mo
             "full_composite": "evaluate all runnable models and produce composition plan from top N candidates",
         },
         "inventory_summary": inventory.get("summary") or {},
-        "runtime_mode": "run" if model_run_records else "probe",
+        "runtime_mode": runtime_mode,
         "model_run_records": model_run_records,
         "roles": role_results,
         "role_shortlists_dir": shortlists_dir,
         "role_candidate_map": os.path.join(state_dir, "role-candidate-map.json"),
         "composite_selection_plan": os.path.join(state_dir, "composite-selection-plan.json") if composite_plan else None,
     }
+    modelstore_preflight_path = os.path.join(state_dir, "modelstore-staging-preflight.json")
+    if os.path.exists(modelstore_preflight_path):
+        result_doc["modelstore_staging_preflight"] = modelstore_preflight_path
     write_json(os.path.join(state_dir, "role-candidate-map.json"), role_candidate_map)
     write_json(os.path.join(state_dir, "role-candidate-map.filtered.json"), role_candidate_map)
     emit_progress(state_dir, phase="candidate_map_filtered", excluded_model_count=len(excluded_models), selected_models=len(unique), score="n/a")
@@ -1413,6 +1416,19 @@ def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], mo
         for mid in unique:
             f.write(mid + "\n")
     return result_doc
+
+
+def _is_critical_runtime_role(role_key: str) -> bool:
+    lowered = str(role_key or "").lower()
+    return "llm" in lowered or "admin" in lowered or "dev" in lowered
+
+
+def _selected_critical_runtime_models(doc: Dict[str, Any]) -> int:
+    return sum(
+        len((role_doc.get("selected") or []))
+        for role_key, role_doc in (doc.get("roles") or {}).items()
+        if _is_critical_runtime_role(str(role_key))
+    )
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -1468,7 +1484,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # In actual run mode fail early when no role got any selected model. Specialized runtime-missing roles can remain empty;
         # the critical check is at least one LLM/admin/dev role selected.
         if args.runtime_mode == "run":
-            selected_total = sum(len((r.get("selected") or [])) for r in (doc.get("roles") or {}).values())
+            selected_total = _selected_critical_runtime_models(doc)
             preflight_path = os.path.join(args.state_dir, "modelstore-staging-preflight.json")
             preflight: Dict[str, Any] = {}
             if os.path.exists(preflight_path):
@@ -1487,9 +1503,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                         "results": os.path.join(args.state_dir, "role-tournament-results.json"),
                     }, ensure_ascii=False, indent=2))
                 else:
-                    print(json.dumps({"ok": False, "error": "no_selected_models", "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {})}, ensure_ascii=False, indent=2))
+                    print(json.dumps({"ok": False, "error": "no_selected_critical_models", "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {}), "critical_selected_models": selected_total}, ensure_ascii=False, indent=2))
                 return 73
-        print(json.dumps({"ok": True, "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {})}, ensure_ascii=False, indent=2))
+        payload = {"ok": True, "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {})}
+        if doc.get("modelstore_staging_preflight"):
+            payload["modelstore_staging_preflight"] = doc.get("modelstore_staging_preflight")
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     return 2
 
