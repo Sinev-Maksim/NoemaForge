@@ -66,6 +66,8 @@ MANDATORY_CORE_ROLES = [
     "dev.work/solution_architect",
     "writing.story/writer",
 ]
+CRITICAL_SELECTION_ROLE_PREFIXES = ("operator.admin/", "dev.work/")
+CRITICAL_SELECTION_ROLE_TOKENS = ("llm",)
 
 
 UNTRUSTED_DEFAULT_PATTERN = re.compile(
@@ -376,6 +378,16 @@ def safe_id(raw: str) -> str:
 def role_file_id(role_key: str) -> str:
     # 0.32.1 fix: use the same naming as dataset_inventory.role_safe().
     return safe_id(role_key.replace("/", "__").replace(".", "_"))
+
+
+def is_critical_selection_role(role_key: str) -> bool:
+    normalized = str(role_key or "").strip().lower()
+    if not normalized:
+        return False
+    if normalized.startswith(CRITICAL_SELECTION_ROLE_PREFIXES):
+        return True
+    parts = set(re.split(r"[^a-z0-9]+", normalized))
+    return any(token in parts for token in CRITICAL_SELECTION_ROLE_TOKENS)
 
 
 def load_yaml(path: str) -> Dict[str, Any]:
@@ -720,6 +732,11 @@ def modelstore_staging_preflight(modelstore_root: str, state_dir: str = DEFAULT_
                 doc["cleanup"] = "removed_probe_dir"
             except Exception as e:
                 doc["cleanup"] = f"cleanup_failed:{e!r}"
+                doc.update({
+                    "ok": False,
+                    "reason": "modelstore_staging_cleanup_failed",
+                    "message": f"ModelStore staging probe could not be cleaned up: {probe_dir}",
+                })
     if doc.get("ok"):
         doc.setdefault("reason", "ok")
         doc.setdefault("message", "ModelStore staging preflight passed.")
@@ -1324,7 +1341,10 @@ def run_tournament(
             break
         if selection_mode == "normal" and all_roles_have_required_candidates(role_results):
             break
-    return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+    doc = finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+    doc["modelstore_staging_preflight"] = staging_preflight
+    write_json(os.path.join(state_dir, "role-tournament-results.json"), doc)
+    return doc
 
 
 def finalize_results(
@@ -1467,24 +1487,31 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # In actual run mode fail early when no role got any selected model. Specialized runtime-missing roles can remain empty;
         # the critical check is at least one LLM/admin/dev role selected.
         selected_total = sum(len((r.get("selected") or [])) for r in (doc.get("roles") or {}).values())
+        critical_selected_total = sum(
+            len((r.get("selected") or []))
+            for role_key, r in (doc.get("roles") or {}).items()
+            if is_critical_selection_role(str(role_key))
+        )
         diagnostics = {}
         candidate_map_path = os.path.join(args.state_dir, "role-candidate-map.json")
         try:
             diagnostics = (load_json(candidate_map_path).get("selection_diagnostics") or {})
         except Exception:
             diagnostics = {}
+        ok = False if args.runtime_mode == "run" and critical_selected_total <= 0 else True
         payload = {
-            "ok": False if args.runtime_mode == "run" and selected_total <= 0 else True,
+            "ok": ok,
             "results": os.path.join(args.state_dir, "role-tournament-results.json"),
             "roles": len(doc.get("roles") or {}),
             "selected_total": selected_total,
+            "critical_selected_total": critical_selected_total,
             "reason": diagnostics.get("no_candidates_reason"),
         }
         if doc.get("modelstore_staging_preflight"):
             payload["modelstore_staging_preflight"] = os.path.join(args.state_dir, "modelstore-staging-preflight.json")
         print(json.dumps(payload, ensure_ascii=False, indent=2))
         if args.runtime_mode == "run":
-            return 0 if selected_total > 0 else 73
+            return 0 if critical_selected_total > 0 else 73
         return 0
     return 2
 
