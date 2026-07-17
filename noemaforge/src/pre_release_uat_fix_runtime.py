@@ -25,6 +25,58 @@ def gateway_socket_candidates() -> List[str]:
     return [CANONICAL_GATEWAY_SOCKET, *LEGACY_GATEWAY_SOCKETS]
 
 
+def _clean_path_values(values: Iterable[Any]) -> List[str]:
+    paths: List[str] = []
+    for value in values:
+        text = str(value or "").strip()
+        if text:
+            paths.append(text.rstrip("/") or "/")
+    return paths
+
+
+def classify_gateway_probe(
+    *,
+    observed_sockets: Iterable[Any] = (),
+    probed_sockets: Iterable[Any] = (),
+) -> Dict[str, Any]:
+    """Classify gateway state from already-collected socket and probe evidence."""
+    observed = _clean_path_values(observed_sockets)
+    probed = _clean_path_values(probed_sockets)
+    candidate_order = gateway_socket_candidates()
+    observed_set = set(observed)
+    probed_set = set(probed)
+    matched_probe_paths = [path for path in probed if path in observed_set]
+    canonical_present = CANONICAL_GATEWAY_SOCKET in observed_set
+    legacy_present = [path for path in LEGACY_GATEWAY_SOCKETS if path in observed_set]
+    canonical_probed = CANONICAL_GATEWAY_SOCKET in probed_set
+    probe_path_mismatch = bool(canonical_present and probed and not canonical_probed and not matched_probe_paths)
+    gateway_ok_now = bool(canonical_present or matched_probe_paths or legacy_present)
+    if canonical_present and matched_probe_paths:
+        reason = "canonical_gateway_socket_probe_hit"
+    elif canonical_present and probe_path_mismatch:
+        reason = "legacy_probe_path_mismatch"
+    elif canonical_present:
+        reason = "canonical_gateway_socket_observed"
+    elif legacy_present:
+        reason = "legacy_gateway_socket_observed"
+    else:
+        reason = "gateway_socket_missing"
+    return {
+        "gateway_ok_now": gateway_ok_now,
+        "reason": reason,
+        "canonical_socket": CANONICAL_GATEWAY_SOCKET,
+        "legacy_sockets": list(LEGACY_GATEWAY_SOCKETS),
+        "probe_order": candidate_order,
+        "observed_sockets": observed,
+        "probed_sockets": probed,
+        "matched_probe_paths": matched_probe_paths,
+        "canonical_socket_present": canonical_present,
+        "legacy_socket_present": bool(legacy_present),
+        "probe_path_mismatch": probe_path_mismatch,
+        "real_gateway_failure": not gateway_ok_now,
+    }
+
+
 def contract_epoch_paths(epoch_id: str, *, data_root: str = "/var/lib/noemaforge") -> Dict[str, str]:
     """Return canonical contract epoch paths for target-host checks."""
     base = Path(data_root) / "contracts" / "epochs"
@@ -33,6 +85,47 @@ def contract_epoch_paths(epoch_id: str, *, data_root: str = "/var/lib/noemaforge
         "epochs_dir": str(base),
         "current": str(base / "current"),
         "epoch_dir": str(base / epoch) if epoch else "",
+    }
+
+
+def classify_contract_epoch_resolution(
+    epoch_id: str,
+    *,
+    current_resolved: str = "",
+    epoch_dir_exists: Optional[bool] = None,
+    current_exists: Optional[bool] = None,
+    data_root: str = "/var/lib/noemaforge",
+) -> Dict[str, Any]:
+    """Classify applied-epoch evidence from read-only path resolution artifacts."""
+    paths = contract_epoch_paths(epoch_id, data_root=data_root)
+    epoch_dir = str(paths["epoch_dir"])
+    resolved = str(current_resolved or "").strip().rstrip("/")
+    expected = epoch_dir.rstrip("/") if epoch_dir else ""
+    current_points_to_epoch = bool(resolved and expected and resolved == expected)
+    resolved_epoch_id = Path(resolved).name if resolved else ""
+    applied_epoch_dir_exists = bool(epoch_dir_exists) or current_points_to_epoch
+    path_mismatch_suspected = bool(current_points_to_epoch and epoch_dir_exists is False)
+    if current_points_to_epoch and epoch_dir_exists is False:
+        reason = "current_symlink_confirms_epoch_path_mismatch"
+    elif current_points_to_epoch:
+        reason = "current_symlink_points_to_applied_epoch"
+    elif epoch_dir_exists:
+        reason = "applied_epoch_dir_exists"
+    elif epoch_dir:
+        reason = "applied_epoch_dir_missing"
+    else:
+        reason = "applied_epoch_id_missing"
+    return {
+        **paths,
+        "epoch_id": str(epoch_id or "").strip(),
+        "current_resolved": resolved,
+        "current_exists": current_exists,
+        "epoch_dir_exists": epoch_dir_exists,
+        "current_points_to_epoch": current_points_to_epoch,
+        "current_resolved_epoch_id": resolved_epoch_id,
+        "applied_epoch_dir_exists": applied_epoch_dir_exists,
+        "path_mismatch_suspected": path_mismatch_suspected,
+        "reason": reason,
     }
 
 

@@ -20,11 +20,46 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
         self.assertEqual(uatfix.gateway_socket_candidates()[0], "/run/noemaforge/llm/gateway.sock")
         self.assertIn("/run/noemaforge/llm-gateway.sock", uatfix.gateway_socket_candidates()[1:])
 
+    def test_gateway_probe_classifies_legacy_path_mismatch(self) -> None:
+        finding = uatfix.classify_gateway_probe(
+            observed_sockets=["/run/noemaforge/llm/gateway.sock"],
+            probed_sockets=["/run/noemaforge/llm-gateway.sock", "/run/noemaforge/gateway.sock"],
+        )
+
+        self.assertTrue(finding["gateway_ok_now"])
+        self.assertTrue(finding["canonical_socket_present"])
+        self.assertTrue(finding["probe_path_mismatch"])
+        self.assertFalse(finding["real_gateway_failure"])
+        self.assertEqual("legacy_probe_path_mismatch", finding["reason"])
+
+    def test_gateway_probe_classifies_real_missing_gateway(self) -> None:
+        finding = uatfix.classify_gateway_probe(
+            observed_sockets=[],
+            probed_sockets=uatfix.gateway_socket_candidates(),
+        )
+
+        self.assertFalse(finding["gateway_ok_now"])
+        self.assertFalse(finding["probe_path_mismatch"])
+        self.assertTrue(finding["real_gateway_failure"])
+        self.assertEqual("gateway_socket_missing", finding["reason"])
+
     def test_contract_epoch_paths_use_epochs_current_and_epoch_dir(self) -> None:
         paths = uatfix.contract_epoch_paths("00006")
         self.assertEqual(paths["current"], "/var/lib/noemaforge/contracts/epochs/current")
         self.assertEqual(paths["epoch_dir"], "/var/lib/noemaforge/contracts/epochs/00006")
         self.assertNotIn("/contracts/current", paths["current"])
+
+    def test_contract_epoch_resolution_uses_current_symlink_target(self) -> None:
+        finding = uatfix.classify_contract_epoch_resolution(
+            "00006",
+            current_resolved="/var/lib/noemaforge/contracts/epochs/00006",
+            epoch_dir_exists=False,
+        )
+
+        self.assertTrue(finding["applied_epoch_dir_exists"])
+        self.assertTrue(finding["current_points_to_epoch"])
+        self.assertTrue(finding["path_mismatch_suspected"])
+        self.assertEqual("current_symlink_confirms_epoch_path_mismatch", finding["reason"])
 
     def test_locate_operator_apply_excludes_plan_directory(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_apply_locator_") as td:
