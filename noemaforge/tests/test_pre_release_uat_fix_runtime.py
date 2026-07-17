@@ -37,6 +37,20 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             (real / "operator-degraded-apply-summary.json").write_text("{}", encoding="utf-8")
             self.assertEqual(uatfix.locate_operator_degraded_apply(root), real)
 
+    def test_locate_operator_apply_prefers_complete_run_over_later_partial_run(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_apply_locator_") as td:
+            root = Path(td)
+            complete = root / "operator_degraded_apply_20260703T174255Z"
+            complete.mkdir()
+            (complete / "operator-degraded-apply-summary.json").write_text("{}", encoding="utf-8")
+            (complete / "post_apply_artifacts").mkdir()
+
+            partial = root / "operator_degraded_apply_20260703T175500Z"
+            partial.mkdir()
+            (partial / "operator-degraded-apply-summary.json").write_text("{}", encoding="utf-8")
+
+            self.assertEqual(uatfix.locate_operator_degraded_apply(root), complete)
+
     def test_model_run_summary_uses_raw_records_not_empty_defaults(self) -> None:
         records = [
             {"model_id": "ok", "started": True, "roles": [{"role_key": "r"}]},

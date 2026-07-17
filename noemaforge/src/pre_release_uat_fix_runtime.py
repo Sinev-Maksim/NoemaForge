@@ -185,7 +185,7 @@ def summarize_artifacts(paths: Iterable[Path]) -> Dict[str, Any]:
 def locate_operator_degraded_apply(root: Path) -> Optional[Path]:
     """Find the real degraded apply run, explicitly excluding plan-only dirs."""
     root = Path(root)
-    candidates: List[Path] = []
+    candidates: List[tuple[tuple[int, int, int, str], Path]] = []
     for path in root.glob("operator_degraded_apply_*"):
         if not path.is_dir():
             continue
@@ -193,11 +193,21 @@ def locate_operator_degraded_apply(root: Path) -> Optional[Path]:
             continue
         summary = path / OPERATOR_APPLY_SUMMARY
         post_apply = path / "post_apply_artifacts"
-        if summary.is_file() or post_apply.exists():
-            candidates.append(path)
+        has_summary = summary.is_file()
+        has_post_apply = post_apply.is_dir()
+        if has_summary or has_post_apply:
+            candidates.append((
+                (
+                    int(has_summary and has_post_apply),
+                    int(has_summary),
+                    int(has_post_apply),
+                    path.name,
+                ),
+                path,
+            ))
     if not candidates:
         return None
-    return sorted(candidates, key=lambda p: p.name)[-1]
+    return max(candidates, key=lambda item: item[0])[1]
 
 
 def write_failure_report(out_dir: Path, *, stem: str, error: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
