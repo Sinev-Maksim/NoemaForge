@@ -264,6 +264,116 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual("conservative_health_filtered_dry_run", summary["dry_run_evaluation_scope"]["scope"])
             self.assertFalse(decision["dry_run_evaluation_scope"]["ok_to_label_max_complexity"])
 
+    def test_target_layout_discovery_prefers_service_unit_source_root(self) -> None:
+        unit = '''
+        [Service]
+        Environment="PYTHONPATH=/opt/noemaforge/noemaforge/src:/opt/noemaforge/noemaforge"
+        ExecStart=/usr/bin/python3 /opt/noemaforge/noemaforge/src/admin_gui_server.py
+        '''
+
+        layout = uatfix.discover_target_layout(
+            service_unit_texts=[unit],
+            existing_paths=["/opt/noemaforge/noemaforge/src", "/opt/noemaforge/src"],
+        )
+
+        self.assertTrue(layout["ok"])
+        self.assertEqual("/opt/noemaforge/noemaforge/src", layout["source_root"])
+        self.assertEqual("/opt/noemaforge/noemaforge", layout["package_root"])
+        self.assertTrue(layout["matched_existing"])
+        self.assertFalse(layout["live_evidence_claimed"])
+
+    def test_runtime_deploy_plan_maps_package_paths_into_active_layout(self) -> None:
+        plan = uatfix.build_runtime_deploy_plan(
+            [
+                "noemaforge/src/admin_gui_server.py",
+                "noemaforge/tests/test_admin_gui_server.py",
+                "noemaforge/configs/runtime-invariants.yaml",
+            ],
+            source_root="/opt/noemaforge/noemaforge/src",
+        )
+
+        self.assertTrue(plan["ok"])
+        by_repo = {item["repo_path"]: item for item in plan["mappings"]}
+        self.assertEqual(
+            "/opt/noemaforge/noemaforge/src/admin_gui_server.py",
+            by_repo["noemaforge/src/admin_gui_server.py"]["target_path"],
+        )
+        self.assertEqual(
+            "/opt/noemaforge/noemaforge/tests/test_admin_gui_server.py",
+            by_repo["noemaforge/tests/test_admin_gui_server.py"]["target_path"],
+        )
+        self.assertEqual(
+            "/opt/noemaforge/noemaforge/configs/runtime-invariants.yaml",
+            by_repo["noemaforge/configs/runtime-invariants.yaml"]["target_path"],
+        )
+
+    def test_runtime_deploy_plan_requires_discovered_source_root_for_src_files(self) -> None:
+        plan = uatfix.build_runtime_deploy_plan(
+            ["noemaforge/src/admin_gui_server.py"],
+            source_root="",
+        )
+
+        self.assertFalse(plan["ok"])
+        self.assertEqual(["noemaforge/src/admin_gui_server.py"], plan["unmapped"])
+        self.assertEqual("", plan["mappings"][0]["target_path"])
+
+    def test_deployed_pythonpath_includes_active_src_and_package_root(self) -> None:
+        entries = uatfix.deployed_pythonpath(
+            "/opt/noemaforge/noemaforge/src",
+            service_unit_texts=['Environment="PYTHONPATH=/opt/noemaforge/noemaforge/src:/custom"'],
+        )
+
+        self.assertEqual("/opt/noemaforge/noemaforge/src", entries[0])
+        self.assertEqual("/opt/noemaforge/noemaforge", entries[1])
+        self.assertIn("/custom", entries)
+        self.assertEqual(len(entries), len(set(entries)))
+
+    def test_verify_deployed_file_hashes_detects_mismatch_after_copy(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_deploy_hash_") as td:
+            root = Path(td)
+            repo = root / "repo"
+            target = root / "target" / "src"
+            (repo / "noemaforge" / "src").mkdir(parents=True)
+            target.mkdir(parents=True)
+            source = repo / "noemaforge" / "src" / "module.py"
+            deployed = target / "module.py"
+            source.write_text("VALUE = 1\n", encoding="utf-8")
+            deployed.write_text("VALUE = 2\n", encoding="utf-8")
+            mappings = [
+                {
+                    "repo_path": "noemaforge/src/module.py",
+                    "target_path": str(deployed),
+                    "mapped": True,
+                }
+            ]
+
+            report = uatfix.verify_deployed_file_hashes(repo, mappings)
+
+            self.assertFalse(report["ok"])
+            self.assertEqual(1, len(report["failures"]))
+            self.assertNotEqual(
+                report["checked"][0]["source_sha256"],
+                report["checked"][0]["target_sha256"],
+            )
+
+    def test_runtime_deploy_summary_writer_handles_quotes_and_newlines(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_deploy_summary_") as td:
+            payload = {
+                "ok": False,
+                "evidence": "repo-evidenced",
+                "live_evidence_claimed": False,
+                "message": "quote ' and newline\nkept in JSON",
+                "failures": [{"id": "hash_mismatch"}],
+            }
+
+            paths = uatfix.write_runtime_deploy_summary(Path(td), payload)
+
+            parsed = json.loads(Path(paths["json"]).read_text(encoding="utf-8"))
+            self.assertEqual(payload["message"], parsed["message"])
+            markdown = Path(paths["markdown"]).read_text(encoding="utf-8")
+            self.assertIn("live_evidence_claimed: false", markdown)
+            self.assertIn("failures: 1", markdown)
+
     def test_failure_report_is_emitted_for_early_helper_failure(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_failure_report_") as td:
             paths = uatfix.write_failure_report(Path(td), stem="release-decision-known-findings", error="source_gate_failed")

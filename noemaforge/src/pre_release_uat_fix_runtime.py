@@ -8,8 +8,11 @@ on the target host without starting services, changing epochs, or deleting state
 from __future__ import annotations
 
 import json
+import hashlib
+import os
+import re
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Iterable, List, Optional
 
 CANONICAL_GATEWAY_SOCKET = "/run/noemaforge/llm/gateway.sock"
@@ -18,11 +21,216 @@ LEGACY_GATEWAY_SOCKETS = [
     "/run/noemaforge/gateway.sock",
 ]
 OPERATOR_APPLY_SUMMARY = "operator-degraded-apply-summary.json"
+DEFAULT_OPT_ROOT = "/opt/noemaforge"
+_PYTHONPATH_RE = re.compile(r"(?:^|[\s\"'])PYTHONPATH=([^\"'\s]+)")
+_SRC_PATH_RE = re.compile(r"(/[A-Za-z0-9_./-]+/src)(?:/|\s|$)")
 
 
 def gateway_socket_candidates() -> List[str]:
     """Return probe order: canonical target socket first, legacy fallbacks after."""
     return [CANONICAL_GATEWAY_SOCKET, *LEGACY_GATEWAY_SOCKETS]
+
+
+def _posix(path: str | os.PathLike[str]) -> str:
+    text = str(path).replace("\\", "/").rstrip("/")
+    return text or "/"
+
+
+def _dedupe_paths(paths: Iterable[Any]) -> List[str]:
+    out: List[str] = []
+    seen: set[str] = set()
+    for value in paths:
+        raw = str(value or "").strip()
+        if not raw:
+            continue
+        text = _posix(raw)
+        if text in seen:
+            continue
+        seen.add(text)
+        out.append(text)
+    return out
+
+
+def extract_service_unit_source_paths(unit_texts: Iterable[str]) -> List[str]:
+    """Extract configured Python source roots from already-collected unit text."""
+    candidates: List[str] = []
+    for text in unit_texts:
+        for match in _PYTHONPATH_RE.finditer(str(text or "")):
+            for entry in match.group(1).split(":"):
+                if entry.endswith("/src") or entry.endswith("\\src"):
+                    candidates.append(entry)
+        for match in _SRC_PATH_RE.finditer(str(text or "")):
+            candidates.append(match.group(1))
+    return _dedupe_paths(candidates)
+
+
+def target_source_root_candidates(
+    *,
+    opt_root: str = DEFAULT_OPT_ROOT,
+    configured_source_paths: Iterable[Any] = (),
+    service_unit_texts: Iterable[str] = (),
+) -> List[str]:
+    """Return target Python source roots in intentional deploy order."""
+    opt = _posix(opt_root)
+    configured = list(configured_source_paths)
+    configured.extend(extract_service_unit_source_paths(service_unit_texts))
+    return _dedupe_paths([
+        *configured,
+        f"{opt}/src",
+        f"{opt}/noemaforge/src",
+    ])
+
+
+def discover_target_layout(
+    *,
+    opt_root: str = DEFAULT_OPT_ROOT,
+    configured_source_paths: Iterable[Any] = (),
+    service_unit_texts: Iterable[str] = (),
+    existing_paths: Iterable[Any] = (),
+) -> Dict[str, Any]:
+    """Choose the active target layout from explicit/service paths before defaults."""
+    candidates = target_source_root_candidates(
+        opt_root=opt_root,
+        configured_source_paths=configured_source_paths,
+        service_unit_texts=service_unit_texts,
+    )
+    existing = set(_dedupe_paths(existing_paths))
+    selected = ""
+    if existing:
+        selected = next((path for path in candidates if path in existing), "")
+    if not selected and candidates:
+        selected = candidates[0]
+    package_root = _posix(str(PurePosixPath(selected).parent)) if selected else ""
+    return {
+        "ok": bool(selected),
+        "opt_root": _posix(opt_root),
+        "source_root": selected,
+        "package_root": package_root,
+        "candidates": candidates,
+        "matched_existing": bool(selected and selected in existing),
+        "evidence": "repo-evidenced",
+        "live_evidence_claimed": False,
+    }
+
+
+def map_changed_file_to_target(changed_file: str, *, source_root: str, opt_root: str = DEFAULT_OPT_ROOT) -> Dict[str, Any]:
+    """Map a repo-relative changed file into the discovered target layout."""
+    rel = _posix(changed_file).lstrip("/")
+    src_root = _posix(source_root) if str(source_root or "").strip() else ""
+    package_root = _posix(str(PurePosixPath(src_root).parent)) if src_root else _posix(opt_root)
+    target = ""
+    role = "unmapped"
+    if rel.startswith("noemaforge/src/"):
+        if src_root:
+            target = _posix(str(PurePosixPath(src_root) / rel[len("noemaforge/src/"):]))
+            role = "python_source"
+    elif rel.startswith("noemaforge/tests/"):
+        target = _posix(str(PurePosixPath(package_root) / "tests" / rel[len("noemaforge/tests/"):]))
+        role = "python_test"
+    elif rel.startswith("noemaforge/configs/"):
+        target = _posix(str(PurePosixPath(package_root) / "configs" / rel[len("noemaforge/configs/"):]))
+        role = "package_config"
+    elif rel.startswith("noemaforge/"):
+        target = _posix(str(PurePosixPath(package_root) / rel[len("noemaforge/"):]))
+        role = "package_file"
+    elif rel.startswith(("helpers/", "lib/", "ci/")):
+        target = _posix(str(PurePosixPath(opt_root) / rel))
+        role = "repo_support_file"
+    return {
+        "repo_path": rel,
+        "target_path": target,
+        "role": role,
+        "mapped": bool(target),
+    }
+
+
+def build_runtime_deploy_plan(
+    changed_files: Iterable[str],
+    *,
+    source_root: str,
+    opt_root: str = DEFAULT_OPT_ROOT,
+) -> Dict[str, Any]:
+    mappings = [map_changed_file_to_target(path, source_root=source_root, opt_root=opt_root) for path in changed_files]
+    unmapped = [item["repo_path"] for item in mappings if not item["mapped"]]
+    return {
+        "ok": not unmapped,
+        "source_root": _posix(source_root),
+        "opt_root": _posix(opt_root),
+        "mappings": mappings,
+        "unmapped": unmapped,
+        "evidence": "repo-evidenced",
+        "live_evidence_claimed": False,
+    }
+
+
+def deployed_pythonpath(source_root: str, *, service_unit_texts: Iterable[str] = ()) -> List[str]:
+    """Return PYTHONPATH entries needed to run deployed tests in the active layout."""
+    src = _posix(source_root) if str(source_root or "").strip() else ""
+    package = _posix(str(PurePosixPath(src).parent)) if src else ""
+    configured: List[str] = []
+    for text in service_unit_texts:
+        for match in _PYTHONPATH_RE.finditer(str(text or "")):
+            configured.extend(entry for entry in match.group(1).split(":") if entry)
+    return _dedupe_paths([src, package, *configured])
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def verify_deployed_file_hashes(project_root: Path, mappings: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
+    """Verify copied target files match their repo sources by SHA256."""
+    checked: List[Dict[str, Any]] = []
+    failures: List[Dict[str, Any]] = []
+    for mapping in mappings:
+        if not mapping.get("mapped"):
+            continue
+        repo_path = str(mapping.get("repo_path") or "")
+        target_path = str(mapping.get("target_path") or "")
+        src = Path(project_root) / repo_path
+        dst = Path(target_path)
+        record = {"repo_path": repo_path, "target_path": target_path}
+        try:
+            src_hash = sha256_file(src)
+            dst_hash = sha256_file(dst)
+            record.update({"source_sha256": src_hash, "target_sha256": dst_hash, "ok": src_hash == dst_hash})
+        except OSError as exc:
+            record.update({"ok": False, "error": repr(exc)})
+        checked.append(record)
+        if not record["ok"]:
+            failures.append(record)
+    return {
+        "ok": not failures,
+        "checked": checked,
+        "failures": failures,
+        "evidence": "repo-evidenced",
+        "live_evidence_claimed": False,
+    }
+
+
+def write_runtime_deploy_summary(out_dir: Path, payload: Dict[str, Any], *, stem: str = "runtime-deploy-summary") -> Dict[str, str]:
+    """Write JSON and Markdown summaries without shell heredoc interpolation."""
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    json_path = out_dir / f"{stem}.json"
+    md_path = out_dir / f"{stem}.md"
+    json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    lines = [
+        f"# {stem}",
+        "",
+        f"- ok: {str(bool(payload.get('ok'))).lower()}",
+        f"- evidence: {payload.get('evidence', 'repo-evidenced')}",
+        f"- live_evidence_claimed: {str(bool(payload.get('live_evidence_claimed'))).lower()}",
+    ]
+    failures = payload.get("failures")
+    if isinstance(failures, list):
+        lines.append(f"- failures: {len(failures)}")
+    md_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return {"json": str(json_path), "markdown": str(md_path)}
 
 
 def _clean_path_values(values: Iterable[Any]) -> List[str]:
