@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_independent_review_evidence.schema.json",
+  "title": "NoemaForge Evolution Independent Review Evidence",
+  "type": "object",
+  "required": ["apiVersion", "kind", "review_id", "run_id", "work_item_id", "created_at", "provenance", "producer_agent_id", "reviewer_agent_id", "reviewed_head", "target_head", "fresh_until", "decision", "findings"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionIndependentReviewEvidence" },
+    "review_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "work_item_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "producer_agent_id": { "type": "string", "minLength": 1 },
+    "reviewer_agent_id": { "type": "string", "minLength": 1 },
+    "reviewed_head": { "type": "string", "minLength": 7 },
+    "target_head": { "type": "string", "minLength": 7 },
+    "fresh_until": { "type": "string", "minLength": 1 },
+    "decision": { "enum": ["pass", "request_changes", "blocked"] },
+    "findings": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_run.schema.json",
+  "title": "NoemaForge Evolution Run",
+  "type": "object",
+  "required": ["apiVersion", "kind", "run_id", "created_at", "provenance", "runtime_neutral", "external_reference_policy", "safety_invariants"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionRun" },
+    "run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "runtime_neutral": { "const": true },
+    "external_reference_policy": {
+      "type": "object",
+      "required": ["source_samples_local_only", "reference_runtime_shipped"],
+      "properties": {
+        "source_samples_local_only": { "const": true },
+        "reference_runtime_shipped": { "const": false }
+      },
+      "additionalProperties": false
+    },
+    "safety_invariants": {
+      "type": "object",
+      "required": ["single_active_heavy_llm", "explicit_operator_approval", "toolproxy_capability_boundary", "contract_epochs_runtime_immutable", "no_hidden_llm_media_camera_microphone_gpu_autostart"],
+      "properties": {
+        "single_active_heavy_llm": { "const": true },
+        "explicit_operator_approval": { "const": true },
+        "toolproxy_capability_boundary": { "const": true },
+        "contract_epochs_runtime_immutable": { "const": true },
+        "no_hidden_llm_media_camera_microphone_gpu_autostart": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "work_items": { "type": "array", "items": { "type": "string" } },
+    "resource_leases": { "type": "array", "items": { "type": "string" } },
+    "events": { "type": "array", "items": { "type": "string" } },
+    "agent_requests": { "type": "array", "items": { "type": "string" } },
+    "agent_results": { "type": "array", "items": { "type": "string" } },
+    "mutation_evidence": { "type": "array", "items": { "type": "string" } },
+    "review_evidence": { "type": "array", "items": { "type": "string" } },
+    "release_gate_results": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}
