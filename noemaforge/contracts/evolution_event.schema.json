@@ -1,1 +1,98 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"noemaforge://contracts/evolution_event.schema.json","title":"NoemaForge Evolution Event","type":"object","required":["apiVersion","kind","event_id","run_id","sequence","occurred_at","event_type","actor","idempotency_key","payload"],"properties":{"apiVersion":{"const":"noemaforge.evolution.event/v1"},"kind":{"const":"EvolutionEvent"},"event_id":{"type":"string","minLength":1},"run_id":{"type":"string","minLength":1},"work_item_id":{"type":["string","null"]},"sequence":{"type":"integer","minimum":0},"occurred_at":{"type":"string","format":"date-time"},"event_type":{"enum":["run_created","state_transition","approval_requested","approval_recorded","adapter_observation","agent_requested","agent_completed","artifact_registered","blocker_recorded","lease_acquired","lease_released","cancel_requested","run_finished"]},"actor":{"type":"object","required":["type","id"],"properties":{"type":{"enum":["operator","persona","adapter","controller","worker","system"]},"id":{"type":"string","minLength":1}},"additionalProperties":false},"idempotency_key":{"type":"string","minLength":16,"maxLength":256},"payload":{"type":"object"}},"additionalProperties":false}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/evolution_event.schema.json",
+  "title": "NoemaForge Evolution Event",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "event_id",
+    "run_id",
+    "sequence",
+    "occurred_at",
+    "event_type",
+    "actor",
+    "idempotency_key",
+    "payload"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.evolution.event/v1"
+    },
+    "kind": {
+      "const": "EvolutionEvent"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_item_id": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "event_type": {
+      "enum": [
+        "run_created",
+        "state_transition",
+        "approval_requested",
+        "approval_recorded",
+        "adapter_observation",
+        "agent_requested",
+        "agent_completed",
+        "artifact_registered",
+        "blocker_recorded",
+        "lease_acquired",
+        "lease_released",
+        "cancel_requested",
+        "run_finished"
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "operator",
+            "persona",
+            "adapter",
+            "controller",
+            "worker",
+            "system"
+          ]
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "idempotency_key": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 256
+    },
+    "payload": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
