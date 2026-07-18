@@ -6,7 +6,6 @@ import contextlib
 import io
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -16,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import admin_gui_server as ags  # noqa: E402
+from admin_gui_offline_fixture import build_offline_admin_gui_server as build_offline_server  # noqa: E402
 import pipeline_runtime  # noqa: E402
 
 
@@ -26,37 +26,19 @@ ADMIN_GUI = ROOT / "src" / "admin_gui_server.py"
 
 
 def _server(tmp: Path) -> ags.AdminGuiServer:
-    srv = object.__new__(ags.AdminGuiServer)
-    srv.root = ROOT
+    srv = build_offline_server(package_root=ROOT, data_root=tmp / "data", create_dirs=True)
     srv.state = tmp / "pipelines"
-    srv.data_root = tmp / "data"
-    srv.gui_state_dir = srv.data_root / "gui"
-    srv.runtime_dir = srv.data_root / "runtime"
+    srv.state.mkdir(parents=True, exist_ok=True)
     srv.persona_state = tmp / "persona"
+    srv.persona_state.mkdir(parents=True, exist_ok=True)
     srv.model_selection_state = tmp / "model-selection"
+    srv.model_selection_state.mkdir(parents=True, exist_ok=True)
     srv.evolution_state = tmp / "model-evolution"
+    srv.evolution_state.mkdir(parents=True, exist_ok=True)
     srv.dev_team_state = tmp / "dev-team"
-    srv.modelstore_dir = tmp / "modelstore"
-    srv.bootstrap_dir = tmp / "bootstrap"
+    srv.dev_team_state.mkdir(parents=True, exist_ok=True)
     srv.llm_gateway_socket = tmp / "gateway.sock"
     srv.llm_main_backend_socket = tmp / "main.sock"
-    srv.legacy_llm_gateway_socket = None
-    srv.review_dir = srv.data_root / "review"
-    srv._conv_lock = threading.Lock()
-    for path in [
-        srv.state,
-        srv.gui_state_dir,
-        srv.runtime_dir,
-        srv.persona_state,
-        srv.model_selection_state,
-        srv.evolution_state,
-        srv.dev_team_state,
-        srv.modelstore_dir,
-        srv.bootstrap_dir,
-        srv.review_dir / "sr" / "inbox",
-        srv.review_dir / "ssr" / "inbox",
-    ]:
-        path.mkdir(parents=True, exist_ok=True)
     from session_store import SessionStore
     srv.session_store = SessionStore(srv.gui_state_dir / "sessions")
     return srv
