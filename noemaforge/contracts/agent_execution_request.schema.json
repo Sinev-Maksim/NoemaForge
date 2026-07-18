@@ -1,1 +1,176 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"noemaforge://contracts/agent_execution_request.schema.json","title":"NoemaForge Agent Execution Request","type":"object","required":["apiVersion","kind","request_id","run_id","work_item_id","persona_id","skill_ids","provider","context_artifacts","tool_capabilities","resource_requirements","token_budget","timeout_seconds","workspace","risk_class","approval_ref"],"properties":{"apiVersion":{"const":"noemaforge.agent.execution-request/v1"},"kind":{"const":"AgentExecutionRequest"},"request_id":{"type":"string","minLength":1},"run_id":{"type":"string","minLength":1},"work_item_id":{"type":"string","minLength":1},"persona_id":{"type":"string","minLength":1},"skill_ids":{"type":"array","items":{"type":"string","minLength":1},"minItems":1,"uniqueItems":true},"provider":{"type":"object","required":["adapter","model"],"properties":{"adapter":{"type":"string","minLength":1},"model":{"type":"string","minLength":1},"local":{"type":"boolean"}},"additionalProperties":false},"context_artifacts":{"type":"array","items":{"type":"string"},"uniqueItems":true},"tool_capabilities":{"type":"array","items":{"type":"string"},"uniqueItems":true},"resource_requirements":{"type":"object","properties":{"cpu_slots":{"type":"integer","minimum":0},"ram_mb":{"type":"integer","minimum":0},"vram_mb":{"type":"integer","minimum":0},"network":{"type":"boolean"},"exclusive_resources":{"type":"array","items":{"type":"string"},"uniqueItems":true}},"additionalProperties":false},"token_budget":{"type":"integer","minimum":0},"timeout_seconds":{"type":"integer","minimum":1},"workspace":{"type":"object","required":["id","mode"],"properties":{"id":{"type":"string","minLength":1},"mode":{"enum":["read_only","isolated_write","integration"]},"exact_head":{"type":["string","null"],"pattern":"^[0-9a-f]{40}$"}},"additionalProperties":false},"risk_class":{"enum":["R0","R1","R2","R3","R4"]},"approval_ref":{"type":["string","null"]},"requested_at":{"type":"string","format":"date-time"}},"additionalProperties":false}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/agent_execution_request.schema.json",
+  "title": "NoemaForge Agent Execution Request",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "request_id",
+    "run_id",
+    "work_item_id",
+    "persona_id",
+    "skill_ids",
+    "provider",
+    "context_artifacts",
+    "tool_capabilities",
+    "resource_requirements",
+    "token_budget",
+    "timeout_seconds",
+    "workspace",
+    "risk_class",
+    "approval_ref"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.agent.execution-request/v1"
+    },
+    "kind": {
+      "const": "AgentExecutionRequest"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "work_item_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "persona_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "skill_ids": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "provider": {
+      "type": "object",
+      "required": [
+        "adapter",
+        "model"
+      ],
+      "properties": {
+        "adapter": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "local": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "context_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "tool_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "resource_requirements": {
+      "type": "object",
+      "properties": {
+        "cpu_slots": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ram_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "vram_mb": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "network": {
+          "type": "boolean"
+        },
+        "exclusive_resources": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "token_budget": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "timeout_seconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workspace": {
+      "type": "object",
+      "required": [
+        "id",
+        "mode"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "read_only",
+            "isolated_write",
+            "integration"
+          ]
+        },
+        "exact_head": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9a-f]{40}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "risk_class": {
+      "enum": [
+        "R0",
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "approval_ref": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "requested_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "additionalProperties": false
+}
