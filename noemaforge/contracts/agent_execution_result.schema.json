@@ -1,1 +1,161 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"noemaforge://contracts/agent_execution_result.schema.json","title":"NoemaForge Agent Execution Result","type":"object","required":["apiVersion","kind","request_id","attempt_id","status","started_at","finished_at","output_artifacts","evidence_refs","usage","failure"],"properties":{"apiVersion":{"const":"noemaforge.agent.execution-result/v1"},"kind":{"const":"AgentExecutionResult"},"request_id":{"type":"string","minLength":1},"attempt_id":{"type":"string","minLength":1},"status":{"enum":["completed","failed","blocked","cancelled","timed_out"]},"started_at":{"type":"string","format":"date-time"},"finished_at":{"type":"string","format":"date-time"},"output_artifacts":{"type":"array","items":{"type":"string"},"uniqueItems":true},"evidence_refs":{"type":"array","items":{"type":"string"},"uniqueItems":true},"usage":{"type":"object","required":["input_tokens","output_tokens","wall_seconds"],"properties":{"input_tokens":{"type":"integer","minimum":0},"output_tokens":{"type":"integer","minimum":0},"cached_tokens":{"type":"integer","minimum":0},"wall_seconds":{"type":"number","minimum":0},"peak_ram_mb":{"type":["integer","null"],"minimum":0},"peak_vram_mb":{"type":["integer","null"],"minimum":0}},"additionalProperties":false},"failure":{"oneOf":[{"type":"null"},{"type":"object","required":["class","code","message","semantic_attempt_consumed"],"properties":{"class":{"enum":["semantic","infrastructure","provider_limit","policy","cancelled","timeout"]},"code":{"type":"string","minLength":1},"message":{"type":"string"},"semantic_attempt_consumed":{"type":"boolean"},"retry_after":{"type":["string","null"],"format":"date-time"},"blocker_fingerprint":{"type":["string","null"],"pattern":"^[0-9a-f]{64}$"}},"additionalProperties":false}]}},"additionalProperties":false}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/agent_execution_result.schema.json",
+  "title": "NoemaForge Agent Execution Result",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "request_id",
+    "attempt_id",
+    "status",
+    "started_at",
+    "finished_at",
+    "output_artifacts",
+    "evidence_refs",
+    "usage",
+    "failure"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.agent.execution-result/v1"
+    },
+    "kind": {
+      "const": "AgentExecutionResult"
+    },
+    "request_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "completed",
+        "failed",
+        "blocked",
+        "cancelled",
+        "timed_out"
+      ]
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "finished_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "output_artifacts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "usage": {
+      "type": "object",
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "wall_seconds"
+      ],
+      "properties": {
+        "input_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "output_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cached_tokens": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "wall_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "peak_ram_mb": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "peak_vram_mb": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "failure": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "class",
+            "code",
+            "message",
+            "semantic_attempt_consumed"
+          ],
+          "properties": {
+            "class": {
+              "enum": [
+                "semantic",
+                "infrastructure",
+                "provider_limit",
+                "policy",
+                "cancelled",
+                "timeout"
+              ]
+            },
+            "code": {
+              "type": "string",
+              "minLength": 1
+            },
+            "message": {
+              "type": "string"
+            },
+            "semantic_attempt_consumed": {
+              "type": "boolean"
+            },
+            "retry_after": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "date-time"
+            },
+            "blocker_fingerprint": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "additionalProperties": false
+}
