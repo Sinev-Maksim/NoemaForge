@@ -1,0 +1,226 @@
+apiVersion: noemaforge.skills.fragment/v1
+kind: SkillsRegistryFragment
+fragment_id: evolution-core
+
+x-provenance: &loop-provenance
+  classification: UAT request findings resolution
+  reference_material: local-only
+  external_source_code_imported: false
+  source_family: current-prod-ready-loop
+x-risk-readonly: &risk-readonly
+  default_class: R0
+  approval_required_from: null
+  forbidden_from: null
+x-risk-analysis: &risk-analysis
+  default_class: R1
+  approval_required_from: R3
+  forbidden_from: R4
+x-risk-mutation: &risk-mutation
+  default_class: R2
+  approval_required_from: R2
+  forbidden_from: R4
+
+skills:
+- id: evolution.issue_inventory
+  title: Issue and PR inventory
+  type: spec
+  description: Collect current issue, PR and branch state without mutation.
+  purpose_tags: [evolution.coordination, research.repository]
+  capabilities_required: [github.read, git.read]
+  risk: *risk-readonly
+  evidence_contract: [inventory_artifact, exact_base_head]
+  provenance: *loop-provenance
+  status: curated
+
+- id: evolution.work_item_decomposition
+  title: Bounded work-item decomposition
+  type: spec
+  description: Convert a mission into reviewable dependency-aware work items.
+  purpose_tags: [evolution.coordination]
+  capabilities_required: [task.plan]
+  risk: *risk-readonly
+  evidence_contract: [work_item_plan, dependency_map]
+  provenance: *loop-provenance
+  status: curated
+
+- id: evolution.blocker_fingerprint
+  title: Blocker fingerprinting
+  type: spec
+  description: Create a stable fingerprint for repeated blockers and unchanged failures.
+  purpose_tags: [assurance.diagnostics, evolution.coordination]
+  capabilities_required: [artifact.read]
+  risk: *risk-readonly
+  evidence_contract: [blocker_fingerprint, supporting_evidence]
+  provenance: *loop-provenance
+  status: curated
+
+- id: evolution.context_pack_build
+  title: Context pack construction
+  type: spec
+  description: Build a minimal hash-addressed context pack for one work item.
+  purpose_tags: [knowledge.context, evolution.coordination]
+  capabilities_required: [fs.read, artifact.write]
+  risk:
+    default_class: R1
+    approval_required_from: null
+    forbidden_from: R4
+  evidence_contract: [context_manifest, source_hashes, token_estimate]
+  provenance: *loop-provenance
+  status: curated
+
+- id: engineering.root_cause_analysis
+  title: Root-cause analysis
+  type: spec
+  description: Reproduce and isolate a defect before proposing mutation.
+  purpose_tags: [engineering.diagnostics, assurance.diagnostics]
+  capabilities_required: [fs.read, exec.test]
+  risk: *risk-analysis
+  evidence_contract: [reproduction, hypotheses, root_cause_verdict]
+  provenance: *loop-provenance
+  status: curated
+
+- id: engineering.bounded_patch_plan
+  title: Bounded patch planning
+  type: spec
+  description: Describe the smallest robust patch, touched paths, tests and rollback.
+  purpose_tags: [engineering.code, engineering.architecture]
+  capabilities_required: [fs.read, git.read]
+  risk: *risk-analysis
+  evidence_contract: [patch_plan, path_allowlist, test_plan, rollback_plan]
+  provenance: *loop-provenance
+  status: curated
+
+- id: engineering.worktree_mutation
+  title: Isolated worktree mutation
+  type: spec
+  description: Apply an approved bounded code change in an isolated workspace.
+  purpose_tags: [engineering.code]
+  capabilities_required: [fs.read, fs.write, worktree.enter]
+  risk: *risk-mutation
+  evidence_contract: [mutation_evidence, diff_hash, rollback_ref]
+  provenance: *loop-provenance
+  status: curated
+
+- id: engineering.deterministic_validation
+  title: Deterministic validation
+  type: spec
+  description: Run focused tests, static checks and schema validation before model review.
+  purpose_tags: [assurance.quality, engineering.code]
+  capabilities_required: [fs.read, exec.test]
+  risk: *risk-analysis
+  evidence_contract: [test_results, command_log, failure_classification]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.independent_review
+  title: Independent exact-head review
+  type: spec
+  description: Review one immutable candidate HEAD independently from its mutator.
+  purpose_tags: [assurance.quality, assurance.governance]
+  capabilities_required: [fs.read, git.read]
+  risk: *risk-analysis
+  evidence_contract: [review_evidence, reviewed_head, verdict]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.exact_head_verification
+  title: Exact-head verification
+  type: spec
+  description: Confirm evidence and review refer to the same immutable commit.
+  purpose_tags: [assurance.provenance, assurance.quality]
+  capabilities_required: [git.read, artifact.read]
+  risk: *risk-readonly
+  evidence_contract: [exact_head_report, stale_evidence_findings]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.contradiction_resolution
+  title: Contradiction resolution
+  type: spec
+  description: Resolve conflicting tests or reviews without silently choosing a winner.
+  purpose_tags: [assurance.governance, assurance.quality]
+  capabilities_required: [artifact.read]
+  risk: *risk-analysis
+  evidence_contract: [contradiction_record, resolution_rationale]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.release_claim_reconciliation
+  title: Release claim reconciliation
+  type: spec
+  description: Compare release claims, implementation, evidence and outstanding gaps.
+  purpose_tags: [assurance.release, assurance.provenance]
+  capabilities_required: [fs.read, git.read, github.read]
+  risk: *risk-analysis
+  evidence_contract: [claim_matrix, unresolved_gaps]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.manual_evidence_boundary
+  title: Manual evidence boundary
+  type: spec
+  description: Ensure automation never fabricates browser, host or operator evidence.
+  purpose_tags: [assurance.release, assurance.provenance]
+  capabilities_required: [artifact.read]
+  risk: *risk-readonly
+  evidence_contract: [manual_gate_status, missing_manual_markers]
+  provenance: *loop-provenance
+  status: curated
+
+- id: assurance.reference_boundary_check
+  title: Local reference boundary check
+  type: spec
+  description: Verify external source, snippets and prototype runtime remain local-only.
+  purpose_tags: [assurance.provenance, assurance.release]
+  capabilities_required: [fs.read, artifact.read]
+  risk: *risk-analysis
+  evidence_contract: [reference_boundary_report, packaging_findings]
+  provenance: *loop-provenance
+  status: curated
+
+- id: research.repository_skill_extraction
+  title: Repository skill extraction
+  type: spec
+  description: Extract reusable behaviour into clean NF-native skill specifications.
+  purpose_tags: [research.skills, knowledge.context]
+  capabilities_required: [fs.read, artifact.write]
+  risk: *risk-analysis
+  evidence_contract: [repository_skill_extraction_record, candidate_skill_specs]
+  provenance: *loop-provenance
+  status: curated
+
+- id: core.retry_budgeting
+  title: Semantic and provider retry budgeting
+  type: spec
+  description: Track semantic attempts separately from provider and infrastructure attempts.
+  purpose_tags: [core.orchestration, evolution.coordination]
+  capabilities_required: []
+  risk: *risk-readonly
+  evidence_contract: [attempt_ledger, remaining_budget]
+  provenance: *loop-provenance
+  status: curated
+
+- id: core.provider_limit_pause_resume
+  title: Provider-limit pause and resume
+  type: spec
+  description: Pause on a measured provider limit and resume only after its reset condition.
+  purpose_tags: [core.orchestration]
+  capabilities_required: [provider.status, task.update]
+  risk:
+    default_class: R1
+    approval_required_from: R2
+    forbidden_from: R4
+  evidence_contract: [pause_marker, resume_condition, provider_usage]
+  provenance: *loop-provenance
+  status: curated
+
+- id: core.artifact_handoff
+  title: Artifact handoff
+  type: spec
+  description: Transfer hash-addressed outputs and bounded context between personas.
+  purpose_tags: [core.artifacts, knowledge.context]
+  capabilities_required: [artifact.read, artifact.write]
+  risk: *risk-analysis
+  evidence_contract: [artifact_manifest, handoff_context]
+  provenance: *loop-provenance
+  status: curated

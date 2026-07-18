@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/skill_definition.schema.json",
+  "title": "NoemaForge Skill Definition",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "type",
+    "description",
+    "purpose_tags",
+    "capabilities_required",
+    "risk",
+    "provenance",
+    "status"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z0-9][a-z0-9._-]+$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "type": {
+      "enum": [
+        "spec",
+        "macro",
+        "flow",
+        "tool",
+        "recipe"
+      ]
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "purpose_tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "capabilities_required": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "risk": {
+      "type": "object",
+      "required": [
+        "default_class",
+        "approval_required_from",
+        "forbidden_from"
+      ],
+      "properties": {
+        "default_class": {
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3",
+            "R4"
+          ]
+        },
+        "approval_required_from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3",
+            "R4",
+            null
+          ]
+        },
+        "forbidden_from": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "R0",
+            "R1",
+            "R2",
+            "R3",
+            "R4",
+            null
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "evidence_contract": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "classification",
+        "reference_material",
+        "external_source_code_imported"
+      ],
+      "properties": {
+        "classification": {
+          "const": "UAT request findings resolution"
+        },
+        "reference_material": {
+          "enum": [
+            "none",
+            "local-only"
+          ]
+        },
+        "external_source_code_imported": {
+          "const": false
+        },
+        "source_family": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "enum": [
+        "candidate",
+        "curated",
+        "implemented",
+        "verified",
+        "deprecated",
+        "quarantined"
+      ]
+    },
+    "steps": {
+      "type": "array"
+    },
+    "bundle": {
+      "type": "object"
+    },
+    "flow_id": {
+      "type": "string"
+    },
+    "action": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false
+}
