@@ -1,1 +1,99 @@
-{"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"noemaforge://contracts/release_gate_result.schema.json","title":"NoemaForge Release Gate Result","type":"object","required":["apiVersion","kind","gate_id","run_id","gate_name","evaluated_head","status","evidence_refs","manual_required","manual_marker_present","evaluated_at","evaluator"],"properties":{"apiVersion":{"const":"noemaforge.release.gate-result/v1"},"kind":{"const":"ReleaseGateResult"},"gate_id":{"type":"string","minLength":1},"run_id":{"type":"string","minLength":1},"gate_name":{"type":"string","minLength":1},"evaluated_head":{"type":"string","pattern":"^[0-9a-f]{40}$"},"status":{"enum":["pass","fail","blocked","not_applicable"]},"evidence_refs":{"type":"array","items":{"type":"string"},"uniqueItems":true},"manual_required":{"type":"boolean"},"manual_marker_present":{"type":"boolean"},"evaluated_at":{"type":"string","format":"date-time"},"evaluator":{"type":"string","minLength":1}},"allOf":[{"if":{"properties":{"manual_required":{"const":true},"status":{"const":"pass"}},"required":["manual_required","status"]},"then":{"properties":{"manual_marker_present":{"const":true}}}}],"additionalProperties":false}
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge://contracts/release_gate_result.schema.json",
+  "title": "NoemaForge Release Gate Result",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "gate_id",
+    "run_id",
+    "gate_name",
+    "evaluated_head",
+    "status",
+    "evidence_refs",
+    "manual_required",
+    "manual_marker_present",
+    "evaluated_at",
+    "evaluator"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.release.gate-result/v1"
+    },
+    "kind": {
+      "const": "ReleaseGateResult"
+    },
+    "gate_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "gate_name": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluated_head": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "status": {
+      "enum": [
+        "pass",
+        "fail",
+        "blocked",
+        "not_applicable"
+      ]
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "manual_required": {
+      "type": "boolean"
+    },
+    "manual_marker_present": {
+      "type": "boolean"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "evaluator": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "manual_required": {
+            "const": true
+          },
+          "status": {
+            "const": "pass"
+          }
+        },
+        "required": [
+          "manual_required",
+          "status"
+        ]
+      },
+      "then": {
+        "properties": {
+          "manual_marker_present": {
+            "const": true
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}
