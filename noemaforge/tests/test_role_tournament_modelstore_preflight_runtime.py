@@ -44,9 +44,13 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
 
             self.assertFalse(doc["ok"], doc)
             self.assertEqual("modelstore_staging_cleanup_failed", doc["reason"])
+            self.assertIn("ModelStore staging probe could not be cleaned up", doc["message"])
+            self.assertNotEqual("ModelStore staging preflight passed.", doc["message"])
             self.assertIn("cleanup_failed", doc["cleanup"])
             written = json.loads((state / "modelstore-staging-preflight.json").read_text(encoding="utf-8"))
             self.assertFalse(written["ok"], written)
+            self.assertEqual("modelstore_staging_cleanup_failed", written["reason"])
+            self.assertIn("ModelStore staging probe could not be cleaned up", written["message"])
             self.assertEqual("modelstore_staging_preflight_failed", json.loads((state / "role-tournament-progress.json").read_text(encoding="utf-8"))["phase"])
 
     def test_run_mode_modelstore_preflight_permission_failure_is_fail_fast(self) -> None:
