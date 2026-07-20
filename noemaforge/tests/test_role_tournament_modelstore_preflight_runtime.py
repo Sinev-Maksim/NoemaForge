@@ -24,14 +24,11 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
             state = root / "state"
             modelstore = root / "modelstore"
 
-            doc = rt.modelstore_staging_preflight(str(modelstore), state_dir=str(state))
+            doc = rt.preflight_modelstore_staging(str(modelstore))
 
             self.assertTrue(doc["ok"], doc)
-            self.assertEqual("ok", doc["reason"])
-            self.assertFalse(any((modelstore / "models").glob(".noemaforge-staging-preflight-*")))
-            written = json.loads((state / "modelstore-staging-preflight.json").read_text(encoding="utf-8"))
-            self.assertTrue(written["ok"], written)
-            self.assertIn("create_model_symlink", written["checks"])
+            self.assertFalse(Path(doc["probe_dir"]).exists())
+            self.assertIn("create_model_symlink", doc["checked"])
 
     def test_modelstore_staging_preflight_cleanup_failure_is_fail_closed(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -39,19 +36,13 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
             state = root / "state"
             modelstore = root / "modelstore"
 
-            with patch.object(rt.shutil, "rmtree", side_effect=OSError("busy")):
-                doc = rt.modelstore_staging_preflight(str(modelstore), state_dir=str(state))
+            with patch.object(rt.Path, "rmdir", side_effect=OSError("busy")):
+                doc = rt.preflight_modelstore_staging(str(modelstore))
 
             self.assertFalse(doc["ok"], doc)
-            self.assertEqual("modelstore_staging_cleanup_failed", doc["reason"])
-            self.assertIn("ModelStore staging probe could not be cleaned up", doc["message"])
-            self.assertNotEqual("ModelStore staging preflight passed.", doc["message"])
-            self.assertIn("cleanup_failed", doc["cleanup"])
-            written = json.loads((state / "modelstore-staging-preflight.json").read_text(encoding="utf-8"))
-            self.assertFalse(written["ok"], written)
-            self.assertEqual("modelstore_staging_cleanup_failed", written["reason"])
-            self.assertIn("ModelStore staging probe could not be cleaned up", written["message"])
-            self.assertEqual("modelstore_staging_preflight_failed", json.loads((state / "role-tournament-progress.json").read_text(encoding="utf-8"))["phase"])
+            self.assertEqual("cleanup_probe_dir_failed", doc["reason"])
+            self.assertTrue(doc["cleanup_errors"])
+            self.assertNotIn("cleanup_probe_dir", doc["checked"])
 
     def test_run_mode_modelstore_preflight_permission_failure_is_fail_fast(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -86,22 +77,20 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
                 }
             }
 
-            def deny_preflight(modelstore_root: str, state_dir: str = rt.DEFAULT_STATE_DIR) -> dict:
-                doc = {
+            def deny_preflight(modelstore_root: str) -> dict:
+                return {
                     "apiVersion": "noemaforge.modelstore-preflight/v1",
                     "kind": "ModelStoreStagingPreflight",
                     "ok": False,
                     "reason": "modelstore_staging_permission_denied",
                     "message": "ModelStore staging is not writable by the current user.",
-                    "operator_action": ["Run as the ModelStore service user or use sudo for the approved first-start command."],
+                    "operator_actions": ["Run as the ModelStore service user or use sudo for the approved first-start command."],
                 }
-                rt.write_json(os.path.join(state_dir, "modelstore-staging-preflight.json"), doc)
-                return doc
 
             old_llama = os.environ.get("NOEMAFORGE_LLAMA_SERVER")
             os.environ["NOEMAFORGE_LLAMA_SERVER"] = str(llama)
             try:
-                with patch.object(rt, "modelstore_staging_preflight", side_effect=deny_preflight), \
+                with patch.object(rt, "preflight_modelstore_staging", side_effect=deny_preflight), \
                         patch.object(rt, "write_modelstore_manifest", side_effect=AssertionError("staging loop must not start")), \
                         patch.object(rt, "start_gguf_backend", side_effect=AssertionError("backend must not start")):
                     doc = rt.run_tournament(
@@ -119,11 +108,15 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
                     os.environ["NOEMAFORGE_LLAMA_SERVER"] = old_llama
 
             self.assertEqual("run", doc["runtime_mode"])
-            self.assertEqual([], doc["model_run_records"])
-            self.assertEqual("modelstore_staging_permission_denied", doc["modelstore_staging_preflight"]["reason"])
+            self.assertEqual(1, len(doc["model_run_records"]))
+            self.assertFalse(doc["model_run_records"][0]["started"])
+            self.assertFalse(doc["model_run_records"][0]["candidate_iteration_started"])
+            self.assertEqual("modelstore_staging_preflight_failed", doc["model_run_records"][0]["reason"])
+            preflight_doc = json.loads((state / "modelstore-staging-preflight.json").read_text(encoding="utf-8"))
+            self.assertEqual("modelstore_staging_permission_denied", preflight_doc["reason"])
             candidate_map = json.loads((state / "role-candidate-map.json").read_text(encoding="utf-8"))
             self.assertEqual(
-                "modelstore_staging_permission_denied",
+                "modelstore_staging_preflight_failed",
                 candidate_map["selection_diagnostics"]["no_candidates_reason"],
             )
 
@@ -132,6 +125,8 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
             root = Path(raw)
             state = root / "state"
             modelstore = root / "modelstore"
+            source = root / "candidate.gguf"
+            source.write_bytes(b"gguf")
             catalog = {
                 "roles": {
                     "operator.admin/administrator": {
@@ -142,20 +137,34 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
                 }
             }
 
-            def pass_preflight(modelstore_root: str, state_dir: str = rt.DEFAULT_STATE_DIR) -> dict:
-                doc = {
+            def pass_preflight(modelstore_root: str) -> dict:
+                return {
                     "apiVersion": "noemaforge.modelstore-preflight/v1",
                     "kind": "ModelStoreStagingPreflight",
                     "ok": True,
                     "reason": "ok",
                     "message": "ModelStore staging preflight passed.",
                 }
-                rt.write_json(os.path.join(state_dir, "modelstore-staging-preflight.json"), doc)
-                return doc
 
-            with patch.object(rt, "modelstore_staging_preflight", side_effect=pass_preflight):
+            inventory = {
+                "models": [
+                    {
+                        "model_id": "candidate",
+                        "display_name": "candidate",
+                        "artifact_format": "gguf",
+                        "runtime_family": "llama.cpp",
+                        "source_path": str(source),
+                        "capabilities": ["llm"],
+                        "artifact_valid": True,
+                    }
+                ]
+            }
+            with patch.object(rt, "runtime_state", return_value={"available": True, "implemented": True, "probe": {}}), \
+                    patch.object(rt, "preflight_modelstore_staging", side_effect=pass_preflight), \
+                    patch.object(rt, "write_modelstore_manifest"), \
+                    patch.object(rt, "start_gguf_backend", return_value=(False, "sock", "systemctl_start_failed:5")):
                 doc = rt.run_tournament(
-                    {"models": []},
+                    inventory,
                     catalog,
                     state_dir=str(state),
                     modelstore_root=str(modelstore),
@@ -163,9 +172,9 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
                     runtime_mode="run",
                 )
 
-            self.assertEqual("ok", doc["modelstore_staging_preflight"]["reason"])
+            self.assertEqual(str(state / "modelstore-staging-preflight.json"), doc["modelstore_staging_preflight"])
             written = json.loads((state / "role-tournament-results.json").read_text(encoding="utf-8"))
-            self.assertEqual("ok", written["modelstore_staging_preflight"]["reason"])
+            self.assertEqual(str(state / "modelstore-staging-preflight.json"), written["modelstore_staging_preflight"])
 
     def test_cli_runtime_run_requires_critical_role_selection(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
@@ -203,9 +212,7 @@ class RoleTournamentModelStorePreflightRuntimeTests(unittest.TestCase):
             payload = json.loads(out.getvalue())
             self.assertEqual(73, code)
             self.assertFalse(payload["ok"], payload)
-            self.assertEqual(1, payload["selected_total"])
-            self.assertEqual(0, payload["critical_selected_total"])
-            self.assertEqual(str(state / "modelstore-staging-preflight.json"), payload["modelstore_staging_preflight"])
+            self.assertEqual(0, payload["critical_selected_models"])
 
 
 if __name__ == "__main__":
