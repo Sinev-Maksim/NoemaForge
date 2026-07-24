@@ -5,12 +5,10 @@ name: Premerge quality gate
 # Zone: release/package
 # Version: 0.33.0
 # Created: 2026-05-28
-# Purpose: Read-only premerge quality gate for PRs targeting the active release branch
-#   and main. The expected version is derived from the version source of truth
-#   (noemaforge_version.RUNTIME_VERSION), so this gate is version-agnostic and works for
-#   0.32.2 and 0.33.0 alike. Fails fast on version violations, compile errors or tracked
-#   cache files. No auto-commits, no auto-push, no auto-tagging.
-# Notes: Code comments are English-only.
+# Modified: 2026-07-24
+# Purpose: Read-only premerge quality gate for active release branches and main,
+#   including the proposal/test-only self-improvement UAT preflight.
+# Notes: Code comments are English-only; no auto-commit, push, apply or release action.
 # === End NoemaForge File Header ===
 
 on:
@@ -60,15 +58,22 @@ jobs:
           echo "py_compile: $count files, $errs errors"
           [ "$errs" -eq 0 ] || exit 1
 
-      # ── 1a. Trusted trigger live-integration regression suite ───────────
+      # ── 1a. Trusted ingress and owner-session regression suite ───────────
       - name: Trusted trigger integration unit tests
         run: python -W error::ResourceWarning noemaforge/tests/test_trusted_trigger_integration.py
+
+      # ── 1b. Real self-improvement pipeline rehearsal before UAT ──────────
+      - name: Self-improvement UAT preflight
+        run: |
+          state_dir="$(mktemp -d)"
+          python noemaforge/src/code_evolution_uat_preflight.py \
+            --root "$PWD" \
+            --state-dir "$state_dir" \
+            --json | tee "$state_dir/preflight-result.json"
 
       # ── 2. No RUNTIME_VERSION= assignment outside noemaforge_version.py ──
       - name: No forbidden RUNTIME_VERSION assignment
         run: |
-          # Anchor to line-start: avoids matching string literals in test
-          # assertIn(f'RUNTIME_VERSION = "..."') calls.
           hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" noemaforge/src/ \
             | grep -v "noemaforge/src/noemaforge_version.py" \
             | grep -v "import RUNTIME_VERSION" || true)
@@ -168,13 +173,7 @@ jobs:
           fi
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
-      # ── 8. (removed) Release manifest/checksum evidence ──────────────────
-      # Release evidence (MANIFEST/SHA256SUMS) is a PRE-RELEASE concern only:
-      # it is not tracked, not regenerated and not verified on dev/PR branches
-      # (owner directive 2026-06-14). The evidence is generated and verified
-      # solely at release time by publish-evidence.yml (tag/dispatch), which
-      # assembles it into the signed release bundle. This removes the recurring
-      # cross-PR checksum churn entirely.
+      # ── 8. Release evidence is generated only by the release workflow ────
 
       # ── 9. Shell syntax check (bash -n) ───────────────────────────────────
       - name: Shell syntax check (bash -n) on .sh files
@@ -187,14 +186,13 @@ jobs:
           echo "bash -n: $count files, $errs syntax errors"
           [ "$errs" -eq 0 ] || exit 1
 
-      # ── 10. Wiki integrity (links · hub index · no dumps) ────────────────
+      # ── 10. Wiki integrity ────────────────────────────────────────────────
       - name: Wiki integrity (links, hub index, no consolidated dumps)
         run: python ci/wiki_check.py
 
-      # ── 11. Docs hygiene (markdown layout · forbidden text · canon files) ─
+      # ── 11. Docs hygiene ──────────────────────────────────────────────────
       - name: Docs hygiene gate
         run: python noemaforge/src/docs_hygiene_runtime.py --project-root .
 
-      # ── Summary ───────────────────────────────────────────────────────────
       - name: Summary
         run: echo "All premerge quality gates passed."
