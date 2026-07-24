@@ -22,6 +22,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, Optional, Sequence
@@ -55,6 +57,7 @@ _EXCLUDED_PARTS = frozenset(
         "build",
     }
 )
+_PREFLIGHT_LOCK = threading.Lock()
 
 
 def _now_iso() -> str:
@@ -191,6 +194,30 @@ def _snapshots_equal(before: Dict[str, Any], after: Dict[str, Any]) -> Dict[str,
     return {"tree_unchanged": tree_unchanged, "git_unchanged": git_unchanged}
 
 
+def _busy_report(state: Path, run_id: str) -> Dict[str, Any]:
+    report_dir = state / "uat-preflight"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    report_path = report_dir / f"self-improvement-{_stamp()}-{run_id}.json"
+    report = {
+        "apiVersion": "noemaforge.code-evolution-uat-preflight/v1",
+        "kind": "CodeEvolutionUatPreflight",
+        "run_id": run_id,
+        "started_at": _now_iso(),
+        "completed_at": _now_iso(),
+        "ok": False,
+        "status": "already_running",
+        "mode": "proposal_test_only",
+        "apply": False,
+        "commit": False,
+        "publish": False,
+        "reason_codes": ["self_improvement_preflight_already_running"],
+        "report_path": str(report_path),
+        "allowed_mutation_root": str(state),
+    }
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return report
+
+
 def run_uat_self_improvement_preflight(
     *,
     project_root: Path | str,
@@ -200,19 +227,41 @@ def run_uat_self_improvement_preflight(
     root = Path(project_root).resolve()
     state = Path(state_dir).resolve()
     state.mkdir(parents=True, exist_ok=True)
+    run_id = uuid.uuid4().hex
+    if not _PREFLIGHT_LOCK.acquire(blocking=False):
+        return _busy_report(state, run_id)
+    try:
+        return _run_locked_preflight(
+            root=root,
+            state=state,
+            run_id=run_id,
+            test_patterns=test_patterns,
+        )
+    finally:
+        _PREFLIGHT_LOCK.release()
+
+
+def _run_locked_preflight(
+    *,
+    root: Path,
+    state: Path,
+    run_id: str,
+    test_patterns: Sequence[str],
+) -> Dict[str, Any]:
     report_dir = state / "uat-preflight"
     report_dir.mkdir(parents=True, exist_ok=True)
-    report_path = report_dir / f"self-improvement-{_stamp()}.json"
+    report_path = report_dir / f"self-improvement-{_stamp()}-{run_id}.json"
 
     before = _snapshot(root, state)
     task = make_task_record(
-        "uat-self-improvement-preflight",
+        f"uat-self-improvement-preflight-{run_id[:12]}",
         "P0",
         "Exercise the self-improvement proposal and bounded-test pipeline without applying, committing or publishing changes.",
     )
     report: Dict[str, Any] = {
         "apiVersion": "noemaforge.code-evolution-uat-preflight/v1",
         "kind": "CodeEvolutionUatPreflight",
+        "run_id": run_id,
         "started_at": _now_iso(),
         "ok": False,
         "status": "started",
