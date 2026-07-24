@@ -254,7 +254,7 @@ def _run_locked_preflight(
 
     before = _snapshot(root, state)
     task = make_task_record(
-        f"uat-self-improvement-preflight-{run_id[:12]}",
+        f"uat-self-improvement-preflight_{run_id[:12]}",
         "P0",
         "Exercise the self-improvement proposal and bounded-test pipeline without applying, committing or publishing changes.",
     )
