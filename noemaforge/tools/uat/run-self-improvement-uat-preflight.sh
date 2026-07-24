@@ -82,8 +82,23 @@ SUMMARY="$OUT/summary.json"
 mkdir -p "$DATA_ROOT/code-evolution" "$XDG_UAT_STATE"
 chmod 700 "$DATA_ROOT" "$DATA_ROOT/code-evolution" "$XDG_UAT_STATE"
 
+redact_bootstrap_logs() {
+  python3 - "$DASHBOARD_CAPTURE" "$DASHBOARD_LOG" <<'PY' 2>/dev/null || true
+from pathlib import Path
+import re, sys
+for raw in sys.argv[1:]:
+    path = Path(raw)
+    if not path.exists():
+        continue
+    text = path.read_text(encoding="utf-8", errors="replace")
+    text = re.sub(r"(owner-bootstrap\.html)#[A-Za-z0-9_-]+", r"\1#<redacted>", text)
+    path.write_text(text, encoding="utf-8")
+PY
+}
+
 cleanup() {
   set +e
+  redact_bootstrap_logs
   if [[ -f "$PIDFILE" ]]; then
     dashboard_pid="$(cat "$PIDFILE" 2>/dev/null || true)"
     if [[ "$dashboard_pid" =~ ^[0-9]+$ ]] && kill -0 "$dashboard_pid" 2>/dev/null; then
@@ -151,7 +166,7 @@ PY
 STATUS_BEFORE="$(git -C "$REPO_ROOT" status --porcelain=v1 --untracked-files=all | sha256sum | awk '{print $1}')"
 TREE_BEFORE="$(git -C "$REPO_ROOT" ls-files -z | xargs -0 -r sha256sum | sha256sum | awk '{print $1}')"
 
-# Phase A: exact checked-out tree, before the Admin GUI UAT.
+echo "UAT_STAGE=phase_a_cli_preflight"
 PHASE_A_STATE="$OUT/phase-a-state"
 mkdir -p "$PHASE_A_STATE"
 env PYTHONPYCACHEPREFIX="$PHASE_A_STATE/launcher-pycache" \
@@ -168,7 +183,7 @@ assert report.get("apply") is False and report.get("commit") is False and report
 assert all((report.get("invariants") or {}).values()), report
 PY
 
-# Start isolated dashboard. Capture the raw bootstrap URL only in a mode-0600 temporary file.
+echo "UAT_STAGE=dashboard_start"
 env \
   XDG_STATE_HOME="$XDG_UAT_STATE" \
   PYTHONPYCACHEPREFIX="$OUT/dashboard-pycache" \
@@ -182,34 +197,40 @@ env \
     --port "$PORT" > "$DASHBOARD_CAPTURE"
 chmod 600 "$DASHBOARD_CAPTURE"
 
-BOOTSTRAP_URL="$(sed -n 's/^NoemaForge owner bootstrap: //p' "$DASHBOARD_CAPTURE" | tail -n1)"
-[[ "$BOOTSTRAP_URL" == http://127.0.0.1:"$PORT"/owner-bootstrap.html#* ]] || { echo "launcher did not produce bootstrap URL" >&2; exit 4; }
+BOOTSTRAP_URL=""
+for _ in $(seq 1 300); do
+  BOOTSTRAP_URL="$(
+    { sed -n 's/^NoemaForge owner bootstrap: //p' "$DASHBOARD_CAPTURE" 2>/dev/null; \
+      sed -n 's/^NoemaForge owner bootstrap: //p' "$DASHBOARD_LOG" 2>/dev/null; } \
+      | tail -n1
+  )"
+  [[ -n "$BOOTSTRAP_URL" ]] && break
+  sleep 0.05
+done
+[[ "$BOOTSTRAP_URL" == http://127.0.0.1:"$PORT"/owner-bootstrap.html#* ]] || {
+  redact_bootstrap_logs
+  echo "launcher did not produce bootstrap URL" >&2
+  [[ -f "$DASHBOARD_LOG" ]] && tail -n 40 "$DASHBOARD_LOG" >&2
+  exit 4
+}
 BOOTSTRAP_TOKEN="${BOOTSTRAP_URL#*#}"
 [[ ${#BOOTSTRAP_TOKEN} -ge 32 ]] || { echo "bootstrap token too short" >&2; exit 4; }
-
-# Redact every persisted copy before making HTTP requests.
-python3 - "$DASHBOARD_CAPTURE" "$DASHBOARD_LOG" <<'PY'
-from pathlib import Path
-import re, sys
-for raw in sys.argv[1:]:
-    path = Path(raw)
-    if not path.exists():
-        continue
-    text = path.read_text(encoding="utf-8", errors="replace")
-    text = re.sub(r"(owner-bootstrap\.html)#[A-Za-z0-9_-]+", r"\1#<redacted>", text)
-    path.write_text(text, encoding="utf-8")
-PY
+redact_bootstrap_logs
 
 BASE_URL="http://127.0.0.1:$PORT"
-for _ in $(seq 1 100); do
+for _ in $(seq 1 400); do
   if curl --silent --fail --max-time 1 "$BASE_URL/api/health" >/dev/null 2>&1; then
     break
   fi
   sleep 0.05
 done
-curl --silent --fail --max-time 2 "$BASE_URL/api/health" > "$OUT/health.json"
+if ! curl --silent --fail --max-time 2 "$BASE_URL/api/health" > "$OUT/health.json"; then
+  echo "dashboard health did not become ready" >&2
+  [[ -f "$DASHBOARD_LOG" ]] && tail -n 60 "$DASHBOARD_LOG" >&2
+  exit 4
+fi
 
-# Negative path before bootstrap: no proposal/test pipeline side effect.
+echo "UAT_STAGE=negative_unauthenticated"
 PROPOSALS_BEFORE="$(find "$DATA_ROOT/code-evolution" -maxdepth 1 -name 'prop_*.json' 2>/dev/null | wc -l)"
 UNAUTH_CODE="$(curl --silent --show-error --max-time 5 \
   -o "$OUT/negative-unauthenticated.json" -w '%{http_code}' \
@@ -221,7 +242,7 @@ UNAUTH_CODE="$(curl --silent --show-error --max-time 5 \
 PROPOSALS_AFTER_UNAUTH="$(find "$DATA_ROOT/code-evolution" -maxdepth 1 -name 'prop_*.json' 2>/dev/null | wc -l)"
 [[ "$PROPOSALS_BEFORE" == "$PROPOSALS_AFTER_UNAUTH" ]] || { echo "unauthenticated request created proposal" >&2; exit 5; }
 
-# One-time bootstrap exchange.
+echo "UAT_STAGE=owner_bootstrap"
 BOOTSTRAP_BODY="$(python3 - "$BOOTSTRAP_TOKEN" <<'PY'
 import json, sys
 print(json.dumps({"token": sys.argv[1]}))
@@ -238,7 +259,7 @@ unset BOOTSTRAP_TOKEN BOOTSTRAP_BODY BOOTSTRAP_URL
 [[ "$BOOTSTRAP_CODE" == "200" ]] || { echo "owner bootstrap failed: HTTP $BOOTSTRAP_CODE" >&2; exit 5; }
 chmod 600 "$COOKIE_JAR"
 
-# Cross-origin must fail before running the pipeline.
+echo "UAT_STAGE=negative_cross_origin"
 CROSS_CODE="$(curl --silent --show-error --max-time 5 \
   -b "$COOKIE_JAR" \
   -o "$OUT/negative-cross-origin.json" -w '%{http_code}' \
@@ -248,7 +269,7 @@ CROSS_CODE="$(curl --silent --show-error --max-time 5 \
   --data '{}')"
 [[ "$CROSS_CODE" == "403" ]] || { echo "cross-origin preflight was not denied: HTTP $CROSS_CODE" >&2; exit 5; }
 
-# Valid authenticated phase B: same real pipeline through the Admin GUI boundary.
+echo "UAT_STAGE=phase_b_authenticated_gui_preflight"
 GUI_CODE="$(curl --silent --show-error --max-time 300 \
   -b "$COOKIE_JAR" \
   -o "$OUT/phase-b-gui-preflight.json" -w '%{http_code}' \
@@ -267,7 +288,7 @@ assert report.get("apply") is False and report.get("commit") is False and report
 assert all((report.get("invariants") or {}).values()), report
 PY
 
-# Valid session still cannot reach a POST route absent from the inventory.
+echo "UAT_STAGE=negative_unlisted_route"
 UNLISTED_CODE="$(curl --silent --show-error --max-time 5 \
   -b "$COOKIE_JAR" \
   -o "$OUT/negative-unlisted-route.json" -w '%{http_code}' \
@@ -277,7 +298,7 @@ UNLISTED_CODE="$(curl --silent --show-error --max-time 5 \
   --data '{}')"
 [[ "$UNLISTED_CODE" == "403" ]] || { echo "unlisted mutation was not denied: HTTP $UNLISTED_CODE" >&2; exit 6; }
 
-# Stop before final snapshots and remove secrets.
+echo "UAT_STAGE=final_repository_invariants"
 cleanup
 trap - EXIT INT TERM
 HEAD_AFTER="$(git -C "$REPO_ROOT" rev-parse HEAD)"
