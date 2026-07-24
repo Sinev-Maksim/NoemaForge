@@ -80,9 +80,14 @@ def load_owner_bootstrap_token_from_env() -> str:
     if not raw_path:
         return ""
     path = Path(raw_path)
+    descriptor = None
     try:
-        info = path.lstat()
-        if path.is_symlink() or not stat.S_ISREG(info.st_mode):
+        nofollow = getattr(os, "O_NOFOLLOW", 0)
+        if not nofollow and path.is_symlink():
+            return ""
+        descriptor = os.open(path, os.O_RDONLY | nofollow)
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode):
             return ""
         if hasattr(os, "getuid") and info.st_uid != os.getuid():
             return ""
@@ -90,11 +95,19 @@ def load_owner_bootstrap_token_from_env() -> str:
             return ""
         if info.st_size < 32 or info.st_size > 512:
             return ""
-        token = path.read_text(encoding="utf-8").strip()
+        payload = os.read(descriptor, 513)
+        if len(payload) > 512:
+            return ""
+        token = payload.decode("utf-8").strip()
         return token if 32 <= len(token) <= 512 else ""
     except (OSError, UnicodeError):
         return ""
     finally:
+        if descriptor is not None:
+            try:
+                os.close(descriptor)
+            except OSError:
+                pass
         try:
             path.unlink(missing_ok=True)
         except OSError:
