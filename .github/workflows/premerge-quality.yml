@@ -6,8 +6,8 @@ name: Premerge quality gate
 # Version: 0.33.0
 # Created: 2026-05-28
 # Modified: 2026-07-24
-# Purpose: Read-only premerge quality gate for active release branches and main,
-#   including the full proposal/test-only self-improvement UAT harness.
+# Purpose: Read-only premerge gates for the full proposal/test-only self-improvement
+#   UAT harness and the standard compile/config/version/git-hygiene checks.
 # Notes: Code comments are English-only; no auto-commit, push, apply or release action.
 # === End NoemaForge File Header ===
 
@@ -23,13 +23,15 @@ permissions:
   pull-requests: read
 
 jobs:
-  quality-gate:
-    name: Quality gate (py_compile · JSON · YAML · versions · git hygiene)
+  self-improvement-uat:
+    name: Self-improvement UAT harness (CLI · bootstrap · authenticated GUI)
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          show-progress: false
 
       - name: Set up Python 3.11
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
@@ -39,15 +41,46 @@ jobs:
       - name: Install PyYAML
         run: pip install pyyaml --quiet
 
-      # Run before importing repository Python modules so the exact checkout is clean.
-      - name: End-to-end self-improvement UAT harness
+      - name: Run end-to-end self-improvement UAT harness
         run: |
-          evidence_dir="$(mktemp -d)"
+          evidence_dir="$RUNNER_TEMP/noemaforge-self-improvement-uat"
+          mkdir -p "$evidence_dir"
+          chmod 700 "$evidence_dir"
+          echo "EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+          set -o pipefail
           bash noemaforge/tools/uat/run-self-improvement-uat-preflight.sh \
             --repo-root "$PWD" \
             --expected-head "$(git rev-parse HEAD)" \
             --port 18876 \
-            --out "$evidence_dir"
+            --out "$evidence_dir" 2>&1 | tee "$evidence_dir/harness.log"
+
+      - name: Upload redacted UAT evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: noemaforge-self-improvement-uat-evidence
+          path: ${{ env.EVIDENCE_DIR }}
+          retention-days: 14
+          if-no-files-found: warn
+
+  quality-gate:
+    name: Quality gate (py_compile · JSON · YAML · versions · git hygiene)
+    needs: self-improvement-uat
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          show-progress: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML
+        run: pip install pyyaml --quiet
 
       # ── 0. Resolve expected version from the source of truth ─────────────
       - name: Resolve expected version from SoT
