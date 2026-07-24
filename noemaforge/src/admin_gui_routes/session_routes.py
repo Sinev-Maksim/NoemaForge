@@ -20,12 +20,14 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from trusted_trigger_integration import TrustedTriggerIntegration
+from trusted_trigger_integration import (
+    TrustedTriggerIntegration,
+    load_owner_bootstrap_token_from_env,
+)
 
 _INTEGRATION_LOCK = threading.Lock()
 
 
-# --- trusted ingress ---------------------------------------------------------------
 def _headers(handler: Any) -> Dict[str, str]:
     raw = getattr(handler, "headers", None)
     if raw is None:
@@ -50,6 +52,7 @@ def _trusted_trigger_integration(handler: Any) -> Optional[TrustedTriggerIntegra
         integration = TrustedTriggerIntegration(
             state_dir=Path(server.data_root) / "trusted-trigger",
             policy_path=Path(server.root) / "configs" / "trusted-trigger-source-policy.json",
+            owner_bootstrap_token=load_owner_bootstrap_token_from_env(),
         )
         setattr(server, "_trusted_trigger_integration", integration)
         return integration
@@ -58,8 +61,6 @@ def _trusted_trigger_integration(handler: Any) -> Optional[TrustedTriggerIntegra
 def _trigger_gate(handler: Any, body: Mapping[str, Any]) -> tuple[Optional[TrustedTriggerIntegration], Optional[Dict[str, Any]]]:
     integration = _trusted_trigger_integration(handler)
     if integration is None:
-        # Compatibility for narrow unit-test doubles only. The production server
-        # always has root/data_root and therefore always constructs the gate.
         return None, None
     server = handler.server
     try:
@@ -98,22 +99,35 @@ def _attach_gate(result: Any, integration: Optional[TrustedTriggerIntegration], 
     return enriched
 
 
-def _send_json_with_owner_cookie(handler: Any, payload: Any) -> None:
+def owner_bootstrap(handler: Any, body: Mapping[str, Any]) -> None:
     integration = _trusted_trigger_integration(handler)
-    if (
-        integration is None
-        or not hasattr(handler, "send_response")
-        or not hasattr(handler, "send_header")
-    ):
-        handler._send_json(payload)
+    if integration is None:
+        handler._send_json(
+            {"ok": False, "error": "trusted trigger integration unavailable"},
+            status=503,
+        )
         return
+    supplied = str(body.get("token") or "")
     try:
         session_id = str(handler.server._active_session_id())
     except Exception:
-        session_id = str(
-            getattr(handler.server, "current_session_id", "") or "unknown"
+        session_id = str(getattr(handler.server, "current_session_id", "") or "unknown")
+    cookie = integration.consume_owner_bootstrap_token(
+        supplied,
+        session_id,
+        headers=_headers(handler),
+        client_address=getattr(handler, "client_address", ()) or (),
+    )
+    if not cookie:
+        handler._send_json(
+            {
+                "ok": False,
+                "error": "owner bootstrap denied",
+                "error_class": "owner_bootstrap_denied",
+            },
+            status=403,
         )
-    cookie = integration.owner_session_cookie_header(session_id)
+        return
     original_send_response = handler.send_response
 
     def send_response_with_cookie(status: int, message: Optional[str] = None) -> None:
@@ -122,41 +136,39 @@ def _send_json_with_owner_cookie(handler: Any, payload: Any) -> None:
 
     handler.send_response = send_response_with_cookie
     try:
-        handler._send_json(payload)
+        handler._send_json({"ok": True, "mode": "owner_session_bootstrap", "redirect": "/"})
     finally:
         handler.send_response = original_send_response
 
 
-# --- GET handlers ------------------------------------------------------------------
 def conversation_current(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.conversation_current())
+    handler._send_json(handler.server.conversation_current())
 
 
 def conversation_history(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.conversation_history())
+    handler._send_json(handler.server.conversation_history())
 
 
 def tasks_list(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.tasks_list())
+    handler._send_json(handler.server.tasks_list())
 
 
 def inactivity_status(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.inactivity_status())
+    handler._send_json(handler.server.inactivity_status())
 
 
 def persona_current(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.persona_current())
+    handler._send_json(handler.server.persona_current())
 
 
 def persona_catalog(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.persona_catalog_api())
+    handler._send_json(handler.server.persona_catalog_api())
 
 
 def persona_rules(handler: Any) -> None:
-    _send_json_with_owner_cookie(handler, handler.server.persona_rules())
+    handler._send_json(handler.server.persona_rules())
 
 
-# --- POST handlers -----------------------------------------------------------------
 def persona_switch(handler: Any, body: Dict[str, Any]) -> None:
     name = str(body.get("name") or "Admin")
     handler._send_json(handler.server.persona_switch(name))
@@ -171,9 +183,6 @@ def admin_message(handler: Any, body: Dict[str, Any]) -> None:
         return
 
     if integration is not None and gate is not None and gate.get("enforcement_active"):
-        # Trigger authority is deliberately narrower than command authority. Once
-        # activated, an external message can create only one pending work item; it
-        # cannot directly start a pipeline, apply, push, merge or release.
         result = handler.server.task_create(
             {
                 "title": text or "Trusted trigger work item",
@@ -271,6 +280,7 @@ def get_routes() -> Dict[str, Any]:
 
 def post_routes() -> Dict[str, Any]:
     return {
+        "/api/session/owner-bootstrap": owner_bootstrap,
         "/api/admin/message": admin_message,
         "/api/admin/ask": admin_message,
         "/api/admin/start": admin_message,
