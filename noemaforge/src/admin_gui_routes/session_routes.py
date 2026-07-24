@@ -20,10 +20,11 @@ import threading
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional
 
-from trusted_trigger_integration import (
-    TrustedTriggerIntegration,
+from trusted_trigger_bootstrap import (
+    LauncherTrustedTriggerIntegration,
     load_owner_bootstrap_token_from_env,
 )
+from trusted_trigger_integration import TrustedTriggerIntegration
 
 _INTEGRATION_LOCK = threading.Lock()
 
@@ -49,7 +50,7 @@ def _trusted_trigger_integration(handler: Any) -> Optional[TrustedTriggerIntegra
         current = getattr(server, "_trusted_trigger_integration", None)
         if isinstance(current, TrustedTriggerIntegration):
             return current
-        integration = TrustedTriggerIntegration(
+        integration = LauncherTrustedTriggerIntegration(
             state_dir=Path(server.data_root) / "trusted-trigger",
             policy_path=Path(server.root) / "configs" / "trusted-trigger-source-policy.json",
             owner_bootstrap_token=load_owner_bootstrap_token_from_env(),
