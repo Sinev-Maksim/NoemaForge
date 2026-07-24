@@ -67,6 +67,7 @@ UI="$ROOT/templates/pipeline-dashboard"
 RUNDIR="${XDG_STATE_HOME:-$HOME/.local/state}/noemaforge"
 umask 077
 mkdir -p "$RUNDIR"
+chmod 700 "$RUNDIR"
 OWNER_BOOTSTRAP_FILE="$RUNDIR/owner-bootstrap.token"
 owner_bootstrap_url() {
   local token=""
@@ -77,13 +78,23 @@ owner_bootstrap_url() {
 }
 prepare_owner_bootstrap() {
   local token
-  token="$(python3 - <<'PY'
+  token="$(OWNER_BOOTSTRAP_FILE="$OWNER_BOOTSTRAP_FILE" python3 - <<'PY'
+import os
 import secrets
-print(secrets.token_urlsafe(48))
+
+path = os.environ["OWNER_BOOTSTRAP_FILE"]
+token = secrets.token_urlsafe(48)
+flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+fd = os.open(path, flags, 0o600)
+try:
+    os.fchmod(fd, 0o600)
+    os.write(fd, token.encode("utf-8"))
+    os.fsync(fd)
+finally:
+    os.close(fd)
+print(token)
 PY
 )"
-  printf '%s' "$token" > "$OWNER_BOOTSTRAP_FILE"
-  chmod 600 "$OWNER_BOOTSTRAP_FILE"
   owner_bootstrap_url
 }
 if [[ -z "$STATE_FROM_ENV" && ! -w "$(dirname "$STATE")" ]]; then STATE="$RUNDIR/pipelines"; fi
