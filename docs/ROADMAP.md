@@ -104,8 +104,9 @@ are classified as:
 - **Research** — findings, papers, architectures and experiments;
 - **How-to** — reproducible procedures with verification;
 - **Ready-to-use** — adoptable components subject to license/security/platform review;
-- **Ready-to-re-code** — local-only references converted into clean-room
-  requirements/tests and an independently written NF implementation.
+- **Ready-to-re-code** — an external approach or technical technique used as a source
+  of requirements and testable ideas. The NF implementation is created anew and
+  independently, without transferring source code.
 
 A coverage ledger records scanned and unscanned areas, freshness, failures,
 licenses and provenance. The system must never claim exhaustive coverage without
@@ -166,7 +167,8 @@ dogfood. It remains a compatibility fallback until explicitly retired.
 - quarantine of malicious/untrusted content;
 - license, provenance and supply-chain review;
 - operator-controlled promotion to research experiment, how-to validation,
-  Ready-to-use evaluation, clean-room recode spec, skill proposal or benchmark.
+  Ready-to-use evaluation, independent implementation specification, skill proposal
+  or benchmark.
 
 ## 0.33.2 — idempotent benchmarking and measured evolution
 
@@ -264,7 +266,7 @@ issues and be reconciled when work is completed or superseded.
 - Self-modification remains policy-gated, evidence-backed and explicitly approved.
 - One logical work item cannot silently acquire competing mutation owners.
 - Files are artifacts/checkpoints; canonical lifecycle is event-backed.
-- External Ready-to-re-code source remains local-only and is not shipped or copied
-  into NF-native implementation context.
+- Ready-to-re-code references inform requirements and testable ideas only; the NF
+  implementation is created anew and independently, without transferring source code.
 - Unknown values are represented as unknown, never as fabricated zero/success.
 - Every final review and release decision is tied to the exact final HEAD.
