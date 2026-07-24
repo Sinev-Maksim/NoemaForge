@@ -6,12 +6,12 @@ Zone: release/package
 Version: 0.33.0
 Created: 2026-07-24
 Modified: 2026-07-24
-Purpose: Verify launcher-only owner bootstrap, bounded GUI work-item routing and replay-safe GitHub connector integration.
-Inputs: Trusted trigger policy, bootstrap wrapper, integration runtime and Admin GUI session routes.
+Purpose: Verify launcher bootstrap, universal Admin GUI owner-session enforcement, bounded trigger routing, self-improvement UAT preflight and replay-safe GitHub integration.
+Inputs: Trusted trigger and mutation policies, bootstrap/guard runtimes, code-evolution UAT preflight and Admin GUI routes.
 Outputs: unittest assertions only.
-Side effects: Temporary SQLite, token and JSONL audit files.
-Tests: direct unittest execution.
-Notes: No network, provider, credential, GitHub mutation or production policy activation occurs.
+Side effects: Temporary SQLite, token, audit, proposal and UAT report files.
+Tests: direct unittest execution plus the premerge self-improvement preflight step.
+Notes: No provider, credential, GitHub mutation or production policy activation occurs.
 === End NoemaForge File Header ===
 """
 from __future__ import annotations
@@ -23,6 +23,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
@@ -32,6 +33,10 @@ import session_routes
 import trusted_trigger_bootstrap as bootstrap_runtime
 import trusted_trigger_integration as integration_runtime
 import trusted_trigger_source_runtime as tts
+import admin_gui_owner_session as owner_guard_runtime
+import admin_gui_routes
+from code_evolution_loop import CodeEvolutionLoop
+from code_evolution_uat_preflight import run_uat_self_improvement_preflight
 
 BOOTSTRAP = "launcher-bootstrap-token-0123456789abcdef"
 SESSION = "gui-test-session"
@@ -204,6 +209,7 @@ class _FakeServer:
         self.current_session_id = SESSION
         self.admin_calls: list = []
         self.task_calls: list = []
+        self.mutation_calls: list = []
 
     def _active_session_id(self) -> str:
         return self.current_session_id
@@ -319,6 +325,182 @@ class SessionRouteTests(unittest.TestCase):
         self.assertEqual("pending", task["status"])
         self.assertTrue(task["requires_approval"])
         self.assertEqual("nf-owner:primary", task["created_by"])
+
+
+class AdminGuiOwnerSessionGuardTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name) / "root"
+        self.data = Path(self.temp.name) / "data"
+        (self.root / "configs").mkdir(parents=True)
+        self.data.mkdir()
+        for name in ("trusted-trigger-source-policy.json", "admin-gui-mutation-policy.json"):
+            (self.root / "configs" / name).write_text(
+                (ROOT / "configs" / name).read_text(encoding="utf-8"),
+                encoding="utf-8",
+            )
+
+    def make_handler(self, path: str, *, issue_cookie: bool = False) -> _FakeHandler:
+        server = _FakeServer(self.root, self.data)
+        server._trusted_trigger_integration = bootstrap_runtime.LauncherTrustedTriggerIntegration(
+            state_dir=self.data / "trusted-trigger",
+            policy_path=self.root / "configs" / "trusted-trigger-source-policy.json",
+            owner_bootstrap_token=BOOTSTRAP,
+        )
+        handler = _FakeHandler(server, path)
+        if issue_cookie:
+            cookie = server._trusted_trigger_integration.consume_owner_bootstrap_token(
+                BOOTSTRAP,
+                SESSION,
+                headers=handler.headers,
+                client_address=handler.client_address,
+            )
+            handler.headers["Cookie"] = cookie.split(";", 1)[0]
+        return handler
+
+    def test_machine_inventory_covers_route_table_and_inline_routes(self) -> None:
+        policy = owner_guard_runtime.AdminGuiMutationPolicy(
+            ROOT / "configs" / "admin-gui-mutation-policy.json"
+        )
+        self.assertTrue(policy.valid, policy.error)
+        table_routes = set(admin_gui_routes.post_routes())
+        inline_exact = {"/api/session/mode", "/api/shutdown"}
+        self.assertEqual(
+            table_routes,
+            set(policy.unauthenticated_exact)
+            | (set(policy.owner_required_exact) - inline_exact),
+        )
+        self.assertEqual(
+            {("/api/pipeline/run/", "/reply"), ("/api/jobs/", "/cancel")},
+            set(policy.owner_required_prefix),
+        )
+
+    def test_guard_allows_only_bootstrap_without_owner_session(self) -> None:
+        bootstrap = self.make_handler("/api/session/owner-bootstrap")
+        decision = owner_guard_runtime._guard_for_handler(bootstrap).evaluate(bootstrap, bootstrap.path)
+        self.assertTrue(decision["allowed"])
+        missing = self.make_handler("/api/shutdown")
+        decision = owner_guard_runtime._guard_for_handler(missing).evaluate(missing, missing.path)
+        self.assertFalse(decision["allowed"])
+        self.assertIn("owner_session_capability_invalid", decision["reason_codes"])
+
+    def test_valid_session_covers_exact_and_prefix_mutations(self) -> None:
+        for path in ("/api/epoch/apply", "/api/jobs/job-1/cancel", "/api/pipeline/run/run-1/reply"):
+            with self.subTest(path=path):
+                handler = self.make_handler(path, issue_cookie=True)
+                decision = owner_guard_runtime._guard_for_handler(handler).evaluate(handler, path)
+                self.assertTrue(decision["allowed"], decision)
+
+    def test_forged_stale_cross_origin_and_unlisted_requests_fail_closed(self) -> None:
+        forged = self.make_handler("/api/shutdown")
+        forged.headers["Cookie"] = "nf_owner_session=forged"
+        decision = owner_guard_runtime._guard_for_handler(forged).evaluate(forged, forged.path)
+        self.assertFalse(decision["allowed"])
+
+        stale = self.make_handler("/api/shutdown", issue_cookie=True)
+        stale.server.current_session_id = "rotated-session"
+        decision = owner_guard_runtime._guard_for_handler(stale).evaluate(stale, stale.path)
+        self.assertFalse(decision["allowed"])
+
+        cross_origin = self.make_handler("/api/shutdown", issue_cookie=True)
+        cross_origin.headers["Origin"] = "https://attacker.example"
+        decision = owner_guard_runtime._guard_for_handler(cross_origin).evaluate(cross_origin, cross_origin.path)
+        self.assertFalse(decision["allowed"])
+        self.assertIn("owner_origin_not_loopback", decision["reason_codes"])
+
+        unlisted = self.make_handler("/api/new-dangerous-route", issue_cookie=True)
+        decision = owner_guard_runtime._guard_for_handler(unlisted).evaluate(unlisted, unlisted.path)
+        self.assertFalse(decision["allowed"])
+        self.assertEqual(["mutation_route_not_inventoried"], decision["reason_codes"])
+
+    def test_pre_dispatch_wrapper_blocks_side_effect_before_original_handler(self) -> None:
+        class DispatchHandler(_FakeHandler):
+            def do_POST(self) -> None:
+                self.server.mutation_calls.append(self.path)
+
+        owner_guard_runtime.install_handler_guard(DispatchHandler)
+        denied = DispatchHandler(_FakeServer(self.root, self.data), "/api/shutdown")
+        denied.server._trusted_trigger_integration = bootstrap_runtime.LauncherTrustedTriggerIntegration(
+            state_dir=self.data / "trusted-trigger-denied",
+            policy_path=self.root / "configs" / "trusted-trigger-source-policy.json",
+            owner_bootstrap_token=BOOTSTRAP,
+        )
+        denied.do_POST()
+        self.assertEqual([], denied.server.mutation_calls)
+        self.assertEqual("admin_gui_owner_session_denied", denied.response["error_class"])
+
+        allowed = self.make_handler("/api/shutdown", issue_cookie=True)
+        allowed.__class__ = DispatchHandler
+        allowed.do_POST()
+        self.assertEqual(["/api/shutdown"], allowed.server.mutation_calls)
+
+    def test_restart_invalidates_previous_cookie(self) -> None:
+        first = self.make_handler("/api/shutdown", issue_cookie=True)
+        cookie = first.headers["Cookie"]
+        restarted = self.make_handler("/api/shutdown")
+        restarted.headers["Cookie"] = cookie
+        decision = owner_guard_runtime._guard_for_handler(restarted).evaluate(restarted, restarted.path)
+        self.assertFalse(decision["allowed"])
+
+
+class SelfImprovementUatPreflightTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.project = Path(self.temp.name) / "project"
+        self.state = Path(self.temp.name) / "state"
+        (self.project / "noemaforge" / "src").mkdir(parents=True)
+        (self.project / "noemaforge" / "tests").mkdir(parents=True)
+        (self.project / "noemaforge" / "configs").mkdir(parents=True)
+        (self.project / "noemaforge" / "src" / "sample.py").write_text(
+            "def value():\n    return 42\n", encoding="utf-8"
+        )
+        (self.project / "noemaforge" / "tests" / "test_smoke.py").write_text(
+            "import unittest\n\nclass Smoke(unittest.TestCase):\n    def test_ok(self):\n        self.assertEqual(42, 42)\n",
+            encoding="utf-8",
+        )
+        (self.project / "VERSION").write_text("0.33.0\n", encoding="utf-8")
+
+    def test_real_proposal_test_cycle_passes_without_source_mutation(self) -> None:
+        before = (self.project / "noemaforge" / "src" / "sample.py").read_bytes()
+        report = run_uat_self_improvement_preflight(
+            project_root=self.project,
+            state_dir=self.state,
+            test_patterns=("test_smoke.py",),
+        )
+        self.assertTrue(report["ok"], report)
+        self.assertEqual("pass", report["status"])
+        self.assertTrue(report["invariants"]["tree_unchanged"])
+        self.assertTrue(report["invariants"]["proposal_not_applied"])
+        self.assertTrue(report["invariants"]["proposal_not_committed"])
+        self.assertTrue(report["invariants"]["tests_executed"])
+        self.assertEqual(
+            before,
+            (self.project / "noemaforge" / "src" / "sample.py").read_bytes(),
+        )
+        self.assertTrue(Path(report["report_path"]).exists())
+        self.assertTrue(list(self.state.glob("prop_uat-self-improvement-preflight_*.json")))
+
+    def test_source_mutation_forces_preflight_failure(self) -> None:
+        original = CodeEvolutionLoop.propose_patch
+
+        def mutating_proposal(loop, task, analysis):
+            proposal = original(loop, task, analysis)
+            (self.project / "noemaforge" / "src" / "sample.py").write_text(
+                "def value():\n    return 99\n", encoding="utf-8"
+            )
+            return proposal
+
+        with mock.patch.object(CodeEvolutionLoop, "propose_patch", mutating_proposal):
+            report = run_uat_self_improvement_preflight(
+                project_root=self.project,
+                state_dir=self.state,
+                test_patterns=("test_smoke.py",),
+            )
+        self.assertFalse(report["ok"])
+        self.assertEqual("fail", report["status"])
+        self.assertFalse(report["invariants"]["tree_unchanged"])
 
 
 if __name__ == "__main__":
