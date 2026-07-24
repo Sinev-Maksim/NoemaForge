@@ -17,15 +17,18 @@ Notes: Raw request bodies can never provide TrustedTriggerVerificationContext; p
 from __future__ import annotations
 
 import copy
+from contextlib import closing
 import hashlib
 import hmac
 import ipaddress
 import json
 import os
+import secrets
 import sqlite3
 import threading
 import uuid
 from datetime import datetime, timezone
+from http.cookies import SimpleCookie
 from pathlib import Path
 from typing import Any, Dict, Mapping, Optional, Sequence
 from urllib.parse import urlparse
@@ -42,6 +45,7 @@ TRUSTED_CONTEXT_INJECTION_KEYS = frozenset(
         "verifier_evidence",
     }
 )
+OWNER_SESSION_COOKIE = "nf_owner_session"
 CONVERSATION_TRIGGER_PATHS = frozenset(
     {
         "/api/admin/message",
@@ -165,9 +169,7 @@ def _deny_existing_decision(
     denied["trigger_authorized"] = False
     denied["approval_authorized"] = False
     denied["reason_codes"] = [reason]
-    denied["diagnostics"] = list(
-        dict.fromkeys(_string(item) for item in diagnostics if _string(item))
-    )
+    denied["diagnostics"] = list(dict.fromkeys(_string(item) for item in diagnostics if _string(item)))
     return denied
 
 
@@ -181,15 +183,13 @@ class ReplayStore:
         self._initialize()
 
     def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(
-            str(self.path), timeout=10.0, isolation_level=None
-        )
+        connection = sqlite3.connect(str(self.path), timeout=10.0, isolation_level=None)
         connection.execute("PRAGMA busy_timeout=10000")
         connection.execute("PRAGMA synchronous=FULL")
         return connection
 
     def _initialize(self) -> None:
-        with self._connect() as connection:
+        with closing(self._connect()) as connection:
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS trusted_github_deliveries (
@@ -214,45 +214,45 @@ class ReplayStore:
         app_id: int,
         installation_id: int,
     ) -> bool:
-        with self._lock:
+        with self._lock, closing(self._connect()) as connection:
             try:
-                with self._connect() as connection:
-                    connection.execute("BEGIN IMMEDIATE")
-                    connection.execute(
-                        """
-                        INSERT INTO trusted_github_deliveries (
-                            delivery_id, payload_sha256, repository, event_type,
-                            app_id, installation_id, claimed_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                        """,
-                        (
-                            delivery_id,
-                            payload_sha256,
-                            repository,
-                            event_type,
-                            app_id,
-                            installation_id,
-                            _now_iso(),
-                        ),
-                    )
-                    connection.execute("COMMIT")
+                connection.execute("BEGIN IMMEDIATE")
+                connection.execute(
+                    """
+                    INSERT INTO trusted_github_deliveries (
+                        delivery_id, payload_sha256, repository, event_type,
+                        app_id, installation_id, claimed_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        delivery_id,
+                        payload_sha256,
+                        repository,
+                        event_type,
+                        app_id,
+                        installation_id,
+                        _now_iso(),
+                    ),
+                )
+                connection.execute("COMMIT")
                 return True
             except sqlite3.IntegrityError:
+                connection.execute("ROLLBACK")
                 return False
+            except Exception:
+                connection.execute("ROLLBACK")
+                raise
+
 
 
 class VerifiedGithubConnectorAdapter:
     """Capability-bound adapter returned only to the trusted connector owner."""
 
-    def __init__(
-        self, integration: "TrustedTriggerIntegration", capability: object
-    ):
+    def __init__(self, integration: "TrustedTriggerIntegration", capability: object):
         self.__integration = integration
         self.__capability = capability
 
-    def evaluate(
-        self, metadata: Mapping[str, Any], payload: Any
-    ) -> Dict[str, Any]:
+    def evaluate(self, metadata: Mapping[str, Any], payload: Any) -> Dict[str, Any]:
         return self.__integration._github_connector_gate(  # noqa: SLF001
             metadata, payload, capability=self.__capability
         )
@@ -273,17 +273,49 @@ class TrustedTriggerIntegration:
         self.policy_path = Path(policy_path)
         self.repository = repository
         self.owner_principal_id = owner_principal_id
-        self._policy_override = (
-            copy.deepcopy(dict(policy_override))
-            if policy_override is not None
-            else None
-        )
+        self._policy_override = copy.deepcopy(dict(policy_override)) if policy_override is not None else None
         self._connector_capability = object()
+        self._owner_session_lock = threading.Lock()
+        self._owner_session_tokens: Dict[str, str] = {}
         self._audit_lock = threading.Lock()
         self.audit_path = self.state_dir / "trusted-trigger-audit.jsonl"
-        self.replay_store = ReplayStore(
-            self.state_dir / "github-deliveries.sqlite3"
+        self.replay_store = ReplayStore(self.state_dir / "github-deliveries.sqlite3")
+
+    def owner_session_cookie_header(self, session_id: str) -> str:
+        session = _string(session_id) or "unknown"
+        with self._owner_session_lock:
+            token = self._owner_session_tokens.get(session)
+            if not token:
+                token = secrets.token_urlsafe(32)
+                self._owner_session_tokens[session] = token
+                if len(self._owner_session_tokens) > 16:
+                    oldest = next(iter(self._owner_session_tokens))
+                    if oldest != session:
+                        self._owner_session_tokens.pop(oldest, None)
+        return (
+            f"{OWNER_SESSION_COOKIE}={token}; Path=/; HttpOnly; "
+            "SameSite=Strict; Max-Age=43200"
         )
+
+    def _owner_session_capability_valid(
+        self, headers: Mapping[str, Any], session_id: str
+    ) -> bool:
+        session = _string(session_id) or "unknown"
+        with self._owner_session_lock:
+            expected = self._owner_session_tokens.get(session)
+        if not expected:
+            return False
+        raw_cookie = _header(headers, "Cookie")
+        if not raw_cookie:
+            return False
+        try:
+            parsed = SimpleCookie()
+            parsed.load(raw_cookie)
+            supplied = parsed.get(OWNER_SESSION_COOKIE)
+            value = supplied.value if supplied is not None else ""
+        except Exception:
+            return False
+        return bool(value) and hmac.compare_digest(value, expected)
 
     def bind_github_connector(self) -> VerifiedGithubConnectorAdapter:
         """Return a capability-bound callable; no HTTP/body field can mint it."""
@@ -319,12 +351,8 @@ class TrustedTriggerIntegration:
         diagnostics: Sequence[str] = (),
     ) -> Dict[str, Any]:
         enforcement_active = _active(policy)
-        actual_allowed = bool(
-            actual_decision and actual_decision.get("allowed") is True
-        )
-        would_authorize = bool(
-            preview_decision and preview_decision.get("allowed") is True
-        )
+        actual_allowed = bool(actual_decision and actual_decision.get("allowed") is True)
+        would_authorize = bool(preview_decision and preview_decision.get("allowed") is True)
         proceed = actual_allowed if enforcement_active else not hard_deny
         reason_codes = list(
             (actual_decision or preview_decision or {}).get("reason_codes") or []
@@ -341,28 +369,12 @@ class TrustedTriggerIntegration:
             "hard_deny": hard_deny,
             "would_authorize_if_activated": would_authorize,
             "reason_codes": reason_codes,
-            "diagnostics": list(
-                dict.fromkeys(
-                    _string(item) for item in diagnostics if _string(item)
-                )
-            ),
+            "diagnostics": list(dict.fromkeys(_string(item) for item in diagnostics if _string(item))),
             "policy_sha256": _canonical_sha256(policy),
-            "envelope_sha256": (
-                _canonical_sha256(envelope) if envelope is not None else None
-            ),
-            "verification_context_sha256": (
-                _canonical_sha256(context) if context is not None else None
-            ),
-            "actual_decision": (
-                copy.deepcopy(dict(actual_decision))
-                if actual_decision is not None
-                else None
-            ),
-            "shadow_preview_decision": (
-                copy.deepcopy(dict(preview_decision))
-                if preview_decision is not None
-                else None
-            ),
+            "envelope_sha256": _canonical_sha256(envelope) if envelope is not None else None,
+            "verification_context_sha256": _canonical_sha256(context) if context is not None else None,
+            "actual_decision": copy.deepcopy(dict(actual_decision)) if actual_decision is not None else None,
+            "shadow_preview_decision": copy.deepcopy(dict(preview_decision)) if preview_decision is not None else None,
         }
         self._append_audit(
             {
@@ -371,12 +383,8 @@ class TrustedTriggerIntegration:
                 if key not in {"actual_decision", "shadow_preview_decision"}
             }
             | {
-                "actual_reason_codes": list(
-                    (actual_decision or {}).get("reason_codes") or []
-                ),
-                "preview_reason_codes": list(
-                    (preview_decision or {}).get("reason_codes") or []
-                ),
+                "actual_reason_codes": list((actual_decision or {}).get("reason_codes") or []),
+                "preview_reason_codes": list((preview_decision or {}).get("reason_codes") or []),
             }
         )
         return report
@@ -401,9 +409,7 @@ class TrustedTriggerIntegration:
             )
         }
 
-    def record_work_item(
-        self, gate: Mapping[str, Any], task_id: str
-    ) -> None:
+    def record_work_item(self, gate: Mapping[str, Any], task_id: str) -> None:
         self._append_audit(
             {
                 "apiVersion": "noemaforge.trusted-trigger-work-item-link/v1",
@@ -412,9 +418,7 @@ class TrustedTriggerIntegration:
                 "source_kind": gate.get("source_kind"),
                 "policy_sha256": gate.get("policy_sha256"),
                 "envelope_sha256": gate.get("envelope_sha256"),
-                "verification_context_sha256": gate.get(
-                    "verification_context_sha256"
-                ),
+                "verification_context_sha256": gate.get("verification_context_sha256"),
             }
         )
 
@@ -428,9 +432,7 @@ class TrustedTriggerIntegration:
         session_id: str,
     ) -> Dict[str, Any]:
         policy = self._load_policy()
-        injected = sorted(
-            TRUSTED_CONTEXT_INJECTION_KEYS.intersection(body.keys())
-        )
+        injected = sorted(TRUSTED_CONTEXT_INJECTION_KEYS.intersection(body.keys()))
         if injected:
             return self._finalize_gate(
                 source_kind="conversation",
@@ -441,17 +443,12 @@ class TrustedTriggerIntegration:
                 preview_decision=None,
                 hard_deny=True,
                 integration_reason="metadata_contradiction",
-                diagnostics=[
-                    f"trusted_context_injection_attempt:{key}"
-                    for key in injected
-                ],
+                diagnostics=[f"trusted_context_injection_attempt:{key}" for key in injected],
             )
 
         request_text = _extract_request_text(body)
         request_id = "msg-" + uuid.uuid4().hex
-        source_id = (
-            f"conversation:{_string(session_id) or 'unknown'}:{request_id}"
-        )
+        source_id = f"conversation:{_string(session_id) or 'unknown'}:{request_id}"
         envelope = {
             "apiVersion": tts.ENVELOPE_VERSION,
             "kind": tts.ENVELOPE_KIND,
@@ -478,8 +475,9 @@ class TrustedTriggerIntegration:
         route_valid = route in CONVERSATION_TRIGGER_PATHS
         connection_valid = _client_is_loopback(client_address)
         host_valid = _host_header_is_loopback(_header(headers, "Host"))
-        origin_valid = _origin_is_loopback_or_absent(
-            _header(headers, "Origin")
+        origin_valid = _origin_is_loopback_or_absent(_header(headers, "Origin"))
+        session_capability_valid = self._owner_session_capability_valid(
+            headers, session_id
         )
         identity_valid = bool(
             request_text
@@ -487,6 +485,7 @@ class TrustedTriggerIntegration:
             and connection_valid
             and host_valid
             and origin_valid
+            and session_capability_valid
         )
         context: Optional[Dict[str, Any]] = None
         diagnostics = []
@@ -500,10 +499,17 @@ class TrustedTriggerIntegration:
             diagnostics.append("owner_host_not_loopback")
         if not origin_valid:
             diagnostics.append("owner_origin_not_loopback")
+        if not session_capability_valid:
+            diagnostics.append("owner_session_capability_invalid")
         if identity_valid:
+            with self._owner_session_lock:
+                session_token = self._owner_session_tokens.get(
+                    _string(session_id) or "unknown", ""
+                )
             evidence = {
-                "session_id_sha256": hashlib.sha256(
-                    _string(session_id).encode("utf-8")
+                "session_id_sha256": hashlib.sha256(_string(session_id).encode("utf-8")).hexdigest(),
+                "session_capability_sha256": hashlib.sha256(
+                    session_token.encode("utf-8")
                 ).hexdigest(),
                 "route": route,
                 "client": _string(client_address[0]),
@@ -520,9 +526,7 @@ class TrustedTriggerIntegration:
                     "id": "nf-conversation-owner-verifier",
                     "class": "trusted_conversation_identity",
                     "verified": True,
-                    "evidence_id": (
-                        f"gui-session:{evidence['session_id_sha256']}:{request_id}"
-                    ),
+                    "evidence_id": f"gui-session:{evidence['session_id_sha256']}:{request_id}",
                     "evidence_sha256": _canonical_sha256(evidence),
                 },
                 "bindings": {
@@ -558,9 +562,7 @@ class TrustedTriggerIntegration:
         capability: object,
     ) -> Dict[str, Any]:
         policy = self._load_policy()
-        injected = sorted(
-            TRUSTED_CONTEXT_INJECTION_KEYS.intersection(metadata.keys())
-        )
+        injected = sorted(TRUSTED_CONTEXT_INJECTION_KEYS.intersection(metadata.keys()))
         if injected:
             return self._finalize_gate(
                 source_kind="github_connector",
@@ -571,10 +573,7 @@ class TrustedTriggerIntegration:
                 preview_decision=None,
                 hard_deny=True,
                 integration_reason="metadata_contradiction",
-                diagnostics=[
-                    f"trusted_context_injection_attempt:{key}"
-                    for key in injected
-                ],
+                diagnostics=[f"trusted_context_injection_attempt:{key}" for key in injected],
             )
         if capability is not self._connector_capability:
             return self._finalize_gate(
@@ -595,9 +594,7 @@ class TrustedTriggerIntegration:
         event_type = _string(metadata.get("event_type"))
         delivery_id = _string(metadata.get("delivery_id"))
         verified_at = _string(metadata.get("verified_at")) or _now_iso()
-        claimed_payload_sha256 = _string(
-            metadata.get("payload_sha256")
-        ).lower()
+        claimed_payload_sha256 = _string(metadata.get("payload_sha256")).lower()
         actual_payload_sha256 = _canonical_sha256(payload)
         malformed = []
         if not _strict_positive_int(app_id):
@@ -610,10 +607,7 @@ class TrustedTriggerIntegration:
             malformed.append("github_event_type_missing")
         if not delivery_id:
             malformed.append("github_delivery_id_missing")
-        if len(claimed_payload_sha256) != 64 or any(
-            ch not in "0123456789abcdef"
-            for ch in claimed_payload_sha256
-        ):
+        if len(claimed_payload_sha256) != 64 or any(ch not in "0123456789abcdef" for ch in claimed_payload_sha256):
             malformed.append("github_payload_digest_invalid")
         if malformed:
             return self._finalize_gate(
@@ -627,9 +621,7 @@ class TrustedTriggerIntegration:
                 integration_reason="github_app_metadata_missing",
                 diagnostics=malformed,
             )
-        if not hmac.compare_digest(
-            claimed_payload_sha256, actual_payload_sha256
-        ):
+        if not hmac.compare_digest(claimed_payload_sha256, actual_payload_sha256):
             return self._finalize_gate(
                 source_kind="github_connector",
                 policy=policy,
@@ -675,10 +667,7 @@ class TrustedTriggerIntegration:
             "delivery_id": delivery_id,
             "payload_sha256": actual_payload_sha256,
             "verified_at": verified_at,
-            "connector_evidence_id": (
-                _string(metadata.get("connector_evidence_id"))
-                or f"github-delivery:{delivery_id}"
-            ),
+            "connector_evidence_id": _string(metadata.get("connector_evidence_id")) or f"github-delivery:{delivery_id}",
         }
         context = {
             "apiVersion": tts.VERIFICATION_VERSION,
@@ -716,9 +705,7 @@ class TrustedTriggerIntegration:
             )
             if not claimed:
                 actual = _deny_existing_decision(
-                    actual,
-                    "metadata_contradiction",
-                    ["replayed_delivery"],
+                    actual, "metadata_contradiction", ["replayed_delivery"]
                 )
         return self._finalize_gate(
             source_kind="github_connector",
