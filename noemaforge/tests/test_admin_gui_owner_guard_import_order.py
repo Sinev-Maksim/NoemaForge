@@ -6,7 +6,7 @@ Zone: tests
 Version: 0.33.0
 Created: 2026-07-24
 Modified: 2026-07-24
-Purpose: Prove fresh-process owner-guard installation and source-to-policy coverage for inline Admin GUI POST mutations.
+Purpose: Prove fresh-process owner-guard installation, source-to-policy coverage and package-root code-evolution layout handling.
 Inputs: Admin GUI server source, mutation policy and temporary isolated package/state directories.
 Outputs: unittest assertions only.
 Side effects: Temporary local files and one ephemeral loopback listening socket closed during the test.
@@ -28,6 +28,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
+
+# Imported TestCase classes are intentionally included by unittest.main() when
+# this executable regression module is loaded by the premerge workflow.
+from test_code_evolution_layout import CodeEvolutionLayoutTests  # noqa: E402,F401
 
 
 class AdminGuiOwnerGuardImportOrderTests(unittest.TestCase):
