@@ -1,0 +1,251 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trusted_trigger_source_decision.schema.json",
+  "title": "NoemaForge Trusted Trigger Source Decision",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "source_id",
+    "evaluated_at",
+    "policy",
+    "envelope_sha256",
+    "verification_context_sha256",
+    "allowed",
+    "trigger_authorized",
+    "approval_authorized",
+    "reason_codes",
+    "diagnostics",
+    "actor_type",
+    "principal_id",
+    "requested_authority",
+    "verification"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.trusted-trigger-source-decision/v1"
+    },
+    "kind": {
+      "const": "TrustedTriggerSourceDecision"
+    },
+    "source_id": {
+      "type": "string"
+    },
+    "evaluated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "id",
+        "version",
+        "status",
+        "enforcement_mode",
+        "live_connector_integration_state",
+        "sha256"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "enforcement_mode": {
+          "type": "string"
+        },
+        "live_connector_integration_state": {
+          "type": "string"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "additionalProperties": false
+    },
+    "envelope_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "verification_context_sha256": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      ]
+    },
+    "allowed": {
+      "type": "boolean"
+    },
+    "trigger_authorized": {
+      "type": "boolean"
+    },
+    "approval_authorized": {
+      "const": false
+    },
+    "reason_codes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "allowed_explicit_owner_message",
+          "allowed_verified_github_app_event",
+          "policy_invalid",
+          "schema_validator_unavailable",
+          "envelope_invalid",
+          "verification_context_missing",
+          "verification_context_invalid",
+          "verifier_not_allowlisted",
+          "verification_binding_mismatch",
+          "requested_authority_not_trigger",
+          "content_origin_untrusted",
+          "repository_not_allowlisted",
+          "owner_principal_not_allowlisted",
+          "owner_message_metadata_missing",
+          "github_app_not_allowlisted",
+          "github_app_metadata_missing",
+          "event_type_not_allowlisted",
+          "metadata_contradiction",
+          "actor_type_unsupported",
+          "policy_not_active",
+          "verification_stale",
+          "verification_from_future"
+        ]
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "actor_type": {
+      "type": "string"
+    },
+    "principal_id": {
+      "type": "string"
+    },
+    "requested_authority": {
+      "type": "string"
+    },
+    "verification": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "required": [
+            "verifier_id",
+            "verifier_class",
+            "evidence_id",
+            "evidence_sha256",
+            "verified_at"
+          ],
+          "properties": {
+            "verifier_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "verifier_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidence_sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "verified_at": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "allowed": {
+            "const": true
+          }
+        },
+        "required": [
+          "allowed"
+        ]
+      },
+      "then": {
+        "properties": {
+          "trigger_authorized": {
+            "const": true
+          },
+          "approval_authorized": {
+            "const": false
+          },
+          "verification": {
+            "type": "object"
+          },
+          "verification_context_sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "policy": {
+            "properties": {
+              "status": {
+                "const": "stable"
+              },
+              "enforcement_mode": {
+                "const": "enforce"
+              },
+              "live_connector_integration_state": {
+                "const": "pass"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "allowed": {
+            "const": false
+          }
+        },
+        "required": [
+          "allowed"
+        ]
+      },
+      "then": {
+        "properties": {
+          "trigger_authorized": {
+            "const": false
+          },
+          "approval_authorized": {
+            "const": false
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}
