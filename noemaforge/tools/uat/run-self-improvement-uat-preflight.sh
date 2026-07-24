@@ -52,6 +52,7 @@ PACKAGE_ROOT="$REPO_ROOT/noemaforge"
 command -v git >/dev/null
 command -v python3 >/dev/null
 command -v curl >/dev/null
+command -v ps >/dev/null
 
 HEAD_BEFORE="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 if [[ -n "$EXPECTED_HEAD" && "$HEAD_BEFORE" != "$EXPECTED_HEAD" ]]; then
@@ -76,18 +77,34 @@ CONF="$OUT/noemaforge-uat.conf"
 COOKIE_JAR="$OUT/.owner-cookie.jar"
 DASHBOARD_CAPTURE="$OUT/.dashboard-start.raw"
 DASHBOARD_LOG="$XDG_UAT_STATE/noemaforge/dashboard.log"
+PIDFILE="$XDG_UAT_STATE/noemaforge/dashboard.pid"
 SUMMARY="$OUT/summary.json"
 mkdir -p "$DATA_ROOT" "$XDG_UAT_STATE"
 chmod 700 "$DATA_ROOT" "$XDG_UAT_STATE"
 
 cleanup() {
   set +e
-  env \
-    XDG_STATE_HOME="$XDG_UAT_STATE" \
-    NOEMAFORGE_CONFIG_FILE="$CONF" \
-    NOEMAFORGE_ROOT="$PACKAGE_ROOT" \
-    bash "$PACKAGE_ROOT/tools/prep/noemaforge-dashboard.sh" stop --root "$PACKAGE_ROOT" --port "$PORT" \
-    >/dev/null 2>&1
+  if [[ -f "$PIDFILE" ]]; then
+    dashboard_pid="$(cat "$PIDFILE" 2>/dev/null || true)"
+    if [[ "$dashboard_pid" =~ ^[0-9]+$ ]] && kill -0 "$dashboard_pid" 2>/dev/null; then
+      dashboard_cmd="$(ps -p "$dashboard_pid" -o args= 2>/dev/null || true)"
+      if [[ "$dashboard_cmd" == *"$PACKAGE_ROOT/src/admin_gui_server.py"* && "$dashboard_cmd" == *"--port $PORT"* ]]; then
+        kill "$dashboard_pid" 2>/dev/null || true
+        for _ in $(seq 1 40); do
+          kill -0 "$dashboard_pid" 2>/dev/null || break
+          sleep 0.05
+        done
+        if kill -0 "$dashboard_pid" 2>/dev/null; then
+          kill -9 "$dashboard_pid" 2>/dev/null || true
+        fi
+        rm -f "$PIDFILE"
+      else
+        echo "refusing to stop non-matching pid $dashboard_pid: $dashboard_cmd" >&2
+      fi
+    else
+      rm -f "$PIDFILE"
+    fi
+  fi
   rm -f "$COOKIE_JAR" "$DASHBOARD_CAPTURE" "$XDG_UAT_STATE/noemaforge/owner-bootstrap.token"
 }
 trap cleanup EXIT INT TERM
