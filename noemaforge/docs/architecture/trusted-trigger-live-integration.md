@@ -16,9 +16,13 @@ The protected conversation paths are:
 
 `TrustedTriggerVerificationContext` is created inside the route adapter from server-owned session metadata and observed HTTP connection metadata. Login text, message text and request-body identity claims are not authority. Any request containing a verification-context field is rejected before `save_message`, task creation, pipeline routing or another side effect.
 
-While the packaged policy remains `draft / shadow / not_run`, valid requests continue through the existing GUI behavior and receive a non-authorizing shadow audit. The audit records hashes and reason codes but does not persist raw conversation text.
+Loopback addressing is necessary but is not treated as owner identity. Safe GUI GET routes issue a process-local, server-generated `nf_owner_session` capability as an `HttpOnly`, `SameSite=Strict` cookie bound to the active GUI session. A trigger can authorize only when the cookie, session, loopback client, loopback Host, allowlisted route and loopback-or-absent Origin all agree. The random capability value is never accepted from JSON, never written to audit evidence and is represented there only by SHA-256.
+
+While the packaged policy remains `draft / shadow / not_run`, valid requests continue through the existing GUI behavior and receive a non-authorizing shadow audit. Requests without the owner-session capability are visible as shadow denials and cannot pass after activation. The audit records hashes and reason codes but does not persist raw conversation text or the capability token.
 
 After a separately reviewed activation changes the policy to `stable / enforce / pass`, the same endpoints no longer execute an external message as a command. A successful trigger creates exactly one pending task with `requires_approval=true`; execute/apply fields cannot expand that authority. A denied trigger produces no message, task, pipeline, apply, push, merge or release side effect.
+
+The cookie is a localhost browser-session capability, not proof of an operating-system user identity. Target-host UAT must therefore verify that the GUI binds only to loopback, that unrelated local origins cannot obtain/use the capability through browser behavior, and that the capability rotates when the Admin GUI process/session is replaced.
 
 ## GitHub connector ingress
 
@@ -34,7 +38,7 @@ The connector metadata binds:
 - connector evidence ID;
 - verification timestamp.
 
-The event is evaluated against the same contract as conversation triggers. An active, allowlisted event atomically claims its delivery ID in SQLite before it may proceed. A repeated delivery fails closed with `metadata_contradiction` and the stable diagnostic `replayed_delivery`. Payload digest mismatch fails before a replay claim is written.
+The event is evaluated against the same contract as conversation triggers. An active, allowlisted event atomically claims its delivery ID in SQLite before it may proceed. SQLite connections are explicitly closed and a failed duplicate claim rolls its transaction back. A repeated delivery fails closed with `metadata_contradiction` and the stable diagnostic `replayed_delivery`. Payload digest mismatch fails before a replay claim is written.
 
 The packaged `github_apps` allowlist remains empty. No GitHub App event can authorize production work until exact App and installation identifiers are configured through the separate activation gate.
 
@@ -45,14 +49,14 @@ Integration state is stored under the platform-aware data root:
 - `trusted-trigger/trusted-trigger-audit.jsonl` — append-only hash/reason audit;
 - `trusted-trigger/github-deliveries.sqlite3` — persistent duplicate-delivery guard.
 
-Raw message text and raw GitHub payloads are not written to the audit log. Decisions retain policy, envelope and verification-context hashes for correlation with the contract evaluator.
+Raw message text, owner-session capability values and raw GitHub payloads are not written to the audit log. Decisions retain policy, envelope and verification-context hashes for correlation with the contract evaluator.
 
 ## Remaining target-host gate
 
 This implementation is not sufficient to mark issue `#302` complete. The production target must still prove, from the exact PR head:
 
-1. a real Admin GUI owner message creates one bounded pending work item after activation in an isolated UAT policy;
-2. copied owner text and injected verification context are denied without mutation;
+1. a real Admin GUI owner message with a server-issued session capability creates one bounded pending work item after activation in an isolated UAT policy;
+2. copied owner text, a missing/invalid session capability and injected verification context are denied without mutation;
 3. a real allowlisted GitHub connector event binds the observed App, installation, repository, event, delivery and payload digest;
 4. duplicate, stale, future-dated, malformed and contradictory events fail closed;
 5. before/after target-host evidence shows no unrelated task, job, repository, provider, credential or runtime mutation;
