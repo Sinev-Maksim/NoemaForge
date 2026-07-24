@@ -27,9 +27,11 @@ artifacts/checkpoints; canonical truth belongs to NF events and projections.
 - Persona names never grant blanket tool access.
 - Security is evaluated from purpose, task scope, invocation risk, environment,
   capability tokens and approval.
-- External source/examples remain local-only unless a compatible dependency is
+- External source/examples remain reference material unless a compatible dependency is
   explicitly approved as Ready-to-use.
-- Ready-to-re-code candidates produce clean-room requirements/tests, not copied code.
+- **Ready-to-re-code** identifies an external approach or technical technique used as a
+  source of requirements and testable ideas. The NF implementation is created anew and
+  independently, without transferring source code.
 - Unknown token, cost, resource or exact-head values remain explicitly unknown.
 - Provider retries and semantic attempts are accounted separately.
 - Mutation invalidates earlier review; final review must match the exact final HEAD.
@@ -169,7 +171,7 @@ Allowed dispositions:
 - `how_to_validation`;
 - `ready_to_use_evaluation`;
 - `skill_proposal_quarantine`;
-- `clean_room_recode_spec`;
+- `independent_implementation_spec`;
 - `benchmark_candidate`;
 - `roadmap_or_issue_candidate`;
 - `rejected` with reason.
