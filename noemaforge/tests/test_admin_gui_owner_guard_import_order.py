@@ -6,8 +6,8 @@ Zone: tests
 Version: 0.33.0
 Created: 2026-07-24
 Modified: 2026-07-24
-Purpose: Prove in a fresh interpreter that admin_gui_server receives the guarded server base before AdminGuiServer class construction.
-Inputs: Temporary minimal Admin GUI package root and isolated state directories.
+Purpose: Prove fresh-process owner-guard installation and source-to-policy coverage for inline Admin GUI POST mutations.
+Inputs: Admin GUI server source, mutation policy and temporary isolated package/state directories.
 Outputs: unittest assertions only.
 Side effects: Temporary local files and one ephemeral loopback listening socket closed during the test.
 Tests: direct unittest execution from the premerge quality workflow.
@@ -16,7 +16,9 @@ Notes: A subprocess is required because in-process imports would hide the real p
 """
 from __future__ import annotations
 
+import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -84,6 +86,34 @@ class AdminGuiOwnerGuardImportOrderTests(unittest.TestCase):
                 result.returncode,
                 msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
             )
+
+    def test_inline_post_branches_are_present_in_mutation_inventory(self) -> None:
+        source = (SRC / "admin_gui_server.py").read_text(encoding="utf-8")
+        post_start = source.index("    def do_POST")
+        post_end = source.index("    def _serve_static", post_start)
+        post_source = source[post_start:post_end]
+
+        exact_routes = set(
+            re.findall(r'(?:if|elif) path == "([^"]+)"', post_source)
+        )
+        prefix_routes = set(
+            re.findall(
+                r'if path\.startswith\("([^"]+)"\) and path\.endswith\("([^"]+)"\)',
+                post_source,
+            )
+        )
+        policy = json.loads(
+            (ROOT / "configs" / "admin-gui-mutation-policy.json").read_text(encoding="utf-8")
+        )["policy"]
+        owner_exact = set(policy["owner_required_exact_routes"])
+        owner_prefix = {
+            (item["prefix"], item["suffix"])
+            for item in policy["owner_required_prefix_routes"]
+        }
+
+        self.assertEqual({"/api/session/mode", "/api/shutdown"}, exact_routes)
+        self.assertTrue(exact_routes.issubset(owner_exact))
+        self.assertEqual(prefix_routes, owner_prefix)
 
 
 if __name__ == "__main__":
