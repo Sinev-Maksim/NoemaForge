@@ -9,7 +9,7 @@
 # Inputs: Exact clean repository checkout, optional expected head, free loopback port and local curl/python/git tools.
 # Outputs: Redacted UAT evidence bundle under an operator-owned state directory.
 # Side effects: Starts and stops one isolated loopback Admin GUI process; writes only under the evidence directory.
-# Tests: bash -n in premerge; full execution is target-host UAT only.
+# Tests: Executed end-to-end in premerge and repeated on the target host.
 # Notes: Never applies/commits/pushes/releases; bootstrap token and cookie jar are deleted or redacted before completion.
 # === End NoemaForge File Header ===
 set -euo pipefail
@@ -79,8 +79,8 @@ DASHBOARD_CAPTURE="$OUT/.dashboard-start.raw"
 DASHBOARD_LOG="$XDG_UAT_STATE/noemaforge/dashboard.log"
 PIDFILE="$XDG_UAT_STATE/noemaforge/dashboard.pid"
 SUMMARY="$OUT/summary.json"
-mkdir -p "$DATA_ROOT" "$XDG_UAT_STATE"
-chmod 700 "$DATA_ROOT" "$XDG_UAT_STATE"
+mkdir -p "$DATA_ROOT/code-evolution" "$XDG_UAT_STATE"
+chmod 700 "$DATA_ROOT" "$DATA_ROOT/code-evolution" "$XDG_UAT_STATE"
 
 cleanup() {
   set +e
@@ -154,10 +154,11 @@ TREE_BEFORE="$(git -C "$REPO_ROOT" ls-files -z | xargs -0 -r sha256sum | sha256s
 # Phase A: exact checked-out tree, before the Admin GUI UAT.
 PHASE_A_STATE="$OUT/phase-a-state"
 mkdir -p "$PHASE_A_STATE"
-python3 "$PACKAGE_ROOT/src/code_evolution_uat_preflight.py" \
-  --root "$REPO_ROOT" \
-  --state-dir "$PHASE_A_STATE" \
-  --json > "$OUT/phase-a-preflight.json"
+env PYTHONPYCACHEPREFIX="$PHASE_A_STATE/launcher-pycache" \
+  python3 "$PACKAGE_ROOT/src/code_evolution_uat_preflight.py" \
+    --root "$REPO_ROOT" \
+    --state-dir "$PHASE_A_STATE" \
+    --json > "$OUT/phase-a-preflight.json"
 python3 - "$OUT/phase-a-preflight.json" <<'PY'
 import json, sys
 report = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -170,6 +171,7 @@ PY
 # Start isolated dashboard. Capture the raw bootstrap URL only in a mode-0600 temporary file.
 env \
   XDG_STATE_HOME="$XDG_UAT_STATE" \
+  PYTHONPYCACHEPREFIX="$OUT/dashboard-pycache" \
   NOEMAFORGE_CONFIG_FILE="$CONF" \
   NOEMAFORGE_ROOT="$PACKAGE_ROOT" \
   bash "$PACKAGE_ROOT/tools/prep/noemaforge-dashboard.sh" start \
