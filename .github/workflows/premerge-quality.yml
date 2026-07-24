@@ -59,8 +59,10 @@ jobs:
           [ "$errs" -eq 0 ] || exit 1
 
       # ── 1a. Trusted ingress and owner-session regression suite ───────────
-      - name: Trusted trigger integration unit tests
-        run: python -W error::ResourceWarning noemaforge/tests/test_trusted_trigger_integration.py
+      - name: Trusted trigger and owner-session integration tests
+        run: |
+          python -W error::ResourceWarning noemaforge/tests/test_trusted_trigger_integration.py
+          python -W error::ResourceWarning noemaforge/tests/test_admin_gui_owner_guard_import_order.py
 
       # ── 1b. Real self-improvement pipeline rehearsal before UAT ──────────
       - name: Self-improvement UAT preflight
