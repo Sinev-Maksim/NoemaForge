@@ -7,7 +7,7 @@ name: Premerge quality gate
 # Created: 2026-05-28
 # Modified: 2026-07-24
 # Purpose: Read-only premerge quality gate for active release branches and main,
-#   including the proposal/test-only self-improvement UAT preflight.
+#   including the full proposal/test-only self-improvement UAT harness.
 # Notes: Code comments are English-only; no auto-commit, push, apply or release action.
 # === End NoemaForge File Header ===
 
@@ -39,6 +39,16 @@ jobs:
       - name: Install PyYAML
         run: pip install pyyaml --quiet
 
+      # Run before importing repository Python modules so the exact checkout is clean.
+      - name: End-to-end self-improvement UAT harness
+        run: |
+          evidence_dir="$(mktemp -d)"
+          bash noemaforge/tools/uat/run-self-improvement-uat-preflight.sh \
+            --repo-root "$PWD" \
+            --expected-head "$(git rev-parse HEAD)" \
+            --port 18876 \
+            --out "$evidence_dir"
+
       # ── 0. Resolve expected version from the source of truth ─────────────
       - name: Resolve expected version from SoT
         run: |
@@ -63,15 +73,6 @@ jobs:
         run: |
           python -W error::ResourceWarning noemaforge/tests/test_trusted_trigger_integration.py
           python -W error::ResourceWarning noemaforge/tests/test_admin_gui_owner_guard_import_order.py
-
-      # ── 1b. Real self-improvement pipeline rehearsal before UAT ──────────
-      - name: Self-improvement UAT preflight
-        run: |
-          state_dir="$(mktemp -d)"
-          python noemaforge/src/code_evolution_uat_preflight.py \
-            --root "$PWD" \
-            --state-dir "$state_dir" \
-            --json | tee "$state_dir/preflight-result.json"
 
       # ── 2. No RUNTIME_VERSION= assignment outside noemaforge_version.py ──
       - name: No forbidden RUNTIME_VERSION assignment
