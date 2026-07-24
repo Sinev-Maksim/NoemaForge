@@ -1,188 +1,270 @@
 # NoemaForge roadmap
 
-Status date: 2026-06-10.
-Shipped version: **0.32.2** (on `main` via PR #77).
+Status date: **2026-07-24**.  
+Shipped stable line: **0.32.2**.  
 Active development line: `release/0.33.0-dev`.
 
 This is the forward-looking project roadmap. Task-level tracking lives in the
-canonical [`noemaforge/docs/TODO.md`](../noemaforge/docs/TODO.md); historical
-backlog in [`docs/backlog/ROADMAP_AND_TODO.md`](backlog/ROADMAP_AND_TODO.md).
+canonical [`noemaforge/docs/TODO.md`](../noemaforge/docs/TODO.md). The focused
+Loop → Harness integration plan is maintained in
+[`noemaforge/docs/HARNESS_EVOLUTION_TODO.md`](../noemaforge/docs/HARNESS_EVOLUTION_TODO.md)
+and umbrella issue [#304](https://github.com/Sinev-Maksim/NoemaForge/issues/304).
+Historical backlog remains in
+[`docs/backlog/ROADMAP_AND_TODO.md`](backlog/ROADMAP_AND_TODO.md).
+
+## Product direction
+
+NoemaForge remains a governed agent operating system, not a single unrestricted
+universal agent and not a collection of bespoke pipelines.
+
+```text
+NF Controller
++ Personas and purpose/risk-aware Skills
++ ToolProxy policy and approvals
++ canonical Event/Evidence stores
++ Resource Broker
++ replaceable Harness Workers
+```
+
+The current prod-ready code-evolution loop is treated as the first proven Harness
+adapter. NF will absorb its useful execution behaviour incrementally while the
+current Bash implementation remains replaceable and local to its adapter boundary.
 
 ## Where we are
 
-0.32.2 was validated end-to-end on the production target host
-(Debian 13 "Trixie", GNOME/GDM, RTX 3080 Ti) during the 2026-06-08/10 UAT
-campaign — see [`docs/uat/`](uat/README.md):
+The 0.32.2 runtime was validated end-to-end on the production target host
+(Debian 13 “Trixie”, GNOME/GDM, RTX 3080 Ti). The 0.33.0 line has since added a
+large Admin GUI/UAT remediation set, stronger release evidence, platform-path
+migration, Evolution execution contracts and continued automated closeout work.
 
-| Layer | State |
-|---|---|
-| Cutover (BrainOS frozen → NoemaForge owns host) | PASS, reversible backup kept |
-| Clean install from GitHub `main` + liveness | PASS (`LIVENESS_UAT_OK`) |
-| First-start `--full_composite` real apply | PASS — epoch `00005`, runtime safety clean |
-| Display safety during heavy runs | PASS — GDM preserved by default |
-| Admin GUI / user-facing experience | **NOT production-ready** — major UI/routing defects |
+Important current facts:
 
-The runtime core is solid; everything blocking a non-engineer operator sits in
-the Admin GUI presentation/routing layer. Those findings (15 defects + 5
-tooling/runtime items) are canonically tracked in
-[`docs/uat/DEFECT-REGISTER-0.32.2.md`](uat/DEFECT-REGISTER-0.32.2.md).
+- Evolution execution contracts were merged through PR #272 and issue #266 was
+  closed with exact-head evidence.
+- Purpose/risk-aware Evolution skills remain tracked in issue #268.
+- The read-only current-loop adapter remains tracked in issue #270.
+- The loop proved it can implement a newly created architectural issue, but also
+  created PR #272 while PR #267 already targeted the same issue. Canonical work
+  ownership and duplicate-PR prevention are therefore a 0.33.0 prerequisite.
+- Platform-independence work has begun, including `platform_paths` migrations, but
+  full Linux/macOS/Windows parity and installation are still 0.33.1 goals.
 
-## 0.33.0 — admin-gui-prod-readiness-fixpack (next up)
+## 0.33.0 — prod readiness plus the bounded Loop → NF bridge
 
-Goal: a non-engineer operator can install, start, run a pipeline and receive
-the result entirely through the Admin GUI, with no JSON reading and no
-filesystem digging. Driven directly by the UAT defect register:
+Primary goal: a non-engineer operator can install, start, run a pipeline and
+receive results through the Admin GUI without JSON reading or filesystem digging.
+The release remains driven by the existing UAT defect register and target-host
+validation requirements.
 
-- **P0 — trust and feedback loop:** deterministic glossary answers for known
-  system states (D-003); pipeline confirm transfers the command into chat
-  (D-005); visible per-run progress (D-007); artifacts delivered into chat as
-  cards — the API metadata already exists (U-001/U-005); no silent no-ops —
-  every command gets a visible response (U-002).
-- **P1 — comprehension:** readable epoch/model-selection panel with tooltips
-  and non-stale plan state (D-002); distinct personas, explicit selector,
-  return-to-admin flow, pipeline greeting (U-003/D-009); iteration controls
-  that visibly attach to the next message (D-008).
-- **P2 — presentation polish:** hardware gauges (D-001), readable product
-  metrics (D-004), rendered pipeline diagrams (D-006), repeat-launch guard
-  (D-010).
-- **Runtime/ops follow-ups:** root-cause the one-off
-  `llm-backends-manager` failure (R-001); liveness-oriented shipped smoke
-  (S-001); UAT helper fixes (O-001/O-002); document the no-TCP-by-default GUI
-  posture (O-003).
+### Admin GUI and operator trust
 
-Already merged on the 0.33.0 line: `noema` CLI suite (start / doctor /
-release / upgrade / catalog / policy / ops-ref), presentation layer (README
-v2, security front page, scenario pack, published evidence workflow), AAT
-suite CI tier, OpenSSF Scorecard workflow, premerge-quality for 0.33.x.
+- visible response for every command;
+- readable model/epoch/persona state;
+- progress, blockers and artifacts delivered in chat/UI;
+- safe repeat-launch and stale-state guards;
+- no hidden model/media/device autostart;
+- target-host install, boot-mode and runtime evidence.
 
-## 0.33.1 — full system independence
+### Evolution/Harness bridge
 
-NoemaForge runs identically on Linux, macOS and Windows: parity for paths,
-service/process management, sockets, exec/sandbox, display safety and the
-Admin GUI launcher (builds on the 0.32.2 `platform_paths` migration).
-**Acceptance: the AAT suite plus the full test matrix pass identically on all
-three OS families.**
+0.33.0 does **not** add a new unrestricted execution runtime. It establishes
+canonical truth and proves bounded observation:
 
-## 0.33.2 — hybrid LLM usage
+- [#305](https://github.com/Sinev-Maksim/NoemaForge/issues/305) — one canonical
+  owner and at most one active integration PR per logical work item;
+- [#306](https://github.com/Sinev-Maksim/NoemaForge/issues/306) — compatible
+  Evolution contract extension for Harness profiles, checkpoints, exact-head,
+  idempotency, attempts and usage accounting;
+- [#268](https://github.com/Sinev-Maksim/NoemaForge/issues/268) — purpose/risk-aware
+  shared Skill Registry without Security super-role or persona exception tables;
+- [#270](https://github.com/Sinev-Maksim/NoemaForge/issues/270) — strictly read-only
+  adapter for the real v46/v3 current-loop state;
+- [#307](https://github.com/Sinev-Maksim/NoemaForge/issues/307) — append-only
+  Evolution Event Store and read-only `self_development` projection;
+- [#308](https://github.com/Sinev-Maksim/NoemaForge/issues/308) — context-budget and
+  bounded rollover contracts/telemetry;
+- [#313](https://github.com/Sinev-Maksim/NoemaForge/issues/313) — operator-facing
+  Evolution projection and one real-state observation dogfood.
 
-External/hosted LLMs usable alongside local models: a provider-runtime
-resolver for the top ~10 providers behind ToolProxy capability tokens and
-deny-by-default policy — local credentials, redaction-before-egress,
-cost/rate ceilings, explicit operator opt-in. Nothing leaves the machine by
-default.
+0.33.0 keeps:
 
-## 0.33.3 — agent-OS maturation (strategic, post-0.32.x)
+- explicit operator approval;
+- one active heavy LLM by default;
+- no automatic merge;
+- no generic unrestricted host shell;
+- no multiprocessing writers;
+- no copied external reference code/runtime.
 
-Promote NoemaForge from a set of **validation-contract runtimes** to a live,
-governed multi-agent OS. Validated against the codebase, this milestone is
-largely *maturation and enforcement* of subsystems that already exist as
-contract validators — not greenfield — organised into nine tracks. The
-task-level breakdown, with effort tiers and the existing foundation noted per
-item, is in the canonical
-[`TODO.md`](../noemaforge/docs/TODO.md#0333-strategic-roadmap-post-032x).
+### Continuous Research Radar foundation
 
-- **Agent governance** — Admin stays the only user-facing authority; specialists
-  return results to Admin and cannot terminate conversations. Formal agent
-  lifecycle states and an explicit handoff protocol (ownership, reasoning trace,
-  confidence) on the existing task-workflow runtime and RoleFlow backlog.
-- **Multi-model consensus** — fusion (parallel independent reasoning), a judge
-  framework (answer scoring, hallucination/assumption detection) and debate mode,
-  on the role-tournament scorer and the Sense/Critic governance backlog.
-- **Context engineering** — a live context-budget manager (token accounting,
-  memory prioritization, retrieval ranking), a compression pipeline (summarization,
-  dedup, fact extraction) and context quality metrics — promoting the
-  memory-budgeted and topic-adjacent retrieval contracts.
-- **Evaluation framework** — internal SWE-bench / GAIA / AgentBench-inspired
-  benchmarks and a regression harness over routing, memory, tools and artifacts,
-  extending the AAT suite's LLM tier.
-- **Artifact-centric workflows** — every generation pipeline emits artifacts; a
-  unified artifact registry with lineage (creator, inputs, generation chain),
-  promoting the artifact-registry-table contract and the in-chat artifact cards.
-- **Sandbox & security** — per-agent sandbox execution, capability-based
-  permissions, tool allowlists and resource quotas (RAM/CPU/GPU/network), hardening
-  the existing ToolProxy capability tokens, `caps`/allowlist policy and `sandbox`
-  rlimits.
-- **Runtime intelligence** — dynamic model routing made cost-, latency- and
-  quality-aware, extending the product model-routing surface and the 0.33.2 cost
-  ceilings.
-- **Observability** — agent execution traces, workflow replay, decision auditing,
-  failure classification and a runtime dashboard, maturing the
-  trace-observability-evaluation design and the telemetry dashboard.
-- **Production readiness** — formal release process, a Stable/LTS channel, a
-  migration framework with upgrade rollback, and an automated UAT suite —
-  formalising `noema release` / `publish-evidence`, `noema upgrade` rollback and
-  the AAT / U-004 track.
+Issue [#310](https://github.com/Sinev-Maksim/NoemaForge/issues/310) adds the
+contract and first read-only dry-run for a recurring discovery cycle. Candidates
+are classified as:
 
-Sequencing: 0.33.3 follows 0.33.0–0.33.2, and several tracks (sandbox, hybrid-LLM
-routing, AAT) share foundations with earlier milestones and advance incrementally
-rather than as one big-bang release.
+- **Research** — findings, papers, architectures and experiments;
+- **How-to** — reproducible procedures with verification;
+- **Ready-to-use** — adoptable components subject to license/security/platform review;
+- **Ready-to-re-code** — local-only references converted into clean-room
+  requirements/tests and an independently written NF implementation.
+
+A coverage ledger records scanned and unscanned areas, freshness, failures,
+licenses and provenance. The system must never claim exhaustive coverage without
+that evidence.
+
+### 0.33.0 acceptance for this new track
+
+- duplicate work/PR fixtures cannot create a second mutation owner;
+- repeated loop-state import creates no duplicate events, blockers or artifacts;
+- NF restart reconstructs the same Evolution projection;
+- the operator sees current work, blocker, exact-head status and next action;
+- one observation dogfood performs zero writes to source loop state;
+- one Research Radar dry-run emits evidence, dispositions and coverage blind spots.
+
+## 0.33.1 — full system independence, installation and NF-native Harness runtime
+
+NoemaForge runs consistently on Linux, macOS and Windows. This milestone combines
+platform parity with the first native replaceable Harness execution plane.
+
+### Platform and installation
+
+- complete `PlatformPaths`, `ServiceManager`, `ProcessSupervisor`, `LockProvider`,
+  `CredentialProvider`, `SandboxProvider` and device/backend discovery abstractions;
+- eliminate import-time crashes from Unix-only modules;
+- support platform-appropriate sockets/IPC and process groups/job objects;
+- implement one idempotent installer flow:
+  `probe → plan → preview → approve → apply → verify → rollback`;
+- preserve user/machine state and support resume after partial installation;
+- pass AAT and the full test matrix across Linux, macOS and Windows families.
+
+### Native Harness Worker
+
+Issue [#311](https://github.com/Sinev-Maksim/NoemaForge/issues/311) implements:
+
+- a common Harness adapter API;
+- typed file/search/edit/validation operations behind ToolProxy;
+- constrained profile-specific shell rather than blanket Bash authority;
+- isolated workspaces and one writer per worktree;
+- provider/model adapters with local credentials, redaction-before-egress,
+  rate/cost ceilings and explicit operator opt-in;
+- one authoritative controller with leased workers;
+- parallel read-only indexing/research/tests and bounded candidate generation;
+- controller-owned commit, push, merge and release verdict.
+
+Context lifecycle is governed by issue #308. Repeated no-progress collapse is
+handled by the evidence-preserving strategy reset in
+[#309](https://github.com/Sinev-Maksim/NoemaForge/issues/309), not by forgetting
+all prior failures.
+
+The current loop is replaced slice-by-slice only after equivalent exact-head
+dogfood. It remains a compatibility fallback until explicitly retired.
+
+### Recurring Research Radar runtime
+
+0.33.1 enables budgeted scheduled source adapters after the 0.33.0 dry-run proves:
+
+- stable candidate identity and deduplication;
+- quarantine of malicious/untrusted content;
+- license, provenance and supply-chain review;
+- operator-controlled promotion to research experiment, how-to validation,
+  Ready-to-use evaluation, clean-room recode spec, skill proposal or benchmark.
+
+## 0.33.2 — idempotent benchmarking and measured evolution
+
+Issue [#312](https://github.com/Sinev-Maksim/NoemaForge/issues/312) reuses the same
+Harness execution plane rather than creating another orchestrator.
+
+### Execution model
+
+```text
+at-least-once shard attempts
+→ immutable attempt artifacts
+→ deterministic validation
+→ atomic winner publication
+→ exactly-once logical result
+```
+
+Logical identity includes benchmark/dataset/case versions, model/provider revision,
+parameters, seed, HarnessProfile, prompt, skills, tools, NF commit, policy epoch,
+backend, OS, drivers and hardware.
+
+### Evaluation scope
+
+- models of different sizes, architectures and providers under declared
+  vendor-neutral selection rules;
+- prompts, skills, ToolProxy schemas and provider adapters;
+- context rollover thresholds and strategy-reset policies;
+- correctness, tokens/cost, latency, retries, context use, unsafe attempts,
+  resources, human intervention and variance;
+- resumable shards and reuse of completed valid work;
+- train/development/hidden-holdout/regression separation for prompt/skill
+  auto-improvement;
+- promotion of Research Radar candidates into bounded experiments with measured
+  adoption value or regression.
+
+## 0.33.3 — governed agent-OS maturation
+
+After 0.33.0–0.33.2, NoemaForge matures the existing foundations rather than
+starting another greenfield architecture:
+
+- agent lifecycle and explicit handoff governance;
+- independent fusion/judge/debate patterns where they add measurable value;
+- advanced memory/retrieval quality and long-horizon planning;
+- artifact lineage and workflow replay;
+- dynamic cost/latency/quality-aware model routing;
+- richer observability, decision auditing and failure classification;
+- stable/LTS release channels and migration governance.
+
+Functional separation remains mandatory where independence matters: mutation and
+review, candidate and judge, privileged operation and release verdict. The roadmap
+does not preserve multi-agent conversation for its own sake.
 
 ## Cross-cutting tracks
 
-### Artifact-driven acceptance (AAT) suite
+### Artifact-driven acceptance (AAT)
 
-Spec: [`noemaforge/docs/quality/AAT_SUITE.md`](../noemaforge/docs/quality/AAT_SUITE.md).
+The AAT suite remains the release-facing verification layer for checksum,
+telemetry privacy, capability tokens, ToolProxy isolation, signed manifests,
+epoch immutability, installation, live models and GUI flows.
 
-- **Shipped (CI tier):** harness + workflow with gating cases for checksum
-  validation, telemetry privacy, capability tokens, ToolProxy isolation,
-  signed-manifest verification, epoch immutability, plus best-effort install
-  dry-run. Nightly OpenSSF Scorecard.
-- **Pending (target tier):** boot-safety cases (`no_hidden_autostart`,
-  `model_warmup_modes`), live ToolProxy smoke, cosign/attestation verify —
-  need the target host.
-- **Pending (LLM tier):** `grounded_summary`, `safe_refusal_boundary`,
-  `toolproxy_event_explainer`, `epoch_diff_interpreter`,
-  `cost_ceiling_guard` — need a live model.
-- **Pending (GUI tier, from UAT):** the all-pipeline test/demo mode (U-004)
-  that runs every pipeline with safe built-in prompts and exports an AAT
-  report — this is the operator-visible face of the suite.
+Harness and benchmarking work must emit artifacts that AAT can independently
+validate; a model’s own success claim is never sufficient evidence.
+
+### Purpose/risk-aware security
+
+Security is an assurance/risk property of a concrete invocation, not a privileged
+persona domain. Access is derived from persona purpose, task relevance,
+capabilities, effective risk, environment policy, ToolProxy token and approval.
 
 ### Hardening for non-engineer operators
 
-One-button install/run, plain-language errors with guided recovery, no
-terminal/YAML on the happy path, GUI-first flows, safe defaults. The 0.33.0
-fixpack is the first concrete slice of this track.
+One-button install/run, plain-language errors, guided recovery, safe defaults and
+GUI-first flows remain mandatory. Harness state must be understandable without
+opening raw scheduler files.
 
-### Documentation and project wiki rewrite
+### Documentation and project wiki
 
-Bring docs and the GitHub wiki up to the current state (noema CLI, AAT,
-Scorecard, security/governance front page, scenario pack); keep README v2 as
-the landing; per-run UAT reports under [`docs/uat/`](uat/README.md) as the
-evidence trail.
+Keep README as the landing page, the canonical TODO as task-level tracking and
+this roadmap as release sequencing. Focused design/TODO documents must link to
+issues and be reconciled when work is completed or superseded.
 
-### Review pipeline
+### Review and research harvest
 
-Keep CI ownership with Codex + Copilot + CodeRabbit; clear actionable review
-threads before merge; fold recurring nits into the canonical TODO.
-
-## Recently completed (0.32.x highlights)
-
-- 0.32.2 hardening: Admin GUI session/event wiring, `/api/session/current` +
-  `/api/events`, session-mode persistence, history restore, finally-block
-  safety fix, cross-platform checksum script, display-safe model selection.
-- Typed governance track (Concept_Frame → … → Pipeline_RFC), provenance/
-  watermark verdicts, Research_Packet scouting, drag&drop pipeline editor,
-  production GUI installer, package dry-run validation — see the closed items
-  in [`noemaforge/docs/TODO.md`](../noemaforge/docs/TODO.md).
-- 2026-06-08/10: BrainOS → NoemaForge cutover and the full 0.32.2 UAT
-  campaign on the target host ([`docs/uat/`](uat/README.md)).
+- actionable Codex/Copilot/CodeRabbit findings are resolved or recorded before merge;
+- review-harvest sweeps prevent useful findings from rotting in threads;
+- the Research Radar performs freshness and coverage sweeps under explicit budgets;
+- repeated unchanged sources do not create duplicate candidates;
+- failed and intentionally unscanned sources remain visible in coverage reports.
 
 ## Invariants that gate every milestone
 
-- No production GitHub Release without explicit human GO + target validation.
-- `noema upgrade` never removes/overwrites user or machine state.
+- No production GitHub Release without explicit human GO and required target validation.
+- `noema upgrade` never removes or overwrites user/machine state.
 - `RUNTIME_VERSION` is assigned only in `noemaforge_version.py`.
-- Heavy GPU / model-selection commands always preserve the display by default.
-- Self-modification stays lab-only behind Pipeline_RFC + explicit approval.
-
-## 0.33.0 governance discoverability carry-forward
-
-- [x] Add Research_Packet for freshness-bounded cited internet scouting.
-- [x] Add Research_Packet for source-allowlisted/freshness-bounded Internet scouting.
-- [x] Add `Concept_Frame` schema for Admin/Architect task framing.
-- [x] Add `Sense_State` + `Privacy_Filter` contracts before persistence/export.
-- [x] Add bounded `Drive_State` adapter for pressure/fatigue/urgency/curiosity.
-- [x] Add Honesty Protocol templates: Unknown, Need-Research, Error_Attribution.
-- [x] Add `Slop_Score`, `Critic_Stack`, `Detection_Verdict` as layered advisory quality gates.
-- [x] Require `Pipeline_RFC` + dry-run + eval + rollback + explicit approval for pipeline mutation.
-- [x] Add full drag&drop pipeline editor implementation after alpha. Closed by `pipeline-dragdrop-editor-core`.
+- Heavy GPU/model operations preserve the display by default.
+- Self-modification remains policy-gated, evidence-backed and explicitly approved.
+- One logical work item cannot silently acquire competing mutation owners.
+- Files are artifacts/checkpoints; canonical lifecycle is event-backed.
+- External Ready-to-re-code source remains local-only and is not shipped or copied
+  into NF-native implementation context.
+- Unknown values are represented as unknown, never as fabricated zero/success.
+- Every final review and release decision is tied to the exact final HEAD.
