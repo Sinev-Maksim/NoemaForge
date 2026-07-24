@@ -98,33 +98,62 @@ def _attach_gate(result: Any, integration: Optional[TrustedTriggerIntegration], 
     return enriched
 
 
+def _send_json_with_owner_cookie(handler: Any, payload: Any) -> None:
+    integration = _trusted_trigger_integration(handler)
+    if (
+        integration is None
+        or not hasattr(handler, "send_response")
+        or not hasattr(handler, "send_header")
+    ):
+        handler._send_json(payload)
+        return
+    try:
+        session_id = str(handler.server._active_session_id())
+    except Exception:
+        session_id = str(
+            getattr(handler.server, "current_session_id", "") or "unknown"
+        )
+    cookie = integration.owner_session_cookie_header(session_id)
+    original_send_response = handler.send_response
+
+    def send_response_with_cookie(status: int, message: Optional[str] = None) -> None:
+        original_send_response(status, message)
+        handler.send_header("Set-Cookie", cookie)
+
+    handler.send_response = send_response_with_cookie
+    try:
+        handler._send_json(payload)
+    finally:
+        handler.send_response = original_send_response
+
+
 # --- GET handlers ------------------------------------------------------------------
 def conversation_current(handler: Any) -> None:
-    handler._send_json(handler.server.conversation_current())
+    _send_json_with_owner_cookie(handler, handler.server.conversation_current())
 
 
 def conversation_history(handler: Any) -> None:
-    handler._send_json(handler.server.conversation_history())
+    _send_json_with_owner_cookie(handler, handler.server.conversation_history())
 
 
 def tasks_list(handler: Any) -> None:
-    handler._send_json(handler.server.tasks_list())
+    _send_json_with_owner_cookie(handler, handler.server.tasks_list())
 
 
 def inactivity_status(handler: Any) -> None:
-    handler._send_json(handler.server.inactivity_status())
+    _send_json_with_owner_cookie(handler, handler.server.inactivity_status())
 
 
 def persona_current(handler: Any) -> None:
-    handler._send_json(handler.server.persona_current())
+    _send_json_with_owner_cookie(handler, handler.server.persona_current())
 
 
 def persona_catalog(handler: Any) -> None:
-    handler._send_json(handler.server.persona_catalog_api())
+    _send_json_with_owner_cookie(handler, handler.server.persona_catalog_api())
 
 
 def persona_rules(handler: Any) -> None:
-    handler._send_json(handler.server.persona_rules())
+    _send_json_with_owner_cookie(handler, handler.server.persona_rules())
 
 
 # --- POST handlers -----------------------------------------------------------------
