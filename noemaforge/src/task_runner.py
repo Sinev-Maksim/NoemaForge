@@ -50,7 +50,9 @@ import subprocess
 import json
 from typing import Any, Dict
 
+import sys
 from seclog import append as sel_append
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     import incidents
@@ -109,7 +111,7 @@ def _script_for_module(module: str) -> str:
     m = (module or "").strip()
     if not m or not SAFE_MODULE_RE.match(m):
         raise ValueError("unsafe_module")
-    return f"/opt/noemaforge/src/{m}.py"
+    return str(_pp.root / "src" / f"{m}.py")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -156,7 +158,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
         if kind == "module":
             mod = str(task.get("module") or "").strip()
             script = _script_for_module(mod)
-            p = subprocess.run(["/usr/bin/python3", script], capture_output=True, text=True)
+            p = subprocess.run([sys.executable, script], capture_output=True, text=True)
             out = (p.stdout or "")
             err = (p.stderr or "")
             res.update(
@@ -171,7 +173,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
         elif kind == "core.teamworker_tick":
             # Advance project batons by one step.
             p = subprocess.run(
-                ["/usr/bin/python3", "/opt/noemaforge/src/noemaforge_core.py", "teamworker-tick", "--max-steps", "1"],
+                [sys.executable, str(_pp.root / "src" / "noemaforge_core.py"), "teamworker-tick", "--max-steps", "1"],
                 capture_output=True,
                 text=True,
             )
@@ -190,7 +192,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
             if not task_id:
                 raise ValueError("missing_payload.task_id")
             p = subprocess.run(
-                ["/usr/bin/python3", "/opt/noemaforge/src/noemaforge_core.py", "run-recurring", task_id],
+                [sys.executable, str(_pp.root / "src" / "noemaforge_core.py"), "run-recurring", task_id],
                 capture_output=True,
                 text=True,
             )
@@ -210,7 +212,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
             if not check_id:
                 raise ValueError("missing_payload.check_id")
             p = subprocess.run(
-                ["/usr/bin/python3", "/opt/noemaforge/src/noemaforge_core.py", "run-audit", check_id],
+                [sys.executable, str(_pp.root / "src" / "noemaforge_core.py"), "run-audit", check_id],
                 capture_output=True,
                 text=True,
             )
@@ -255,7 +257,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
                 raise ValueError("missing_incident_reference")
 
             # Resolve epoch dir for contract reads.
-            e_dir = "/opt/noemaforge/configs"
+            e_dir = str(_pp.root / "configs")
             try:
                 if epoch is not None:
                     e_dir = epoch.current_epoch_dir() or e_dir
@@ -343,7 +345,7 @@ def run_task(task: Dict[str, Any]) -> Dict[str, Any]:
             if fixture_bundle is None:
                 raise RuntimeError("fixture_bundle_missing")
             # Resolve epoch dir.
-            e_dir = "/opt/noemaforge/configs"
+            e_dir = str(_pp.root / "configs")
             try:
                 if epoch is not None:
                     e_dir = epoch.current_epoch_dir() or e_dir

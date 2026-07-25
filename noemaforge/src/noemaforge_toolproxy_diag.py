@@ -142,9 +142,9 @@ def _import_caps():
         if c in sys.path:
             sys.path.remove(c)
         sys.path.insert(0, c)
-    opt_src = "/opt/noemaforge/src"
-    if opt_src not in sys.path:
-        sys.path.append(opt_src)
+    fallback_src = str(_pp.root / "src")
+    if fallback_src not in sys.path:
+        sys.path.append(fallback_src)
     import caps  # type: ignore
     return caps
 
@@ -193,11 +193,11 @@ def diag_report(test_llm: bool = False, tokens_dir: str = DEFAULT_TOKENS_DIR, so
         "socket": stat_path(sock_path),
         "service_active": sh(["systemctl", "is-active", "noemaforge-toolproxy.service"]).strip(),
         "service_enabled": sh(["systemctl", "is-enabled", "noemaforge-toolproxy.service"]).strip(),
-        "sel_dir": stat_path("/var/lib/noemaforge/sel"),
-        "sel_segments_dir": stat_path("/var/lib/noemaforge/sel/segments"),
+        "sel_dir": stat_path(str(_pp.data_root / "sel")),
+        "sel_segments_dir": stat_path(str(_pp.data_root / "sel" / "segments")),
         "cap_tokens_dir": stat_path(tokens_dir),
-        "tool_registry": stat_path("/opt/noemaforge/configs/tool-registry.yaml"),
-        "tool_policy": stat_path("/opt/noemaforge/configs/tool-policy.yaml"),
+        "tool_registry": stat_path(str(_pp.root / "configs" / "tool-registry.yaml")),
+        "tool_policy": stat_path(str(_pp.root / "configs" / "tool-policy.yaml")),
         "recent_errors": sh(["bash", "-lc", "journalctl -u noemaforge-toolproxy.service -n 80 -l --no-pager | grep -Ei 'TOOLPROXY|PermissionError|llm_gateway|cap_missing|tool_unknown|policy|deny|error' || true"], timeout=20),
     }
     if test_llm:
