@@ -138,6 +138,28 @@ class ProdReadyInstallReentryTests(unittest.TestCase):
         self.assertIn("remove_stale_hotfix_dropins", installer)
         self.assertIn("-name '*hotfix*' -delete", installer)
 
+    def test_installer_verifies_opt_payload_ownership_after_normalization(self) -> None:
+        # GitHub issue #213: normalize_opt_payload() must not just chown/chmod
+        # /opt/noemaforge, it must also fail loudly if any entry is left
+        # owned by someone other than root:root (belt-and-suspenders on top
+        # of the group-writable check already covered by
+        # test_installer_normalizes_opt_payload_modes_in_rootfs_install).
+        installer = (PROJECT_ROOT / "install_noemaforge_mvp.sh").read_text(encoding="utf-8")
+        self.assertIn("chown -R root:root \"$opt_root\"", installer)
+        self.assertIn(
+            "find \"$opt_root\" -type d -exec chmod 0755 {} +", installer
+        )
+        self.assertIn(
+            "find \"$opt_root\" -type f -exec chmod 0644 {} +", installer
+        )
+        self.assertIn(
+            'find "$opt_root" \\( -not -user root -o -not -group root \\) -print -quit',
+            installer,
+        )
+        self.assertIn(
+            "not owned by root:root after normalization", installer
+        )
+
     def test_media_team_is_defined_for_media_catalog_entries(self) -> None:
         teams = json.loads((ROOT / "configs" / "pipeline-teams.json").read_text(encoding="utf-8"))
         self.assertIn("media_team", teams)
