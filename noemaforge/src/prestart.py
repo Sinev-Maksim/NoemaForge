@@ -94,7 +94,7 @@ except Exception:  # pragma: no cover
 DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
 DEFAULT_REQUESTS_DIR = str(_pp.data_root / "requests/prestart")
 DEFAULT_POLICY_LOCK = str(_pp.data_root / ".sys/policy-lock.state")
-DEFAULT_MODE_FILE = "/run/noemaforge/mode"  # runtime typically writes 'runtime' here
+DEFAULT_MODE_FILE = str(_pp.runtime_dir / "mode")
 DEFAULT_NOTIFICATIONS_DIR = str(_pp.data_root / "notifications")
 
 
@@ -1929,7 +1929,7 @@ def _canary_first_run_state(policy: Dict[str, Any]) -> Tuple[bool, str, Dict[str
     """Return (enabled, state_path, state_dict)."""
     fr = policy.get("first_run") or {}
     enabled = bool(fr.get("force_full", False))
-    state_path = str(fr.get("state_path") or "/var/lib/noemaforge/.sys/canary-first-run.json")
+    state_path = str(fr.get("state_path") or str(_pp.data_root / ".sys" / "canary-first-run.json"))
     st: Dict[str, Any] = {}
     if enabled:
         try:

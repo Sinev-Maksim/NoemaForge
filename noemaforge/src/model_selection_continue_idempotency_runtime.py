@@ -22,13 +22,15 @@ import json
 import os
 import re
 import sys
-import threading
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any, Dict, List, Sequence
 
 
 SRC_DIR = Path(__file__).resolve().parent
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+from admin_gui_offline_fixture import attach_memory_json_store, build_offline_admin_gui_server as _build_offline_admin_gui_server
 API_VERSION = "noemaforge.model-selection-continue-idempotency/v1"
 POLICY_KIND = "ModelSelectionContinueIdempotencyPolicy"
 REPORT_KIND = "ModelSelectionContinueIdempotencyValidationReport"
@@ -164,52 +166,8 @@ def _script_reports(policy: Dict[str, Any], *, project_root: Path, package_root:
 
 
 def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
-    if str(SRC_DIR) not in sys.path:
-        sys.path.insert(0, str(SRC_DIR))
-    import admin_gui_server  # type: ignore
-
-    root = Path(package_root).resolve()
-    data_root = root / "_memory_only_gui_state"
-    store: Dict[str, Any] = {}
-    server = object.__new__(admin_gui_server.AdminGuiServer)
-    server.root = root
-    server.state = data_root / "pipelines"
-    server.persona_state = data_root / "personas"
-    server.evolution_state = data_root / "model-evolution"
-    server.model_selection_state = data_root / "model-selection"
-    server.dev_team_state = data_root / "dev-team"
-    server.data_root = data_root
-    server.gui_state_dir = data_root / "gui"
-    server.jobs_dir = data_root / "jobs"
-    server.tasks_dir = data_root / "tasks"
-    server.review_dir = data_root / "review"
-    server.runtime_dir = data_root / "runtime"
-    server.bootstrap_dir = data_root / "bootstrap"
-    server.ui_dir = root / "templates" / "pipeline-dashboard"
-    # Parity with AdminGuiServer.__init__: read-modify-write locks. The double
-    # bypasses __init__ via object.__new__, so these must be set explicitly or
-    # job/task/conversation paths raise AttributeError.
-    server._jobs_lock = threading.Lock()
-    server._tasks_lock = threading.Lock()
-    server._conv_lock = threading.Lock()
-
-    def read_json(path: Path, default: Any) -> Any:
-        key = _display_path(Path(path))
-        if key not in store:
-            return copy.deepcopy(default)
-        return copy.deepcopy(store[key])
-
-    def write_json(path: Path, obj: Any) -> None:
-        store[_display_path(Path(path))] = copy.deepcopy(obj)
-
-    def append_jsonl(path: Path, obj: Dict[str, Any]) -> None:
-        key = _display_path(Path(path))
-        store.setdefault(key, []).append(copy.deepcopy(obj))
-
-    server._memory_store = store
-    server._read_json = read_json
-    server._write_json = write_json
-    server._append_jsonl = append_jsonl
+    server = _build_offline_admin_gui_server(package_root=package_root)
+    attach_memory_json_store(server)
     return server
 
 

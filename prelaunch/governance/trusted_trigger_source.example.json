@@ -1,0 +1,209 @@
+{
+  "apiVersion": "noemaforge.trusted-trigger-source.examples/v1",
+  "kind": "TrustedTriggerSourceExampleSet",
+  "examples": [
+    {
+      "id": "explicit-owner-message",
+      "envelope": {
+        "apiVersion": "noemaforge.trusted-trigger-source/v1",
+        "kind": "TrustedTriggerSourceEnvelope",
+        "source_class": "explicit_owner_message",
+        "content_origin": "explicit_owner_message",
+        "actor": {
+          "type": "owner",
+          "principal_id": "nf-owner:primary",
+          "login": "Sinev-Maksim",
+          "app_id": null,
+          "installation_id": null
+        },
+        "repository": "Sinev-Maksim/NoemaForge",
+        "event": {
+          "type": "owner_message",
+          "delivery_id": null
+        },
+        "provenance": {
+          "source_id": "conversation:owner:1",
+          "channel": "conversation",
+          "artifact_class": "direct_request",
+          "message_id": "msg-1",
+          "copied_text_claims_owner_authority": false
+        },
+        "requested_authority": "create_work_item"
+      },
+      "verification_context": {
+        "apiVersion": "noemaforge.trusted-trigger-verification-context/v1",
+        "kind": "TrustedTriggerVerificationContext",
+        "source_class": "explicit_owner_message",
+        "verifier": {
+          "id": "nf-conversation-owner-verifier",
+          "class": "trusted_conversation_identity",
+          "verified": true,
+          "evidence_id": "conversation-identity:owner-primary:msg-1",
+          "evidence_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+        },
+        "bindings": {
+          "actor_principal_id": "nf-owner:primary",
+          "repository": "Sinev-Maksim/NoemaForge",
+          "event_type": "owner_message",
+          "delivery_id": null,
+          "provenance_source_id": "conversation:owner:1",
+          "message_id": "msg-1",
+          "app_id": null,
+          "installation_id": null
+        },
+        "verified_at": "2026-07-22T05:50:00Z"
+      },
+      "expected_allowed": true,
+      "expected_reason": "allowed_explicit_owner_message",
+      "evaluated_at": "2026-07-22T05:50:30Z"
+    },
+    {
+      "id": "copied-owner-text-by-human",
+      "envelope": {
+        "apiVersion": "noemaforge.trusted-trigger-source/v1",
+        "kind": "TrustedTriggerSourceEnvelope",
+        "source_class": "human_event",
+        "content_origin": "non_owner_human_comment",
+        "actor": {
+          "type": "human",
+          "principal_id": "github:user:someone-else",
+          "login": "someone-else",
+          "app_id": null,
+          "installation_id": null
+        },
+        "repository": "Sinev-Maksim/NoemaForge",
+        "event": {
+          "type": "issue_comment",
+          "delivery_id": "delivery-2"
+        },
+        "provenance": {
+          "source_id": "github:comment:2",
+          "channel": "github_connector",
+          "artifact_class": "data",
+          "message_id": "comment-2",
+          "copied_text_claims_owner_authority": true
+        },
+        "requested_authority": "create_work_item"
+      },
+      "verification_context": null,
+      "expected_allowed": false,
+      "expected_reason": "content_origin_untrusted",
+      "evaluated_at": "2026-07-22T05:50:30Z"
+    },
+    {
+      "id": "approval-cannot-be-inferred",
+      "envelope": {
+        "apiVersion": "noemaforge.trusted-trigger-source/v1",
+        "kind": "TrustedTriggerSourceEnvelope",
+        "source_class": "explicit_owner_message",
+        "content_origin": "explicit_owner_message",
+        "actor": {
+          "type": "owner",
+          "principal_id": "nf-owner:primary",
+          "login": "Sinev-Maksim",
+          "app_id": null,
+          "installation_id": null
+        },
+        "repository": "Sinev-Maksim/NoemaForge",
+        "event": {
+          "type": "owner_message",
+          "delivery_id": null
+        },
+        "provenance": {
+          "source_id": "conversation:owner:3",
+          "channel": "conversation",
+          "artifact_class": "direct_request",
+          "message_id": "msg-3",
+          "copied_text_claims_owner_authority": false
+        },
+        "requested_authority": "approve"
+      },
+      "verification_context": {
+        "apiVersion": "noemaforge.trusted-trigger-verification-context/v1",
+        "kind": "TrustedTriggerVerificationContext",
+        "source_class": "explicit_owner_message",
+        "verifier": {
+          "id": "nf-conversation-owner-verifier",
+          "class": "trusted_conversation_identity",
+          "verified": true,
+          "evidence_id": "conversation-identity:owner-primary:msg-3",
+          "evidence_sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+        },
+        "bindings": {
+          "actor_principal_id": "nf-owner:primary",
+          "repository": "Sinev-Maksim/NoemaForge",
+          "event_type": "owner_message",
+          "delivery_id": null,
+          "provenance_source_id": "conversation:owner:3",
+          "message_id": "msg-3",
+          "app_id": null,
+          "installation_id": null
+        },
+        "verified_at": "2026-07-22T05:50:00Z"
+      },
+      "expected_allowed": false,
+      "expected_reason": "requested_authority_not_trigger",
+      "evaluated_at": "2026-07-22T05:50:30Z"
+    },
+    {
+      "id": "verified-github-app-event",
+      "envelope": {
+        "apiVersion": "noemaforge.trusted-trigger-source/v1",
+        "kind": "TrustedTriggerSourceEnvelope",
+        "source_class": "github_app_event",
+        "content_origin": "verified_github_event",
+        "actor": {
+          "type": "github_app",
+          "principal_id": "github-app:1234",
+          "login": "trusted-app[bot]",
+          "app_id": 1234,
+          "installation_id": 99
+        },
+        "repository": "Sinev-Maksim/NoemaForge",
+        "event": {
+          "type": "issues",
+          "delivery_id": "delivery-123"
+        },
+        "provenance": {
+          "source_id": "github:delivery:123",
+          "channel": "github_connector",
+          "artifact_class": "metadata",
+          "message_id": null,
+          "copied_text_claims_owner_authority": false
+        },
+        "requested_authority": "create_work_item"
+      },
+      "verification_context": {
+        "apiVersion": "noemaforge.trusted-trigger-verification-context/v1",
+        "kind": "TrustedTriggerVerificationContext",
+        "source_class": "github_app_event",
+        "verifier": {
+          "id": "nf-github-connector-verifier",
+          "class": "github_connector",
+          "verified": true,
+          "evidence_id": "github-delivery:delivery-123",
+          "evidence_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "bindings": {
+          "actor_principal_id": "github-app:1234",
+          "repository": "Sinev-Maksim/NoemaForge",
+          "event_type": "issues",
+          "delivery_id": "delivery-123",
+          "provenance_source_id": "github:delivery:123",
+          "message_id": null,
+          "app_id": 1234,
+          "installation_id": 99
+        },
+        "verified_at": "2026-07-22T05:50:00Z"
+      },
+      "expected_allowed": false,
+      "expected_reason": "github_app_not_allowlisted",
+      "evaluated_at": "2026-07-22T05:50:30Z"
+    }
+  ],
+  "contract_test_activation": {
+    "status": "stable",
+    "enforcement_mode": "enforce",
+    "live_connector_integration_state": "pass"
+  }
+}

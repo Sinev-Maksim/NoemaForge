@@ -21,7 +21,6 @@ from __future__ import annotations
 import json
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -31,6 +30,7 @@ if str(_SRC) not in sys.path:
     sys.path.insert(0, str(_SRC))
 
 from admin_gui_server import AdminGuiServer, safe_id  # noqa: E402
+from admin_gui_offline_fixture import build_offline_admin_gui_server as build_offline_server  # noqa: E402
 from session_store import SessionStore  # noqa: E402
 from event_log import EventLog  # noqa: E402
 from noemaforge_version import RUNTIME_VERSION  # noqa: E402
@@ -38,23 +38,9 @@ from noemaforge_version import RUNTIME_VERSION  # noqa: E402
 
 def _make_server(td: Path) -> AdminGuiServer:
     """Construct AdminGuiServer stub with session_store and event_log wired in."""
-    srv = object.__new__(AdminGuiServer)
-    srv.jobs_dir = td / "jobs"
-    srv.jobs_dir.mkdir(parents=True, exist_ok=True)
-    srv.data_root = td
-    srv.gui_state_dir = td / "gui"
-    srv.gui_state_dir.mkdir(parents=True, exist_ok=True)
-    srv.model_selection_state = td / "model_selection"
-    srv.model_selection_state.mkdir(parents=True, exist_ok=True)
+    srv = build_offline_server(package_root=_SRC.parent, data_root=td, create_dirs=True)
     srv.session_store = SessionStore(td / "sessions")
     srv.event_log = EventLog(td / "events")
-    # Parity with AdminGuiServer.__init__: read-modify-write locks + bootstrap_dir.
-    # The stub bypasses __init__ via object.__new__, so these must be set
-    # explicitly or job_cancel/_upsert_job paths raise AttributeError.
-    srv.bootstrap_dir = td / "bootstrap"
-    srv._jobs_lock = threading.Lock()
-    srv._tasks_lock = threading.Lock()
-    srv._conv_lock = threading.Lock()
     return srv
 
 

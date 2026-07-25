@@ -210,12 +210,14 @@ class TestPersonaSwitchLoaded(unittest.TestCase):
 
     def setUp(self):
         self.src = _src()
+        start = self.src.index("async function startup()")
+        end = self.src.index("if (typeof window", start)
+        self.startup = self.src[start:end]
 
     def test_startup_calls_load_persona_select(self):
-        # Find the Promise.allSettled call
-        idx = self.src.find("Promise.allSettled")
+        idx = self.startup.find("Promise.allSettled")
         self.assertGreater(idx, 0)
-        surrounding = self.src[idx: idx + 300]
+        surrounding = self.startup[idx: idx + 500]
         self.assertIn("_loadPersonaSelect", surrounding)
 
 
