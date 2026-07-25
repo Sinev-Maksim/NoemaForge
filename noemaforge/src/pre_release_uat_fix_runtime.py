@@ -357,6 +357,22 @@ def resolve_current_epoch_state(contracts_root: Path | str) -> Dict[str, Any]:
     if current_is_symlink and not current_target_exists:
         problems.append("current_epoch_link_dangling")
 
+    # A basename/id match is not sufficient: an external symlink target can share
+    # the expected epoch id's *name* while resolving to a path entirely outside the
+    # canonical epochs directory (e.g. an unrelated directory that happens to be
+    # named "00006"). Require the full resolved path to equal the canonical
+    # `<epochs_dir>/<epoch_id>` path before treating "current" as pointing at the
+    # applied epoch.
+    current_target_matches_canonical_dir = True
+    if current_target and epoch_dir is not None:
+        try:
+            canonical_epoch_dir = str(epoch_dir.resolve(strict=False))
+        except OSError:
+            canonical_epoch_dir = str(epoch_dir)
+        current_target_matches_canonical_dir = current_target == canonical_epoch_dir
+        if not current_target_matches_canonical_dir:
+            problems.append("current_epoch_link_outside_canonical_dir")
+
     return {
         "ok": not problems,
         "contracts_root": str(root),
@@ -367,6 +383,7 @@ def resolve_current_epoch_state(contracts_root: Path | str) -> Dict[str, Any]:
         "current_target": current_target,
         "current_target_exists": current_target_exists,
         "current_target_epoch_id": current_target_epoch_id,
+        "current_target_matches_canonical_dir": current_target_matches_canonical_dir,
         "current_epoch_txt": current_epoch_txt,
         "current_epoch_id": epoch_id,
         "epoch_dir": str(epoch_dir) if epoch_dir else "",
@@ -644,6 +661,30 @@ def _bool_from_health(value: Any) -> bool:
     return bool(value)
 
 
+def _reconcile_direct_and_summary_health(direct: Any, summary_value: Any) -> tuple[bool, bool]:
+    """Give a direct, current health probe precedence over an indirect summary field.
+
+    ``direct`` is expected to be the freshly-collected probe artifact (e.g. a
+    ``gateway_health`` document); ``summary_value`` is a possibly-stale field pulled
+    from an apply summary recorded earlier/elsewhere. When both are present and they
+    disagree, this is a genuine conflict worth surfacing rather than something an
+    ``or`` should silently paper over by letting the stale/indirect field win.
+
+    Returns ``(effective_ok, conflict)``.
+    """
+    direct_present = isinstance(direct, dict) and bool(direct)
+    direct_ok = _bool_from_health(direct) if direct_present else None
+    summary_present = summary_value is not None
+    summary_ok = _bool_from_health(summary_value) if summary_present else None
+    if direct_ok is not None and summary_ok is not None and direct_ok != summary_ok:
+        return direct_ok, True
+    if direct_ok is not None:
+        return direct_ok, False
+    if summary_ok is not None:
+        return summary_ok, False
+    return False, False
+
+
 def reconcile_post_apply_forensics(
     *,
     apply_summary: Any = None,
@@ -666,33 +707,57 @@ def reconcile_post_apply_forensics(
     if not epoch_doc and contracts_root is not None:
         epoch_doc = resolve_current_epoch_state(contracts_root)
 
+    # Do NOT fall back to the *current* epoch id here: the current epoch is merely
+    # what is active right now, not evidence of what an apply actually applied. If
+    # neither the apply summary nor the firstboot status recorded an explicit
+    # applied_epoch_id, that is missing evidence, not something to fabricate by
+    # borrowing the current epoch id.
     applied_epoch_id = str(
         apply_doc.get("applied_epoch_id")
         or status_doc.get("applied_epoch_id")
-        or epoch_doc.get("current_epoch_id")
         or ""
     ).strip()
     current_epoch_target = str(epoch_doc.get("current_target") or epoch_doc.get("epoch_dir") or "").strip()
     current_epoch_id = str(epoch_doc.get("current_epoch_id") or "").strip()
     post_backend_ok = _bool_from_health(backend_doc) or _bool_from_health(apply_doc.get("post_backend_ok")) or _bool_from_health(apply_doc.get("main_backend_smoke"))
-    post_gateway_ok = _bool_from_health(gateway_doc) or _bool_from_health(apply_doc.get("post_gateway_ok"))
+    post_gateway_ok, post_gateway_health_conflict = _reconcile_direct_and_summary_health(
+        gateway_doc, apply_doc.get("post_gateway_ok")
+    )
     toolproxy_ok = _bool_from_health(toolproxy_doc)
 
     probe = gateway_probe_spec()
     observed_socket = str(gateway_doc.get("socket") or gateway_doc.get("sock") or gateway_doc.get("path") or apply_doc.get("gateway_socket") or "").strip()
     observed_protocol = str(gateway_doc.get("protocol") or apply_doc.get("gateway_protocol") or "").strip()
-    canonical_probe_used = (
-        observed_socket in {"", probe["socket"]}
-        and observed_protocol in {"", probe["protocol"], "http", "http_unix", "http_over_unix_socket"}
+    canonical_protocol_aliases = {probe["protocol"], "http", "http_unix", "http_over_unix_socket"}
+    gateway_probe_metadata_recorded = bool(observed_socket or observed_protocol)
+    # Affirmative evidence is required for BOTH the socket and the protocol before a
+    # probe is confirmed canonical. An absent/empty value must never silently satisfy
+    # this check (it previously matched via `observed_socket in {"", canonical}`,
+    # which let a probe that was never recorded at all pass as "canonical").
+    canonical_probe_used = bool(
+        observed_socket
+        and observed_protocol
+        and observed_socket == probe["socket"]
+        and observed_protocol in canonical_protocol_aliases
     )
+    if not gateway_probe_metadata_recorded:
+        gateway_probe_evidence = "unrecorded"
+    elif canonical_probe_used:
+        gateway_probe_evidence = "canonical"
+    else:
+        gateway_probe_evidence = "mismatch"
 
     blockers: List[str] = []
+    if not applied_epoch_id:
+        blockers.append("applied_epoch_id_missing")
     if not current_epoch_target:
         blockers.append("current_epoch_target_missing")
     if applied_epoch_id and current_epoch_id and applied_epoch_id != current_epoch_id:
         blockers.append("applied_epoch_current_epoch_mismatch")
     if epoch_doc.get("problems"):
         blockers.extend(f"contracts:{item}" for item in epoch_doc.get("problems") or [])
+    if post_gateway_health_conflict:
+        blockers.append("post_gateway_health_conflict")
     if not post_gateway_ok:
         blockers.append("post_gateway_not_ok")
     if not post_backend_ok:
@@ -720,9 +785,11 @@ def reconcile_post_apply_forensics(
         "current_epoch_target": current_epoch_target,
         "post_backend_ok": post_backend_ok,
         "post_gateway_ok": post_gateway_ok,
+        "post_gateway_health_conflict": post_gateway_health_conflict,
         "toolproxy_diag_ok": toolproxy_ok,
         "canonical_gateway_probe": probe,
         "canonical_gateway_probe_used": canonical_probe_used,
+        "gateway_probe_evidence": gateway_probe_evidence,
         "firstboot_state": status_doc.get("state") or "",
         "prestart_request_count": len(requests_doc.get("requests") or []) if isinstance(requests_doc.get("requests"), list) else 0,
         "blockers": blockers,
