@@ -370,5 +370,143 @@ class NoemaUpgradeRunTests(unittest.TestCase):
             self.assertIn("DRY-RUN", buf.getvalue())
 
 
+def _write_unit(systemd_dir: Path, name: str, content: str) -> Path:
+    p = systemd_dir / name
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(content, encoding="utf-8")
+    return p
+
+
+def _link_wants(systemd_dir: Path, target_name: str, wants_dir: str) -> Path:
+    wants = systemd_dir / wants_dir
+    wants.mkdir(parents=True, exist_ok=True)
+    link = wants / target_name
+    # os.symlink can require elevated privileges on Windows; fall back to a plain file
+    # that stands in for "an enablement entry exists at this path" -- the function under
+    # test only needs the path to exist and be removable, exactly like a real symlink.
+    try:
+        link.symlink_to(systemd_dir / target_name)
+    except OSError:
+        link.write_text("", encoding="utf-8")
+    return link
+
+
+LEGACY_UNIT_CONTENT = (
+    "[Unit]\n"
+    "Description=Legacy BrainOS shutdown stop hook\n"
+    "[Service]\n"
+    "Type=oneshot\n"
+    "ExecStart=/bin/sh -c 'source /usr/local/lib/brainos-common.sh; brainos_stop_all'\n"
+    "ExecStop=/usr/local/sbin/brainos-stop\n"
+)
+
+
+class NoemaUpgradeLegacyBrainosCleanupTests(unittest.TestCase):
+    """UAT request findings resolution (0.33.0): remove the legacy BrainOS shutdown hook's
+    enablement symlinks left over from a BrainOS -> NoemaForge upgrade."""
+
+    def test_fresh_install_no_unit_is_noop(self):
+        with tempfile.TemporaryDirectory() as d:
+            systemd_dir = Path(d)
+            result = nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+        self.assertFalse(result["unit_found"])
+        self.assertFalse(result["unit_confirmed_legacy"])
+        self.assertEqual(result["symlinks_removed"], [])
+        self.assertEqual(result["removed_count"], 0)
+
+    def test_brainos_upgrade_scenario_symlinks_removed(self):
+        with tempfile.TemporaryDirectory() as d:
+            systemd_dir = Path(d)
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, LEGACY_UNIT_CONTENT)
+            link1 = _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME,
+                                "multi-user.target.wants")
+            link2 = _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME,
+                                "shutdown.target.wants")
+            result = nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+            self.assertTrue(result["unit_found"])
+            self.assertTrue(result["unit_confirmed_legacy"])
+            self.assertEqual(result["removed_count"], 2)
+            self.assertFalse(link1.exists())
+            self.assertFalse(link2.exists())
+            # The unit file itself is preserved as a forensic artifact, never deleted.
+            self.assertTrue((systemd_dir / nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME).is_file())
+
+    def test_reboot_lifecycle_unaffected_other_units_untouched(self):
+        with tempfile.TemporaryDirectory() as d:
+            systemd_dir = Path(d)
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, LEGACY_UNIT_CONTENT)
+            _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, "multi-user.target.wants")
+            # A real NoemaForge unit + its own enablement symlink must survive untouched.
+            _write_unit(systemd_dir, "noemaforge-llama.service", "[Unit]\nDescription=NoemaForge\n")
+            noema_link = _link_wants(systemd_dir, "noemaforge-llama.service", "multi-user.target.wants")
+            nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+            self.assertTrue(noema_link.exists())
+            self.assertTrue((systemd_dir / "noemaforge-llama.service").is_file())
+
+    def test_idempotent_second_call_is_silent_noop(self):
+        with tempfile.TemporaryDirectory() as d:
+            systemd_dir = Path(d)
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, LEGACY_UNIT_CONTENT)
+            _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, "multi-user.target.wants")
+            first = nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+            second = nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+        self.assertEqual(first["removed_count"], 1)
+        self.assertTrue(second["unit_found"])
+        self.assertTrue(second["unit_confirmed_legacy"])
+        self.assertEqual(second["symlinks_removed"], [])
+        self.assertEqual(second["removed_count"], 0)
+
+    def test_unrelated_same_named_file_left_untouched(self):
+        with tempfile.TemporaryDirectory() as d:
+            systemd_dir = Path(d)
+            # Same filename, but content has neither BrainOS signature: must not be treated
+            # as the legacy artifact, and its enablement symlink must survive.
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME,
+                       "[Unit]\nDescription=Unrelated unit that happens to share this name\n")
+            link = _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME,
+                               "multi-user.target.wants")
+            result = nu.remove_legacy_brainos_shutdown_hook(systemd_dir)
+            self.assertTrue(result["unit_found"])
+            self.assertFalse(result["unit_confirmed_legacy"])
+            self.assertEqual(result["removed_count"], 0)
+            self.assertTrue(link.exists())
+
+    def test_run_upgrade_apply_wires_in_cleanup(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            (cur / "noemaforge" / "src").mkdir(parents=True)
+            (cur / "noemaforge" / "src" / "app.py").write_text("old code", encoding="utf-8")
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            systemd_dir = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, LEGACY_UNIT_CONTENT)
+            _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, "multi-user.target.wants")
+            blob = _release_tar([("noemaforge/src/app.py", "new code")])
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", apply=True,
+                                 fetcher=lambda u: blob, dest=dest, systemd_dir=systemd_dir)
+        self.assertTrue(res["ok"])
+        cleanup = res["legacy_brainos_cleanup"]
+        self.assertIsNotNone(cleanup)
+        self.assertEqual(cleanup["removed_count"], 1)
+
+    def test_run_upgrade_dry_run_does_not_touch_systemd_state(self):
+        import contextlib
+        with contextlib.ExitStack() as stack:
+            cur = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            (cur / "noemaforge" / "src").mkdir(parents=True)
+            (cur / "noemaforge" / "src" / "app.py").write_text("old code", encoding="utf-8")
+            dest = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            systemd_dir = Path(stack.enter_context(tempfile.TemporaryDirectory()))
+            _write_unit(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME, LEGACY_UNIT_CONTENT)
+            link = _link_wants(systemd_dir, nu.LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME,
+                               "multi-user.target.wants")
+            blob = _release_tar([("noemaforge/src/app.py", "new code")])
+            res = nu.run_upgrade(cur, "owner/repo", version="v1", apply=False,
+                                 fetcher=lambda u: blob, dest=dest, systemd_dir=systemd_dir)
+            self.assertTrue(res["ok"])
+            self.assertIsNone(res["legacy_brainos_cleanup"])
+            self.assertTrue(link.exists())
+
+
 if __name__ == "__main__":
     unittest.main()
