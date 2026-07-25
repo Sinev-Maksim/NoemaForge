@@ -432,6 +432,12 @@ def _runtime_reason(record: Dict[str, Any]) -> str:
     selection_status = str(record.get("selection_status") or "").strip()
     if selection_status and selection_status != "completed":
         return selection_status
+    if not bool(record.get("started")):
+        # Never started and no reason/selection_status recorded: this is a
+        # genuinely unknown outcome, not a completed run. Defaulting to
+        # "completed" here would misclassify never-started records inside
+        # failure/incomplete groupings (see summarize_model_run_records).
+        return "unknown"
     return "completed"
 
 
@@ -457,19 +463,23 @@ def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, 
     failure_groups_by_model: List[Dict[str, Any]] = []
     grouped_by_model: Dict[str, Dict[str, Any]] = {}
     grouped_by_reason: Dict[tuple[str, str], Dict[str, Any]] = {}
-    for rec in failed_or_incomplete:
+    for index, rec in enumerate(failed_or_incomplete):
         model_id = str(rec.get("model_id") or "").strip()
         logical_model_id = str(rec.get("logical_model_id") or "").strip()
         classification = str(rec.get("classification") or "unknown")
         reason = str(rec.get("reason") or "completed")
-        if model_id not in grouped_by_model:
-            grouped_by_model[model_id] = {
+        # Records without a model_id must not collapse into a single ""-keyed
+        # group: that would silently merge distinct failures as if they came
+        # from one model. Give each model_id-less record its own group key.
+        group_key = model_id if model_id else f"__no_model_id__{index}"
+        if group_key not in grouped_by_model:
+            grouped_by_model[group_key] = {
                 "model_id": model_id,
                 "logical_model_id": logical_model_id,
                 "classifications": [],
                 "reasons": [],
             }
-        model_group = grouped_by_model[model_id]
+        model_group = grouped_by_model[group_key]
         if classification not in model_group["classifications"]:
             model_group["classifications"].append(classification)
         if reason not in model_group["reasons"]:

@@ -188,6 +188,48 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             ],
         )
 
+    def test_never_started_record_without_reason_is_not_classified_completed(self) -> None:
+        # A model run that never started and has no reason/selection_status
+        # recorded is genuinely unknown, not "completed". It must not be
+        # silently reported with a "completed" reason inside the
+        # failure/incomplete grouping used for triage output.
+        records = [{"model_id": "ghost"}]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(summary["classification_counts"]["unknown"], 1)
+        self.assertEqual(summary["reason_counts"], {"unknown": 1})
+        self.assertEqual(len(summary["failed_or_incomplete"]), 1)
+        self.assertEqual(summary["failed_or_incomplete"][0]["classification"], "unknown")
+        self.assertEqual(summary["failed_or_incomplete"][0]["reason"], "unknown")
+        self.assertNotEqual(summary["failed_or_incomplete"][0]["reason"], "completed")
+
+    def test_started_record_without_reason_is_still_classified_completed(self) -> None:
+        # The legitimate "completed" shape (a record that DID start and
+        # finished with no explicit reason field) must keep working.
+        records = [{"model_id": "ok", "started": True}]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(summary["classification_counts"]["completed"], 1)
+        self.assertEqual(summary["reason_counts"], {"completed": 1})
+        self.assertEqual(summary["failed_or_incomplete"], [])
+
+    def test_model_id_less_failed_records_are_not_merged_into_one_group(self) -> None:
+        # Multiple failed records that all lack a model_id must not collapse
+        # into a single ""-keyed group: each record's classification/reason
+        # would otherwise be silently merged as if it came from one model.
+        records = [
+            {"reason": "warmup_failed"},
+            {"reason": "invalid_backend_calls"},
+        ]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(len(summary["failure_groups_by_model"]), 2)
+        self.assertEqual(
+            sorted(group["reasons"][0] for group in summary["failure_groups_by_model"]),
+            ["invalid_backend_calls", "warmup_failed"],
+        )
+        for group in summary["failure_groups_by_model"]:
+            self.assertEqual(group["model_id"], "")
+        # Empty model_id groups still don't leak into failed_model_ids.
+        self.assertEqual(summary["failed_model_ids"], [])
+
     def test_summarize_artifacts_counts_generator_paths_once(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_artifact_summary_") as td:
             root = Path(td)
