@@ -75,6 +75,27 @@ Do not execute shell commands.
             self.assertEqual("demo", saved["proposal_id"])
             self.assertEqual("quarantined", saved["activation_state"])
 
+    def test_invalid_utf8_in_skill_md_is_handled_gracefully(self) -> None:
+        # Regression test: invalid UTF-8 byte sequences should not crash with UnicodeDecodeError.
+        # Instead, they should be decoded with errors="replace" (lossy but readable).
+        with tempfile.TemporaryDirectory(prefix="nf_skill_proposal_") as td:
+            skill_path = Path(td) / "SKILL.md"
+            # Write a file with valid UTF-8 start, then append invalid UTF-8 bytes.
+            skill_path.write_bytes(
+                b"---\nid: broken\n---\n# Instructions\nValid text\xFF\xFE\ninvalid bytes here\n"
+            )
+
+            # This should not raise UnicodeDecodeError; instead, it should produce a proposal
+            # with the invalid bytes replaced (lossy decode).
+            proposal = spr.build_skill_proposal_from_path(skill_path)
+
+            # The proposal should be quarantined (as always), and the text should be readable
+            # even with replacement characters.
+            self.assertEqual("quarantined", proposal["activation_state"])
+            self.assertIn("broken", proposal["parsed_skill"]["id"])
+            # The instructions should contain the lossy-decoded content (with U+FFFD replacement chars).
+            self.assertIn("text", proposal["parsed_skill"]["instructions"])
+
 
 if __name__ == "__main__":
     unittest.main()

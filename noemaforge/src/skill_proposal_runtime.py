@@ -219,7 +219,9 @@ def build_skill_proposal_from_text(text: str, *, source_uri: str = "SKILL.md") -
 
 def build_skill_proposal_from_path(path: Path | str) -> Dict[str, Any]:
     skill_path = Path(path)
-    text = skill_path.read_text(encoding="utf-8-sig")
+    # Read as bytes first, then decode with errors="replace" to handle untrusted input gracefully.
+    # This matches the defensive pattern used elsewhere in this file (e.g., _sha256_text, build_skill_proposal_from_text).
+    text = skill_path.read_bytes().decode("utf-8-sig", errors="replace")
     return build_skill_proposal_from_text(text, source_uri=str(skill_path))
 
 
