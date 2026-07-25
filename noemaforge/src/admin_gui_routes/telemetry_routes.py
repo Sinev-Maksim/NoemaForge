@@ -43,6 +43,14 @@ def runtime_status(handler: Any) -> None:
     handler._send_json(handler.server.runtime_status())
 
 
+def startup_profile(handler: Any) -> None:
+    handler._send_json(handler.server.startup_profile_state())
+
+
+def runtime_degraded(handler: Any) -> None:
+    handler._send_json(handler.server.runtime_degraded_status())
+
+
 def runtime_observer_cards(handler: Any) -> None:
     handler._send_json(handler.server.runtime_observer_cards())
 
@@ -77,7 +85,15 @@ def code_evolution_status_post(handler: Any, body: Dict[str, Any]) -> None:
 
 
 def device_policy_set(handler: Any, body: Dict[str, Any]) -> None:
-    handler._send_json(handler.server.device_policy_set(str(body.get("policy") or body.get("mode") or "auto")))
+    handler._send_json(handler.server.device_policy_set(
+        str(body.get("policy") or body.get("mode") or "auto"),
+        scope=str(body.get("scope") or "session"),
+        reset_to_safe_default=bool(body.get("reset_to_safe_default") or body.get("reset")),
+    ))
+
+
+def startup_profile_update(handler: Any, body: Dict[str, Any]) -> None:
+    handler._send_json(handler.server.startup_profile_update(body))
 
 
 def workflow_stop(handler: Any, body: Dict[str, Any]) -> None:
@@ -93,6 +109,8 @@ def get_routes() -> Dict[str, Any]:
         "/api/dashboard/state": dashboard,
         "/api/locales": locales,
         "/api/runtime/status": runtime_status,
+        "/api/startup/profile": startup_profile,
+        "/api/runtime/degraded": runtime_degraded,
         "/api/runtime/observer-cards": runtime_observer_cards,
         "/api/runtime/device-policy": device_policy,
         "/api/telemetry/status": telemetry_status,
@@ -107,5 +125,6 @@ def post_routes() -> Dict[str, Any]:
         "/api/code-evolution/propose": code_evolution_propose,
         "/api/code-evolution/status": code_evolution_status_post,
         "/api/runtime/device-policy": device_policy_set,
+        "/api/startup/profile": startup_profile_update,
         "/api/workflow/stop": workflow_stop,
     }

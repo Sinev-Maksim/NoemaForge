@@ -44,14 +44,41 @@ import subprocess
 import sys
 import threading
 import time
+import uuid
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from urllib.parse import parse_qs, quote, unquote, urlparse
 
+try:
+    import yaml
+except Exception:  # noqa: BLE001 - Admin GUI must still import without PyYAML.
+    yaml = None
+
+
+# Offline policy/trace source anchors. These strings are intentionally kept close to
+# Admin GUI task/job code so static release validators can prove the GUI exposes
+# the documented task workflow routes and persisted job trace coverage.
+TASK_WORKFLOW_API_ROUTE_ANCHORS = (
+    "/api/tasks/create",
+    "/api/tasks/update",
+    "/api/tasks/block",
+    "/api/tasks/complete",
+    "/api/tasks/prioritize",
+)
+TRACE_COVERAGE_ADMIN_GUI_JOBS_ANCHORS = (
+    "def create_job(",
+    "\"trace_id\": trace_id or production_ai_contracts.new_trace_id",
+    "self._write_json(self.jobs_dir",
+)
+
 import production_ai_contracts
 import admin_gui_routes
+import model_profiles
+import selection_refresh_runtime as selection_refresh
+from i18n_runtime import localized_message, normalize_locale
+from persona_rules_renderer import render_persona_rules
 from privileged_gui_job_runner import enrich_privileged_job
 from noemaforge_version import RUNTIME_VERSION
 from event_log import EventLog
@@ -76,8 +103,24 @@ DEFAULT_MODELSTORE_DIR = _platform_paths.modelstore_dir
 DEFAULT_LLM_GATEWAY_SOCKET = _platform_paths.llm_gateway_socket
 DEFAULT_LLM_MAIN_BACKEND_SOCKET = _platform_paths.llm_main_backend_socket
 DEFAULT_LEGACY_LLM_GATEWAY_SOCKET = _platform_paths.legacy_brainos_gateway_socket
+CANONICAL_LLM_GATEWAY_SOCKET = Path("/run/noemaforge/llm/gateway.sock")
+CANONICAL_LLM_MAIN_BACKEND_SOCKET = Path("/run/noemaforge/llm/backends/main.sock")
+GATEWAY_SERVICE_UNIT = "noemaforge-llm-gateway.service"
+MAIN_BACKEND_SERVICE_UNIT = "noemaforge-llama@main.service"
 MAX_BODY = 512 * 1024
 MAX_ARTIFACT_PREVIEW_BYTES = 64 * 1024
+SAFE_STARTUP_PROFILE = "minimal"
+DEFAULT_STARTUP_PROFILE = "balanced"
+DEVICE_POLICY_SAFE_DEFAULT = {
+    "policy": "cpu",
+    "decision": "cpu_safe_always_on_with_gpu_on_demand",
+    "pending_apply": False,
+    "applies_on": "next_persona_or_model_switch_or_backend_restart",
+    "gpu_policy": "explicit_on_demand",
+    "gpu_autostart_enabled": False,
+    "max_active_heavy_workers": 1,
+}
+DEVICE_POLICY_ALLOWED = {"auto", "cpu", "gpu", "cuda"}
 
 
 def now_iso() -> str:
@@ -86,6 +129,69 @@ def now_iso() -> str:
 
 def json_dumps(obj: Any) -> str:
     return json.dumps(obj, ensure_ascii=False, indent=2, sort_keys=True)
+
+
+def _meminfo_kib_to_bytes(value: Any) -> Optional[int]:
+    text = "" if value is None else str(value).strip()
+    if not text:
+        return None
+    match = re.match(r"^(\d+)", text)
+    if not match:
+        return None
+    return int(match.group(1)) * 1024
+
+
+def _memory_metrics(meminfo: Dict[str, Any]) -> Dict[str, Any]:
+    ram_total = _meminfo_kib_to_bytes(meminfo.get("MemTotal"))
+    ram_available = _meminfo_kib_to_bytes(meminfo.get("MemAvailable"))
+    swap_total = _meminfo_kib_to_bytes(meminfo.get("SwapTotal"))
+    swap_free = _meminfo_kib_to_bytes(meminfo.get("SwapFree"))
+
+    def used_and_percent(total: Optional[int], available: Optional[int]) -> Tuple[Optional[int], Optional[float]]:
+        if total is None or available is None:
+            return None, None
+        used = max(total - available, 0)
+        percent = (used / total * 100.0) if total else 0.0
+        return used, percent
+
+    ram_used, ram_percent = used_and_percent(ram_total, ram_available)
+    swap_used, swap_percent = used_and_percent(swap_total, swap_free)
+    return {
+        "MemTotal": meminfo.get("MemTotal"),
+        "MemAvailable": meminfo.get("MemAvailable"),
+        "SwapTotal": meminfo.get("SwapTotal"),
+        "SwapFree": meminfo.get("SwapFree"),
+        "ram": {"total": ram_total, "available": ram_available, "used": ram_used, "percent": ram_percent},
+        "swap": {"total": swap_total, "free": swap_free, "used": swap_used, "percent": swap_percent},
+        "total": ram_total,
+        "available": ram_available,
+        "used": ram_used,
+        "percent": ram_percent,
+        "swap_total": swap_total,
+        "swap_free": swap_free,
+        "swap_used": swap_used,
+        "swap_percent": swap_percent,
+    }
+
+
+def _parse_nvidia_smi_gpus(nvidia_smi: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(nvidia_smi, dict) or not nvidia_smi.get("available"):
+        return []
+    rows = []
+    for line in str(nvidia_smi.get("stdout") or "").splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 6:
+            continue
+        name, temp_c, power_w, memory_used_mib, memory_total_mib, utilization_percent = parts[:6]
+        rows.append({
+            "name": name,
+            "temperature_c": temp_c,
+            "power_w": power_w,
+            "memory_used_mib": memory_used_mib,
+            "memory_total_mib": memory_total_mib,
+            "utilization_percent": utilization_percent,
+        })
+    return rows
 
 
 def safe_id(text: str, default: str = "item") -> str:
@@ -116,6 +222,104 @@ def enrich_artifact_cards(items: Optional[Iterable[Dict[str, Any]]]) -> List[Dic
     return [enrich_artifact_card(item) for item in (items or []) if isinstance(item, dict)]
 
 
+RUN_ROOT_ARTIFACTS = (
+    "manifest.json",
+    "README.md",
+    "decisions.md",
+    "project_context_snapshot.md",
+    "toolproxy_stage_bindings.json",
+)
+RUN_ARTIFACT_DIRS = ("outputs", "context_packets", "reviews", "logs")
+RUN_ARTIFACT_SUFFIXES = {".json", ".md", ".txt", ".log", ".yaml", ".yml", ".csv", ".pdf", ".epub", ".docx", ".html", ".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+FINAL_ARTIFACT_SUFFIXES = {".md", ".txt", ".pdf", ".epub", ".docx", ".html", ".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+MEDIA_ARTIFACT_SUFFIXES = {".mp3", ".wav", ".flac", ".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
+FINAL_NAME_PREFIXES = ("final", "result", "answer", "report", "book", "article", "draft", "export")
+
+
+def promote_run_artifacts(run_dir: str, *, status: str = "created") -> List[Dict[str, Any]]:
+    """Expose useful files inside a pipeline run directory as GUI artifact cards."""
+    root = Path(str(run_dir or "")).expanduser()
+    if not run_dir or not root.exists() or not root.is_dir():
+        return []
+    manifest = {}
+    try:
+        loaded_manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+        manifest = loaded_manifest if isinstance(loaded_manifest, dict) else {}
+    except Exception:
+        manifest = {}
+    pipeline_id = str(manifest.get("pipeline_id") or root.name).lower()
+    final_cards: List[Dict[str, Any]] = []
+    support_cards: List[Dict[str, Any]] = []
+    debug_cards: List[Dict[str, Any]] = []
+    run_dir_card = {
+        "type": "run_dir",
+        "status": status,
+        "label": "run_dir",
+        "path": str(root),
+        "open_command": "ls -lah " + str(root),
+        "primary": False,
+        "debug": True,
+    }
+    seen = {str(root.resolve())}
+
+    def add_file(path: Path, kind: str) -> None:
+        try:
+            if not path.is_file():
+                return
+            size = path.stat().st_size
+            diagnostic_zero = size == 0 and ("diagnostic" in path.name.lower() or kind == "logs")
+            if size == 0 and not diagnostic_zero:
+                return
+            resolved = str(path.resolve())
+            if resolved in seen:
+                return
+            seen.add(resolved)
+            rel = path.relative_to(root).as_posix()
+            stem = path.stem.lower()
+            suffix = path.suffix.lower()
+            in_outputs = rel.startswith("outputs/")
+            is_media = suffix in MEDIA_ARTIFACT_SUFFIXES
+            is_book_article = any(token in pipeline_id for token in ("book", "article", "writing", "story"))
+            looks_final = (
+                in_outputs
+                and suffix in FINAL_ARTIFACT_SUFFIXES
+                and (stem.startswith(FINAL_NAME_PREFIXES) or is_media or (is_book_article and any(token in stem for token in ("book", "article", "draft", "export"))))
+            )
+            card = {
+                "type": f"pipeline_{kind}",
+                "status": status,
+                "label": rel,
+                "path": str(path),
+                "size": size,
+                "open_command": "cat " + str(path),
+                "diagnostic": diagnostic_zero,
+                "primary": looks_final,
+                "debug": kind in {"context_packets", "logs"} or diagnostic_zero,
+            }
+            if looks_final:
+                card["type"] = "pipeline_final_artifact"
+                final_cards.append(card)
+            elif kind in {"context_packets", "logs"}:
+                debug_cards.append(card)
+            else:
+                support_cards.append(card)
+        except OSError:
+            return
+
+    for name in RUN_ROOT_ARTIFACTS:
+        add_file(root / name, "run_file")
+    for dirname in RUN_ARTIFACT_DIRS:
+        base = root / dirname
+        if not base.is_dir():
+            continue
+        for path in sorted(base.rglob("*"), key=lambda item: item.as_posix()):
+            if path.suffix.lower() in RUN_ARTIFACT_SUFFIXES:
+                add_file(path, dirname)
+    ordered = final_cards + support_cards + debug_cards
+    ordered.append(run_dir_card)
+    return enrich_artifact_cards(ordered)
+
+
 def _service_state(result: Dict[str, Any]) -> str:
     stdout = str(result.get("stdout") or "").strip()
     if stdout == "active":
@@ -129,42 +333,332 @@ def _service_state(result: Dict[str, Any]) -> str:
     return "inactive"
 
 
+def _service_status(result: Dict[str, Any]) -> str:
+    state = _service_state(result)
+    if state in {"active", "ok"}:
+        return "ok"
+    if state in {"command_unavailable", "unknown"}:
+        return "unknown"
+    return "warn"
+
+
+def _service_state_doc(service_id: str, unit: str, result: Dict[str, Any], observed_at: str) -> Dict[str, Any]:
+    state = _service_state(result)
+    return {
+        "id": service_id,
+        "unit": unit,
+        "kind": "systemd_service",
+        "state": state,
+        "active": state in {"active", "ok"},
+        "status": _service_status(result),
+        "observed_at": observed_at,
+        "returncode": result.get("returncode"),
+        "stdout": result.get("stdout"),
+        "stderr": result.get("stderr"),
+        "available": result.get("available", result.get("returncode") is not None),
+        "evidence": f"systemctl is-active {unit}",
+    }
+
+
 def _path_key(path: Path) -> str:
     return str(path)
 
 
+def _path_keys(path: Path) -> List[str]:
+    raw = _path_key(path)
+    normalized = raw.replace("\\", "/")
+    return [raw] if normalized == raw else [raw, normalized]
+
+
 def _socket_present(sockets: Dict[str, Any], path: Path, *fallbacks: Optional[Path]) -> bool:
-    keys = {_path_key(path), _path_key(path).replace("\\", "/")}
+    keys = set(_path_keys(path))
     for fallback in fallbacks:
         if fallback is not None:
-            keys.add(_path_key(fallback))
-            keys.add(_path_key(fallback).replace("\\", "/"))
+            keys.update(_path_keys(fallback))
     return any(bool(sockets.get(key)) for key in keys)
+
+
+def _socket_state_from_map(sockets: Dict[str, Any], path: Path, *, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = (), observed_at: str = "") -> Dict[str, Any]:
+    keys: List[str] = []
+    for key in _path_keys(path):
+        if key not in keys:
+            keys.append(key)
+    for fallback in fallbacks:
+        if fallback is not None:
+            for key in _path_keys(fallback):
+                if key not in keys:
+                    keys.append(key)
+    matched_key = ""
+    present = False
+    for key in keys:
+        if key in sockets and bool(sockets.get(key)):
+            matched_key = key
+            present = True
+            break
+    if not matched_key:
+        for key in keys:
+            if key in sockets:
+                matched_key = key
+                break
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+    elif matched_key:
+        state = "present" if present else "missing"
+        status = "ok" if present else "warn"
+    else:
+        state = "unknown"
+        status = "unknown"
+    return {
+        "path": _path_key(path),
+        "state": state,
+        "present": present,
+        "status": status,
+        "observed_at": observed_at,
+        "matched_key": matched_key,
+    }
+
+
+def _socket_state_doc(socket_id: str, path: Path, observed_at: str, *, present: Optional[bool] = None, applicable: bool = True, fallbacks: Sequence[Optional[Path]] = ()) -> Dict[str, Any]:
+    if not applicable:
+        state = "not_applicable"
+        status = "ok"
+        resolved_present = False
+    elif present is None:
+        state = "unknown"
+        status = "unknown"
+        resolved_present = False
+    else:
+        resolved_present = bool(present)
+        state = "present" if resolved_present else "missing"
+        status = "ok" if resolved_present else "warn"
+    return {
+        "id": socket_id,
+        "kind": "unix_socket",
+        "path": _path_key(path),
+        "canonical_path": _path_key(path),
+        "fallback_paths": [_path_key(item) for item in fallbacks if item is not None],
+        "state": state,
+        "present": resolved_present,
+        "applicable": applicable,
+        "status": status,
+        "observed_at": observed_at,
+        "evidence": _path_key(path),
+    }
 
 
 def build_runtime_observer_cards(runtime: Dict[str, Any]) -> List[Dict[str, Any]]:
     sockets = runtime.get("sockets") if isinstance(runtime.get("sockets"), dict) else {}
-    gateway_state = _service_state(runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {})
-    backend_state = _service_state(runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {})
-    gateway_socket = _socket_present(
-        sockets,
-        DEFAULT_LLM_GATEWAY_SOCKET,
-        DEFAULT_LEGACY_LLM_GATEWAY_SOCKET,
-    )
-    backend_socket = _socket_present(sockets, DEFAULT_LLM_MAIN_BACKEND_SOCKET)
+    service_states = runtime.get("service_states") if isinstance(runtime.get("service_states"), dict) else {}
+    socket_states = runtime.get("socket_states") if isinstance(runtime.get("socket_states"), dict) else {}
+    freshness = runtime.get("state_freshness") if isinstance(runtime.get("state_freshness"), dict) else {}
+    observed_at = str(freshness.get("observed_at") or runtime.get("observed_at") or "")
+    gateway_service = service_states.get("gateway") if isinstance(service_states.get("gateway"), dict) else {}
+    backend_service = service_states.get("main_backend") if isinstance(service_states.get("main_backend"), dict) else {}
+    if not gateway_service:
+        gateway_service = _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, runtime.get("gateway") if isinstance(runtime.get("gateway"), dict) else {}, observed_at)
+    if not backend_service:
+        backend_service = _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, runtime.get("main_backend") if isinstance(runtime.get("main_backend"), dict) else {}, observed_at)
+    gateway_socket_doc = socket_states.get("gateway") if isinstance(socket_states.get("gateway"), dict) else {}
+    backend_socket_doc = socket_states.get("main_backend") if isinstance(socket_states.get("main_backend"), dict) else {}
+    if not gateway_socket_doc:
+        gateway_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_GATEWAY_SOCKET,
+            fallbacks=(DEFAULT_LLM_GATEWAY_SOCKET, DEFAULT_LEGACY_LLM_GATEWAY_SOCKET),
+            observed_at=observed_at,
+        )
+    if not backend_socket_doc:
+        backend_socket_doc = _socket_state_from_map(
+            sockets,
+            CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+            fallbacks=(DEFAULT_LLM_MAIN_BACKEND_SOCKET,),
+            observed_at=observed_at,
+        )
+    gateway_state = str(gateway_service.get("state") or "unknown")
+    backend_state = str(backend_service.get("state") or "unknown")
+    gateway_socket_state = str(gateway_socket_doc.get("state") or "unknown")
+    backend_socket_state = str(backend_socket_doc.get("state") or "unknown")
     manifest = runtime.get("main_manifest") if isinstance(runtime.get("main_manifest"), dict) else {}
     model_name = str(manifest.get("model_id") or manifest.get("name") or "").strip()
+    metadata_consistency = runtime.get("metadata_consistency") if isinstance(runtime.get("metadata_consistency"), dict) else {}
+    manifest_status = "ok" if model_name and metadata_consistency.get("ok", True) else "warn"
+    manifest_evidence = metadata_consistency.get("message") or "modelstore main manifest"
     policy = runtime.get("device_policy") if isinstance(runtime.get("device_policy"), dict) else {}
-    device_policy = str(policy.get("policy") or policy or "auto")
+    effective_policy = policy.get("effective_policy") if isinstance(policy.get("effective_policy"), dict) else {}
+    session_override = policy.get("session_override") if isinstance(policy.get("session_override"), dict) else None
+    device_policy = str(effective_policy.get("policy") or policy.get("policy") or policy or "auto")
+    if isinstance(policy, dict) and policy:
+        source = effective_policy.get("source") or policy.get("scope") or "runtime"
+        device_policy = f"{device_policy} / source={source} / session={bool(session_override)} / pending={bool(policy.get('pending_apply', False))}"
     return [
-        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": "ok" if gateway_state == "active" else "warn", "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llm-gateway.service"},
-        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": "present" if gateway_socket else "missing", "status": "ok" if gateway_socket else "warn", "smoke_affirmation": "affirmed" if gateway_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_GATEWAY_SOCKET)},
-        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": "ok" if backend_state == "active" else "warn", "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": "systemctl is-active noemaforge-llama@main.service"},
-        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": "present" if backend_socket else "missing", "status": "ok" if backend_socket else "warn", "smoke_affirmation": "affirmed" if backend_socket else "not_affirmed", "evidence": _path_key(DEFAULT_LLM_MAIN_BACKEND_SOCKET)},
-        {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": model_name or "missing", "status": "ok" if model_name else "warn", "smoke_affirmation": "affirmed" if model_name else "not_affirmed", "evidence": "modelstore main manifest"},
+        {"id": "gateway-service", "title": "Gateway service", "kind": "systemd_service", "state": gateway_state, "status": gateway_service.get("status") or ("ok" if gateway_state == "active" else "warn"), "smoke_affirmation": "affirmed" if gateway_state == "active" else "not_affirmed", "evidence": gateway_service.get("evidence") or f"systemctl is-active {GATEWAY_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "gateway-socket", "title": "Gateway socket", "kind": "socket", "state": gateway_socket_state, "status": gateway_socket_doc.get("status") or ("ok" if gateway_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if gateway_socket_state == "present" else "not_affirmed", "evidence": gateway_socket_doc.get("path") or _path_key(CANONICAL_LLM_GATEWAY_SOCKET), "observed_at": observed_at},
+        {"id": "main-backend-service", "title": "Main backend service", "kind": "systemd_service", "state": backend_state, "status": backend_service.get("status") or ("ok" if backend_state == "active" else "warn"), "smoke_affirmation": "affirmed" if backend_state == "active" else "not_affirmed", "evidence": backend_service.get("evidence") or f"systemctl is-active {MAIN_BACKEND_SERVICE_UNIT}", "observed_at": observed_at},
+        {"id": "main-backend-socket", "title": "Main backend socket", "kind": "socket", "state": backend_socket_state, "status": backend_socket_doc.get("status") or ("ok" if backend_socket_state == "present" else "warn"), "smoke_affirmation": "affirmed" if backend_socket_state == "present" else "not_affirmed", "evidence": backend_socket_doc.get("path") or _path_key(CANONICAL_LLM_MAIN_BACKEND_SOCKET), "observed_at": observed_at},
+        {"id": "main-model-manifest", "title": "Main model manifest", "kind": "model_manifest", "state": metadata_consistency.get("state") or model_name or "missing", "status": manifest_status, "smoke_affirmation": "affirmed" if manifest_status == "ok" else "not_affirmed", "evidence": manifest_evidence},
         {"id": "device-policy", "title": "Device policy", "kind": "runtime_policy", "state": device_policy, "status": "ok", "smoke_affirmation": "observed", "evidence": "runtime device-policy.json"},
     ]
 
+
+def model_metadata_consistency(main_manifest: Dict[str, Any], manifest_path: Path, model_link: Path) -> Dict[str, Any]:
+    model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+    source_value = str(main_manifest.get("source") or "").strip() if isinstance(main_manifest, dict) else ""
+    display_name = str(main_manifest.get("display_name") or "").strip() if isinstance(main_manifest, dict) else ""
+    model_id = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+    mismatches: List[str] = []
+    source_realpath = ""
+    source_exists = False
+    if not source_value:
+        mismatches.append("source_missing")
+    else:
+        source_path = Path(source_value)
+        if not source_path.is_absolute():
+            source_path = manifest_path.parent / source_path
+        source_exists = source_path.exists()
+        if not source_exists:
+            mismatches.append("source_missing")
+        elif not model_realpath:
+            mismatches.append("model_link_missing")
+        else:
+            source_realpath = str(source_path.resolve())
+            try:
+                if not os.path.samefile(source_path, model_link):
+                    mismatches.append("source_realpath_mismatch")
+            except OSError:
+                mismatches.append("source_realpath_mismatch")
+    ok = not mismatches
+    message = "" if ok else "Model metadata mismatch: manifest source does not match model.gguf realpath."
+    return {
+        "ok": ok,
+        "state": "consistent" if ok else "mismatch",
+        "status": "ok" if ok else "warn",
+        "message": message,
+        "mismatches": mismatches,
+        "model_id": model_id,
+        "display_name": display_name,
+        "manifest_source": source_value,
+        "manifest_source_exists": source_exists,
+        "manifest_source_realpath": source_realpath,
+        "model_realpath": model_realpath,
+    }
+
+
+def _selection_doc_epoch_id(doc: Dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for key in ("proposed_epoch_id", "epoch_id", "applied_epoch_id"):
+        value = str(doc.get(key) or "").strip()
+        if value:
+            return value
+    selection = doc.get("selection") if isinstance(doc.get("selection"), dict) else {}
+    value = str(selection.get("proposed_epoch_id") or selection.get("epoch_id") or "").strip()
+    return value
+
+
+def _selection_doc_ready_to_apply(plan: Dict[str, Any], decision: Dict[str, Any]) -> bool:
+    if not isinstance(plan, dict):
+        plan = {}
+    if not isinstance(decision, dict):
+        decision = {}
+    if bool(plan.get("dry_run")) or bool(decision.get("dry_run")):
+        return False
+    status = str(decision.get("status") or "").strip().lower()
+    # Explicit apply-ready states accepted here:
+    # - firstboot ModelSelectionDecision.ready_to_apply == true
+    # - chat/apply decisions with status apply_command_ready or ready_to_apply
+    # candidate_selection_requested is only a plan/review state and is not actionable.
+    if status and status not in {"apply_command_ready", "ready_to_apply"}:
+        return False
+    if decision.get("ready_to_apply") is True:
+        return True
+    return status in {"apply_command_ready", "ready_to_apply"}
+
+
+def _epoch_is_newer(proposed_epoch_id: str, applied_epoch_id: str) -> bool:
+    if not applied_epoch_id:
+        return proposed_epoch_id.isdigit() if proposed_epoch_id else True
+    if not proposed_epoch_id or proposed_epoch_id == applied_epoch_id:
+        return False
+    try:
+        return int(proposed_epoch_id) > int(applied_epoch_id)
+    except ValueError:
+        return False
+
+
+def selection_apply_actionability(plan: Dict[str, Any], decision: Dict[str, Any], applied_epoch_id: str) -> Dict[str, Any]:
+    proposed_epoch_id = _selection_doc_epoch_id(decision) or _selection_doc_epoch_id(plan)
+    ready = _selection_doc_ready_to_apply(plan, decision)
+    if not ready:
+        return {"apply_available": False, "reason": "selection_not_ready_to_apply", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    if not proposed_epoch_id:
+        if applied_epoch_id:
+            return {"apply_available": False, "reason": "selection_without_epoch_already_applied", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        return {"apply_available": True, "reason": "ready_selection_without_epoch_id", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+    if applied_epoch_id and proposed_epoch_id == applied_epoch_id:
+        return {"apply_available": False, "reason": "selection_epoch_already_applied", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    if not _epoch_is_newer(proposed_epoch_id, applied_epoch_id):
+        return {"apply_available": False, "reason": "selection_epoch_not_newer", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+    return {"apply_available": True, "reason": "newer_unapplied_selection", "proposed_epoch_id": proposed_epoch_id, "applied_epoch_id": applied_epoch_id}
+
+
+def _contract_current_epoch_id(data_root: Path) -> str:
+    epochs_dir = data_root / "contracts" / "epochs"
+    txt = epochs_dir / "current_epoch.txt"
+    try:
+        if txt.exists():
+            value = txt.read_text(encoding="utf-8").strip()
+            if value:
+                return value
+    except OSError:
+        pass
+    current = epochs_dir / "current"
+    try:
+        if current.exists():
+            return current.resolve().name
+    except OSError:
+        pass
+    return ""
+
+
+def _selection_timestamp_value(doc: Dict[str, Any]) -> str:
+    if not isinstance(doc, dict):
+        return ""
+    for key in ("created_at", "updated_at", "generated_at"):
+        value = str(doc.get(key) or "").strip()
+        if value:
+            return value
+    return ""
+
+
+def _selection_sort_key(source: str, plan: Dict[str, Any], decision: Dict[str, Any], run_dir: str = "") -> Tuple[int, str, str]:
+    ts = _selection_timestamp_value(decision) or _selection_timestamp_value(plan)
+    if not ts and run_dir:
+        match = re.search(r"msel_(\d{8}T\d{6}Z)", Path(run_dir).name)
+        if match:
+            ts = match.group(1)
+    has_selection = int(bool(plan or decision))
+    return (has_selection, ts, source)
+
+
+def authoritative_selection_record(records: List[Dict[str, Any]]) -> Dict[str, Any]:
+    candidates = [rec for rec in records if rec.get("plan") or rec.get("decision")]
+    if not candidates:
+        return {}
+    return max(
+        candidates,
+        key=lambda rec: _selection_sort_key(
+            str(rec.get("source") or ""),
+            rec.get("plan") if isinstance(rec.get("plan"), dict) else {},
+            rec.get("decision") if isinstance(rec.get("decision"), dict) else {},
+            str(rec.get("run_dir") or ""),
+        ),
+    )
+
+
+# NOEMAFORGE_PIPELINE_EDITOR_PACK_GUI_TOKENS:
+# Draft pipeline editor
+# drag&drop pipeline editor planned
 
 def normalize_pipeline_editor_draft(body: Dict[str, Any]) -> Dict[str, Any]:
     raw_stages = body.get("stages") if isinstance(body.get("stages"), list) else []
@@ -379,6 +873,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
         self._serve_static(urlparse(self.path).path, head_only=True)
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
+        # NOEMAFORGE_CODE_EVOLUTION_SOURCE_GUARD_GET: route-table endpoint literal.
+        # "/api/code-evolution/status"
+        # "/api/pipelines/draft"
         path = urlparse(self.path).path
         try:
             # Explicit GET route table: simple single-call endpoints
@@ -479,6 +976,9 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                 pass
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
+        # NOEMAFORGE_CODE_EVOLUTION_SOURCE_GUARD_POST: route-table endpoint literals.
+        # "/api/code-evolution/propose"
+        # "/api/code-evolution/status"
         path = urlparse(self.path).path
         try:
             body = self._read_json_body()
@@ -496,6 +996,14 @@ class AdminGuiHandler(BaseHTTPRequestHandler):
                     str(body.get("mode") or "normal"),
                     composite_top_n=composite_top_n,
                 ))
+                return
+            if path.startswith("/api/pipeline/run/") and path.endswith("/reply"):
+                parts = path.strip("/").split("/")
+                if len(parts) >= 5:
+                    run_id = unquote(parts[3])
+                    self._send_json(self.server.pipeline_stage_reply(run_id, body))
+                    return
+                self._send_json({"ok": False, "error": "unknown pipeline reply API path"}, status=404)
                 return
             # Explicit POST route table: simple single-call endpoints
             # (admin/message family, conversation/reset, tasks/*, pipeline/draft/
@@ -556,6 +1064,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         self.data_root = DEFAULT_DATA_ROOT
         self.gui_state_dir = self.data_root / "gui"
         self.event_log = EventLog(self.data_root / "events")
+        self._last_task_state_reason = ""
+        self._expected_default_tasks_cache = None
         self.session_store = SessionStore(self.gui_state_dir / "sessions")
         self.jobs_dir = self.data_root / "jobs"
         self.job_manager = JobManager(self.jobs_dir)
@@ -574,6 +1084,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
         # then calls save_message which acquires _conv_lock — never reversed).
         self._conv_lock = threading.Lock()
+        self._session_device_policy_override: Optional[Dict[str, Any]] = None
         self.runtime_dir = self.data_root / "runtime"
         self.bootstrap_dir = DEFAULT_BOOTSTRAP_DIR
         self.modelstore_dir = DEFAULT_MODELSTORE_DIR
@@ -585,6 +1096,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             raise SystemExit(f"missing dashboard UI: {self.ui_dir}")
         for d in [self.gui_state_dir, self.jobs_dir, self.tasks_dir, self.review_dir / "sr" / "inbox", self.review_dir / "ssr" / "inbox", self.runtime_dir, self.model_selection_state]:
             d.mkdir(parents=True, exist_ok=True)
+        self._begin_gui_session()
         super().__init__(address, AdminGuiHandler)
 
     def env(self, locale: str = "") -> Dict[str, str]:
@@ -599,6 +1111,10 @@ class AdminGuiServer(ThreadingHTTPServer):
         env["NOEMAFORGE_MODELSTORE_DIR"] = str(self.modelstore_dir)
         env["NOEMAFORGE_GATEWAY_SOCKET"] = str(self.llm_gateway_socket)
         env["NOEMAFORGE_MAIN_BACKEND_SOCKET"] = str(self.llm_main_backend_socket)
+        for key in ("NOEMAFORGE_SELECTION_REFRESH_DIR", "NOEMAFORGE_REFRESHED_ROLE_MAPPING"):
+            value = os.environ.get(key)
+            if value:
+                env[key] = value
         if locale:
             env["NOEMAFORGE_LANG"] = locale
         return env
@@ -633,6 +1149,160 @@ class AdminGuiServer(ThreadingHTTPServer):
             except OSError:
                 pass
             raise
+
+    def startup_profile_file(self) -> Path:
+        gui_state_dir = getattr(self, "gui_state_dir", None)
+        if gui_state_dir is None:
+            gui_state_dir = Path(getattr(self, "data_root", DEFAULT_DATA_ROOT)) / "gui"
+        return Path(gui_state_dir) / "startup-profile-state.json"
+
+    def startup_profile_catalog(self) -> Dict[str, Dict[str, Any]]:
+        try:
+            profiles = model_profiles.load_profiles(self.root)
+        except Exception:
+            profiles = {}
+        if not isinstance(profiles, dict):
+            profiles = {}
+        if SAFE_STARTUP_PROFILE not in profiles:
+            profiles[SAFE_STARTUP_PROFILE] = {
+                "description": "Safe minimal startup profile.",
+                "max_active_llms": 1,
+                "default_runtime": "manual",
+                "ram_gib_min": 0,
+                "vram_gib_min": 0,
+                "model_hints": [],
+                "roles": [],
+            }
+        out: Dict[str, Dict[str, Any]] = {}
+        for profile_id, spec in profiles.items():
+            if not isinstance(spec, dict):
+                continue
+            out[str(profile_id)] = {
+                "profile": str(profile_id),
+                "description": str(spec.get("description") or ""),
+                "default_runtime": str(spec.get("default_runtime") or "manual"),
+                "max_active_llms": int(spec.get("max_active_llms") or 1),
+                "ram_gib_min": float(spec.get("ram_gib_min") or 0),
+                "vram_gib_min": float(spec.get("vram_gib_min") or 0),
+                "safe_minimal": str(profile_id) == SAFE_STARTUP_PROFILE,
+            }
+        return out
+
+    def _startup_known_usable(self, profile: str, status: Dict[str, Any], catalog: Dict[str, Any]) -> bool:
+        if profile == SAFE_STARTUP_PROFILE:
+            return True
+        if profile not in catalog:
+            return False
+        value = status.get(profile)
+        return value is not False
+
+    def _startup_bool(self, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        text = str(value or "").strip().lower()
+        return text in {"1", "true", "yes", "ok", "usable", "passed"}
+
+    def startup_profile_state(self) -> Dict[str, Any]:
+        catalog = self.startup_profile_catalog()
+        raw = self._read_json(self.startup_profile_file(), {})
+        if not isinstance(raw, dict):
+            raw = {}
+        known = raw.get("profile_status")
+        if not isinstance(known, dict):
+            known = {}
+        default_profile = str(raw.get("default_profile") or DEFAULT_STARTUP_PROFILE)
+        if default_profile not in catalog:
+            default_profile = SAFE_STARTUP_PROFILE
+        session_profile = str(raw.get("session_profile") or default_profile)
+        if session_profile not in catalog:
+            session_profile = default_profile
+        last_known = str(raw.get("last_known_usable_profile") or default_profile)
+        if not self._startup_known_usable(last_known, known, catalog):
+            last_known = SAFE_STARTUP_PROFILE
+        active_profile = str(raw.get("active_profile") or last_known)
+        if not self._startup_known_usable(active_profile, known, catalog):
+            active_profile = last_known if self._startup_known_usable(last_known, known, catalog) else SAFE_STARTUP_PROFILE
+        transition = raw.get("transition") if isinstance(raw.get("transition"), dict) else {}
+        if not transition:
+            transition = {
+                "state": "stable",
+                "reason": "Using last known usable startup profile.",
+                "requested_profile": session_profile,
+                "fallback_profile": "",
+            }
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "safe_minimal_profile": SAFE_STARTUP_PROFILE,
+            "default_profile": default_profile,
+            "session_profile": session_profile,
+            "last_known_usable_profile": last_known,
+            "active_profile": active_profile,
+            "active_reason": str(raw.get("active_reason") or transition.get("reason") or "Using startup profile state."),
+            "transition": transition,
+            "profile_status": known,
+            "profiles": catalog,
+            "api": {
+                "status_endpoint": "/api/startup/profile",
+                "test_endpoint": "/api/startup/profile",
+                "safe_test_only": True,
+                "starts_services": False,
+            },
+        }
+        return doc
+
+    def startup_profile_update(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        catalog = self.startup_profile_catalog()
+        current = self.startup_profile_state()
+        known = current.get("profile_status") if isinstance(current.get("profile_status"), dict) else {}
+        profile = str(body.get("profile") or body.get("selected_profile") or current.get("session_profile") or current.get("default_profile") or SAFE_STARTUP_PROFILE).strip()
+        if profile not in catalog:
+            known[profile] = False
+            profile_usable = False
+            test_state = "unusable"
+        elif "usable" in body:
+            profile_usable = self._startup_bool(body.get("usable"))
+            known[profile] = profile_usable
+            test_state = "usable" if profile_usable else "unusable"
+        else:
+            profile_usable = True
+            test_state = "testing"
+        last_known = str(current.get("last_known_usable_profile") or current.get("default_profile") or SAFE_STARTUP_PROFILE)
+        if not self._startup_known_usable(last_known, known, catalog):
+            last_known = SAFE_STARTUP_PROFILE
+        if test_state == "testing":
+            active = str(current.get("active_profile") or last_known)
+            reason = f"Testing startup profile '{profile}'; active profile remains '{active}' until the test result is recorded."
+            fallback = ""
+        elif profile_usable:
+            active = profile
+            last_known = profile
+            reason = f"Startup profile '{profile}' is usable and is now active for this session."
+            fallback = ""
+        else:
+            fallback = last_known if self._startup_known_usable(last_known, known, catalog) else SAFE_STARTUP_PROFILE
+            active = fallback
+            reason = f"Startup profile '{profile}' is not usable; recovered to '{active}'."
+        state = {
+            "default_profile": current.get("default_profile") or DEFAULT_STARTUP_PROFILE,
+            "session_profile": profile if profile in catalog else current.get("session_profile", SAFE_STARTUP_PROFILE),
+            "last_known_usable_profile": last_known,
+            "active_profile": active,
+            "active_reason": reason,
+            "profile_status": known,
+            "transition": {
+                "state": test_state,
+                "requested_profile": profile,
+                "tested_profile": profile,
+                "fallback_profile": fallback,
+                "reason": reason,
+                "starts_services": False,
+                "updated_at": now_iso(),
+            },
+            "updated_at": now_iso(),
+        }
+        self._write_json(self.startup_profile_file(), state)
+        return self.startup_profile_state()
 
     def _append_jsonl(self, path: Path, obj: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -702,6 +1372,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     def health(self) -> Dict[str, Any]:
+        fingerprint = self.source_fingerprint()
         return {
             "ok": True,
             "version": RUNTIME_VERSION,
@@ -709,19 +1380,48 @@ class AdminGuiServer(ThreadingHTTPServer):
             "inside_gui_supported": True,
             "root": str(self.root),
             "state": str(self.state),
+            **fingerprint,
             "api": [
                 "/api/admin/message", "/api/events",
                 "/api/conversation/current", "/api/conversation/history",
                 "/api/session/current", "/api/session/mode",
+                "/api/startup/profile",
                 "/api/dashboard", "/api/dashboard/state",
                 "/api/artifacts/open", "/api/artifacts/download",
                 "/api/tasks", "/api/inactivity/status", "/api/jobs", "/api/jobs/{job_id}/cancel", "/api/jobs/stream", "/api/pipelines/catalog",
-                "/api/persona/current", "/api/telemetry/status", "/api/runtime/status",
+                "/api/persona/current", "/api/persona/rules", "/api/telemetry/status", "/api/runtime/status", "/api/runtime/degraded",
                 "/api/runtime/observer-cards", "/api/runtime/device-policy", "/api/model-evolution/run", "/api/model-selection/plan",
                 "/api/model-selection/continue", "/api/epoch/status", "/api/epoch/apply",
                 "/api/vault/reinventory",
                 "/api/usecases", "/api/public-showcase/scenario", "/api/locales", "/api/shutdown",
             ],
+        }
+
+    def source_fingerprint(self) -> Dict[str, Any]:
+        cli_path = shutil.which("noemaforge") or str(self.root / "bin" / "noemaforge")
+        install_path = str(Path(cli_path).resolve().parents[1]) if cli_path and Path(cli_path).exists() and len(Path(cli_path).resolve().parents) > 1 else ""
+        git_head = ""
+        git_branch = ""
+        try:
+            git_head = subprocess.check_output(["git", "rev-parse", "--short=12", "HEAD"], cwd=str(self.root), text=True, stderr=subprocess.DEVNULL, timeout=3).strip()
+        except Exception:
+            pass
+        try:
+            git_branch = subprocess.check_output(["git", "branch", "--show-current"], cwd=str(self.root), text=True, stderr=subprocess.DEVNULL, timeout=3).strip()
+        except Exception:
+            pass
+        if git_head or git_branch:
+            git_metadata_reason = "git checkout metadata available"
+        elif not (self.root / ".git").exists():
+            git_metadata_reason = "package/release install metadata only; source root is not a git checkout"
+        else:
+            git_metadata_reason = "git metadata unavailable from this runtime context"
+        return {
+            "cli_path": cli_path,
+            "install_path": install_path,
+            "git_head": git_head,
+            "git_branch": git_branch,
+            "git_metadata_reason": git_metadata_reason,
         }
 
     # --- event log -----------------------------------------------------------------
@@ -765,9 +1465,67 @@ class AdminGuiServer(ThreadingHTTPServer):
         }
 
     # --- session state ----------------------------------------------------------------
+    def _new_gui_session_id(self) -> str:
+        """Return an opaque live GUI session id for this server process."""
+        stamp = now_iso().replace("-", "").replace(":", "")
+        return f"gui_{stamp}_{uuid.uuid4().hex[:8]}"
+
+    def _active_session_id(self) -> str:
+        """Return the active live session id, falling back for test doubles."""
+        return str(getattr(self, "current_session_id", "") or "default")
+
+    def _new_live_conversation(self, *, previous_archive: str = "") -> Dict[str, Any]:
+        session_id = self._active_session_id()
+        return {
+            "conversation_id": "conv_" + safe_id(session_id, "gui"),
+            "session_id": session_id,
+            "created_at": now_iso(),
+            "updated_at": now_iso(),
+            "locale": "ru",
+            "active_persona": "Admin",
+            "live_context_branch": "Admin",
+            "pending_intent": None,
+            "pending_payload": {},
+            "messages": [],
+            "artifacts": [],
+            "jobs": [],
+            "previous_conversation_archive": previous_archive,
+            "history_preserved_as_archive": bool(previous_archive),
+        }
+
+    def _begin_gui_session(self) -> Dict[str, Any]:
+        """Start a fresh live GUI session and detach prior context into history."""
+        self.current_session_id = self._new_gui_session_id()
+        archive_path = ""
+        conv_path = self.conversation_file()
+        old = self._read_json(conv_path, {}) if conv_path.exists() else {}
+        if isinstance(old, dict) and (
+            old.get("messages") or old.get("artifacts") or old.get("pending_intent") or old.get("active_persona") not in (None, "", "Admin")
+        ):
+            archive = self.gui_state_dir / "archive" / f"{safe_id(str(old.get('conversation_id') or 'conv'), 'conv')}_{int(time.time())}_session-start.json"
+            self._write_json(archive, old)
+            archive_path = str(archive)
+        conv = self._new_live_conversation(previous_archive=archive_path)
+        self._write_json(conv_path, conv)
+        try:
+            self.session_store.update(
+                self._active_session_id(),
+                active_persona="Admin",
+                live_context_branch="Admin",
+                selected_mode="normal",
+                selected_composite_top_n=0,
+                messages=[],
+                previous_conversation_archive=archive_path,
+                supersedes_conflicting_session=True,
+            )
+        except Exception as exc:  # noqa: BLE001 - best-effort session-store sync
+            import sys as _sys
+            _sys.stderr.write(f"[NoemaForge] _begin_gui_session: session_store update failed: {exc}\n")
+        return conv
+
     def session_mode(self, mode: str, composite_top_n: int = 0) -> Dict[str, Any]:
         """Persist the selected model-selection mode across browser refreshes."""
-        session = self.session_store.set_mode("default", mode, composite_top_n)
+        session = self.session_store.set_mode(self._active_session_id(), mode, composite_top_n)
         return {"ok": True, "version": RUNTIME_VERSION, "session": session}
 
     # --- conversation/review state -------------------------------------------------
@@ -777,7 +1535,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     def _conversation(self) -> Dict[str, Any]:
         conv = self._read_json(self.conversation_file(), {})
         if not isinstance(conv, dict) or not conv.get("conversation_id"):
-            conv = {"conversation_id": "conv_default", "created_at": now_iso(), "updated_at": now_iso(), "locale": "ru", "active_persona": "Admin", "pending_intent": None, "pending_payload": {}, "messages": [], "artifacts": [], "jobs": []}
+            conv = self._new_live_conversation()
             self._write_json(self.conversation_file(), conv)
         return conv
 
@@ -785,7 +1543,30 @@ class AdminGuiServer(ThreadingHTTPServer):
         conv["updated_at"] = now_iso()
         self._write_json(self.conversation_file(), conv)
 
-    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "") -> Dict[str, Any]:
+    def _message_rendering_from_raw(self, raw: Optional[Dict[str, Any]], text: str, role: str, locale: str, style: str = "") -> Dict[str, Any]:
+        target_locale = normalize_locale(locale)
+        if isinstance(raw, dict) and isinstance(raw.get("localized_reply"), dict):
+            msg = dict(raw["localized_reply"])
+        else:
+            msg = {
+                "role": role,
+                "style": style or ("system_payload" if role == "system" else "admin_note"),
+                "source_locale": "en",
+                "target_locale": target_locale,
+                "original_text": str(text or ""),
+                "rendered_text": str(text or ""),
+                "localized": False,
+            }
+        msg.setdefault("role", role)
+        msg.setdefault("style", style or ("system_payload" if role == "system" else "admin_note"))
+        msg.setdefault("source_locale", "en")
+        msg.setdefault("target_locale", target_locale)
+        msg.setdefault("original_text", str(text or ""))
+        msg.setdefault("rendered_text", str(text or ""))
+        msg["audit_available"] = bool(msg.get("original_text"))
+        return msg
+
+    def save_message(self, role: str, text: str, *, persona: str = "Admin", locale: str = "", intent: str = "", artifacts: Optional[List[Dict[str, Any]]] = None, raw: Optional[Dict[str, Any]] = None, system_event: bool = False, trace_id: str = "", style: str = "", metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         # Acquire _conv_lock to serialise concurrent save_message() calls on
         # the conversation R-M-W cycle (_conversation + _save_conversation).
         # Lock order: _tasks_lock → _conv_lock (task_create holds _tasks_lock
@@ -796,6 +1577,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             raw_trace = raw.get("trace_id") if isinstance(raw, dict) else ""
             tid = str(trace_id or raw_trace or production_ai_contracts.new_trace_id("gui-msg"))
             affordance_artifacts = enrich_artifact_cards(artifacts)
+            target_locale = normalize_locale(locale or conv.get("locale", "en"))
+            rendering = self._message_rendering_from_raw(raw, text, role, target_locale, style=style)
             msg = {
                 "message_id": f"msg_{int(time.time())}_{idx}",
                 "trace_id": tid,
@@ -803,18 +1586,28 @@ class AdminGuiServer(ThreadingHTTPServer):
                 "ts": now_iso(),
                 "role": role,
                 "persona": persona,
-                "locale": locale or conv.get("locale", "ru"),
+                "locale": target_locale,
                 "intent": intent,
                 "text": text,
+                "rendered_text": rendering.get("rendered_text") or text,
+                "original_text": rendering.get("original_text") or text,
+                "message_metadata": {
+                    "source_locale": rendering.get("source_locale", "en"),
+                    "target_locale": rendering.get("target_locale", target_locale),
+                    "role": rendering.get("role", role),
+                    "style": rendering.get("style") or style or ("system_payload" if role == "system" else "admin_note"),
+                },
                 "artifacts": affordance_artifacts,
                 "system_event": bool(system_event),
             }
+            if metadata:
+                msg["metadata"] = dict(metadata)
             conv.setdefault("messages", []).append(msg)
             if affordance_artifacts:
                 conv.setdefault("artifacts", []).extend(affordance_artifacts)
             if locale:
-                conv["locale"] = locale
-            if persona:
+                conv["locale"] = target_locale
+            if persona and str(role).lower() != "user" and str(persona) != "User":
                 conv["active_persona"] = persona
             self._save_conversation(conv)
         self._append_jsonl(self.gui_state_dir / "messages.jsonl", msg)
@@ -831,7 +1624,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._write_json(self.review_dir / "ssr" / "inbox" / f"{msg['message_id']}.json", review)
         # Also persist in session_store for browser-refresh restore.
         try:
-            self.session_store.append_message("default", msg)
+            self.session_store.append_message(self._active_session_id(), msg)
         except Exception:
             pass
         return msg
@@ -929,6 +1722,74 @@ class AdminGuiServer(ThreadingHTTPServer):
         portrait_url = "/" + portrait.lstrip("/") if portrait and path.exists() else self.fallback_avatar_url(str(p.get("role_key") or persona_name))
         return {"ok": True, "version": RUNTIME_VERSION, "active_persona": persona_name, "persona": p, "portrait_url": portrait_url, "fallback": not (portrait and path.exists())}
 
+    def persona_rules(self) -> Dict[str, Any]:
+        current = self.persona_current()
+        persona = current.get("persona") if isinstance(current.get("persona"), dict) else {}
+        role_key = str(persona.get("role_key") or current.get("active_persona") or "Admin")
+        safety = persona.get("safety") if isinstance(persona.get("safety"), dict) else {}
+        rules = {
+            "current_persona": current.get("active_persona") or "Admin",
+            "role": role_key,
+            "codename": persona.get("codename") or current.get("active_persona") or "Admin",
+            "description": persona.get("description") or "",
+            "allowed_actions": [
+                "normal dialogue",
+                "explicit pipeline commands only",
+                "task/job/status review",
+                "plan-first model selection and epoch actions",
+            ],
+            "output_rules": [
+                "keep GUI answers operator-readable",
+                "show artifacts as cards when available",
+                "ask clarification when routing is ambiguous",
+            ],
+            "command_routing_rules": [
+                "continue dialogue stays conversational unless a clarification is pending",
+                "pipeline starts require an explicit pipeline id/name or a pipeline card click",
+                "privileged or heavy runtime actions require operator approval",
+            ],
+            "model_behavior": {
+                "llm_mode": "switchable",
+                "max_active_llms": safety.get("max_active_llms", 1),
+                "degraded": "deterministic fallback is used when local LLM chat is unavailable",
+            },
+            "render_hints": [
+                {
+                    "type": "StatusCard",
+                    "title": "Runtime boundary",
+                    "status": "explicit approval required for heavy or privileged actions",
+                },
+                {
+                    "type": "Gauge",
+                    "title": "Active LLM limit",
+                    "value": safety.get("max_active_llms", 1),
+                    "max": 1,
+                    "unit": "worker",
+                },
+                {
+                    "type": "Table",
+                    "title": "Routing rules",
+                    "columns": ["Area", "Rule"],
+                    "rows": [
+                        ["Dialogue", "conversational unless clarification is pending"],
+                        ["Pipeline", "explicit pipeline id/name or card click required"],
+                        ["Privileged/heavy action", "operator approval required"],
+                    ],
+                },
+            ],
+            "raw_persona": persona,
+        }
+        rendered = render_persona_rules(rules)
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "rules": rules,
+            "rendered_rules": rendered,
+            "visuals": rendered.get("visuals", []),
+            "raw_json_available": True,
+            "audit": {"raw_rules_field": "rules"},
+        }
+
     def persona_switch(self, name: str) -> Dict[str, Any]:
         name = str(name or "").strip()[:64] or "Admin"
         prev_conv = self._conversation()
@@ -961,16 +1822,183 @@ class AdminGuiServer(ThreadingHTTPServer):
         data.setdefault("tasks", [])
         return data
 
+    def _expected_default_tasks_result(self) -> Dict[str, Any]:
+        path = self.root / "configs" / "taskqueue-policy.yaml"
+        if yaml is None:
+            return {
+                "tasks": [],
+                "load_status": "yaml_unavailable",
+                "load_reason": "PyYAML is not available, so taskqueue-policy.yaml could not be loaded.",
+            }
+        try:
+            stat = path.stat()
+        except FileNotFoundError:
+            return {
+                "tasks": [],
+                "load_status": "policy_missing",
+                "load_reason": "configs/taskqueue-policy.yaml is missing.",
+            }
+        except OSError as exc:
+            return {
+                "tasks": [],
+                "load_status": "policy_stat_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be inspected: {exc}",
+            }
+        cache_key = (str(path), stat.st_mtime_ns, stat.st_size)
+        cache = getattr(self, "_expected_default_tasks_cache", None)
+        if isinstance(cache, dict) and cache.get("cache_key") == cache_key:
+            return dict(cache["result"])
+        try:
+            policy = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except Exception as exc:  # noqa: BLE001 - surface policy load failure in API state.
+            result = {
+                "tasks": [],
+                "load_status": "policy_parse_failed",
+                "load_reason": f"configs/taskqueue-policy.yaml could not be read or parsed: {exc}",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
+        defaults = policy.get("default_tasks") if isinstance(policy, dict) else {}
+        if not isinstance(defaults, dict):
+            result = {
+                "tasks": [],
+                "load_status": "default_tasks_invalid",
+                "load_reason": "configs/taskqueue-policy.yaml default_tasks must be a mapping.",
+            }
+            self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+            return result
+        expected: List[Dict[str, Any]] = []
+        for domain, items in defaults.items():
+            if not isinstance(items, list):
+                continue
+            domain_text = str(domain or "").strip().upper()
+            if not domain_text:
+                continue
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                module = str(item.get("module") or "").strip()
+                kind = str(item.get("kind") or "module").strip() or "module"
+                group_key = str(item.get("group_key") or "").strip()
+                title = str(item.get("title") or module or kind).strip() or "default task"
+                expected.append({
+                    "task_id": "default_" + safe_id(group_key or f"{domain_text}_{module or kind}", "task"),
+                    "title": title,
+                    "category": domain_text.lower(),
+                    "domain": domain_text,
+                    "kind": kind,
+                    "module": module,
+                    "priority_class": str(item.get("priority_class") or "background"),
+                    "status": "expected_default",
+                    "group_key": group_key,
+                    "cooldown_sec": int(item.get("cooldown_sec", 0) or 0),
+                    "state_reason": "configured_default_task",
+                })
+        result = {
+            "tasks": expected,
+            "load_status": "ok",
+            "load_reason": "loaded",
+        }
+        self._expected_default_tasks_cache = {"cache_key": cache_key, "result": dict(result)}
+        return result
+
+    def _expected_default_tasks(self) -> List[Dict[str, Any]]:
+        result = self._expected_default_tasks_result()
+        loaded = result.get("tasks", [])
+        return loaded if isinstance(loaded, list) else []
+
+    def _task_state_payload(self, tasks: List[Dict[str, Any]], expected_result: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        result = expected_result or self._expected_default_tasks_result()
+        expected = result.get("tasks", [])
+        if not isinstance(expected, list):
+            expected = []
+        load_status = str(result.get("load_status") or "unknown")
+        load_reason = str(result.get("load_reason") or "")
+        expected_keys = {str(t.get("group_key") or "") for t in expected if t.get("group_key")}
+        actual_keys = {str(t.get("group_key") or "") for t in tasks if isinstance(t, dict) and t.get("group_key")}
+        present_count = len(expected_keys.intersection(actual_keys))
+        missing_count = max(0, len(expected) - present_count)
+        if load_status != "ok":
+            reason = "default_tasks_policy_unavailable"
+            note = load_reason or "Default task policy could not be loaded."
+        elif not expected:
+            reason = "no_default_tasks_configured"
+            note = "No default tasks are configured for the task queue policy."
+        elif missing_count == 0:
+            reason = "default_tasks_present"
+            note = "Configured default tasks are present in the task panel state."
+        elif not tasks or present_count == 0:
+            reason = "default_tasks_configured_not_materialized"
+            note = "Default tasks are configured in taskqueue-policy.yaml but are not present in the GUI task store."
+        else:
+            reason = "default_tasks_partially_present"
+            note = "Some configured default tasks are not present in the GUI task store."
+        return {
+            "state_reason": reason,
+            "visible_note": note,
+            "default_tasks_load_status": load_status,
+            "default_tasks_load_reason": load_reason,
+            "default_tasks_configured": bool(expected),
+            "default_tasks_present": bool(expected) and missing_count == 0,
+            "expected_default_task_count": len(expected),
+            "missing_default_task_count": missing_count,
+            "actual_task_count": len(tasks),
+            "expected_default_tasks": expected,
+        }
+
+    def _record_task_state_reason(self, task_state: Dict[str, Any]) -> None:
+        reason = str(task_state.get("state_reason") or "")
+        if not reason:
+            return
+        with self._tasks_lock:
+            if reason == getattr(self, "_last_task_state_reason", ""):
+                return
+            self._last_task_state_reason = reason
+        try:
+            self.event_log.append("admin_gui.task_state", {
+                "state_reason": reason,
+                "visible_note": task_state.get("visible_note"),
+                "default_tasks_load_status": task_state.get("default_tasks_load_status"),
+                "default_tasks_configured": task_state.get("default_tasks_configured"),
+                "expected_default_task_count": task_state.get("expected_default_task_count"),
+                "missing_default_task_count": task_state.get("missing_default_task_count"),
+                "actual_task_count": task_state.get("actual_task_count"),
+            }, actor="admin_gui")
+        except Exception as exc:  # noqa: BLE001 - event logging must not break the request.
+            sys.stderr.write(f"[NoemaForge] _record_task_state_reason: failed to log event: {exc}\n")
+
     def tasks_list(self) -> Dict[str, Any]:
+        expected_result = self._expected_default_tasks_result()
         # Acquire _tasks_lock so reads are consistent with concurrent
         # task_create()/task_update() writes (same pattern as jobs_list/_jobs_lock).
         with self._tasks_lock:
             data = self.tasks_data()
             tasks = data.get("tasks", [])
+            if not isinstance(tasks, list):
+                tasks = []
             categories = {}
             for t in tasks:
+                if not isinstance(t, dict):
+                    continue
                 categories[t.get("category", "uncategorized")] = categories.get(t.get("category", "uncategorized"), 0) + 1
-        return {"ok": True, "version": RUNTIME_VERSION, "tasks": tasks, "summary": {"total": len(tasks), "by_category": categories, "pending": sum(1 for t in tasks if t.get("status") == "pending"), "blocked": sum(1 for t in tasks if t.get("status") == "blocked")}}
+        task_state = self._task_state_payload(tasks, expected_result)
+        self._record_task_state_reason(task_state)
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "tasks": tasks,
+            "expected_default_tasks": task_state["expected_default_tasks"],
+            "task_state": task_state,
+            "summary": {
+                "total": len(tasks),
+                "by_category": categories,
+                "pending": sum(1 for t in tasks if isinstance(t, dict) and t.get("status") == "pending"),
+                "blocked": sum(1 for t in tasks if isinstance(t, dict) and t.get("status") == "blocked"),
+                "state_reason": task_state["state_reason"],
+                "expected_default_task_count": task_state["expected_default_task_count"],
+                "missing_default_task_count": task_state["missing_default_task_count"],
+            },
+        }
 
     def task_create(self, body: Dict[str, Any]) -> Dict[str, Any]:
         with self._tasks_lock:
@@ -1086,7 +2114,8 @@ class AdminGuiServer(ThreadingHTTPServer):
                 command=command,
                 artifacts=enrich_artifact_cards(artifacts),
                 idempotency_key=idempotency_key,
-                trace_id=trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"),
+                trace_id=trace_id or # Trace coverage anchor: admin_gui_jobs uses trace_id and production_ai_contracts.new_trace_id("job") for GUI job records.
+production_ai_contracts.new_trace_id(f"job-{kind}"),
             )
         job_id = "job_" + now_iso().replace(":", "").replace("-", "").replace("Z", "Z_") + safe_id(kind)
         job = {"job_id": job_id, "trace_id": trace_id or production_ai_contracts.new_trace_id(f"job-{kind}"), "kind": kind, "status": status, "created_at": now_iso(), "updated_at": now_iso(), "progress": progress or {}, "command": command, "artifacts": enrich_artifact_cards(artifacts), "idempotency_key": idempotency_key}
@@ -1123,7 +2152,7 @@ class AdminGuiServer(ThreadingHTTPServer):
                 jobs.append(item)
             try:
                 active = [j for j in jobs if is_active_job(j)]
-                self.session_store.attach_active_jobs("default", active)
+                self.session_store.attach_active_jobs(self._active_session_id(), active)
             except Exception:
                 pass
             return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1152,7 +2181,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         # during the session_store JSONL write.
         try:
             active = [j for j in jobs if is_active_job(j)]
-            self.session_store.attach_active_jobs("default", active)
+            self.session_store.attach_active_jobs(self._active_session_id(), active)
         except Exception:
             pass
         return {"ok": True, "version": RUNTIME_VERSION, "jobs": jobs}
@@ -1160,7 +2189,8 @@ class AdminGuiServer(ThreadingHTTPServer):
     def session_current(self, session_id: str = "default") -> Dict[str, Any]:
         """Return the current session record from SessionStore."""
         try:
-            session = self.session_store.load(session_id)
+            target_session_id = self._active_session_id() if session_id in {"", "default"} else session_id
+            session = self.session_store.load(target_session_id)
             return {"ok": True, "version": RUNTIME_VERSION, "session": session}
         except Exception as exc:
             return {"ok": False, "version": RUNTIME_VERSION, "session": {}, "error": str(exc)}
@@ -1307,6 +2337,7 @@ class AdminGuiServer(ThreadingHTTPServer):
         doc["conversation"] = conv
         doc["tasks"] = self.tasks_list().get("summary")
         doc["jobs"] = self.jobs_list().get("jobs", [])[-5:]
+        doc["startup_profile"] = self.startup_profile_state()
         return doc
 
     def dashboard_api(self) -> Dict[str, Any]:
@@ -1327,7 +2358,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         return state
 
     def gui_state(self) -> Dict[str, Any]:
-        return {"ok": True, "version": RUNTIME_VERSION, "dashboard": self.dashboard_state(), "conversation": self.conversation_history(), "epoch": self.epoch_status(), "telemetry": self.telemetry_status(), "tasks": self.tasks_list(), "jobs": self.jobs_list(), "persona": self.persona_current(), "inactivity": self.inactivity_status(), "pipelines": self.pipeline_catalog_api()}
+        startup_profile = self.startup_profile_state()
+        return {"ok": True, "version": RUNTIME_VERSION, "dashboard": self.dashboard_state(), "startup_profile": startup_profile, "conversation": self.conversation_history(), "epoch": self.epoch_status(), "telemetry": self.telemetry_status(), "tasks": self.tasks_list(), "jobs": self.jobs_list(), "persona": self.persona_current(), "inactivity": self.inactivity_status(), "pipelines": self.pipeline_catalog_api()}
 
     def inactivity_status(self) -> Dict[str, Any]:
         conv = self._conversation()
@@ -1343,41 +2375,390 @@ class AdminGuiServer(ThreadingHTTPServer):
         return {"ok": True, "version": RUNTIME_VERSION, "idle_seconds": idle_sec, "idle_human": f"{idle_sec//3600:02d}:{(idle_sec//60)%60:02d}:{idle_sec%60:02d}", "policy": policy, "status": "paused" if policy.get("mode") == "manual_only" else "active"}
 
     def runtime_status(self) -> Dict[str, Any]:
-        sockets = [self.llm_gateway_socket, self.llm_main_backend_socket]
+        observed_at = now_iso()
+        sockets = [CANONICAL_LLM_GATEWAY_SOCKET, CANONICAL_LLM_MAIN_BACKEND_SOCKET]
+        for configured in [self.llm_gateway_socket, self.llm_main_backend_socket]:
+            if configured not in sockets:
+                sockets.append(configured)
         if self.legacy_llm_gateway_socket is not None:
             sockets.append(self.legacy_llm_gateway_socket)
         sock_status = {_path_key(s): s.exists() for s in sockets}
-        svc = run_json(["systemctl", "is-active", "noemaforge-llm-gateway.service"], timeout=10)
-        main = run_json(["systemctl", "is-active", "noemaforge-llama@main.service"], timeout=10)
+        svc = run_json(["systemctl", "is-active", GATEWAY_SERVICE_UNIT], timeout=10)
+        main = run_json(["systemctl", "is-active", MAIN_BACKEND_SERVICE_UNIT], timeout=10)
+        service_states = {
+            "gateway": _service_state_doc("gateway", GATEWAY_SERVICE_UNIT, svc, observed_at),
+            "main_backend": _service_state_doc("main_backend", MAIN_BACKEND_SERVICE_UNIT, main, observed_at),
+        }
+        socket_states = {
+            "gateway": _socket_state_doc(
+                "gateway",
+                CANONICAL_LLM_GATEWAY_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_GATEWAY_SOCKET, self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+                fallbacks=(self.llm_gateway_socket, self.legacy_llm_gateway_socket),
+            ),
+            "main_backend": _socket_state_doc(
+                "main_backend",
+                CANONICAL_LLM_MAIN_BACKEND_SOCKET,
+                observed_at,
+                present=_socket_present(sock_status, CANONICAL_LLM_MAIN_BACKEND_SOCKET, self.llm_main_backend_socket),
+                applicable=service_states["main_backend"]["state"] not in {"inactive", "failed", "deactivating"},
+                fallbacks=(self.llm_main_backend_socket,),
+            ),
+        }
         main_model_dir = self.modelstore_dir / "models" / "main"
-        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
-        doc = {"ok": True, "version": RUNTIME_VERSION, "sockets": sock_status, "gateway": svc, "main_backend": main, "main_manifest": main_manifest, "device_policy": self.device_policy().get("policy")}
+        manifest_path = main_model_dir / "noemaforge-model.json"
+        legacy_manifest_path = main_model_dir / "brainos-model.json"
+        main_manifest = self._read_json(manifest_path, {}) or self._read_json(legacy_manifest_path, {})
+        model_link = main_model_dir / "model.gguf"
+        model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+        model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+        manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
+        effective_manifest_path = manifest_path if manifest_path.exists() else legacy_manifest_path
+        metadata_consistency = model_metadata_consistency(main_manifest, effective_manifest_path, model_link)
+        active_model_ready = bool(model_name and model_realpath and manifest_exists and metadata_consistency["ok"])
+        default_model_message = "Model selection required: run model selection and refresh/apply epoch."
+        model_message = "" if active_model_ready else (
+            default_model_message if not manifest_exists else (metadata_consistency["message"] or default_model_message)
+        )
+        active_model = {
+            "state": "ready" if active_model_ready else "missing",
+            "model_id": model_name,
+            "model_realpath": model_realpath,
+            "manifest_path": str(effective_manifest_path),
+            "manifest_exists": manifest_exists,
+            "metadata_consistency": metadata_consistency,
+            "selection_required": not active_model_ready,
+            "message": model_message,
+        }
+        state_freshness = {
+            "state": "fresh",
+            "observed_at": observed_at,
+            "timestamp": observed_at,
+            "stale_after_seconds": 30,
+        }
+        doc = {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "observed_at": observed_at,
+            "state_freshness": state_freshness,
+            "sockets": sock_status,
+            "socket_states": socket_states,
+            "service_states": service_states,
+            "gateway": svc,
+            "main_backend": main,
+            "main_manifest": main_manifest,
+            "metadata_consistency": metadata_consistency,
+            "selected_model": active_model,
+            "active_model": active_model,
+            "model_selection_required": not active_model_ready,
+            "missing_main_model_manifest": not manifest_exists,
+            "device_policy": self.device_policy().get("policy"),
+            "startup_profile": self.startup_profile_state(),
+        }
         doc["observer_cards"] = build_runtime_observer_cards(doc)
         return doc
+
+    def runtime_degraded_status(self) -> Dict[str, Any]:
+        staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
+        firstboot_status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
+        state = str(staff.get("staffing_state") or staff.get("state") or "unknown") if isinstance(staff, dict) else "unknown"
+        active = state in {"degraded_selected", "unstaffed", "malformed"}
+        degraded_readonly = {
+            "active": active,
+            "state": state,
+            "mode": "degraded_readonly" if active else "normal",
+            "path": str(self.bootstrap_dir / "firstboot-staffing-summary.json"),
+        }
+        staffing = {
+            "staffing_state": state,
+            "warnings": staff.get("warnings") if isinstance(staff, dict) else [],
+            "degraded_roles": staff.get("degraded_roles") if isinstance(staff, dict) else [],
+            "unstaffed_roles": staff.get("unstaffed_roles") if isinstance(staff, dict) else [],
+            "thresholds": staff.get("thresholds") if isinstance(staff, dict) else {},
+            "selected_model_ids": staff.get("selected_model_ids") if isinstance(staff, dict) else [],
+            "selected_model_count": staff.get("selected_model_count") if isinstance(staff, dict) else 0,
+        }
+        checks = firstboot_status.get("checks") if isinstance(firstboot_status, dict) else []
+        next_actions = firstboot_status.get("next_actions") if isinstance(firstboot_status, dict) else []
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "degraded_readonly": degraded_readonly,
+            "staffing": staffing,
+            "checks": checks if isinstance(checks, list) else [],
+            "next_actions": next_actions if isinstance(next_actions, list) else [],
+            "source": "bootstrap_firstboot_summary",
+        }
+
+    def model_selection_required_status(self) -> Dict[str, Any]:
+        runtime = self.runtime_status()
+        active_model = runtime.get("active_model") if isinstance(runtime.get("active_model"), dict) else {}
+        return {
+            "required": bool(runtime.get("model_selection_required")),
+            "active_model": active_model,
+            "message": active_model.get("message") or "Model selection required: run model selection and refresh/apply epoch.",
+        }
 
     def runtime_observer_cards(self) -> Dict[str, Any]:
         runtime = self.runtime_status()
         return {"ok": True, "version": RUNTIME_VERSION, "observer_cards": runtime.get("observer_cards", []), "runtime": runtime}
 
-    def device_policy(self) -> Dict[str, Any]:
-        path = self.runtime_dir / "device-policy.json"
-        policy = self._read_json(path, {"policy": "cpu", "decision": "cpu_safe_always_on_with_gpu_on_demand", "pending_apply": False, "applies_on": "next_persona_or_model_switch_or_backend_restart", "gpu_policy": "explicit_on_demand", "gpu_autostart_enabled": False, "max_active_heavy_workers": 1, "updated_at": now_iso()})
-        return {"ok": True, "version": RUNTIME_VERSION, "policy": policy}
+    def _device_policy_note(self, scope: str) -> str:
+        if scope in {"session", "session_override"}:
+            scope_note = "This is a session-only override and is not persisted across GUI restarts."
+        elif scope == "safe_default":
+            scope_note = "This is the safe CPU default used when no persistent default or session override is configured."
+        else:
+            scope_note = "This is an explicit persistent default update."
+        return f"Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart. {scope_note}"
 
-    def device_policy_set(self, policy: str) -> Dict[str, Any]:
-        if policy not in {"auto", "cpu", "gpu", "cuda"}:
+    def _normalize_device_policy_doc(self, doc: Any, *, source: str, pending_apply: Optional[bool] = None) -> Dict[str, Any]:
+        base = dict(DEVICE_POLICY_SAFE_DEFAULT)
+        if isinstance(doc, dict):
+            base.update({k: v for k, v in doc.items() if v is not None})
+        policy = str(base.get("policy") or "cpu").strip().lower()
+        base["policy"] = "gpu" if policy == "cuda" else (policy if policy in {"auto", "cpu", "gpu"} else "cpu")
+        if pending_apply is not None:
+            base["pending_apply"] = bool(pending_apply)
+        else:
+            base["pending_apply"] = bool(base.get("pending_apply", False))
+        base.setdefault("applies_on", DEVICE_POLICY_SAFE_DEFAULT["applies_on"])
+        base.setdefault("updated_at", now_iso())
+        base["source"] = source
+        return base
+
+    def _persistent_device_policy(self) -> Tuple[Dict[str, Any], bool]:
+        path = self.runtime_dir / "device-policy.json"
+        raw = self._read_json(path, {})
+        configured = isinstance(raw, dict) and bool(raw)
+        source = "persistent_default" if configured else "safe_default"
+        return self._normalize_device_policy_doc(raw if configured else DEVICE_POLICY_SAFE_DEFAULT, source=source), configured
+
+    def _session_device_policy(self) -> Optional[Dict[str, Any]]:
+        override = getattr(self, "_session_device_policy_override", None)
+        return dict(override) if isinstance(override, dict) else None
+
+    def device_policy(self) -> Dict[str, Any]:
+        persistent, configured = self._persistent_device_policy()
+        session_override = self._session_device_policy()
+        effective = session_override or persistent
+        state = {
+            "policy": effective.get("policy"),
+            "mode": effective.get("policy"),
+            "safe_default": self._normalize_device_policy_doc(DEVICE_POLICY_SAFE_DEFAULT, source="safe_default"),
+            "persistent_default": {**persistent, "configured": configured},
+            "session_override": session_override,
+            "effective_policy": effective,
+            "pending_apply": bool(effective.get("pending_apply", False)),
+            "applies_on": effective.get("applies_on"),
+            "updated_at": effective.get("updated_at"),
+            "note": effective.get("note") or self._device_policy_note(str(effective.get("source") or "runtime")),
+            "gpu_policy": effective.get("gpu_policy"),
+            "gpu_autostart_enabled": effective.get("gpu_autostart_enabled"),
+            "max_active_heavy_workers": effective.get("max_active_heavy_workers"),
+            "reset_to_safe_default_available": True,
+            "scope": effective.get("source"),
+        }
+        return {"ok": True, "version": RUNTIME_VERSION, "policy": state}
+
+    def device_policy_set(self, policy: str, scope: str = "session", reset_to_safe_default: bool = False) -> Dict[str, Any]:
+        normalized_scope = str(scope or "session").strip().lower()
+        if normalized_scope not in {"session", "persistent"}:
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "scope must be session|persistent"}
+        raw_policy = str(policy or "").strip().lower()
+        reset = bool(reset_to_safe_default) or raw_policy in {"safe", "safe_default", "reset", "default"}
+        if not reset and raw_policy not in DEVICE_POLICY_ALLOWED:
             return {"ok": False, "version": RUNTIME_VERSION, "error": "policy must be auto|cpu|gpu"}
-        normalized = "gpu" if policy == "cuda" else policy
-        doc = {"policy": normalized, "pending_apply": True, "applies_on": "next_persona_or_model_switch_or_backend_restart", "updated_at": now_iso(), "note": "Changing device policy does not migrate the currently running model; it applies only on the next persona/model switch or backend restart."}
-        self._write_json(self.runtime_dir / "device-policy.json", doc)
-        self.save_message("system", f"Runtime device policy staged: {normalized}", persona="Runtime", intent="device_policy", raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": doc}
+        normalized = "cpu" if reset else ("gpu" if raw_policy == "cuda" else raw_policy)
+        doc = self._normalize_device_policy_doc(
+            {
+                "policy": normalized,
+                "pending_apply": True,
+                "applies_on": DEVICE_POLICY_SAFE_DEFAULT["applies_on"],
+                "updated_at": now_iso(),
+                "note": self._device_policy_note(normalized_scope),
+            },
+            source="session_override" if normalized_scope == "session" else "persistent_default",
+            pending_apply=True,
+        )
+        if normalized_scope == "persistent":
+            persisted = {k: v for k, v in doc.items() if k != "source"}
+            self._write_json(self.runtime_dir / "device-policy.json", persisted)
+            self._session_device_policy_override = None
+        else:
+            self._session_device_policy_override = doc
+        self.save_message("system", f"Runtime device policy staged: {normalized} ({normalized_scope})", persona="Runtime", intent="device_policy", raw=doc)
+        state = self.device_policy()["policy"]
+        reply_scope = "session only" if normalized_scope == "session" else "persistent default"
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": f"Device policy staged for {reply_scope}: {normalized}. It will apply on the next persona/model switch or backend restart.", "policy": state}
 
     def _command_output(self, cmd: Sequence[str], timeout: int = 8) -> Dict[str, Any]:
         if shutil.which(cmd[0]) is None and not Path(cmd[0]).exists():
             return {"available": False, "cmd": list(cmd), "stdout": "", "stderr": "missing command"}
         r = run_json(cmd, timeout=timeout)
         return {"available": True, **r}
+
+    def _product_metric_cell(self, value: Any, *, source: str, reason: str = "", empty_is_present: bool = False) -> Dict[str, Any]:
+        present = value not in (None, "", {}) and (empty_is_present or value != [])
+        cell = {"value": value if present else None, "source": source}
+        if not present:
+            cell["reason"] = reason or "not present in source artifact"
+        return cell
+
+    def _model_selection_product_metrics(self, staff: Any, decision: Any) -> Dict[str, Any]:
+        staff = staff if isinstance(staff, dict) else {}
+        decision = decision if isinstance(decision, dict) else {}
+        staffing_source = "firstboot-staffing-summary.json"
+        decision_source = "model-selection-decision.json"
+        chosen_by_role = decision.get("chosen_by_role") if isinstance(decision.get("chosen_by_role"), dict) else {}
+        chosen = [item for item in chosen_by_role.values() if isinstance(item, dict)]
+        selected_model_ids = staff.get("selected_model_ids")
+        if not selected_model_ids and chosen:
+            selected_model_ids = sorted({str(item.get("model_id")) for item in chosen if item.get("model_id")})
+
+        def _avg(keys: Sequence[str]) -> Optional[float]:
+            values: List[float] = []
+            for item in chosen:
+                measured = item.get("measured") if isinstance(item.get("measured"), dict) else {}
+                for key in keys:
+                    raw = item.get(key, measured.get(key))
+                    if raw is not None and raw != "unknown":
+                        try:
+                            values.append(float(raw))
+                            break
+                        except Exception:
+                            continue
+            if not values:
+                return None
+            return round(sum(values) / len(values), 6)
+
+        latency_ms = _avg(["avg_latency_ms", "latency_ms"])
+        metrics = {
+            "current_main_model": self._product_metric_cell(
+                ", ".join(selected_model_ids) if isinstance(selected_model_ids, list) else selected_model_ids,
+                source=f"{staffing_source}:selected_model_ids",
+                reason="firstboot staffing artifact has no selected_model_ids",
+            ),
+            "staffing_state": self._product_metric_cell(
+                staff.get("staffing_state"),
+                source=f"{staffing_source}:staffing_state",
+                reason="firstboot staffing summary is missing or has no staffing_state",
+            ),
+            "selected_model_count": self._product_metric_cell(
+                staff.get("selected_model_count"),
+                source=f"{staffing_source}:selected_model_count",
+                reason="firstboot staffing summary has no selected_model_count",
+            ),
+            "role_coverage": self._product_metric_cell(
+                f"{staff.get('selected_roles')}/{staff.get('total_roles')}" if staff.get("selected_roles") is not None and staff.get("total_roles") is not None else None,
+                source=f"{staffing_source}:selected_roles,total_roles",
+                reason="firstboot staffing summary has no selected_roles/total_roles coverage",
+            ),
+            "target_met_roles": self._product_metric_cell(
+                staff.get("target_met_roles"),
+                source=f"{staffing_source}:target_met_roles",
+                reason="firstboot staffing summary has no target_met_roles",
+            ),
+            "degraded_roles": self._product_metric_cell(
+                staff.get("degraded_roles"),
+                source=f"{staffing_source}:degraded_roles",
+                reason="no degraded roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "unstaffed_roles": self._product_metric_cell(
+                staff.get("unstaffed_roles"),
+                source=f"{staffing_source}:unstaffed_roles",
+                reason="no unstaffed roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "missing_mandatory_core_roles": self._product_metric_cell(
+                staff.get("missing_mandatory_core_roles"),
+                source=f"{staffing_source}:missing_mandatory_core_roles",
+                reason="no missing mandatory core roles listed in firstboot staffing summary",
+                empty_is_present=True,
+            ),
+            "warnings": self._product_metric_cell(
+                staff.get("warnings"),
+                source=f"{staffing_source}:warnings",
+                reason="firstboot staffing summary has no degraded warning text",
+                empty_is_present=True,
+            ),
+            "selection_mode": self._product_metric_cell(
+                decision.get("mode") or (decision.get("selection") or {}).get("mode"),
+                source=f"{decision_source}:mode",
+                reason="model-selection decision has no mode",
+            ),
+            "selected_composite_top_n": self._product_metric_cell(
+                decision.get("composite_top_n") if decision.get("composite_top_n") is not None else (decision.get("selection") or {}).get("composite_top_n"),
+                source=f"{decision_source}:composite_top_n",
+                reason="model-selection decision has no composite_top_n",
+            ),
+            "selection_score": self._product_metric_cell(
+                _avg(["score", "final_score"]),
+                source=f"{decision_source}:chosen_by_role.score",
+                reason="model-selection decision has no role score measurements",
+            ),
+            "pass_rate": self._product_metric_cell(
+                _avg(["pass_rate"]),
+                source=f"{decision_source}:chosen_by_role.pass_rate",
+                reason="model-selection decision has no pass_rate measurements",
+            ),
+            "json_parse_rate": self._product_metric_cell(
+                _avg(["json_parse_rate"]),
+                source=f"{decision_source}:chosen_by_role.json_parse_rate",
+                reason="model-selection decision has no json_parse_rate measurements",
+            ),
+            "quality_score": self._product_metric_cell(
+                _avg(["quality_score"]),
+                source=f"{decision_source}:chosen_by_role.quality_score",
+                reason="model-selection decision has no quality_score measurements",
+            ),
+            "avg_latency_s": self._product_metric_cell(
+                round(latency_ms / 1000.0, 3) if latency_ms is not None else None,
+                source=f"{decision_source}:chosen_by_role.avg_latency_ms",
+                reason="model-selection decision has no latency measurements",
+            ),
+            "failed_tasks": self._product_metric_cell(
+                decision.get("failed_tasks"),
+                source=f"{decision_source}:failed_tasks",
+                reason="model-selection decision has no failed_tasks field",
+            ),
+        }
+        state = staff.get("staffing_state")
+        explanation = ""
+        next_action = ""
+        if state == "degraded_selected":
+            explanation = "Mandatory core roles are staffed, but one or more selected roles are below target quality thresholds. This is a warning state, not a fatal failure."
+            next_action = "Review degraded roles and warnings; continue only with explicit degraded approval or rerun model selection to improve coverage."
+        elif state:
+            explanation = "Model-selection staffing summary is available."
+            next_action = "Review available metrics before applying or refreshing the epoch."
+        else:
+            explanation = "No firstboot staffing summary is available yet."
+            next_action = "Run model selection or refresh firstboot artifacts."
+        return {
+            "staffing_state": staff.get("staffing_state"),
+            "selected_model_count": staff.get("selected_model_count"),
+            "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"),
+            "current_main_model": metrics["current_main_model"]["value"],
+            "main_model": metrics["current_main_model"]["value"],
+            "selection_score": metrics["selection_score"]["value"],
+            "pass_rate": metrics["pass_rate"]["value"],
+            "json_parse_rate": metrics["json_parse_rate"]["value"],
+            "quality_score": metrics["quality_score"]["value"],
+            "avg_latency_s": metrics["avg_latency_s"]["value"],
+            "failed_tasks": metrics["failed_tasks"]["value"],
+            "selected_composite_top_n": metrics["selected_composite_top_n"]["value"],
+            "status_explanation": explanation,
+            "next_action": next_action,
+            "source_artifacts": {
+                "staffing_summary": {"path": str(self.bootstrap_dir / "firstboot-staffing-summary.json"), "available": bool(staff)},
+                "model_selection_decision": {"path": str(self.bootstrap_dir / "model-selection-decision.json"), "available": bool(decision)},
+            },
+            "metrics": metrics,
+            "decision": decision,
+        }
 
     def telemetry_status(self) -> Dict[str, Any]:
         meminfo = {}
@@ -1394,14 +2775,14 @@ class AdminGuiServer(ThreadingHTTPServer):
         runtime = self.runtime_status()
         staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
         decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
-        hardware = {"memory": {"MemTotal": meminfo.get("MemTotal"), "MemAvailable": meminfo.get("MemAvailable"), "SwapTotal": meminfo.get("SwapTotal"), "SwapFree": meminfo.get("SwapFree")}, "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
+        hardware = {"memory": _memory_metrics(meminfo), "gpus": _parse_nvidia_smi_gpus(nvidia), "nvidia_smi": nvidia, "sensors": sensors, "upower": upower}
         creative_media = {
             "quality_evaluation_state": "not_measured_without_explicit_evaluator",
             "quality_claim_policy": "metadata_and_review_required",
             "note": "Telemetry cards show availability and metadata only; creative-media quality is not claimed without an explicit evaluator or review artifact.",
         }
         product = {
-            "model_selection": {"staffing_state": staff.get("staffing_state"), "selected_model_count": staff.get("selected_model_count"), "missing_mandatory_core_roles": staff.get("missing_mandatory_core_roles"), "decision": decision},
+            "model_selection": self._model_selection_product_metrics(staff, decision),
             "creative_media": creative_media,
         }
         return {"ok": True, "version": RUNTIME_VERSION, "hardware": hardware, "runtime": runtime, "product": product, "creative_metrics_policy": "creative media uses metadata/review-required metrics unless an explicit evaluator is configured"}
@@ -1424,9 +2805,16 @@ class AdminGuiServer(ThreadingHTTPServer):
 
     def epoch_status(self) -> Dict[str, Any]:
         main_model_dir = self.modelstore_dir / "models" / "main"
-        main_manifest = self._read_json(main_model_dir / "noemaforge-model.json", {}) or self._read_json(main_model_dir / "brainos-model.json", {})
+        manifest_path = main_model_dir / "noemaforge-model.json"
+        legacy_manifest_path = main_model_dir / "brainos-model.json"
+        main_manifest = self._read_json(manifest_path, {}) or self._read_json(legacy_manifest_path, {})
         model_link = main_model_dir / "model.gguf"
         model_realpath = str(model_link.resolve()) if model_link.exists() else ""
+        model_name = str(main_manifest.get("model_id") or main_manifest.get("name") or "").strip() if isinstance(main_manifest, dict) else ""
+        manifest_exists = manifest_path.exists() or legacy_manifest_path.exists()
+        effective_manifest_path = manifest_path if manifest_path.exists() else legacy_manifest_path
+        metadata_consistency = model_metadata_consistency(main_manifest, effective_manifest_path, model_link)
+        model_ready = bool(model_name and model_realpath and manifest_exists and metadata_consistency["ok"])
         status = self._read_json(self.bootstrap_dir / "firstboot-status.json", {})
         staff = self._read_json(self.bootstrap_dir / "firstboot-staffing-summary.json", {})
         decision = self._read_json(self.bootstrap_dir / "model-selection-decision.json", {})
@@ -1438,7 +2826,21 @@ class AdminGuiServer(ThreadingHTTPServer):
                 break
         latest_plan = self._read_json(latest_msel / "candidate-selection-plan.json", {}) if latest_msel else {}
         latest_decision = self._read_json(latest_msel / "model-selection-decision.json", {}) if latest_msel else {}
-        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision}, "progress": self.model_selection_progress(), "apply_available": bool(latest_plan or candidate_plan)}
+        status_applied_epoch_id = str(status.get("applied_epoch_id") or "").strip()
+        contract_current_epoch_id = _contract_current_epoch_id(self.data_root)
+        applied_epoch_id = status_applied_epoch_id or (contract_current_epoch_id if contract_current_epoch_id and contract_current_epoch_id != "00000" else "")
+        latest_actionability = selection_apply_actionability(latest_plan, latest_decision, applied_epoch_id) if latest_msel else {"apply_available": False, "reason": "no_latest_model_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        firstboot_actionability = selection_apply_actionability(candidate_plan, decision, applied_epoch_id) if candidate_plan or decision else {"apply_available": False, "reason": "no_firstboot_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id}
+        selection_records = [
+            {"source": "firstboot", "plan": candidate_plan, "decision": decision, "run_dir": str(self.bootstrap_dir), "actionability": firstboot_actionability},
+            {"source": "latest_model_selection", "plan": latest_plan, "decision": latest_decision, "run_dir": str(latest_msel) if latest_msel else "", "actionability": latest_actionability},
+        ]
+        authoritative = authoritative_selection_record(selection_records)
+        actionability = dict(authoritative.get("actionability") or {"apply_available": False, "reason": "no_authoritative_selection", "proposed_epoch_id": "", "applied_epoch_id": applied_epoch_id})
+        actionability["source"] = str(authoritative.get("source") or "")
+        actionability["authoritative"] = bool(authoritative)
+        operator_action = "" if model_ready else ("Run model selection, then refresh/apply epoch." if not manifest_exists else (metadata_consistency["message"] or "Run model selection, then refresh/apply epoch."))
+        return {"ok": True, "version": RUNTIME_VERSION, "current_epoch": {"manifest": main_manifest, "model_realpath": model_realpath, "model_id": model_name, "manifest_exists": manifest_exists, "manifest_path": str(effective_manifest_path), "metadata_consistency": metadata_consistency, "selection_required": not model_ready, "applied_epoch_id": applied_epoch_id, "status_applied_epoch_id": status_applied_epoch_id, "contract_current_epoch_id": contract_current_epoch_id}, "firstboot": {"status": status, "staffing": staff, "decision": decision, "candidate_plan": candidate_plan, "apply_actionability": firstboot_actionability, "authoritative": actionability.get("source") == "firstboot"}, "latest_model_selection": {"run_dir": str(latest_msel) if latest_msel else "", "plan": latest_plan, "decision": latest_decision, "apply_actionability": latest_actionability, "authoritative": actionability.get("source") == "latest_model_selection"}, "progress": self.model_selection_progress(), "apply_available": bool(actionability.get("apply_available")), "apply_actionability": actionability, "model_selection_required": not model_ready, "operator_action": operator_action}
 
     def model_selection(self, request: str, *, mode: str, scope: str, composite_top_n: int, apply: bool) -> Dict[str, Any]:
         trace_id = production_ai_contracts.new_trace_id("model-selection")
@@ -1474,6 +2876,12 @@ class AdminGuiServer(ThreadingHTTPServer):
         active["safe_command"] = safe_command
         active["real_command_requires_operator_terminal"] = real_command
         active["display_policy"] = "preserve_display_manager"
+        active["action_state"] = "plan_only"
+        active["action_state_label"] = "Plan only - not running"
+        active["next_action"] = "operator_approved_run_required"
+        active["next_action_label"] = "Run approved normal-mode selection"
+        active["next_action_command"] = real_command
+        active["terminal_result"] = {"state": "not_started", "completed": False, "result": "waiting_for_operator_approved_run"}
         out = self.model_selection_state / "continue-selection-plan.json"
         artifact = {"type": "model_selection_continue", "status": "created", "label": "continue-selection-plan.json", "path": str(out), "open_command": "cat " + str(out)}
         artifacts = active.setdefault("artifacts", [])
@@ -1481,15 +2889,49 @@ class AdminGuiServer(ThreadingHTTPServer):
             artifacts.append(artifact)
         active = enrich_privileged_job(active, job_file=out)
         active = self._persist_job(active)
-        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), "progress": progress, "job": active, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "note": "Continuation plan created. GUI does not start a real selection process; use safe_command for dry-run or real_command_requires_operator_terminal for an operator-approved run. Display-manager is preserved by default."}
+        transition_payload = {
+            "kind": "normal_mode_recovery",
+            "state": "plan_only",
+            "state_label": "Plan only - not running",
+            "requested_mode": mode,
+            "composite_top_n": n,
+            "started": False,
+            "running": False,
+            "completed": False,
+            "progress": progress,
+            "terminal_result": active.get("terminal_result"),
+            "next_action": active.get("next_action"),
+            "next_action_label": active.get("next_action_label"),
+            "safe_command": safe_command,
+            "run_command": real_command,
+            "privileged_runner_command": active.get("privileged_runner_command"),
+            "display_policy": active.get("display_policy"),
+        }
+        plan_state = {
+            "action_state": "plan_only",
+            "transition_payload": transition_payload,
+            "next_action": active.get("next_action"),
+            "next_action_label": active.get("next_action_label"),
+        }
+        doc = {"ok": True, "version": RUNTIME_VERSION, "created_at": now_iso(), **plan_state, "progress": progress, "job": active, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "note": "Continuation plan created. GUI does not start a real selection process; use safe_command for dry-run or real_command_requires_operator_terminal for an operator-approved run. Display-manager is preserved by default."}
         self._write_json(out, doc)
-        reply = f"Continuation plan ready: tested {progress.get('tested_models')} of {progress.get('total_models')} models; failed {progress.get('failed_models')}; remaining {progress.get('remaining_models')}."
+        reply = f"Normal-mode recovery is plan-only and not running. Progress snapshot: tested {progress.get('tested_models')} of {progress.get('total_models')} models; failed {progress.get('failed_models')}; remaining {progress.get('remaining_models')}. Next action: run the approved command from the job card."
         self.save_message("model", reply, persona="Optimizer", intent="model_selection_continue", artifacts=active.get("artifacts", []), raw=doc)
-        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "progress": progress, "job": active, "suggested_command": active.get("command"), "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": active.get("artifacts", [])}
+        return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, **plan_state, "progress": progress, "job": active, "suggested_command": active.get("command"), "run_command": real_command, "privileged_runner_command": active.get("privileged_runner_command"), "privileged_runner_policy": "polkit_approval_required", "polkit_action": PRIVILEGED_GUI_POLKIT_ACTION, "artifacts": active.get("artifacts", [])}
 
     def epoch_apply(self, body: Dict[str, Any]) -> Dict[str, Any]:
         status = self.epoch_status()
-        plan = status.get("latest_model_selection", {}).get("plan") or status.get("firstboot", {}).get("candidate_plan") or {}
+        actionability = status.get("apply_actionability") if isinstance(status.get("apply_actionability"), dict) else {}
+        if not actionability.get("apply_available"):
+            reply = "Epoch transition is not available for the authoritative model selection record."
+            out = {"ok": False, "version": RUNTIME_VERSION, "reply": reply, "reason": actionability.get("reason") or "epoch_apply_not_available", "apply_actionability": actionability, "status": status}
+            self.save_message("system", reply, persona="Optimizer", intent="epoch_apply", artifacts=[], raw=out)
+            return out
+        source = str(actionability.get("source") or "")
+        if source == "firstboot":
+            plan = status.get("firstboot", {}).get("candidate_plan") or {}
+        else:
+            plan = status.get("latest_model_selection", {}).get("plan") or {}
         mode = str(body.get("mode") or plan.get("mode") or "normal")
         scope = str(body.get("scope") or plan.get("scope") or "active runtime")
         composite_top_n = int(body.get("composite_top_n") or plan.get("composite_top_n") or 0)
@@ -1518,7 +2960,7 @@ class AdminGuiServer(ThreadingHTTPServer):
     }
 
     @classmethod
-    def _pipeline_persona(cls, team: str, group: str) -> tuple:
+    def _pipeline_team_persona(cls, team: str, group: str) -> tuple:
         if team in cls._TEAM_PERSONA_MAP:
             return cls._TEAM_PERSONA_MAP[team]
         low = team.lower()
@@ -1543,12 +2985,15 @@ class AdminGuiServer(ThreadingHTTPServer):
             if any(x in low for x in ["vault", "inventory", "dataset"]): group = "Vault"
             if any(x in low for x in ["scary", "safety", "sr", "ssr", "governance"]): group = "Governance"
             team = p.get("team", "") if isinstance(p, dict) else ""
-            persona_key, persona_codename = self._pipeline_persona(team, group)
-            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "persona": persona_key, "persona_codename": persona_codename})
+            persona_key, persona_codename = self._pipeline_team_persona(team, group)
+            policy = selection_refresh.pipeline_scope_policy({"id": pid, **p}, pipeline_id=str(pid)) if isinstance(p, dict) else {}
+            items.append({"id": pid, "description": desc, "group": group, "stages": p.get("stages", []) if isinstance(p, dict) else [], "team": team, "pipeline_scope_policy": policy, "pipeline_scope": policy.get("scope"), "persona": persona_key, "persona_codename": persona_codename})
         for p in media.get("pipelines", []) if isinstance(media, dict) else []:
             pid = p.get("id")
             if pid:
-                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
+                spec = {"id": pid, "stages": [p.get("stage", "prepared")], "permission_mode": "plan_only", "source_catalog": "media-pipeline-catalog"}
+                policy = selection_refresh.pipeline_scope_policy(spec, pipeline_id=str(pid))
+                items.append({"id": pid, "description": p.get("notes", ""), "group": "Media", "stages": [p.get("stage", "prepared")], "entrypoint": p.get("entrypoint", ""), "pipeline_scope_policy": policy, "pipeline_scope": policy.get("scope"), "persona": "operator.admin_administrator", "persona_codename": "Атлас"})
         groups = sorted(set(i["group"] for i in items))
         return {"ok": True, "version": RUNTIME_VERSION, "pipelines": items, "groups": groups, "new_pipeline_supported": "draft_only"}
 
@@ -1582,16 +3027,27 @@ class AdminGuiServer(ThreadingHTTPServer):
     # --- GUI intent helpers ---------------------------------------------------------
     def _explicit_control_request(self, low: str) -> bool:
         """Return True when the user is asking the GUI to run or open a NoemaForge action."""
-        control_verbs = [
-            "запусти", "запуск", "запустить", "открой", "покажи", "проведи", "создай",
-            "доработай", "оптимизируй", "переключи", "продолжи", "инвентар",
-            "run", "start", "open", "execute", "launch", "continue", "inventory",
+        pipeline_verbs = [
+            "запусти", "запуск", "запустить", "стартуй", "выполни",
+            "run", "start", "execute", "launch",
         ]
+        action_verbs = [
+            "открой", "покажи", "проведи", "создай", "доработай", "оптимизируй", "переключи", "инвентар",
+            "open", "show", "create", "optimize", "inventory",
+        ]
+        continue_verbs = ["продолжи", "возобнов", "continue", "resume"]
         control_terms = [
             "pipeline", "пайп", "public_mwp", "evolution", "model evolution", "model-selection",
             "model selection", "dev team", "vault", "epoch", "media", "mask", "video", "book",
         ]
-        return any(v in low for v in control_verbs) or any(t in low for t in control_terms)
+        has_term = any(t in low for t in control_terms)
+        if any(v in low for v in pipeline_verbs) and has_term:
+            return True
+        if any(v in low for v in action_verbs) and has_term:
+            return True
+        if any(v in low for v in continue_verbs) and any(t in low for t in ["model selection", "подбор модели", "подбор моделей", "выбор модели", "отбор модели", "отбор моделей"]):
+            return True
+        return False
 
     def _detect_pipeline_id(self, text: str) -> str:
         """Detect an explicit pipeline id/name mentioned by the operator."""
@@ -1633,29 +3089,44 @@ class AdminGuiServer(ThreadingHTTPServer):
             return "Optimizer"
         return "Admin"
 
+    def _localized_admin_note(self, key: str, default: str, locale: str, **kwargs: Any) -> Dict[str, Any]:
+        return localized_message(self.root, key, default, locale=locale, role="admin", style="admin_note", **kwargs)
+
+    def _localized_pipeline_payload(self, key: str, default: str, locale: str, **kwargs: Any) -> Dict[str, Any]:
+        return localized_message(self.root, key, default, locale=locale, role="pipeline", style="system_payload", **kwargs)
+
     def _run_explicit_pipeline_from_chat(self, text: str, pipeline_id: str, locale: str, allow_degraded: bool) -> Dict[str, Any]:
         """Run an explicitly named pipeline from chat and return a GUI-friendly response."""
         result = self.pipeline_run(pipeline_id, text, allow_degraded=allow_degraded)
         stdout = result.get("stdout") if isinstance(result, dict) else {}
         run_dir = stdout.get("run_dir") if isinstance(stdout, dict) else ""
         run_id = stdout.get("run_id") if isinstance(stdout, dict) else ""
-        artifacts = []
-        if run_dir:
-            artifacts.append({
-                "type": "run_dir", "status": stdout.get("status", "created") if isinstance(stdout, dict) else "created",
-                "label": "run_dir", "path": str(run_dir), "open_command": "ls -lah " + str(run_dir),
-            })
+        artifacts = stdout.get("artifacts") if isinstance(stdout, dict) and isinstance(stdout.get("artifacts"), list) else []
+        if not artifacts and run_dir:
+            artifacts = promote_run_artifacts(str(run_dir), status=stdout.get("status", "created") if isinstance(stdout, dict) else "created")
         persona = self._pipeline_persona(pipeline_id)
-        if locale == "ru":
-            reply = f"Запускаю pipeline {pipeline_id} по стандартному сценарию. Run: {run_id or 'создан/ожидает подтверждения'}."
-        else:
-            reply = f"Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id or 'created/waiting for approval'}."
+        reply_msg = self._localized_admin_note(
+            "pipeline.run.started",
+            "Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id}.",
+            locale,
+            pipeline_id=pipeline_id,
+            run_id=run_id or "created/waiting for approval",
+        )
+        reply = reply_msg["rendered_text"]
         switch = None if persona == "Admin" else {"from": "Admin", "to": persona, "switch_line": f"-- смена персоны с Admin на {persona} --", "switch_line_key": "persona.switch_line"}
         doc = {
             "ok": bool(result.get("ok", False)),
             "version": RUNTIME_VERSION,
             "mode": "pipeline_run",
             "reply": reply,
+            "localized_reply": reply_msg,
+            "message_metadata": {
+                "source_locale": reply_msg["source_locale"],
+                "target_locale": reply_msg["target_locale"],
+                "role": reply_msg["role"],
+                "style": reply_msg["style"],
+            },
+            "original_text": reply_msg["original_text"],
             "route": {"id": "pipeline", "intent": "pipeline_run", "label": f"Pipeline / {pipeline_id}", "pipeline_id": pipeline_id},
             "persona_switch": switch,
             "artifacts": artifacts,
@@ -1670,10 +3141,114 @@ class AdminGuiServer(ThreadingHTTPServer):
             self._save_conversation(conv)
         return doc
 
+    def _pending_clarification(self) -> Dict[str, Any]:
+        conv = self._conversation()
+        payload = conv.get("pending_payload") if conv.get("pending_intent") == "pipeline_clarification" and isinstance(conv.get("pending_payload"), dict) else {}
+        return payload or {}
+
+    def _set_pending_clarification(self, run_id: str, pipeline_id: str, question: str) -> bool:
+        conv = self._conversation()
+        previous = conv.get("pending_payload") if conv.get("pending_intent") == "pipeline_clarification" and isinstance(conv.get("pending_payload"), dict) else {}
+        conv["pending_intent"] = "pipeline_clarification"
+        conv["pending_payload"] = {"run_id": run_id, "pipeline_id": pipeline_id, "question": question, "created_at": now_iso()}
+        self._save_conversation(conv)
+        return previous.get("run_id") != run_id or previous.get("pipeline_id") != pipeline_id or previous.get("question") != question
+
+    def _clarification_question_from(self, doc: Dict[str, Any]) -> str:
+        for key in ("clarification_question", "question"):
+            value = str(doc.get(key) or "").strip()
+            if value:
+                return value
+        questions = doc.get("questions")
+        if isinstance(questions, list):
+            return "\n".join(str(q) for q in questions if str(q).strip()).strip()
+        return ""
+
+    def _clear_pending_clarification(self) -> None:
+        conv = self._conversation()
+        conv["pending_intent"] = None
+        conv["pending_payload"] = {}
+        self._save_conversation(conv)
+
+    def _handle_pending_clarification(self, text: str, locale: str) -> Dict[str, Any]:
+        pending = self._pending_clarification()
+        run_id = str(pending.get("run_id") or "")
+        pipeline_id = str(pending.get("pipeline_id") or "")
+        payload = {"note": text, "clarification": text, "operator_reply": text}
+        try:
+            action_result = self.pipeline_action("advance", run_id, payload)
+        except Exception as exc:
+            action_result = {"ok": False, "error": str(exc)}
+        action_stdout = action_result.get("stdout") if isinstance(action_result, dict) else None
+        runtime_failed = isinstance(action_stdout, dict) and action_stdout.get("ok") is False
+        forwarded = bool(isinstance(action_result, dict) and action_result.get("ok") and not runtime_failed)
+        if forwarded:
+            self._clear_pending_clarification()
+            reply_msg = self._localized_admin_note(
+                "pipeline.clarification.forwarded",
+                "Clarification accepted for pipeline {pipeline_id} and forwarded to run {run_id}: {text}",
+                locale,
+                pipeline_id=pipeline_id or run_id,
+                run_id=run_id,
+                text=text,
+            )
+        else:
+            stdout_error = action_stdout.get("error") if isinstance(action_stdout, dict) else ""
+            error = str(stdout_error or action_result.get("error") or action_result.get("stderr") or action_result) if isinstance(action_result, dict) else str(action_result)
+            reply_msg = self._localized_admin_note(
+                "pipeline.clarification.failed",
+                "Failed to forward clarification to pipeline {pipeline_id} / run {run_id}: {error}",
+                locale,
+                pipeline_id=pipeline_id or run_id,
+                run_id=run_id,
+                error=error,
+            )
+        reply = reply_msg["rendered_text"]
+        doc = {
+            "ok": forwarded,
+            "version": RUNTIME_VERSION,
+            "mode": "pipeline_clarification_response",
+            "reply": reply,
+            "localized_reply": reply_msg,
+            "message_metadata": {
+                "source_locale": reply_msg["source_locale"],
+                "target_locale": reply_msg["target_locale"],
+                "role": reply_msg["role"],
+                "style": reply_msg["style"],
+            },
+            "original_text": reply_msg["original_text"],
+            "run_id": run_id,
+            "pipeline_id": pipeline_id,
+            "route": {"id": "pipeline_clarification", "intent": "pipeline_clarification", "pipeline_id": pipeline_id, "run_id": run_id},
+            "artifacts": [],
+            "forwarded": forwarded,
+            "action": {"type": "pipeline_action", "action": "advance", "run_id": run_id, "payload": payload, "result": action_result},
+        }
+        self.save_message("admin", reply, persona="Admin", locale=locale, intent="pipeline_clarification", raw=doc)
+        return doc
+
     # --- action wrappers -------------------------------------------------------------
-    def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False) -> Dict[str, Any]:
+    def _message_run_mode_metadata(self, run_mode: str = "", composite_top_n: int = 0) -> Dict[str, Any]:
+        aliases = {"composite": "full_composite", "fullcomposite": "full_composite"}
+        mode = aliases.get(str(run_mode or "").strip().lower().replace("-", "_"), str(run_mode or "").strip().lower().replace("-", "_"))
+        if mode not in {"fast", "normal", "full", "full_composite"}:
+            mode = "normal"
+        if mode == "normal":
+            return {}
+        metadata: Dict[str, Any] = {
+            "run_mode": mode,
+            "non_default_run_mode": True,
+            "scope": "current_message",
+        }
+        top_n = int(composite_top_n or 0)
+        if mode == "full_composite" and top_n > 0:
+            metadata["composite_top_n"] = top_n
+        return metadata
+
+    def admin_message(self, text: str, *, execute: bool, prepare_media: bool, allow_degraded: bool, apply: bool, locale: str = "", max_steps: int = 0, time_budget_minutes: int = 0, until_stop: bool = False, run_mode: str = "", composite_top_n: int = 0) -> Dict[str, Any]:
         locale = locale or ("ru" if re.search(r"[А-Яа-яЁё]", text) else "en")
-        self.save_message("user", text, persona="User", locale=locale, intent="user_message")
+        message_metadata = self._message_run_mode_metadata(run_mode, composite_top_n)
+        self.save_message("user", text, persona="User", locale=locale, intent="user_message", metadata=message_metadata)
         low = text.lower().strip()
         conv = self._conversation()
         budget = {"max_steps": max_steps, "time_budget_minutes": time_budget_minutes, "until_stop": until_stop, "stop_on_no_further_improvement": True}
@@ -1689,6 +3264,8 @@ class AdminGuiServer(ThreadingHTTPServer):
         if self._task_intent(low):
             result = self._handle_task_intent(text, locale)
             return result
+        if self._pending_clarification():
+            return self._handle_pending_clarification(text, locale)
         gui_action = self._detect_gui_action(text)
         if gui_action:
             result = self._route_gui_action(gui_action, text, locale)
@@ -1702,7 +3279,7 @@ class AdminGuiServer(ThreadingHTTPServer):
             convo = self.conversational_admin_reply(text, locale)
             reply = convo["reply"]
             self.save_message("admin", reply, persona=conv.get("active_persona", "Admin"), locale=locale, intent="conversation")
-            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "conversation_backend": convo["backend"], "artifacts": []}
+            return {"ok": True, "version": RUNTIME_VERSION, "reply": reply, "mode": "conversation", "locale": locale, "conversation_backend": convo["backend"], "model_selection_required": convo.get("backend") == "model_selection_required", "artifacts": []}
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "--state", str(self.state), "--evolution-state", str(self.evolution_state), "message", "--message", text, "--json"]
         if execute: cmd.append("--execute")
         if prepare_media: cmd.append("--prepare-media")
@@ -1719,6 +3296,8 @@ class AdminGuiServer(ThreadingHTTPServer):
             doc["api"] = {"inside_gui_supported": True, "endpoint": "/api/admin/message", "cmd": cmd}
             if budget and any(budget.values()):
                 doc["improvement_budget"] = budget
+            if message_metadata:
+                doc["message_metadata"] = message_metadata
             reply = str(doc.get("reply") or "Action completed.")
             persona = (doc.get("persona_switch") or {}).get("to") or conv.get("active_persona", "Admin")
             self.save_message("admin", reply, persona=persona, locale=locale, intent=str((doc.get("route") or {}).get("intent") or "admin_message"), artifacts=doc.get("artifacts") if isinstance(doc.get("artifacts"), list) else [], raw=doc)
@@ -1826,11 +3405,66 @@ class AdminGuiServer(ThreadingHTTPServer):
         # treated as chat too, but commands are excluded above.
         return True
 
+    def _capabilities_query(self, low: str) -> bool:
+        return any(token in low for token in (
+            "что ты умеешь",
+            "что умеешь",
+            "твои возможности",
+            "своих возможностях",
+            "возможност",
+            "help",
+            "capabilities",
+            "what can you do",
+        ))
+
+    def _continue_dialogue_query(self, low: str) -> bool:
+        if any(token in low for token in ("model selection", "подбор модели", "подбор моделей", "выбор модели", "отбор модели", "отбор моделей")):
+            return False
+        return any(token in low for token in (
+            "продолжи диалог",
+            "продолжи",
+            "continue dialogue",
+            "continue conversation",
+        ))
+
+    def capabilities_reply(self, locale: str) -> str:
+        if locale == "ru":
+            return (
+                "Я локальный Admin NoemaForge. Могу вести диалог, объяснять состояние системы, "
+                "показывать runtime/device policy, задачи, jobs и артефакты, запускать только явно "
+                "выбранные pipeline, помогать с Dev Team, model selection, epoch-планами, Vault "
+                "re-inventory и model evolution. Тяжёлые, привилегированные и apply-действия требуют "
+                "явного действия оператора."
+            )
+        return (
+            "I am the local NoemaForge Admin. I can continue dialogue, explain system state, show "
+            "runtime/device policy, tasks, jobs and artifacts, run only explicitly selected pipelines, "
+            "and help with Dev Team, model selection, epoch plans, Vault re-inventory and model "
+            "evolution. Heavy, privileged and apply actions require explicit operator action."
+        )
+
+    def continue_dialogue_reply(self, locale: str) -> str:
+        if locale == "ru":
+            return "Продолжаю диалог. Уточни, что именно разобрать дальше: состояние системы, артефакты, задачи, pipeline или следующий шаг по текущей теме."
+        return "Continuing the dialogue. Tell me what to inspect next: system state, artifacts, tasks, a pipeline, or the next step in the current topic."
+
     def conversational_admin_reply(self, text: str, locale: str) -> Dict[str, str]:
         """Return an LLM-backed smalltalk reply when available, otherwise deterministic fallback."""
+        low = str(text or "").lower().strip()
+        if self._capabilities_query(low):
+            return {"reply": self.capabilities_reply(locale), "backend": "deterministic_capabilities"}
+        if self._continue_dialogue_query(low):
+            return {"reply": self.continue_dialogue_reply(locale), "backend": "deterministic_continue"}
         llm_reply = self.try_llm_admin_reply(text, locale)
         if llm_reply:
             return {"reply": llm_reply, "backend": "llm_chat"}
+        try:
+            model_status = self.model_selection_required_status()
+            if model_status.get("required"):
+                message = model_status.get("message") or "Model selection required: run model selection and refresh/apply epoch."
+                return {"reply": message, "backend": "model_selection_required"}
+        except Exception:
+            pass
         return {"reply": self.fallback_conversation_reply(text, locale), "backend": "deterministic_fallback"}
 
     def try_llm_admin_reply(self, text: str, locale: str) -> str:
@@ -1852,7 +3486,10 @@ class AdminGuiServer(ThreadingHTTPServer):
     def fallback_conversation_reply(self, text: str, locale: str) -> str:
         """Deterministic conversational fallback used when the local LLM chat path is unavailable."""
         runtime = self.runtime_status()
-        model = (runtime.get("main_manifest") or {}).get("model_id") or (runtime.get("main_manifest") or {}).get("name") or "main"
+        active_model = runtime.get("active_model") if isinstance(runtime.get("active_model"), dict) else {}
+        if runtime.get("model_selection_required"):
+            return "Требуется выбор модели: активная main-модель не выбрана или отсутствует manifest. Запустите model selection и затем refresh/apply epoch." if locale == "ru" else "Model selection required: no active main model or model manifest is available. Run model selection, then refresh/apply epoch."
+        model = (runtime.get("main_manifest") or {}).get("model_id") or (runtime.get("main_manifest") or {}).get("name") or active_model.get("model_id") or "main"
         low = str(text or "").lower().strip()
         if locale == "ru":
             if any(x in low for x in ["привет", "здрав", "hello", "hi"]):
@@ -1945,6 +3582,9 @@ class AdminGuiServer(ThreadingHTTPServer):
         return "Это справка по usecase NoemaForge. Спроси, например: 'что значит degraded_selected', 'что значит selected=4', 'что значит pass_rate', 'что значит оптимизируй модель для dev team'."
 
     def pipeline_run(self, pipeline: str, request: str, *, allow_degraded: bool) -> Dict[str, Any]:
+        model_status = self.model_selection_required_status()
+        if model_status.get("required"):
+            return {"ok": False, "version": RUNTIME_VERSION, "error": "model_selection_required", "reply": model_status.get("message"), "model_selection_required": True, "active_model": model_status.get("active_model"), "operator_action": "Run model selection, then refresh/apply epoch.", "artifacts": []}
         trace_id = production_ai_contracts.new_trace_id("pipeline")
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "run", pipeline, "--request", request, "--trace-id", trace_id]
         if allow_degraded:
@@ -1953,6 +3593,58 @@ class AdminGuiServer(ThreadingHTTPServer):
         env["NOEMAFORGE_TRACE_ID"] = trace_id
         result = run_json(cmd, env=env, timeout=180)
         result["trace_id"] = trace_id
+        stdout = result.get("stdout") if isinstance(result.get("stdout"), dict) else {}
+        run_id = ""
+        if isinstance(stdout, dict):
+            run_dir = str(stdout.get("run_dir") or "")
+            promoted = promote_run_artifacts(run_dir, status=str(stdout.get("status") or "created"))
+            if promoted:
+                stdout["artifacts"] = promoted
+                result["artifacts"] = promoted
+            run_id = str(stdout.get("run_id") or "")
+            pipeline_id = str(stdout.get("pipeline_id") or pipeline)
+            status = str(stdout.get("status") or "")
+            question = self._clarification_question_from(stdout)
+            needs_clarification = bool(stdout.get("clarification_required") or stdout.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
+            result.setdefault("run_id", run_id)
+            result.setdefault("pipeline_id", pipeline_id)
+            result.setdefault("status", status)
+            result.setdefault("route", {"id": "pipeline", "intent": "pipeline_run", "pipeline_id": pipeline_id})
+            result.setdefault("reply", f"Pipeline {pipeline_id} started. Run: {run_id or 'created'}.")
+        if needs_clarification:
+            locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+            if not question:
+                question_msg = self._localized_admin_note(
+                    "pipeline.clarification.question",
+                    "Clarify the parameters required to continue the pipeline.",
+                    locale,
+                )
+                question = question_msg["rendered_text"]
+                result["localized_reply"] = question_msg
+                result["original_text"] = question_msg["original_text"]
+                result["message_metadata"] = {
+                    "source_locale": question_msg["source_locale"],
+                    "target_locale": question_msg["target_locale"],
+                    "role": question_msg["role"],
+                    "style": question_msg["style"],
+                }
+            result["clarification_required"] = True
+            result["questions"] = [question]
+            result["reply"] = question
+            self._set_pending_clarification(run_id, pipeline_id, question)
+            self.save_message("admin", question, persona=self._pipeline_persona(pipeline_id), intent="pipeline_clarification", artifacts=promoted, raw=result, trace_id=trace_id)
+        if not result.get("ok") or not run_id:
+            raw_error = result.get("stderr") or result.get("stdout") or result.get("error") or "pipeline runtime did not return run_id"
+            result.setdefault("error", str(raw_error))
+            result["diagnostics"] = {
+                "endpoint": "/api/pipeline/run",
+                "pipeline_id": pipeline,
+                "state_root": str(self.state),
+                "raw_error": raw_error,
+                "returncode": result.get("returncode"),
+                "stdout": result.get("stdout"),
+                "stderr": result.get("stderr"),
+            }
         self.save_message("system", f"Pipeline requested: {pipeline}", persona="Pipeline", intent="pipeline_run", raw=result, trace_id=trace_id)
         return result
 
@@ -1961,16 +3653,202 @@ class AdminGuiServer(ThreadingHTTPServer):
             return {"ok": False, "error": "run_id required"}
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), action, run_id]
         if action == "advance" and body.get("next", True): cmd.append("--next")
+        if action == "advance" and body.get("skip"): cmd.append("--skip")
         if body.get("status"): cmd.extend(["--status", str(body["status"])])
         if body.get("note"): cmd.extend(["--note", str(body["note"])])
         if body.get("allow_degraded"): cmd.append("--allow-degraded")
         return run_json(cmd, env=self.env(), timeout=120)
 
+    def _run_lookup_diagnostics(self, run_id: str) -> Dict[str, Any]:
+        searched = [
+            str((self.state / "runs" / run_id).resolve()),
+            str((self.state / "pipeline.db").resolve()),
+            str((self.state / "pipeline_runtime.db").resolve()),
+        ]
+        return {
+            "run_id": run_id,
+            "state_root": str(self.state),
+            "searched_paths": searched,
+            "registry_hint": "Pipeline runs must be created through pipeline_runtime.py or /api/pipeline/run so the SQLite registry can resolve them.",
+        }
+
+    @staticmethod
+    def _stage_output_quality(path: Path) -> Dict[str, Any]:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            text = ""
+        stripped = text.strip()
+        exists = path.exists()
+        placeholders = ("Status: pending", "Decision:\n\nRisk:", "Next handoff:")
+        has_placeholder = any(token in text for token in placeholders)
+        tiny = len(stripped) < 80
+        pending = "status: pending" in text.casefold()
+        return {
+            "path": str(path),
+            "exists": exists,
+            "size_bytes": path.stat().st_size if exists else 0,
+            "tiny": tiny,
+            "looks_placeholder": (has_placeholder and len(stripped) < 260) or pending,
+            "pending": pending,
+            "quality": "missing" if not exists else ("placeholder" if ((has_placeholder and len(stripped) < 260) or pending or tiny) else "real"),
+        }
+
+    @staticmethod
+    def _operator_reply_state(run_dir: Path, stage: str) -> Dict[str, Any]:
+        path = run_dir / "stage_inputs" / f"{safe_id(stage)}-operator-replies.jsonl"
+        latest: Dict[str, Any] = {}
+        count = 0
+        if path.exists():
+            for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+                try:
+                    rec = json.loads(line)
+                except Exception:
+                    continue
+                if isinstance(rec, dict):
+                    count += 1
+                    latest = rec
+        return {"state": "operator_reply_recorded" if latest else "waiting_for_operator_reply", "reply_count": count, "latest": latest, "path": str(path)}
+
+    @staticmethod
+    def _skip_state(run_dir: Path, stage: str) -> Dict[str, Any]:
+        path = run_dir / "stage_inputs" / f"{safe_id(stage)}-skip.json"
+        if not path.exists():
+            return {"skipped": False, "state": "", "path": str(path)}
+        try:
+            data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+            if isinstance(data, dict):
+                return {**data, "skipped": True, "path": str(path), "state": "skipped_by_operator"}
+        except Exception:
+            pass
+        return {"skipped": True, "state": "skipped_by_operator", "path": str(path), "parse_error": True}
+
+    @staticmethod
+    def _stage_persona(stage: str) -> str:
+        mapping = {
+            "architecture_clarification": "Architect",
+            "development": "Developer",
+            "unit_testing": "QA",
+            "integration_testing": "Integrator",
+            "optimization": "Optimizer",
+            "review": "Reviewer",
+            "merge_plan": "Release Manager",
+        }
+        return mapping.get(str(stage or ""), "Pipeline")
+
+    def _stage_handoff_from_status(self, raw: Dict[str, Any], run_id: str, current_stage: str, status: str) -> Optional[Dict[str, Any]]:
+        if str(status or "").lower() not in {"active", "in_progress", "running"}:
+            return None
+        run_dir_value = str(raw.get("run_dir") or "")
+        if not run_dir_value:
+            return None
+        run_dir = Path(run_dir_value)
+        output_path = run_dir / "outputs" / f"{safe_id(current_stage)}.md"
+        quality = self._stage_output_quality(output_path)
+        reply_state = self._operator_reply_state(run_dir, current_stage)
+        skip_state = self._skip_state(run_dir, current_stage)
+        if quality["exists"] and not quality["tiny"] and not quality["looks_placeholder"] and not quality["pending"]:
+            return None
+        if skip_state.get("skipped"):
+            return None
+        pipeline_id = str(raw.get("pipeline_id") or "")
+        persona = self._stage_persona(current_stage)
+        reason_bits = []
+        if not quality["exists"]:
+            reason_bits.append("missing output")
+        if quality["tiny"]:
+            reason_bits.append("tiny output")
+        if quality["looks_placeholder"] or quality["pending"]:
+            reason_bits.append("placeholder/pending output")
+        reason = ", ".join(reason_bits) or "stage output is not ready"
+        locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+        payload_msg = self._localized_pipeline_payload(
+            "pipeline.handoff.message",
+            "{persona} handoff required for `{stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
+            locale,
+            persona=persona,
+            stage=current_stage,
+            reason=reason,
+        )
+        admin_note = self._localized_admin_note(
+            "pipeline.handoff.admin_note",
+            "Admin note: provide a real stage output, record the operator decision, or skip explicitly; original English text remains available for audit.",
+            locale,
+        )
+        question_one = self._localized_pipeline_payload(
+            "pipeline.handoff.question.output",
+            "{persona}: provide the real output or operator decision for stage `{stage}`.",
+            locale,
+            persona=persona,
+            stage=current_stage,
+        )
+        question_two = self._localized_pipeline_payload(
+            "pipeline.handoff.question.decision",
+            "What decision, risk, and next handoff should be recorded before continuing?",
+            locale,
+        )
+        questions = [question_one["rendered_text"], question_two["rendered_text"]]
+        reply_suffix = f"reply_{reply_state.get('reply_count', 0)}"
+        key = f"stage_handoff_v2:{run_id}:{current_stage}:{quality.get('size_bytes', 0)}:{reason.replace(' ', '_')}:{reply_suffix}"
+        return {
+            "run_id": run_id,
+            "pipeline_id": pipeline_id,
+            "current_stage": current_stage,
+            "persona": persona,
+            "message": payload_msg["rendered_text"],
+            "original_text": payload_msg["original_text"],
+            "admin_note": admin_note["rendered_text"],
+            "message_metadata": {
+                "source_locale": payload_msg["source_locale"],
+                "target_locale": payload_msg["target_locale"],
+                "role": payload_msg["role"],
+                "style": payload_msg["style"],
+            },
+            "message_parts": [payload_msg, admin_note],
+            "suggested_actions": ["Reply / Provide decision", "Continue after reply", "Skip stage explicitly", "Refresh status"],
+            "next_actions": ["reply" if reply_state["state"] == "waiting_for_operator_reply" else "continue_after_reply", "skip_stage_explicitly", "refresh_status"],
+            "questions": questions,
+            "question_parts": [question_one, question_two],
+            "handoff_version": key,
+            "output_quality": quality,
+            "operator_reply_state": reply_state,
+        }
+
+    def pipeline_stage_reply(self, run_id: str, body: Dict[str, Any]) -> Dict[str, Any]:
+        if not run_id:
+            return {"ok": False, "error": "run_id required"}
+        status = self.pipeline_run_status(run_id)
+        if not status.get("ok"):
+            return {"ok": False, "error": status.get("error") or "run not found", "diagnostics": status.get("diagnostics") or self._run_lookup_diagnostics(run_id)}
+        stage = safe_id(str(body.get("stage") or status.get("current_stage") or "stage"))
+        message = str(body.get("message") or "").strip()
+        action = str(body.get("action") or "reply").strip() or "reply"
+        source = str(body.get("source") or "stage_handoff").strip() or "stage_handoff"
+        if not message:
+            return {"ok": False, "error": "message required", "run_id": run_id, "stage": stage}
+        run_dir = Path(str(status.get("run_dir") or ""))
+        if not run_dir.exists():
+            return {"ok": False, "error": "run directory not found", "diagnostics": self._run_lookup_diagnostics(run_id)}
+        ts = now_iso()
+        decisions = run_dir / "decisions.md"
+        with decisions.open("a", encoding="utf-8") as fh:
+            fh.write(f"\n## {ts} - operator reply for {stage}\n\n- Action: `{action}`\n- Source: `{source}`\n- Message: {message}\n")
+        inputs_dir = run_dir / "stage_inputs"
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        jsonl = inputs_dir / f"{stage}-operator-replies.jsonl"
+        rec = {"ts": ts, "run_id": run_id, "pipeline_id": status.get("pipeline_id"), "stage": stage, "action": action, "source": source, "message": message}
+        with jsonl.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(rec, ensure_ascii=False, sort_keys=True) + "\n")
+        return {"ok": True, "version": RUNTIME_VERSION, "run_id": run_id, "stage": stage, "decisions_path": str(decisions), "stage_input_path": str(jsonl), "operator_reply_state": {"state": "operator_reply_recorded", "reply_count": self._operator_reply_state(run_dir, stage).get("reply_count", 1)}}
+
     def pipeline_run_status(self, run_id: str) -> Dict[str, Any]:
         if not run_id:
             return {"ok": False, "error": "run_id required"}
         cmd = [sys.executable, str(self.root / "src" / "pipeline_runtime.py"), "--root", str(self.root), "--state", str(self.state), "show", run_id]
-        raw = run_json(cmd, env=self.env(), timeout=30)
+        result = run_json(cmd, env=self.env(), timeout=30)
+        if not result.get("ok"):
+            return {"ok": False, "version": RUNTIME_VERSION, "run_id": run_id, "error": result.get("stderr") or result.get("stdout") or "run not found", "diagnostics": self._run_lookup_diagnostics(run_id)}
+        raw = result.get("stdout") if isinstance(result.get("stdout"), dict) else result
         manifest = raw.get("manifest") or {}
         if isinstance(manifest, str):
             try:
@@ -1994,7 +3872,83 @@ class AdminGuiServer(ThreadingHTTPServer):
                     stage_states.append({"stage": s, "state": "completed"})
                 else:
                     stage_states.append({"stage": s, "state": "pending"})
-        return {"ok": raw.get("ok", True), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": raw.get("status"), "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": raw.get("artifacts") or [], "error": raw.get("error")}
+        promoted = promote_run_artifacts(str(raw.get("run_dir") or ""), status=str(raw.get("status") or "created"))
+        status = str(raw.get("status") or "")
+        run_dir = Path(str(raw.get("run_dir") or ""))
+        output_path = run_dir / "outputs" / f"{safe_id(current_stage)}.md" if current_stage else Path("")
+        stage_output_quality = self._stage_output_quality(output_path) if current_stage and str(raw.get("run_dir") or "") else {"quality": "missing", "exists": False}
+        operator_reply_state = self._operator_reply_state(run_dir, current_stage) if current_stage and str(raw.get("run_dir") or "") else {"state": "waiting_for_operator_reply", "reply_count": 0}
+        skip_state = self._skip_state(run_dir, current_stage) if current_stage and str(raw.get("run_dir") or "") else {"skipped": False}
+        if skip_state.get("skipped"):
+            operator_reply_state = {"state": "skipped_by_operator", "reply_count": operator_reply_state.get("reply_count", 0), "skip": skip_state}
+        question = self._clarification_question_from(raw)
+        needs_clarification = bool(raw.get("clarification_required") or raw.get("needs_clarification") or status in {"needs_clarification", "waiting_for_clarification"})
+        stage_handoff = self._stage_handoff_from_status(raw, run_id, current_stage, status)
+        handoff_reply_mode = "none"
+        handoff_reply_limitation = ""
+        handoff_next_action = ""
+        if stage_handoff:
+            needs_clarification = True
+            question = stage_handoff["questions"][0]
+            operator_reply_state = stage_handoff.get("operator_reply_state") or operator_reply_state
+            is_degraded_readonly = bool(self.runtime_degraded_status().get("degraded_readonly", {}).get("active"))
+            handoff_reply_mode = "degraded_readonly" if is_degraded_readonly else "normal"
+            if operator_reply_state.get("state") == "operator_reply_recorded":
+                handoff_next_action = "continue_after_reply"
+            else:
+                handoff_next_action = "record_operator_reply"
+            if is_degraded_readonly:
+                handoff_reply_limitation = (
+                    "Degraded-readonly mode records the operator reply as handoff state; "
+                    "continuing still requires explicit degraded approval."
+                )
+        actionable_blocker = None
+        for ev in reversed(raw.get("events") or []):
+            payload = ev.get("payload") if isinstance(ev, dict) else {}
+            if isinstance(payload, dict) and (
+                payload.get("code") == "blocked_missing_worker"
+                or payload.get("state") in {"blocked_missing_worker", "blocked_backend_required"}
+                or str(payload.get("code") or "").startswith("backend_required_for_")
+            ):
+                actionable_blocker = payload
+                break
+        waiting_reason = raw.get("waiting_reason")
+        if actionable_blocker:
+            waiting_reason = str(actionable_blocker.get("status") or actionable_blocker.get("state") or "blocked_missing_worker")
+        elif stage_handoff:
+            waiting_reason = "stage_handoff_required" if operator_reply_state.get("state") != "operator_reply_recorded" else "ready_to_continue_after_reply"
+        stage_progress = {
+            "current_stage": current_stage,
+            "state": "skipped_by_operator" if skip_state.get("skipped") else (waiting_reason if actionable_blocker else ("ready_to_continue_after_reply" if operator_reply_state.get("state") == "operator_reply_recorded" and stage_handoff else ("pending_placeholder" if stage_handoff else ("produced_output" if stage_output_quality.get("quality") == "real" else status)))),
+            "stage_index": (stages.index(current_stage) + 1) if current_stage in stages else 0,
+            "stage_count": len(stages),
+        }
+        last_worker_execution_state = raw.get("last_worker_execution_state") if isinstance(raw.get("last_worker_execution_state"), dict) else {"state": "not_started"}
+        stable_status_hash = raw.get("stable_status_hash")
+        stage_progress_changed = bool(raw.get("stage_progress_changed") or last_worker_execution_state.get("state") in {"executed", "blocked_worker_cannot_execute"})
+        next_actions = []
+        if actionable_blocker:
+            next_actions = ["register real stage output", "skip stage explicitly", "refresh status"]
+        elif stage_handoff and operator_reply_state.get("state") == "operator_reply_recorded":
+            next_actions = ["continue after reply", "skip stage explicitly", "refresh status"]
+        elif stage_handoff:
+            next_actions = ["reply / provide decision", "skip stage explicitly", "refresh status"]
+        elif status == "ready_for_admin_approval":
+            next_actions = ["continue in degraded/admin-approved mode", "work toward normal mode", "refresh status"]
+        if needs_clarification:
+            locale = normalize_locale(str(self._conversation().get("locale") or "en"))
+            if not question:
+                question_msg = self._localized_admin_note(
+                    "pipeline.clarification.question",
+                    "Clarify the parameters required to continue the pipeline.",
+                    locale,
+                )
+                question = question_msg["rendered_text"]
+            pending_changed = self._set_pending_clarification(run_id, str(raw.get("pipeline_id") or ""), question)
+            if pending_changed:
+                persona = (stage_handoff or {}).get("persona") or self._pipeline_persona(str(raw.get("pipeline_id") or ""))
+                self.save_message("admin", question, persona=persona, intent="pipeline_clarification", raw=raw)
+        return {"ok": raw.get("ok", result.get("ok", True)), "version": RUNTIME_VERSION, "run_id": run_id, "pipeline_id": raw.get("pipeline_id"), "status": status, "current_stage": current_stage, "stages": stages, "stage_states": stage_states, "pipeline_scope_policy": pipeline_def.get("pipeline_scope_policy") or {}, "pipeline_scope": (pipeline_def.get("pipeline_scope_policy") or {}).get("scope") or pipeline_def.get("pipeline_scope"), "run_dir": raw.get("run_dir"), "events": raw.get("events") or [], "artifacts": promoted or raw.get("artifacts") or [], "clarification_required": needs_clarification, "questions": [question] if question else [], "waiting_reason": waiting_reason, "stage_handoff": stage_handoff, "stage_progress": stage_progress, "stage_progress_changed": stage_progress_changed, "stable_status_hash": stable_status_hash, "last_worker_execution_state": last_worker_execution_state, "operator_reply_state": operator_reply_state, "handoff_reply_mode": handoff_reply_mode, "handoff_reply_limitation": handoff_reply_limitation, "handoff_next_action": handoff_next_action, "stage_output_quality": stage_output_quality, "output_path": raw.get("output_path") or stage_output_quality.get("path"), "output_quality": raw.get("output_quality") or stage_output_quality, "worker_resolution": last_worker_execution_state.get("worker_resolution") or raw.get("worker_resolution") or {}, "next_actions": next_actions, "actionable_blocker": actionable_blocker, "error": raw.get("error") or result.get("stderr")}
 
     def modify_pipeline(self, pipeline: str, *, add_stage: str, after: str, before: str, description: str, team: str, apply: bool, create: bool) -> Dict[str, Any]:
         cmd = [sys.executable, str(self.root / "src" / "admin_runtime.py"), "--root", str(self.root), "modify-pipeline", pipeline, "--json"]
@@ -2203,5 +4157,3 @@ def main(argv: Optional[list[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

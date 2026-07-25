@@ -32,6 +32,8 @@ if [[ -z "$VERSION" ]]; then
   echo "[install][ERROR] cannot read a release version from \$PKG_DIR/VERSION or \$PKG_DIR/noemaforge/VERSION; refusing to install a version-less package." >&2
   exit 1
 fi
+PACKAGE_VERSION_FILE="$PKG_DIR/VERSION"
+[[ -r "$PACKAGE_VERSION_FILE" ]] || PACKAGE_VERSION_FILE="$PKG_DIR/noemaforge/VERSION"
 ROOTFS="/"
 DATA_ROOT="/var/lib/noemaforge"
 MODEL_PROFILE="minimal"
@@ -40,6 +42,7 @@ VERIFY=0
 SELFTEST=0
 PRESERVE_TIMERS=0
 DRY_RUN=0
+REQUIRED_DIRS=(/opt/noemaforge /var/lib/noemaforge /mnt/noemaforge-share)
 
 usage(){ cat <<'USAGE'
 Usage: sudo ./install_noemaforge_mvp.sh [options]
@@ -58,6 +61,7 @@ Safe defaults:
   - disables manager/modelscan timers unless --preserve-timers is passed;
   - installs runtime invariant max_active_llms=1;
   - never downloads models or starts heavy backends.
+  - preflights Debian 13/Trixie compatibility and required install/state/share directories.
 USAGE
 }
 
@@ -77,7 +81,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 case "$MODEL_PROFILE" in minimal|balanced|writer|research|gpu-heavy) : ;; *) echo "ERROR: unsupported model profile: $MODEL_PROFILE" >&2; exit 2 ;; esac
-if [[ "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ${EUID:-$(id -u)} -ne 0 ]]; then
+if [[ "$SELFTEST" != 1 && "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ${EUID:-$(id -u)} -ne 0 ]]; then
   echo "ERROR: run live install as root" >&2
   exit 1
 fi
@@ -87,6 +91,86 @@ install_file(){ local src="$1" rel="$2" mode="${3:-0755}"; [[ "$DRY_RUN" == 1 ]]
 install_default_once(){ local src="$1" rel="$2" mode="${3:-0644}"; [[ "$DRY_RUN" == 1 ]] && { echo "install-default $rel mode=$mode if-missing"; return 0; }; [[ -e "$(target "$rel")" ]] && return 0; install_file "$src" "$rel" "$mode"; }
 install_symlink(){ local src="$1" dst="$2"; [[ "$DRY_RUN" == 1 ]] && { echo "link $dst -> $src"; return 0; }; mkdir -p "$(dirname "$(target "$dst")")"; ln -sfn "$src" "$(target "$dst")"; }
 backup_one(){ local p="$1" t; t="$(target "$p")"; if [[ "$ROOTFS" == "/" && "$DRY_RUN" != 1 && ( -e "$t" || -L "$t" ) ]]; then mkdir -p "$BACKUP/backup-root/$(dirname "${p#/}")"; cp -a "$t" "$BACKUP/backup-root/${p#/}" 2>/dev/null || true; fi; }
+ensure_dir_preserve(){ local p="$1" mode="$2" t; t="$(target "$p")"; [[ -d "$t" ]] && return 0; install -d -m "$mode" "$t"; }
+normalize_opt_payload(){
+  local opt_root manifest rel abs missing=0
+  opt_root="$(target /opt/noemaforge)"
+  manifest="$opt_root/tools/prep/executable_manifest.txt"
+  [[ "$DRY_RUN" == 1 ]] && { echo "normalize /opt/noemaforge owner=root:root dirs=0755 files=0644 manifest_exec=0755"; return 0; }
+  [[ -d "$opt_root" ]] || return 0
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    chown -R root:root "$opt_root"
+  fi
+  find "$opt_root" -type d -exec chmod 0755 {} +
+  find "$opt_root" -type f -exec chmod 0644 {} +
+  find "$opt_root/bin" -maxdepth 1 -type f -exec chmod 0755 {} + 2>/dev/null || true
+  if [[ -f "$manifest" ]]; then
+    while IFS= read -r rel || [[ -n "$rel" ]]; do
+      rel="${rel%%#*}"
+      rel="${rel#"${rel%%[![:space:]]*}"}"
+      rel="${rel%"${rel##*[![:space:]]}"}"
+      [[ -z "$rel" ]] && continue
+      case "$rel" in
+        noemaforge/*) abs="$opt_root/${rel#noemaforge/}" ;;
+        *) continue ;;
+      esac
+      if [[ -f "$abs" ]]; then
+        chmod 0755 "$abs"
+      else
+        echo "[install][ERROR] executable manifest entry missing after install: /opt/noemaforge/${rel#noemaforge/}" >&2
+        missing=$((missing+1))
+      fi
+    done < "$manifest"
+  else
+    echo "[install][ERROR] executable manifest not found: $manifest" >&2
+    return 1
+  fi
+  find "$opt_root" \( -type f -o -type d \) -perm /020 -print -quit | grep -q . && {
+    echo "[install][ERROR] /opt/noemaforge contains group-writable payload after normalization" >&2
+    return 1
+  }
+  [[ "$missing" -eq 0 ]]
+}
+remove_stale_hotfix_dropins(){
+  local unit
+  [[ "$DRY_RUN" == 1 ]] && { echo "remove stale systemd hotfix drop-ins for noemaforge units"; return 0; }
+  for unit in noemaforge-llm-gateway.service noemaforge-toolproxy.service; do
+    find "$(target /etc/systemd/system/$unit.d)" -maxdepth 1 -type f -name '*hotfix*' -delete 2>/dev/null || true
+  done
+}
+preflight_install_update(){
+  local os_pretty os_version
+  echo "[install][preflight] debian_13_trixie_compatible=check"
+  if [[ -r "$(target /etc/os-release)" ]]; then
+    os_pretty="$(grep -E '^PRETTY_NAME=' "$(target /etc/os-release)" | head -n1 | cut -d= -f2- | tr -d '"')"
+    os_version="$(grep -E '^VERSION_CODENAME=' "$(target /etc/os-release)" | head -n1 | cut -d= -f2- | tr -d '"')"
+    echo "[install][preflight] os=${os_pretty:-unknown} codename=${os_version:-unknown}"
+  else
+    echo "[install][preflight] os-release=missing_or_rootfs_test"
+  fi
+  echo "[install][preflight] required_dirs=${REQUIRED_DIRS[*]}"
+  echo "[install][preflight] state_clobber_policy=preserve_existing_state"
+  echo "[install][preflight] destructive_delete_requires=explicit_operator_approval"
+  echo "[install][preflight] systemd_update=explicit_recoverable_units"
+  if [[ "$DRY_RUN" == 1 ]]; then
+    echo "ensure-dir /opt/noemaforge mode=dir-preserve-existing"
+    echo "ensure-dir $DATA_ROOT mode=dir-preserve-existing"
+    if [[ -n "$WITH_SHARE" ]]; then
+      echo "ensure-dir $WITH_SHARE mode=dir-preserve-existing"
+    elif [[ "$ROOTFS" != "/" ]]; then
+      echo "ensure-dir /mnt/noemaforge-share mode=dir-preserve-existing"
+    fi
+    return 0
+  fi
+  for d in /opt/noemaforge "$DATA_ROOT"; do
+    ensure_dir_preserve "$d" 0750
+  done
+  if [[ -n "$WITH_SHARE" ]]; then
+    ensure_dir_preserve "$WITH_SHARE" 0755
+  elif [[ "$ROOTFS" != "/" ]]; then
+    ensure_dir_preserve /mnt/noemaforge-share 0755
+  fi
+}
 
 if [[ "$VERIFY" == 1 && -f "$PKG_DIR/SHA256SUMS" ]]; then
   (cd "$PKG_DIR" && sha256sum -c SHA256SUMS)
@@ -122,6 +206,7 @@ if [[ "$SELFTEST" == 1 ]]; then
     "$PKG_DIR/noemaforge/src/model_evolution_runtime.py"
   find "$PKG_DIR/noemaforge/src" -type d -name __pycache__ -prune -exec rm -rf {} + 2>/dev/null || true
   echo "[install] selftest: CLI/API surfaces are covered by targeted verification; package syntax validation passed"
+  exit 0
 fi
 cat <<PLAN
 NoemaForge ${VERSION} install plan
@@ -133,6 +218,7 @@ NoemaForge ${VERSION} install plan
   dry_run:         $DRY_RUN
   invariant:       max_active_llms=1, gui_llm_profile=runtime_only, wogui_llm_profile=bootstrap_cpu_llm, heavy_llm_autostart=manual_only
 PLAN
+preflight_install_update
 [[ "$DRY_RUN" == 1 ]] && exit 0
 
 BACKUP="/var/backups/noemaforge-${VERSION}-$(date +%Y%m%d-%H%M%S)"
@@ -157,9 +243,12 @@ if command -v rsync >/dev/null 2>&1; then
 else
   cp -a "$PKG_DIR/noemaforge/." "$(target /opt/noemaforge)/"
 fi
-# Guarantee the CLI entrypoint is executable even if the package was delivered without mode bits
-# (e.g. a zip). rsync/cp -a preserve modes, so this is belt-and-suspenders for the canonical CLI.
-[[ -e "$(target /opt/noemaforge)/bin/noemaforge" ]] && chmod 0755 "$(target /opt/noemaforge)/bin/noemaforge" || true
+install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/VERSION 0644
+install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/docs/VERSION 0644
+if [[ -d "$(target /opt/noemaforge/noemaforge/src)" ]]; then
+  install_file "$PACKAGE_VERSION_FILE" /opt/noemaforge/noemaforge/VERSION 0644
+fi
+normalize_opt_payload
 
 for h in noemaforge-stop noemaforge-reboot-safe noemaforge-sel-fix noemaforge-vault-mount-ro noemaforge-model-advisor noemaforge-safe-start noemaforge-smoke noemaforge-manager noemaforge-monitor noemaforge-chat noemaforge-interpret noemaforge-toolproxy-diag gui-status gui-rescue gui-start noemaforge-health noemaforge-safe-mode noemaforge-llm-memory-override noemaforge-start-llm-safe noemaforge-llm-stop noemaforge-service-stop; do
   [[ -f "$PKG_DIR/helpers/$h" ]] && install_file "$PKG_DIR/helpers/$h" "/usr/local/sbin/$h" 0755
@@ -287,6 +376,7 @@ if [[ -d "$PKG_DIR/noemaforge/systemd/dropins" ]]; then
     install_file "$f" "/etc/systemd/system/$rel" 0644
   done
 fi
+remove_stale_hotfix_dropins
 mkdir -p "$(target /etc/noemaforge)"
 if [[ ! -e "$(target /etc/noemaforge/boot-mode)" ]]; then
   printf 'manual

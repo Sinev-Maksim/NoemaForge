@@ -17,8 +17,10 @@ import argparse
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -34,6 +36,7 @@ import role_tournament
 import runtime_safety
 import model_inventory_normalize
 import model_profiles
+import pre_release_uat_fix_runtime
 from noemaforge_version import RUNTIME_VERSION
 from platform_paths import DEFAULT_PATHS as _pp
 
@@ -43,6 +46,7 @@ DEFAULT_ROLE_CATALOG = str(_pp.root / "configs/role-catalog.yaml")
 DEFAULT_STATUS = str(_pp.data_root / "bootstrap/firstboot-status.json")
 DEFAULT_EVENTS = str(_pp.data_root / "bootstrap/firstboot-events.jsonl")
 STATE_DIR = str(_pp.data_root / "bootstrap")
+_MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS = 300
 
 
 def _load_yaml(path: str) -> Dict[str, Any]:
@@ -65,6 +69,106 @@ def _write_json(path: str, obj: Any) -> None:
 
 def _nowz() -> str:
     return firstboot_status._nowz()
+
+
+def _pid_is_active(pid: int) -> bool:
+    if pid <= 0:
+        return False
+    if os.name != "posix":
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def _main_alias_lock_status(lock_dir: Path) -> Dict[str, Any]:
+    if not lock_dir.exists():
+        return {"stale": True, "reason": "lock_missing"}
+    if not lock_dir.is_dir():
+        return {"stale": False, "reason": "lock_path_not_directory", "lock_dir": str(lock_dir)}
+
+    owner_path = lock_dir / "owner.json"
+    try:
+        lock_age = max(0.0, time.time() - lock_dir.stat().st_mtime)
+    except OSError:
+        lock_age = 0.0
+
+    owner: Dict[str, Any] = {}
+    if owner_path.is_file():
+        try:
+            parsed = json.loads(owner_path.read_text(encoding="utf-8"))
+            if isinstance(parsed, dict):
+                owner = parsed
+        except Exception as exc:
+            return {
+                "stale": lock_age > _MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS,
+                "reason": "owner_metadata_unreadable",
+                "error": str(exc),
+                "lock_age_seconds": lock_age,
+            }
+    else:
+        return {
+            "stale": lock_age > _MAIN_ALIAS_LOCK_STALE_GRACE_SECONDS,
+            "reason": "owner_metadata_missing",
+            "lock_age_seconds": lock_age,
+        }
+
+    hostname = str(owner.get("hostname") or "")
+    current_hostname = socket.gethostname()
+    if hostname and hostname != current_hostname:
+        return {"stale": False, "reason": "owner_host_unverifiable", "owner": owner}
+
+    try:
+        pid = int(owner.get("pid") or 0)
+    except (TypeError, ValueError):
+        pid = 0
+    if _pid_is_active(pid):
+        return {"stale": False, "reason": "owner_pid_active", "owner": owner}
+    return {"stale": True, "reason": "owner_pid_inactive", "owner": owner}
+
+
+def _break_stale_main_alias_lock(lock_dir: Path, status: Dict[str, Any]) -> Tuple[bool, Dict[str, Any]]:
+    stale_dir = lock_dir.with_name(f"{lock_dir.name}.stale.{os.getpid()}.{time.time_ns()}")
+    try:
+        shutil.rmtree(str(stale_dir), ignore_errors=True)
+        os.rename(str(lock_dir), str(stale_dir))
+        shutil.rmtree(str(stale_dir), ignore_errors=True)
+    except FileNotFoundError:
+        return True, status
+    except Exception as exc:
+        status["cleanup_error"] = str(exc)
+        return False, status
+    return True, status
+
+
+def _acquire_main_alias_lock(lock_dir: Path) -> Tuple[bool, Dict[str, Any]]:
+    owner = {"pid": os.getpid(), "hostname": socket.gethostname(), "created_at": _nowz()}
+    for _attempt in range(2):
+        try:
+            lock_dir.mkdir()
+            try:
+                (lock_dir / "owner.json").write_text(
+                    json.dumps(owner, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
+            except Exception as exc:
+                shutil.rmtree(str(lock_dir), ignore_errors=True)
+                return False, {"reason": "owner_metadata_write_failed", "error": str(exc)}
+            return True, {"owner": owner}
+        except FileExistsError:
+            status = _main_alias_lock_status(lock_dir)
+            if not status.get("stale"):
+                return False, status
+            cleaned, status = _break_stale_main_alias_lock(lock_dir, status)
+            if not cleaned:
+                return False, status
+    return False, {"reason": "lock_reacquire_race", "stale": False}
 
 
 def _normalize_selection_mode(value: str) -> str:
@@ -90,12 +194,24 @@ def _selection_mode_contract(mode: str, composite_top_n: int) -> Dict[str, Any]:
     }
 
 
-def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: int, candidate_map: Dict[str, Any], tournament_doc: Dict[str, Any], staffing_summary: Dict[str, Any], dry_run: bool) -> Dict[str, str]:
+def _write_selection_artifacts(
+    *,
+    state_dir: str,
+    mode: str,
+    composite_top_n: int,
+    candidate_map: Dict[str, Any],
+    tournament_doc: Dict[str, Any],
+    staffing_summary: Dict[str, Any],
+    dry_run: bool,
+    retry_failed_models: bool = False,
+    clear_model_health: bool = False,
+) -> Dict[str, str]:
     paths = {
         "candidate_selection_plan": os.path.join(state_dir, "candidate-selection-plan.json"),
         "model_selection_decision": os.path.join(state_dir, "model-selection-decision.json"),
         "rollback_plan": os.path.join(state_dir, "rollback_plan.json"),
         "model_run_records": os.path.join(state_dir, "model-run-records.json"),
+        "model_run_summary": os.path.join(state_dir, "model-run-summary.json"),
     }
     roles = candidate_map.get("roles") or {}
     chosen = {}
@@ -121,6 +237,17 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
             "rollback is described in rollback_plan.json",
         ],
     }
+    model_run_records = tournament_doc.get("model_run_records") or []
+    model_run_summary = pre_release_uat_fix_runtime.summarize_model_run_records(
+        pre_release_uat_fix_runtime.normalize_model_run_records(model_run_records)
+    )
+    dry_run_evaluation_scope = pre_release_uat_fix_runtime.classify_full_composite_dry_run_scope(
+        model_run_summary,
+        mode=mode,
+        dry_run=dry_run,
+        retry_failed_models=retry_failed_models,
+        clear_model_health=clear_model_health,
+    )
     decision = {
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionDecision",
@@ -134,6 +261,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "missing_mandatory_core_roles": staffing_summary.get("missing_mandatory_core_roles") or [],
         "chosen_by_role": chosen,
         "ready_to_apply": bool(chosen) and not staffing_summary.get("missing_mandatory_core_roles"),
+        "dry_run_evaluation_scope": dry_run_evaluation_scope,
         "requires_confirmation_before_epoch_switch": True,
     }
     rollback = {
@@ -152,7 +280,15 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
     _write_json(paths["candidate_selection_plan"], plan)
     _write_json(paths["model_selection_decision"], decision)
     _write_json(paths["rollback_plan"], rollback)
-    _write_json(paths["model_run_records"], {"created_at": _nowz(), "records": tournament_doc.get("model_run_records") or []})
+    _write_json(paths["model_run_records"], {"created_at": _nowz(), "records": model_run_records})
+    _write_json(
+        paths["model_run_summary"],
+        {
+            "created_at": _nowz(),
+            **model_run_summary,
+            "dry_run_evaluation_scope": dry_run_evaluation_scope,
+        },
+    )
     return paths
 
 
@@ -413,26 +549,114 @@ def _ensure_main_alias(modelstore_root: str, selected_model_id: str) -> Dict[str
     ok_safe, reason, meta = runtime_safety.validate_modelstore_backend(modelstore_root, selected_model_id)
     if not ok_safe:
         return {"main_model_id": selected_model_id, "aliased": False, "reason": f"runtime_safety_blocked:{reason}", "meta": meta}
-    dst.mkdir(parents=True, exist_ok=True)
-    # Keep main as a real small dir with symlinked model.gguf and manifest copy, not a directory symlink.
-    for f in [dst / "model.gguf", dst / "manifest.yaml"]:
-        if f.exists() or f.is_symlink():
-            f.unlink()
-    man = src / "manifest.yaml"
-    if man.is_file():
-        shutil.copy2(str(man), str(dst / "manifest.yaml"))
-        try:
-            obj = yaml.safe_load((dst / "manifest.yaml").read_text(encoding="utf-8")) or {}
-            obj["model_id"] = "main"
-            obj["alias_of"] = selected_model_id
-            (dst / "manifest.yaml").write_text(yaml.safe_dump(obj, sort_keys=False, allow_unicode=True), encoding="utf-8")
-        except Exception:
-            pass
     link = src / "model.gguf"
     target = os.path.realpath(str(link)) if link.exists() or link.is_symlink() else ""
-    if target:
-        os.symlink(target, str(dst / "model.gguf"))
-    return {"main_model_id": selected_model_id, "aliased": True, "main_dir": str(dst)}
+    if not target or not Path(target).is_file():
+        return {
+            "main_model_id": selected_model_id,
+            "aliased": False,
+            "reason": "selected_model_artifact_missing",
+            "source_model": str(link),
+            "source_realpath": target,
+        }
+    dst.mkdir(parents=True, exist_ok=True)
+    lock_dir = dst / ".materialize-main.lock"
+    lock_acquired, lock_status = _acquire_main_alias_lock(lock_dir)
+    if not lock_acquired:
+        return {
+            "main_model_id": selected_model_id,
+            "aliased": False,
+            "reason": "main_alias_materialization_locked",
+            "lock": lock_status,
+        }
+    active_files = [dst / "model.gguf", dst / "manifest.yaml", dst / "noemaforge-model.json", dst / "brainos-model.json"]
+    staging_dir = None
+    try:
+        man = src / "manifest.yaml"
+        manifest_obj: Dict[str, Any] = {}
+        if man.is_file():
+            try:
+                manifest_obj = yaml.safe_load(man.read_text(encoding="utf-8")) or {}
+                if not isinstance(manifest_obj, dict):
+                    manifest_obj = {}
+            except Exception:
+                manifest_obj = {}
+        display_name = str(
+            manifest_obj.get("display_name")
+            or manifest_obj.get("name")
+            or manifest_obj.get("model_id")
+            or selected_model_id
+        )
+        source = str(target or manifest_obj.get("source") or link)
+        active_manifest = {
+            **manifest_obj,
+            "model_id": selected_model_id,
+            "display_name": display_name,
+            "source": source,
+            "alias": "main",
+            "alias_of": selected_model_id,
+            "selection_provenance": {
+                "reason": "firstboot_selected_main_model",
+                "selected_model_id": selected_model_id,
+                "source_model_dir": str(src),
+                "materialized_main_dir": str(dst),
+            },
+        }
+        if target:
+            active_manifest["source_realpath"] = target
+
+        stamp = _nowz().replace(":", "").replace("-", "")
+        rollback_dir = None
+        existing_files = [f for f in active_files if f.exists() or f.is_symlink()]
+        if existing_files:
+            rollback_dir = dst / ".rollback" / f"alias-materialization-{stamp}"
+            rollback_dir.mkdir(parents=True, exist_ok=True)
+            for f in existing_files:
+                backup = rollback_dir / f.name
+                if f.is_symlink():
+                    os.symlink(os.readlink(f), str(backup))
+                elif f.is_file():
+                    shutil.copy2(str(f), str(backup))
+
+        staging_dir = dst / ".staging" / f"alias-materialization-{stamp}-{os.getpid()}"
+        staging_dir.mkdir(parents=True, exist_ok=False)
+        replacements: List[Tuple[Path, Path]] = []
+        tmp_link = staging_dir / "model.gguf"
+        os.symlink(target, str(tmp_link))
+        replacements.append((tmp_link, dst / "model.gguf"))
+        tmp_yaml = staging_dir / "manifest.yaml"
+        tmp_yaml.write_text(yaml.safe_dump(active_manifest, sort_keys=False, allow_unicode=True), encoding="utf-8")
+        replacements.append((tmp_yaml, dst / "manifest.yaml"))
+        for name in ["noemaforge-model.json", "brainos-model.json"]:
+            tmp = staging_dir / name
+            tmp.write_text(json.dumps(active_manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+            replacements.append((tmp, dst / name))
+        replaced_targets: List[Path] = []
+        try:
+            for tmp, final in replacements:
+                os.replace(tmp, final)
+                replaced_targets.append(final)
+        except Exception:
+            rollback_names = {f.name for f in existing_files}
+            for final in replaced_targets:
+                backup = rollback_dir / final.name if rollback_dir else None
+                if backup and (backup.exists() or backup.is_symlink()):
+                    os.replace(backup, final)
+                elif final.name not in rollback_names and (final.exists() or final.is_symlink()):
+                    final.unlink()
+            raise
+        return {"main_model_id": selected_model_id, "aliased": True, "main_dir": str(dst), "manifest": str(dst / "noemaforge-model.json"), "rollback_dir": str(rollback_dir) if rollback_dir else ""}
+    except Exception as exc:
+        return {
+            "main_model_id": selected_model_id,
+            "aliased": False,
+            "reason": "main_alias_materialization_failed",
+            "error": str(exc),
+        }
+    finally:
+        if staging_dir is not None and staging_dir.exists():
+            shutil.rmtree(str(staging_dir), ignore_errors=True)
+        shutil.rmtree(str(lock_dir), ignore_errors=True)
 
 
 def orchestrate(
@@ -585,7 +809,17 @@ def orchestrate(
     )
     staffing_summary_path = os.path.join(STATE_DIR, "firstboot-staffing-summary.json")
     _write_json(staffing_summary_path, staffing_summary)
-    selection_artifacts = _write_selection_artifacts(state_dir=STATE_DIR, mode=selection_mode, composite_top_n=composite_top_n, candidate_map=candidate_map, tournament_doc=tournament_doc, staffing_summary=staffing_summary, dry_run=dry_run)
+    selection_artifacts = _write_selection_artifacts(
+        state_dir=STATE_DIR,
+        mode=selection_mode,
+        composite_top_n=composite_top_n,
+        candidate_map=candidate_map,
+        tournament_doc=tournament_doc,
+        staffing_summary=staffing_summary,
+        dry_run=dry_run,
+        retry_failed_models=retry_failed_models,
+        clear_model_health=clear_model_health,
+    )
     staffing_gate_state = "warning" if staffing_summary.get("staffing_state") == "degraded_selected" else "running"
     staffing_gate_msg = "Firstboot staffing is degraded_selected; mandatory core roles are staffed, so continuing with warning." if staffing_gate_state == "warning" else "Evaluating firstboot staffing quality gate."
     firstboot_status.mark_step(status_path, events_path, step="staffing_gate", state=staffing_gate_state, message=staffing_gate_msg, extra={"staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state"), "warnings": staffing_summary.get("warnings") or []})
@@ -620,6 +854,9 @@ def orchestrate(
     if str(main_alias.get("reason") or "").startswith("runtime_safety_blocked"):
         repair = runtime_safety.repair_modelstore(modelstore_root=modelstore_root, inventory_path=inventory_path, ensure_main=True)
         main_alias = {"main_model_id": main_selected, "aliased": False, "reason": "main_repaired_by_runtime_safety", "repair": repair}
+    elif main_alias.get("reason") in {"main_alias_materialization_locked", "main_alias_materialization_failed", "selected_model_artifact_missing"}:
+        firstboot_status.mark_finished(status_path, events_path, state="blocked_main_alias_materialization", message="Selected main model could not be materialized safely.", extra={"main_alias": main_alias})
+        return {"ok": False, "reason": "main_alias_materialization_failed", "main_alias": main_alias}
     model_registry.update_registry(registry_path=os.path.join(modelstore_root, "model_registry.json"), emit_sel=True)
 
     firstboot_status.mark_step(status_path, events_path, step="services", state="running", message="Starting baseline NoemaForge services after role-aware tournament.", extra={"main_alias": main_alias, "runtime_safety": gate})

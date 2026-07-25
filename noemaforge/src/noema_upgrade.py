@@ -268,7 +268,7 @@ def fetch_and_extract(archive_url: str, dest: Path, *, fetcher: Optional[Fetcher
     else:
         bio.seek(0)
         with tarfile.open(fileobj=bio, mode="r:*") as tf:
-            tf.extractall(dest, members=list(_safe_members_tar(tf, dest)))
+            tf.extractall(dest, members=list(_safe_members_tar(tf, dest)), filter="data")
 
     entries = [p for p in dest.iterdir() if p.is_dir()]
     return entries[0] if len(entries) == 1 else dest

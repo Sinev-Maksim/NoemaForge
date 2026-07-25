@@ -2222,3 +2222,96 @@ The executable recovery baseline remains 0.29.11. This release adds knowledge or
 - 2026-05-21: Added `post-reboot-gpu-gdm-gateway-toolproxy-readiness-core` for the still-open target-machine post-reboot GPU/GDM/gateway/ToolProxy validation item: the task remains `blocked_until_target_post_reboot_gpu_gdm_gateway_toolproxy_evidence`, while local QA now validates boot baseline, operator approval, GPU/GDM state, gateway and ToolProxy service state, gateway and ToolProxy socket smoke evidence, archive hash, redaction review, registry attachment and documentation trace without executing systemd, NVIDIA, gateway, ToolProxy, LLM or archive commands.
 - 2026-05-21: Added `live-testbench-suite-readiness-core` for the still-open target-machine live testbench suite item: the task remains `blocked_until_target_live_testbench_suite_evidence`, while local QA now validates target baseline, operator approval, live-suite catalog, exact `--include-live --json` transcript, telemetry artifacts, baseline comparison, wiki patch manifest, archive hash, registry attachment and documentation trace without executing testbench, live suites, GPU probes, subprocesses or wiki patch commands.
 - 2026-05-21: Added `final-gui-scenario-replay-readiness-core` for the still-open target-machine final Admin GUI replay: the task remains `blocked_until_target_final_gui_scenario_replay_evidence`, while local QA now validates the selected `polished_admin_gui_guided_scenario`, target baseline, operator approval, Admin GUI start/health, greeting transcript, routed pipeline launch, Dev Team action, model-evolution action, full transcript, artifact hashes, redaction record, archive hash, registry attachment and documentation trace without executing GUI, browser, pipeline, Dev Team, model-evolution, subprocess or archive commands.
+
+## 0.33.0-dev governance discoverability carry-forward
+
+- Documented README governance boundary phrases for community pack contribution, graph gap, hypergraph-first Administrator and public autonomy.
+- Preserved public autonomy qualifiers: alpha/lab-only, approval-gated and no automatic apply.
+- Restored GraphRAG experiment wiki reference anchors.
+- Re-exposed Research_Packet and typed governance track checklist tokens in roadmap/backlog docs.
+- Kept the full drag&drop pipeline editor implementation after alpha as an explicit open follow-up.
+
+## 0.33.0-dev policy boundary phrases
+
+The following exact governance boundary phrases are intentionally recorded in the changelog so offline QA can verify that public-facing claims remain explicit and review-gated.
+
+### Community pack contribution boundary
+
+Community-safe pack contributions are quarantine-first, manifest-backed, review-gated and never auto-activated.
+
+### Graph gap boundary
+
+Graph-gap Administrator answers are explicit: when the hypergraph cannot answer, Administrator returns a knowledge_gap_notice, says local grounded knowledge cannot support the answer, proposes ingest or research next steps, and never improvises a supported claim.
+
+### Hypergraph-first Administrator boundary
+
+Hypergraph-first Administrator answers query the hypergraph before any fallback: supported answers start from graph claim origins, include graph-backed citations, and only use docs/RAG fallback after an explicit graph miss.
+
+### Public autonomy boundary
+
+Self-modification/autonomy is not public-ready
+
+Public autonomy qualifiers: alpha/lab-only, approval-gated, no automatic apply.
+
+## 0.33.0-dev release QA compatibility tokens
+
+- pipeline-editor-pack-core: the draft-only Pipeline editor pack remains documented as a review-gated pack contract.
+- pipeline-dragdrop-editor-core: the full drag&drop pipeline editor implementation is closed by the newer implementation contract.
+- research-packet-scouting-core: Research_Packet remains freshness-bounded, source-aware and citation-required.
+- stateful-admin-gui-core: Admin GUI state, session history and refresh recovery remain part of the stateful GUI contract.
+- typed-governance-track-core: typed governance keeps dependency order through Concept_Frame, Sense_State, Privacy_Filter, Drive_State, Honesty Protocol, Slop_Score, Critic_Stack, Detection_Verdict, Research_Packet and Pipeline_RFC.
+
+## 0.33.0-dev pipeline editor compatibility note
+
+pipeline-editor-pack-core: drag-and-drop edit, clone as new pipeline class, Scary/Architecture/Admin review.
+pipeline-dragdrop-editor-core: the later Pipeline Dock implementation closes the full drag&drop editor follow-up through review-gated draft-only saves.
+
+## 0.33.0-dev setup/systemd/topic boundary QA note
+
+- setup-default-path-core: Setup default path boundary: The blessed onboarding path is release unpack or git clone, then root ./setup.sh in VM mode first, then host install only by explicit operator choice; Windows helpers are optional side tools and are never required for the canonical path.
+- setup-front-door-core: Setup front door boundary: Root setup.sh is the single setup front door, supports vm/host/docker-dev plus install-root/data-root/model-profile/with-share/offline-after-setup flags, and emits bootstrap/firstboot progress phases so newcomers do not discover helper scripts manually.
+- setup-mode-matrix-core: Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path.
+- systemd-happy-path-core: No happy-path install or boot-mode flow requires hand-editing systemd units
+- topic-adjacent-retrieval-core: Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.
+- topic_adjacent_boundary: Topic-adjacent retrieval uses static adjacency metadata and never falls back to fixed context windows.
+
+## 0.33.0-dev remaining policy QA token index
+
+- roleflow-orchestration-core
+- baton payloads
+- runtime-default-safety-core
+- max_active_llms=1
+- selftest-event-store-core
+- noemaforge selftest events
+- selftest-rss-slope-core
+- noemaforge selftest stress
+- selftest-trend-dashboard-core
+- noemaforge selftest trend
+- Sense_Layer.Edge
+- sense-layer-edge-core
+- Sense_State / Privacy_Filter contract
+- sense-privacy-governance-core
+- Slop_Score / Critic_Stack contract
+- slop-critic-governance-core
+- task-workflow-core
+- task add/edit/prioritize/block/complete
+- Admin chat and API
+- telemetry-card-truthfulness-core
+- telemetry cards show hardware, runtime and product metrics without overstating creative-media quality
+- review-required creative-media policy
+- TinyML_Node
+- tinyml-node-core
+- wiki-patch-commit-helper-core
+- noemaforge wiki-patch commit-plan
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target
+
+## 0.33.0-dev release payload exclusions
+
+Release payload checks intentionally exclude local control/tooling directories:
+- `.git/`
+- `.codex/`
+- `.claude/`
+
+These files are not runtime payload and must not be deleted merely to satisfy release-artifact deletion guards. CI/helper files such as `.github/scripts/setup-environments.sh` are also excluded from runtime payload checks unless explicitly promoted into packaged release artifacts.

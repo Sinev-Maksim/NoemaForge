@@ -1,0 +1,101 @@
+{
+  "apiVersion": "noemaforge.trusted-trigger-source-policy/v1",
+  "kind": "TrustedTriggerSourcePolicy",
+  "id": "trusted-trigger-source-core",
+  "version": "1.2.0",
+  "status": "draft",
+  "policy": {
+    "mode": "offline_contract",
+    "activation_state": "trusted_trigger_source_authority_separated",
+    "enforcement_mode": "shadow",
+    "live_connector_integration_state": "not_run",
+    "max_verification_age_seconds": 300,
+    "max_future_skew_seconds": 60,
+    "repositories": [
+      "Sinev-Maksim/NoemaForge"
+    ],
+    "owner_principal_ids": [
+      "nf-owner:primary"
+    ],
+    "trusted_verifiers": [
+      {
+        "verifier_id": "nf-conversation-owner-verifier",
+        "verifier_class": "trusted_conversation_identity",
+        "allowed_source_classes": [
+          "explicit_owner_message"
+        ],
+        "allowed_repositories": [
+          "Sinev-Maksim/NoemaForge"
+        ]
+      },
+      {
+        "verifier_id": "nf-github-connector-verifier",
+        "verifier_class": "github_connector",
+        "allowed_source_classes": [
+          "github_app_event"
+        ],
+        "allowed_repositories": [
+          "Sinev-Maksim/NoemaForge"
+        ]
+      }
+    ],
+    "github_apps": [],
+    "required_requested_authority": "create_work_item",
+    "controls": {
+      "verification_context_required": true,
+      "verification_bindings_must_match": true,
+      "require_repository_match": true,
+      "trigger_authority_does_not_grant_approval": true,
+      "approval_must_be_separate": true,
+      "login_is_not_authority": true,
+      "raw_envelope_is_untrusted": true,
+      "only_active_policy_authorizes": true,
+      "verification_freshness_required": true,
+      "decision_binds_policy_and_evidence": true
+    },
+    "untrusted_content_origins": [
+      "non_owner_human_comment",
+      "repository_content",
+      "diff",
+      "log",
+      "web_page",
+      "file_content",
+      "generated_artifact"
+    ],
+    "reason_codes": [
+      "allowed_explicit_owner_message",
+      "allowed_verified_github_app_event",
+      "policy_invalid",
+      "schema_validator_unavailable",
+      "envelope_invalid",
+      "verification_context_missing",
+      "verification_context_invalid",
+      "verifier_not_allowlisted",
+      "verification_binding_mismatch",
+      "requested_authority_not_trigger",
+      "content_origin_untrusted",
+      "repository_not_allowlisted",
+      "owner_principal_not_allowlisted",
+      "owner_message_metadata_missing",
+      "github_app_not_allowlisted",
+      "github_app_metadata_missing",
+      "event_type_not_allowlisted",
+      "metadata_contradiction",
+      "actor_type_unsupported",
+      "policy_not_active",
+      "verification_stale",
+      "verification_from_future"
+    ]
+  },
+  "refs": [
+    "noemaforge/configs/trusted-trigger-source-policy.json",
+    "noemaforge/contracts/trusted_trigger_source_policy.schema.json",
+    "noemaforge/contracts/trusted_trigger_source.schema.json",
+    "noemaforge/contracts/trusted_trigger_verification_context.schema.json",
+    "noemaforge/contracts/trusted_trigger_source_decision.schema.json",
+    "noemaforge/src/trusted_trigger_source_runtime.py",
+    "noemaforge/tests/test_trusted_trigger_source_runtime.py",
+    "noemaforge/docs/architecture/trusted-trigger-source-boundary.md",
+    "prelaunch/governance/trusted_trigger_source.example.json"
+  ]
+}

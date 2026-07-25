@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trusted_trigger_verification_context.schema.json",
+  "title": "NoemaForge Trusted Trigger Verification Context",
+  "description": "Trusted-adapter evidence bound field-for-field to an untrusted trigger envelope.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "source_class",
+    "verifier",
+    "bindings",
+    "verified_at"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.trusted-trigger-verification-context/v1" },
+    "kind": { "const": "TrustedTriggerVerificationContext" },
+    "source_class": { "enum": ["explicit_owner_message", "github_app_event"] },
+    "verifier": {
+      "type": "object",
+      "required": ["id", "class", "verified", "evidence_id", "evidence_sha256"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "class": {
+          "enum": [
+            "trusted_conversation_identity",
+            "github_connector",
+            "github_webhook_signature"
+          ]
+        },
+        "verified": { "const": true },
+        "evidence_id": { "type": "string", "minLength": 1 },
+        "evidence_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      },
+      "additionalProperties": false
+    },
+    "bindings": {
+      "type": "object",
+      "required": [
+        "actor_principal_id",
+        "repository",
+        "event_type",
+        "delivery_id",
+        "provenance_source_id",
+        "message_id",
+        "app_id",
+        "installation_id"
+      ],
+      "properties": {
+        "actor_principal_id": { "type": "string", "minLength": 1 },
+        "repository": { "type": "string", "minLength": 1 },
+        "event_type": { "type": "string", "minLength": 1 },
+        "delivery_id": { "type": ["string", "null"] },
+        "provenance_source_id": { "type": "string", "minLength": 1 },
+        "message_id": { "type": ["string", "null"] },
+        "app_id": { "type": ["integer", "null"], "minimum": 1 },
+        "installation_id": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "verified_at": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

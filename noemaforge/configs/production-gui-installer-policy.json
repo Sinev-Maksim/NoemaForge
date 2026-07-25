@@ -53,7 +53,12 @@
       "heavy_llm_autostart=manual_only",
       "noemaforge/templates/pipeline-dashboard",
       "gui-rescue",
-      "gui-start"
+      "gui-start",
+      "debian_13_trixie_compatible=check",
+      "required_dirs=${REQUIRED_DIRS[*]}",
+      "state_clobber_policy=preserve_existing_state",
+      "destructive_delete_requires=explicit_operator_approval",
+      "systemd_update=explicit_recoverable_units"
     ],
     "required_cli_tokens": [
       "noemaforge dashboard path|state|serve|start|stop|status",
@@ -113,4 +118,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

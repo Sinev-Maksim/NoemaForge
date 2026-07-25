@@ -41,8 +41,7 @@ fi
 # Function to create environment
 create_environment() {
     local env_name=$1
-    local env_description=$2
-    
+
     echo -e "${BLUE}→ Creating environment: ${env_name}${NC}"
     
     response=$(curl -s -X PUT \
@@ -62,7 +61,7 @@ create_environment() {
         return 0
     else
         echo -e "${RED}  ✗ Failed to create environment '${env_name}'${NC}"
-        echo "  Response: $(echo $response | jq -r '.message // .error // .')"
+        echo "  Response: $(echo "$response" | jq -r '.message // .error // .')"
         return 1
     fi
 }
@@ -99,28 +98,28 @@ echo ""
 
 # Environment 1: Development
 echo -e "${BLUE}[1/4]${NC} Development Environment"
-create_environment "development" "Local dev, testing, version hotfixes"
+create_environment "development"  # Local dev, testing, version hotfixes
 add_deployment_branch_policy "development" "develop"
 add_deployment_branch_policy "development" "feature/*"
 echo ""
 
 # Environment 2: Staging
 echo -e "${BLUE}[2/4]${NC} Staging Environment"
-create_environment "staging" "Pre-release validation, integration tests"
+create_environment "staging"  # Pre-release validation, integration tests
 add_deployment_branch_policy "staging" "staging"
 add_deployment_branch_policy "staging" "release/*"
 echo ""
 
 # Environment 3: Production
 echo -e "${BLUE}[3/4]${NC} Production Environment"
-create_environment "production" "Release candidate, main branch deploys"
+create_environment "production"  # Release candidate, main branch deploys
 add_deployment_branch_policy "production" "main"
 add_deployment_branch_policy "production" "v0.32.*"
 echo ""
 
 # Environment 4: Hotfix
 echo -e "${BLUE}[4/4]${NC} Hotfix Environment"
-create_environment "hotfix" "Emergency patches only"
+create_environment "hotfix"  # Emergency patches only
 add_deployment_branch_policy "hotfix" "hotfix/*"
 add_deployment_branch_policy "hotfix" "release/hotfix/*"
 echo ""

@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import sys
 import tempfile
-import threading
 import unittest
 from pathlib import Path
 
@@ -26,6 +25,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from session_store import SessionStore
 import admin_gui_server
+from admin_gui_offline_fixture import build_offline_admin_gui_server as build_offline_server
 from admin_gui_server import AdminGuiServer
 
 
@@ -41,7 +41,7 @@ class TestSessionModeMethod(unittest.TestCase):
 
     def _make_server_stub(self) -> AdminGuiServer:
         store = SessionStore(self.tmp_path / "sessions")
-        obj = object.__new__(AdminGuiServer)
+        obj = build_offline_server(package_root=ROOT, data_root=self.tmp_path, create_dirs=True)
         obj.session_store = store
         return obj
 
@@ -129,20 +129,8 @@ class TestSaveMessageSyncsSession(unittest.TestCase):
 
     def _make_server_stub(self) -> AdminGuiServer:
         store = SessionStore(self.tmp_path / "sessions")
-        obj = object.__new__(AdminGuiServer)
+        obj = build_offline_server(package_root=ROOT, data_root=self.tmp_path, create_dirs=True)
         obj.session_store = store
-        # save_message also needs gui_state_dir, data_root, review_dir
-        obj.gui_state_dir = self.tmp_path / "gui"
-        obj.gui_state_dir.mkdir(parents=True, exist_ok=True)
-        obj.data_root = self.tmp_path / "data"
-        obj.data_root.mkdir(parents=True, exist_ok=True)
-        obj.review_dir = self.tmp_path / "review"
-        (obj.review_dir / "sr" / "inbox").mkdir(parents=True, exist_ok=True)
-        (obj.review_dir / "ssr" / "inbox").mkdir(parents=True, exist_ok=True)
-        # Parity with AdminGuiServer.__init__: save_message() acquires _conv_lock.
-        obj._conv_lock = threading.Lock()
-        obj._jobs_lock = threading.Lock()
-        obj._tasks_lock = threading.Lock()
         return obj
 
     def test_save_message_appends_to_session(self) -> None:
@@ -186,6 +174,11 @@ class TestAppJsSessionMode(unittest.TestCase):
 
     def test_app_js_reads_selected_mode_from_session(self) -> None:
         self.assertIn("selected_mode", self._appjs)
+
+    def test_app_js_names_normal_mode_plan_only_state(self) -> None:
+        self.assertIn("Normal-mode recovery is plan-only", self._appjs)
+        self.assertIn("transition_payload", self._appjs)
+        self.assertIn("Next: ${j.next_action_label}", self._appjs)
 
 
 if __name__ == "__main__":

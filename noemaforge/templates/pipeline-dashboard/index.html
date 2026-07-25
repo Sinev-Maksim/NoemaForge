@@ -13,7 +13,7 @@ Outputs: Local browser UI; no hidden model/media/autostart side effects.
 Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
 === End NoemaForge File Header ===
 -->
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -28,7 +28,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
       <div class="title-block">
-        <p class="eyebrow" id="version-line">NoemaForge / 0.32.2</p>
+        <p class="eyebrow" id="version-line">NoemaForge / loading</p>
         <h1 id="app-title">NoemaForge Admin Chat</h1>
         <p class="muted" id="persona-line"><span id="persona-active-label">Активная персона</span>: <strong id="active-persona">Admin</strong></p>
       </div>
@@ -37,7 +37,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
         <label class="check"><input id="admin-execute" type="checkbox" checked /> <span id="label-execute">выполнить</span></label>
         <label class="check"><input id="admin-prepare-media" type="checkbox" checked /> <span id="label-media-plan">медиа-план</span></label>
         <label class="device-policy" title="Switch active persona"><span id="persona-select-label">Persona</span> <select id="persona-select" title="Active persona"></select></label>
+        <button id="persona-rules" class="ghost">Rules</button>
         <label class="device-policy">Device <select id="device-policy"><option value="auto">auto</option><option value="cpu">CPU</option><option value="gpu">GPU</option></select></label>
+        <button id="device-policy-reset" class="ghost small" type="button" title="Reset the current GUI session to the safe CPU default">Reset device</button>
         <button id="gui-shutdown" class="ghost">Выключить GUI</button>
       </div>
     </header>
@@ -59,9 +61,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     </section>
 
     <section class="metrics-row">
-      <section class="card compact-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre></section>
-      <section class="card compact-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><div id="runtime-observer-cards" class="observer-cards"></div><pre id="runtime-metrics">loading…</pre></section>
-      <section class="card compact-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
+      <section class="card compact-card hardware-card"><div class="section-title"><h2>Hardware</h2><span id="hardware-status">—</span></div><pre id="hardware-metrics">loading…</pre><div class="info-card software-card"><div class="mini-title">Software</div><pre id="software-metrics">loading…</pre></div></section>
+      <section class="card compact-card runtime-card"><div class="section-title"><h2>Runtime</h2><span id="runtime-status">—</span></div><div id="runtime-observer-cards" class="observer-cards"></div><pre id="runtime-metrics">loading…</pre></section>
+      <section class="card compact-card product-card"><div class="section-title"><h2>Product metrics</h2><span id="product-status">—</span></div><pre id="product-metrics">loading…</pre></section>
     </section>
 
     <section class="layout">
@@ -72,6 +74,18 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
           <textarea id="admin-message" rows="2" placeholder="Напиши Админу задачу"></textarea>
           <button id="admin-send">Отправить</button>
         </div>
+        <div class="message-run-controls" aria-label="Current message run mode">
+          <label><span>Next message run mode</span>
+            <select id="message-run-mode">
+              <option value="normal" selected>Normal</option>
+              <option value="fast">Fast</option>
+              <option value="full">Full</option>
+              <option value="full_composite">Full composite</option>
+            </select>
+          </label>
+          <label id="message-composite-top-wrap" class="hidden"><span>Top N</span> <input id="message-composite-top-n" type="number" min="0" value="4" /></label>
+        </div>
+        <div id="message-run-mode-notice" class="depth-notice hidden" role="status" aria-live="polite"></div>
         <div class="depth-controls" aria-label="Improvement depth controls">
           <label><span id="depth-steps-label">Шаги</span> <input id="depth-steps" type="number" min="0" value="0" /></label>
           <label><span id="depth-minutes-label">Минуты</span> <input id="depth-minutes" type="number" min="0" value="0" /></label>
@@ -127,7 +141,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
   </main>
 
   <div id="context-menu" class="context-menu hidden"></div>
-  <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><pre id="modal-body"></pre></div></div>
+  <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><div id="modal-body" class="modal-body"></div></div></div>
   <div id="pipeline-confirm" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="pipeline-confirm-title">
     <div class="modal-inner">
       <button id="pipeline-confirm-close" class="ghost small" aria-label="Close">×</button>
@@ -135,11 +149,10 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       <p id="pipeline-confirm-desc" class="muted"></p>
       <p id="pipeline-confirm-persona" class="muted" style="font-size:12px;margin:4px 0 0"></p>
       <p id="pipeline-confirm-repeat" class="muted hidden" style="font-size:12px;color:var(--warn,#c47a00);margin:6px 0 0">&#9888; This pipeline was launched recently.</p>
-      <label style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
       <label for="pipeline-confirm-req" style="display:block;margin:12px 0 6px;font-size:12px;color:var(--muted)">Request (editable before sending):</label>
       <textarea id="pipeline-confirm-req" rows="4" style="width:100%;resize:vertical"></textarea>
       <div class="epoch-actions" style="margin-top:12px">
-        <button id="pipeline-confirm-ok">Start new — insert into chat</button>
+        <button id="pipeline-confirm-ok">Insert request</button>
         <button id="pipeline-confirm-continue" class="ghost hidden">Continue existing</button>
         <button id="pipeline-confirm-cancel" class="ghost">Cancel</button>
       </div>
@@ -148,3 +161,5 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
   <script src="app.js"></script>
 </body>
 </html>
+
+<!-- Draft pipeline editor | drag&drop pipeline editor planned -->

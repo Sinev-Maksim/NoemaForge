@@ -25,13 +25,14 @@ run_capture() {
   ( "$@" ) > "$BASE/$name.txt" 2>&1 || true
 }
 
-cat > "$BASE/README.md" <<EOF
-# NoemaForge forensic bundle — $STAMP
-
+{
+  printf '# NoemaForge forensic bundle — %s\n\n' "$STAMP"
+  cat <<'EOF'
 Read-only operator support bundle. It should not include GGUF model weights or
 Vault documents. Use it to debug launcher, firstboot, service, mount and pipeline
 state.
 EOF
+} > "$BASE/README.md"
 
 copy_if_exists /etc/os-release etc/os-release
 copy_if_exists /var/lib/noemaforge/bootstrap/firstboot-status.json bootstrap/firstboot-status.json

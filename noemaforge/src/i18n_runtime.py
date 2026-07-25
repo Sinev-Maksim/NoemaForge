@@ -66,3 +66,34 @@ def tr(root: Path, key: str, default: str = "", locale: str | None = None, **kwa
         return msg.format(**kwargs)
     except Exception:
         return msg
+
+
+def localized_message(
+    root: Path,
+    key: str,
+    default: str,
+    locale: str | None = None,
+    *,
+    role: str = "admin",
+    style: str = "admin_note",
+    source_locale: str = "en",
+    **kwargs: Any,
+) -> Dict[str, Any]:
+    """Return a structured localized display message with English audit text."""
+    target_locale = normalize_locale(locale)
+    original_text = str(default or key)
+    rendered_text = tr(root, key, original_text, locale=target_locale, **kwargs)
+    try:
+        original_text = original_text.format(**kwargs)
+    except Exception:
+        pass
+    return {
+        "key": str(key),
+        "role": str(role or "admin"),
+        "style": str(style or "admin_note"),
+        "source_locale": source_locale,
+        "target_locale": target_locale,
+        "original_text": original_text,
+        "rendered_text": rendered_text,
+        "localized": target_locale != source_locale and rendered_text != original_text,
+    }

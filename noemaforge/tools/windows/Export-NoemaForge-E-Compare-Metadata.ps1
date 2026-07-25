@@ -15,7 +15,7 @@
 param(
     [string]$RealVaultRoot = 'E:\Vault',
     [string]$LabVaultRoot = 'E:\noemaforge-lab\data\Vault',
-    [string]$OutDir = 'E:\Vault\manifests\noemaforge-metadata-export',
+    [string]$OutDir = 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export',
     [string]$RepoRoot = '',
     [string]$PythonExe = '',
     [switch]$RunScanVault

@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trusted_trigger_source_policy.schema.json",
+  "title": "NoemaForge Trusted Trigger Source Policy",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "id",
+    "version",
+    "status",
+    "policy",
+    "refs"
+  ],
+  "properties": {
+    "apiVersion": {
+      "const": "noemaforge.trusted-trigger-source-policy/v1"
+    },
+    "kind": {
+      "const": "TrustedTriggerSourcePolicy"
+    },
+    "id": {
+      "const": "trusted-trigger-source-core"
+    },
+    "version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "shadow",
+        "stable",
+        "retired"
+      ]
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "mode",
+        "activation_state",
+        "enforcement_mode",
+        "live_connector_integration_state",
+        "max_verification_age_seconds",
+        "max_future_skew_seconds",
+        "repositories",
+        "owner_principal_ids",
+        "trusted_verifiers",
+        "github_apps",
+        "required_requested_authority",
+        "controls",
+        "untrusted_content_origins",
+        "reason_codes"
+      ],
+      "properties": {
+        "mode": {
+          "const": "offline_contract"
+        },
+        "activation_state": {
+          "const": "trusted_trigger_source_authority_separated"
+        },
+        "enforcement_mode": {
+          "enum": [
+            "shadow",
+            "enforce"
+          ]
+        },
+        "live_connector_integration_state": {
+          "enum": [
+            "not_run",
+            "pass"
+          ]
+        },
+        "max_verification_age_seconds": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "max_future_skew_seconds": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "repositories": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "owner_principal_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "trusted_verifiers": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "verifier_id",
+              "verifier_class",
+              "allowed_source_classes",
+              "allowed_repositories"
+            ],
+            "properties": {
+              "verifier_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "verifier_class": {
+                "enum": [
+                  "trusted_conversation_identity",
+                  "github_connector",
+                  "github_webhook_signature"
+                ]
+              },
+              "allowed_source_classes": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "enum": [
+                    "explicit_owner_message",
+                    "github_app_event"
+                  ]
+                }
+              },
+              "allowed_repositories": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "github_apps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "app_id",
+              "installation_ids",
+              "allowed_event_types"
+            ],
+            "properties": {
+              "app_id": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "installation_ids": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              },
+              "allowed_event_types": {
+                "type": "array",
+                "minItems": 1,
+                "uniqueItems": true,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "required_requested_authority": {
+          "const": "create_work_item"
+        },
+        "controls": {
+          "type": "object",
+          "required": [
+            "verification_context_required",
+            "verification_bindings_must_match",
+            "require_repository_match",
+            "trigger_authority_does_not_grant_approval",
+            "approval_must_be_separate",
+            "login_is_not_authority",
+            "raw_envelope_is_untrusted",
+            "only_active_policy_authorizes",
+            "verification_freshness_required",
+            "decision_binds_policy_and_evidence"
+          ],
+          "properties": {
+            "verification_context_required": {
+              "const": true
+            },
+            "verification_bindings_must_match": {
+              "const": true
+            },
+            "require_repository_match": {
+              "const": true
+            },
+            "trigger_authority_does_not_grant_approval": {
+              "const": true
+            },
+            "approval_must_be_separate": {
+              "const": true
+            },
+            "login_is_not_authority": {
+              "const": true
+            },
+            "raw_envelope_is_untrusted": {
+              "const": true
+            },
+            "only_active_policy_authorizes": {
+              "const": true
+            },
+            "verification_freshness_required": {
+              "const": true
+            },
+            "decision_binds_policy_and_evidence": {
+              "const": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "untrusted_content_origins": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "reason_codes": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "refs": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "additionalProperties": false
+}

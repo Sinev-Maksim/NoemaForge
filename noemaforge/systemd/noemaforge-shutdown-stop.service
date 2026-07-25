@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: systemd/noemaforge-shutdown-stop.service
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.33.0
 # Created: 2026-05-14
 # Modified: 2026-05-14
 # Purpose: Define a systemd unit used by NoemaForge runtime or recovery.

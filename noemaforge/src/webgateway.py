@@ -98,7 +98,7 @@ except Exception:  # pragma: no cover
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -1073,7 +1073,7 @@ def promote_incident(
         docs_root = str(promote_cfg.get("docs_root") or str(_pp.data_root / "docs"))
         os.makedirs(docs_root, exist_ok=True)
         host = str(meta.get("host") or "unknown")
-        day = dt.datetime.utcnow().strftime("%Y/%m/%d")
+        day = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y/%m/%d")
         kind_dir = "rss" if t == "docsvault.rss_item" else "pages"
         dst_dir = os.path.join(docs_root, kind_dir, host, day, str(incident.get("incident_id") or "incident"))
         os.makedirs(dst_dir, exist_ok=True)
