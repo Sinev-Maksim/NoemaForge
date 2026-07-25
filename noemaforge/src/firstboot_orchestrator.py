@@ -194,7 +194,18 @@ def _selection_mode_contract(mode: str, composite_top_n: int) -> Dict[str, Any]:
     }
 
 
-def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: int, candidate_map: Dict[str, Any], tournament_doc: Dict[str, Any], staffing_summary: Dict[str, Any], dry_run: bool) -> Dict[str, str]:
+def _write_selection_artifacts(
+    *,
+    state_dir: str,
+    mode: str,
+    composite_top_n: int,
+    candidate_map: Dict[str, Any],
+    tournament_doc: Dict[str, Any],
+    staffing_summary: Dict[str, Any],
+    dry_run: bool,
+    retry_failed_models: bool = False,
+    clear_model_health: bool = False,
+) -> Dict[str, str]:
     paths = {
         "candidate_selection_plan": os.path.join(state_dir, "candidate-selection-plan.json"),
         "model_selection_decision": os.path.join(state_dir, "model-selection-decision.json"),
@@ -226,6 +237,17 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
             "rollback is described in rollback_plan.json",
         ],
     }
+    model_run_records = tournament_doc.get("model_run_records") or []
+    model_run_summary = pre_release_uat_fix_runtime.summarize_model_run_records(
+        pre_release_uat_fix_runtime.normalize_model_run_records(model_run_records)
+    )
+    dry_run_evaluation_scope = pre_release_uat_fix_runtime.classify_full_composite_dry_run_scope(
+        model_run_summary,
+        mode=mode,
+        dry_run=dry_run,
+        retry_failed_models=retry_failed_models,
+        clear_model_health=clear_model_health,
+    )
     decision = {
         "apiVersion": "noemaforge.model-selection/v1",
         "kind": "ModelSelectionDecision",
@@ -239,6 +261,7 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
         "missing_mandatory_core_roles": staffing_summary.get("missing_mandatory_core_roles") or [],
         "chosen_by_role": chosen,
         "ready_to_apply": bool(chosen) and not staffing_summary.get("missing_mandatory_core_roles"),
+        "dry_run_evaluation_scope": dry_run_evaluation_scope,
         "requires_confirmation_before_epoch_switch": True,
     }
     rollback = {
@@ -257,15 +280,13 @@ def _write_selection_artifacts(*, state_dir: str, mode: str, composite_top_n: in
     _write_json(paths["candidate_selection_plan"], plan)
     _write_json(paths["model_selection_decision"], decision)
     _write_json(paths["rollback_plan"], rollback)
-    model_run_records = tournament_doc.get("model_run_records") or []
     _write_json(paths["model_run_records"], {"created_at": _nowz(), "records": model_run_records})
     _write_json(
         paths["model_run_summary"],
         {
             "created_at": _nowz(),
-            **pre_release_uat_fix_runtime.summarize_model_run_records(
-                pre_release_uat_fix_runtime.normalize_model_run_records(model_run_records)
-            ),
+            **model_run_summary,
+            "dry_run_evaluation_scope": dry_run_evaluation_scope,
         },
     )
     return paths
@@ -788,7 +809,17 @@ def orchestrate(
     )
     staffing_summary_path = os.path.join(STATE_DIR, "firstboot-staffing-summary.json")
     _write_json(staffing_summary_path, staffing_summary)
-    selection_artifacts = _write_selection_artifacts(state_dir=STATE_DIR, mode=selection_mode, composite_top_n=composite_top_n, candidate_map=candidate_map, tournament_doc=tournament_doc, staffing_summary=staffing_summary, dry_run=dry_run)
+    selection_artifacts = _write_selection_artifacts(
+        state_dir=STATE_DIR,
+        mode=selection_mode,
+        composite_top_n=composite_top_n,
+        candidate_map=candidate_map,
+        tournament_doc=tournament_doc,
+        staffing_summary=staffing_summary,
+        dry_run=dry_run,
+        retry_failed_models=retry_failed_models,
+        clear_model_health=clear_model_health,
+    )
     staffing_gate_state = "warning" if staffing_summary.get("staffing_state") == "degraded_selected" else "running"
     staffing_gate_msg = "Firstboot staffing is degraded_selected; mandatory core roles are staffed, so continuing with warning." if staffing_gate_state == "warning" else "Evaluating firstboot staffing quality gate."
     firstboot_status.mark_step(status_path, events_path, step="staffing_gate", state=staffing_gate_state, message=staffing_gate_msg, extra={"staffing_summary": staffing_summary_path, "staffing_state": staffing_summary.get("staffing_state"), "warnings": staffing_summary.get("warnings") or []})

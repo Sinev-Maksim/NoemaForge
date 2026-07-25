@@ -118,14 +118,17 @@ periodically so older reviews do not rot in comment threads.
   restores `sess.session.messages` (`renderConversation(sess.session)`) and
   `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
   addressed.)_
-- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+- [x] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
   `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
   byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
   both as a `!restoredFromSession` fallback *and* again unconditionally, so the
   dashboard-state conversation can clobber the session-restored conversation despite the
   "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
   and make the dashboard-state render a true fallback (keep persona/artifacts loading
-  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
+  unconditional). DONE/verified: current `startup()` has one `/api/locales` call, one
+  `loadDashboardBackendState()` call, preserves session-restored conversation, still
+  merges artifacts, and the persona-selector startup regression now inspects the actual
+  `startup()` body instead of the first unrelated `Promise.allSettled` block. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [x] **`.github/scripts/setup-environments.sh`** — drop the unused
@@ -133,8 +136,14 @@ periodically so older reviews do not rot in comment threads.
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
-- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
-  runtime modules and unit tests into one shared helper. (Codex #31)
+- [x] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31) _(S · haiku —
+  DONE: `noemaforge/src/admin_gui_offline_fixture.py` now owns the shared offline
+  server scaffold + lock parity + optional in-memory JSON store; migrated
+  `stateful_admin_gui_runtime`, `runtime_device_policy_staging_runtime`,
+  `telemetry_card_truthfulness_runtime`, `task_workflow_runtime`,
+  `vault_reinventory_job_runtime`, `model_selection_continue_idempotency_runtime`,
+  plus the focused session/event/admin-UX unit tests.)_
 - [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
   (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
   `_write_job_file` through the guard (read returns None, write raises) so no job-file
@@ -569,9 +578,13 @@ retained through 2026-06-26.
 
 _Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
 and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
-detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+detail in `../uat/UAT-*.md`. Original verdict driving this section: Admin GUI =
 PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
-production readiness for non-engineer operators = NOT READY._
+production readiness for non-engineer operators = NOT READY.
+2026-07-25 status: all P0/P1/P2 items below are merged on `release/0.33.0-dev`
+(PRs #126-#136); only U-004 (AAT all-pipeline demo mode, tracked under Runtime/ops
+follow-ups below) remains open. Target-host re-validation of the fixpack is still
+pending before the production-readiness verdict can be flipped._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
@@ -580,42 +593,42 @@ production readiness for non-engineer operators = NOT READY._
   the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
   in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
   path (`test_admin_state_glossary.py`).
-- [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
+- [x] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet — DONE: PR #132)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [x] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
-- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
+- [x] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — DONE: PR #131)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
   to artifacts/logs (text-only is acceptable for MVP).
-- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet)_
+- [x] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet — DONE: PR #129)_
   already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
   result cards with open/download/copy actions; readable failure message on error.
 
 ### P1 — comprehension and persona UX
 
-- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet)_
+- [x] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet — DONE: PR #133)_
   state terms, full model names on hover, internally consistent progress numbers, and a
   "Latest plan" that reflects the actually applied run (no stale `normal` after a real
   `full_composite`).
-- [ ] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — persona routing + prompt design)_
+- [x] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — DONE: PR #136)_
   behavior/tone/scope per persona, switch logged in chat, completion offers
   stay / return-to-Admin / switch.
-- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku)_
+- [x] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku — DONE: PR #128)_
   launch the chat shows the switch and the persona greets with next steps.
-- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet)_
+- [x] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet — DONE: PR #134)_
   label change + "next message runs as N-step cycle" notice + iteration progress), or are
   disabled with a warning where unsupported.
 
 ### P2 — presentation polish and guards
 
-- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku)_
+- [x] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku — DONE: PR #127)_
   JSON only behind Details/Debug.
-- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku)_
+- [x] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku — DONE: PR #127)_
   status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
   no raw JSON in the default view.
-- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — offline renderer, no CDN allowed)_
+- [x] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — DONE: PR #135)_
   error if rendering fails; source behind debug).
-- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku)_
+- [x] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku — DONE: PR #128)_
   interval prompts start-new / continue-existing / cancel; existing runs visible.
 
 ### Runtime / ops follow-ups (0.33.x)

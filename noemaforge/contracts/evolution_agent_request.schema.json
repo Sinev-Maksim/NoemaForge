@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_agent_request.schema.json",
+  "title": "NoemaForge Evolution Agent Request",
+  "type": "object",
+  "required": ["apiVersion", "kind", "request_id", "run_id", "work_item_id", "created_at", "provenance", "agent_role", "capability_token_ref", "toolproxy_required", "approval_required", "requested_actions", "forbidden_actions"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionAgentRequest" },
+    "request_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "work_item_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "agent_role": { "type": "string", "minLength": 1 },
+    "capability_token_ref": { "type": "string", "minLength": 1 },
+    "toolproxy_required": { "const": true },
+    "approval_required": { "type": "boolean" },
+    "requested_actions": { "type": "array", "items": { "type": "string" } },
+    "forbidden_actions": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

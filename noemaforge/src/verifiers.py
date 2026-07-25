@@ -56,8 +56,9 @@ from typing import Any, Dict, List, Tuple
 
 import yaml
 
+from platform_paths import DEFAULT_PATHS as _pp
 
-DEFAULT_CATALOG_PATH = '/opt/noemaforge/configs/verifiers.yaml'
+DEFAULT_CATALOG_PATH = str(_pp.root / "configs" / "verifiers.yaml")
 SUPPORTED_TYPES = {
     'checklist',
     'json_schema',
@@ -113,7 +114,7 @@ def _save_json(path: str, obj: Dict[str, Any]) -> None:
 #   - tools/checker/noemaforge_check.py
 # Returns / emits: Dict[str, Any]
 # === End NoemaForge Autodoc Function Header ===
-def load_catalog(epoch_dir: str = '/opt/noemaforge/configs') -> Dict[str, Any]:
+def load_catalog(epoch_dir: str = str(_pp.root / "configs")) -> Dict[str, Any]:
     path = epoch_dir
     if os.path.isdir(epoch_dir):
         path = os.path.join(epoch_dir, 'verifiers.yaml')
@@ -136,7 +137,7 @@ def load_catalog(epoch_dir: str = '/opt/noemaforge/configs') -> Dict[str, Any]:
 #   - tests/test_verifiers.py
 # Returns / emits: Dict[str, str]
 # === End NoemaForge Autodoc Function Header ===
-def list_verifiers(epoch_dir: str = '/opt/noemaforge/configs') -> Dict[str, str]:
+def list_verifiers(epoch_dir: str = str(_pp.root / "configs")) -> Dict[str, str]:
     doc = load_catalog(epoch_dir)
     out: Dict[str, str] = {}
     for vid, rec in (doc.get('verifiers') or {}).items():
@@ -340,7 +341,7 @@ RUNNERS = {
 #   - main
 # Returns / emits: Dict[str, Any]
 # === End NoemaForge Autodoc Function Header ===
-def verify(verifier_id: str, payload: Dict[str, Any], epoch_dir: str = '/opt/noemaforge/configs', catalog: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def verify(verifier_id: str, payload: Dict[str, Any], epoch_dir: str = str(_pp.root / "configs"), catalog: Dict[str, Any] | None = None) -> Dict[str, Any]:
     catalog = catalog if isinstance(catalog, dict) else load_catalog(epoch_dir)
     rec = (catalog.get('verifiers') or {}).get(verifier_id)
     if not isinstance(rec, dict):
@@ -372,7 +373,7 @@ def verify(verifier_id: str, payload: Dict[str, Any], epoch_dir: str = '/opt/noe
 # === End NoemaForge Autodoc Function Header ===
 def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument('--epoch-dir', default='/opt/noemaforge/configs')
+    ap.add_argument('--epoch-dir', default=str(_pp.root / "configs"))
     ap.add_argument('--verifier', required=True)
     ap.add_argument('--payload', required=True)
     ap.add_argument('--out', default='')

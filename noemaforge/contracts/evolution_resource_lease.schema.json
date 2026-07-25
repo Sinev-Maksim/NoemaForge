@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_resource_lease.schema.json",
+  "title": "NoemaForge Evolution Resource Lease",
+  "type": "object",
+  "required": ["apiVersion", "kind", "lease_id", "run_id", "created_at", "provenance", "resource_kind", "exclusive", "approval_required", "one_active_heavy_worker_limit", "expires_at"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionResourceLease" },
+    "lease_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "resource_kind": { "enum": ["cpu", "heavy_llm", "gpu", "model_worker", "toolproxy"] },
+    "exclusive": { "type": "boolean" },
+    "approval_required": { "type": "boolean" },
+    "one_active_heavy_worker_limit": { "type": "boolean" },
+    "expires_at": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}
