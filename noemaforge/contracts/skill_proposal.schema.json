@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/skill_proposal.schema.json",
+  "title": "SkillProposal",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "version",
+    "proposal_id",
+    "import_mode",
+    "activation_state",
+    "decision",
+    "ssr_status",
+    "qa_status",
+    "source",
+    "parsed_skill",
+    "requested_tools",
+    "requested_permissions",
+    "safety"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.skill-proposal/v1" },
+    "kind": { "const": "SkillProposal" },
+    "version": { "type": "string" },
+    "created_at": { "type": "string" },
+    "ok": { "type": "boolean" },
+    "proposal_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$"
+    },
+    "import_mode": { "const": "quarantine_only" },
+    "activation_state": { "const": "quarantined" },
+    "decision": { "enum": ["quarantined", "rejected"] },
+    "ssr_status": { "enum": ["pending", "ssr_review", "approved", "rejected"] },
+    "qa_status": { "enum": ["pending", "qa_review", "approved", "rejected"] },
+    "failures": { "type": "array", "items": { "type": "string" } },
+    "warnings": { "type": "array", "items": { "type": "string" } },
+    "source": {
+      "type": "object",
+      "required": ["uri", "sha256", "bytes"],
+      "properties": {
+        "uri": { "type": "string" },
+        "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "bytes": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "parsed_skill": {
+      "type": "object",
+      "required": ["title", "description", "frontmatter", "instructions", "sections"],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "frontmatter": { "type": "object" },
+        "instructions": { "type": "string" },
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["title", "body"],
+            "properties": {
+              "title": { "type": "string" },
+              "body": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "requested_tools": { "type": "array", "items": { "type": "string" } },
+    "requested_permissions": { "type": "array", "items": { "type": "string" } },
+    "safety": {
+      "type": "object",
+      "required": [
+        "no_code_execution",
+        "no_active_registration",
+        "requires_ssr_review",
+        "requires_qa_review",
+        "requires_epoch_before_activation"
+      ],
+      "properties": {
+        "no_code_execution": { "const": true },
+        "no_active_registration": { "const": true },
+        "requires_ssr_review": { "const": true },
+        "requires_qa_review": { "const": true },
+        "requires_epoch_before_activation": { "const": true }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
