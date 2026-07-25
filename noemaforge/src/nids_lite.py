@@ -112,7 +112,7 @@ DEFAULT_STATE_JSON = os.path.join(DEFAULT_STATE_DIR, "state.json")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -381,14 +381,14 @@ def snapshot_and_analyze(*, epoch_dir: str, actor: Dict[str, Any], trace_id: str
             last = str(st.get("last_snapshot_at") or "")
             if last:
                 last_dt = dt.datetime.fromisoformat(last.replace("Z", "+00:00"))
-                if dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) < (last_dt + dt.timedelta(seconds=interval)):
+                if dt.datetime.now(dt.UTC) < (last_dt + dt.timedelta(seconds=interval)):
                     return True, {"ok": True, "skipped": True, "reason": "interval"}, "ok"
         except Exception:
             pass
 
     snap = snapshot(pol)
     os.makedirs(DEFAULT_SNAP_DIR, exist_ok=True)
-    fn = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ") + ".json"
+    fn = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ") + ".json"
     p = os.path.join(DEFAULT_SNAP_DIR, fn)
     with open(p, "w", encoding="utf-8") as f:
         json.dump(snap, f, ensure_ascii=False, indent=2)

@@ -73,6 +73,19 @@ import uuid
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
+FETCH_BY_ID_QUERIES = {
+    "sources": "SELECT * FROM sources WHERE source_id=?",
+    "passages": "SELECT * FROM passages WHERE passage_id=?",
+    "concepts": "SELECT * FROM concepts WHERE concept_id=?",
+    "claims": "SELECT * FROM claims WHERE claim_id=?",
+    "conflicts": "SELECT * FROM conflicts WHERE conflict_id=?",
+    "realms": "SELECT * FROM realms WHERE realm_id=?",
+    "realm_bridges": "SELECT * FROM realm_bridges WHERE bridge_id=?",
+    "trails": "SELECT * FROM trails WHERE trail_id=?",
+}
+FETCH_BY_ID_LIMIT = 1000
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
 # Purpose: Implement the routine ' nowz'.
@@ -1246,23 +1259,23 @@ class KnowledgeStore:
         ids = [str(x) for x in ids if str(x).strip()]
         if not ids:
             return []
-        if table not in {"sources", "passages", "concepts", "claims", "conflicts", "realms", "realm_bridges", "trails"}:
+        query = FETCH_BY_ID_QUERIES.get(table)
+        if not query:
             return []
-        pk = {
-            "sources": "source_id",
-            "passages": "passage_id",
-            "concepts": "concept_id",
-            "claims": "claim_id",
-            "conflicts": "conflict_id",
-            "realms": "realm_id",
-            "realm_bridges": "bridge_id",
-            "trails": "trail_id",
-        }[table]
+        if len(ids) > FETCH_BY_ID_LIMIT:
+            raise ValueError("invalid_fetch_id_count")
         con = self._connect()
         cur = con.cursor()
-        q = f"SELECT * FROM {table} WHERE {pk} IN ({','.join(['?']*len(ids))})"
-        cur.execute(q, ids)
-        rows = [dict(r) for r in cur.fetchall()]
+        rows = []
+        seen = set()
+        for object_id in ids:
+            if object_id in seen:
+                continue
+            seen.add(object_id)
+            cur.execute(query, (object_id,))
+            row = cur.fetchone()
+            if row:
+                rows.append(dict(row))
         con.close()
         return rows
 

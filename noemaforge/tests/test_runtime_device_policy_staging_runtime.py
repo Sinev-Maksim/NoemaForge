@@ -50,11 +50,13 @@ class RuntimeDevicePolicyStagingRuntimeTests(unittest.TestCase):
             response = sequence[key]
             self.assertTrue(response["ok"], response)
             self.assertTrue(response["policy"]["pending_apply"], response)
+            self.assertEqual(response["policy"]["policy"], response["policy"]["session_override"]["policy"])
+            self.assertEqual("session_override", response["policy"]["effective_policy"]["source"])
             self.assertEqual("next_persona_or_model_switch_or_backend_restart", response["policy"]["applies_on"])
             self.assertIn("backend restart", response["reply"])
         self.assertEqual("gpu", sequence["cuda"]["policy"]["policy"])
         self.assertFalse(sequence["invalid"]["ok"])
-        self.assertTrue(any(key.endswith("runtime/device-policy.json") for key in sequence["store_keys"]))
+        self.assertFalse(any(key.endswith("runtime/device-policy.json") for key in sequence["store_keys"]))
         self.assertFalse(any("jobs" in key for key in sequence["store_keys"]))
 
     def test_staging_notes_make_no_active_model_migration_claim(self) -> None:
@@ -63,6 +65,19 @@ class RuntimeDevicePolicyStagingRuntimeTests(unittest.TestCase):
 
         self.assertIn("does not migrate the currently running model", note)
         self.assertIn("only on the next persona/model switch or backend restart", note)
+        self.assertIn("session-only override", note)
+
+    def test_session_override_does_not_survive_new_gui_session(self) -> None:
+        first = rdps.build_offline_admin_gui_server(package_root=ROOT)
+        first_set = first.device_policy_set("gpu")
+        self.assertEqual("gpu", first_set["policy"]["effective_policy"]["policy"])
+        self.assertEqual("session_override", first_set["policy"]["effective_policy"]["source"])
+
+        second = rdps.build_offline_admin_gui_server(package_root=ROOT)
+        second_policy = second.device_policy()["policy"]
+        self.assertEqual("cpu", second_policy["effective_policy"]["policy"])
+        self.assertEqual("safe_default", second_policy["effective_policy"]["source"])
+        self.assertIsNone(second_policy["session_override"])
 
 
 if __name__ == "__main__":

@@ -174,3 +174,15 @@ threads before merge; fold recurring nits into the canonical TODO.
 - `RUNTIME_VERSION` is assigned only in `noemaforge_version.py`.
 - Heavy GPU / model-selection commands always preserve the display by default.
 - Self-modification stays lab-only behind Pipeline_RFC + explicit approval.
+
+## 0.33.0 governance discoverability carry-forward
+
+- [x] Add Research_Packet for freshness-bounded cited internet scouting.
+- [x] Add Research_Packet for source-allowlisted/freshness-bounded Internet scouting.
+- [x] Add `Concept_Frame` schema for Admin/Architect task framing.
+- [x] Add `Sense_State` + `Privacy_Filter` contracts before persistence/export.
+- [x] Add bounded `Drive_State` adapter for pressure/fatigue/urgency/curiosity.
+- [x] Add Honesty Protocol templates: Unknown, Need-Research, Error_Attribution.
+- [x] Add `Slop_Score`, `Critic_Stack`, `Detection_Verdict` as layered advisory quality gates.
+- [x] Require `Pipeline_RFC` + dry-run + eval + rollback + explicit approval for pipeline mutation.
+- [x] Add full drag&drop pipeline editor implementation after alpha. Closed by `pipeline-dragdrop-editor-core`.

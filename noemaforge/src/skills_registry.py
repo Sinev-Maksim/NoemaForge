@@ -71,7 +71,7 @@ OUTBOX = str(_pp.data_root / "outbox/skills")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -202,7 +202,7 @@ def run_skill(
                 actor=actor,
             )
             run["created_tasks"].append(created.get("task"))
-    path = os.path.join(OUTBOX, skill_id, f"{dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}.json")
+    path = os.path.join(OUTBOX, skill_id, f"{dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime('%Y%m%dT%H%M%SZ')}.json")
     os.makedirs(os.path.dirname(path), exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
         json.dump(run, f, ensure_ascii=False, indent=2)

@@ -68,7 +68,7 @@ OUTBOX = str(_pp.data_root / "outbox/coordinator")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -84,7 +84,7 @@ def _nowz() -> str:
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _slug() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8]
 
 
 # === NoemaForge Autodoc Function Header ===

@@ -141,8 +141,8 @@
     "docs/source_reports/deep-research-report-8-noemaforge-governance-quality-pack.md"
   ],
   "status": "pre-alpha",
-  "summary": "NoemaForge 0.32.1: stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
-  "version": "0.32.1",
+  "summary": "NoemaForge 0.33.0: live-UAT metadata consistency, stateful GUI shell, persisted conversation/SR-SSR review records, telemetry/task/job/pipeline dock, persona portrait static/fallback fix, staged CPU/GPU policy, local-first SmartHome backlog, and recovery-safe first-start surfaces.",
+  "version": "0.33.0",
   "product": "NoemaForge",
   "roadmap_packs": [
     "NFG-ARCH-0.32.1-noemaforge-governance-quality-pack"

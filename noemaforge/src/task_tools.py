@@ -62,6 +62,45 @@ import taskqueue
 from platform_paths import DEFAULT_PATHS as _pp
 
 PROJECTS_BASE = str(_pp.data_root / "projects")
+LIST_USER_TASKS_COLUMNS = (
+    "SELECT user_task_id, created_at, updated_at, project_id, session_id, title, description, kind, status, owner, "
+    "priority_class, engine_task_id, worktree_id, plan_required, last_error, payload_json, metadata_json "
+)
+LIST_USER_TASKS_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_PROJECT_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE project_id=? ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_STATUS_SQL = LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE status=? ORDER BY created_at DESC LIMIT ?"
+LIST_USER_TASKS_BY_PROJECT_STATUS_SQL = (
+    LIST_USER_TASKS_COLUMNS + "FROM user_tasks WHERE project_id=? AND status=? ORDER BY created_at DESC LIMIT ?"
+)
+UPDATE_USER_TASK_COLUMNS = {
+    "title": "title",
+    "description": "description",
+    "kind": "kind",
+    "status": "status",
+    "owner": "owner",
+    "priority_class": "priority_class",
+    "worktree_id": "worktree_id",
+    "last_error": "last_error",
+    "session_id": "session_id",
+    "plan_required": "plan_required",
+    "payload_json": "payload_json",
+    "metadata_json": "metadata_json",
+    "updated_at": "updated_at",
+}
+UPDATE_USER_TASK_STATEMENTS = {
+    "title": "UPDATE user_tasks SET title=?, updated_at=? WHERE user_task_id=?",
+    "description": "UPDATE user_tasks SET description=?, updated_at=? WHERE user_task_id=?",
+    "kind": "UPDATE user_tasks SET kind=?, updated_at=? WHERE user_task_id=?",
+    "status": "UPDATE user_tasks SET status=?, updated_at=? WHERE user_task_id=?",
+    "owner": "UPDATE user_tasks SET owner=?, updated_at=? WHERE user_task_id=?",
+    "priority_class": "UPDATE user_tasks SET priority_class=?, updated_at=? WHERE user_task_id=?",
+    "worktree_id": "UPDATE user_tasks SET worktree_id=?, updated_at=? WHERE user_task_id=?",
+    "last_error": "UPDATE user_tasks SET last_error=?, updated_at=? WHERE user_task_id=?",
+    "session_id": "UPDATE user_tasks SET session_id=?, updated_at=? WHERE user_task_id=?",
+    "plan_required": "UPDATE user_tasks SET plan_required=?, updated_at=? WHERE user_task_id=?",
+    "payload_json": "UPDATE user_tasks SET payload_json=?, updated_at=? WHERE user_task_id=?",
+    "metadata_json": "UPDATE user_tasks SET metadata_json=?, updated_at=? WHERE user_task_id=?",
+}
 
 USER_TO_ENGINE = {
     "queued": "TODO",
@@ -99,7 +138,7 @@ ENGINE_TO_USER = {
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -178,6 +217,34 @@ def _con(policy: Optional[Dict[str, Any]] = None) -> sqlite3.Connection:
     con = taskqueue._connect(db_path)  # type: ignore[attr-defined]
     init_v26_schema(policy=policy, con=con)
     return con
+
+
+def _where_clause(parts: List[str]) -> str:
+    if not parts:
+        return ""
+    allowed = {"project_id=?", "status=?"}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError("unsupported_where_clause")
+    return "WHERE " + " AND ".join(parts)
+
+
+def _assignment(column: str) -> str:
+    safe = UPDATE_USER_TASK_COLUMNS.get(str(column))
+    if not safe:
+        raise ValueError("unsupported_update_column")
+    return f"{safe}=?"
+
+
+def _list_user_tasks_query(project_id: str, status: str, limit: int) -> tuple[str, tuple[Any, ...]]:
+    safe_limit = max(1, int(limit))
+    if project_id and status:
+        return LIST_USER_TASKS_BY_PROJECT_STATUS_SQL, (project_id, status, safe_limit)
+    if project_id:
+        return LIST_USER_TASKS_BY_PROJECT_SQL, (project_id, safe_limit)
+    if status:
+        return LIST_USER_TASKS_BY_STATUS_SQL, (status, safe_limit)
+    return LIST_USER_TASKS_SQL, (safe_limit,)
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -579,18 +646,8 @@ def list_user_tasks(
     con.row_factory = sqlite3.Row
     try:
         _sync_engine_statuses(con)
-        wh, args = [], []
-        if project_id:
-            wh.append("project_id=?")
-            args.append(project_id)
-        if status:
-            wh.append("status=?")
-            args.append(status)
-        where = ("WHERE " + " AND ".join(wh)) if wh else ""
-        rows = con.execute(
-            f"SELECT user_task_id, created_at, updated_at, project_id, session_id, title, description, kind, status, owner, priority_class, engine_task_id, worktree_id, plan_required, last_error, payload_json, metadata_json FROM user_tasks {where} ORDER BY created_at DESC LIMIT ?",
-            tuple(args + [max(1, int(limit))]),
-        ).fetchall()
+        sql, query_args = _list_user_tasks_query(project_id, status, limit)
+        rows = con.execute(sql, query_args).fetchall()
         return {"ok": True, "tasks": [_row_to_task(con, r) for r in rows]}
     finally:
         con.close()
@@ -660,28 +717,36 @@ def update_user_task(
         row = con.execute("SELECT payload_json, metadata_json FROM user_tasks WHERE user_task_id=?", (user_task_id,)).fetchone()
         if not row:
             raise ValueError("unknown_user_task")
-        fields = []
-        args: List[Any] = []
+        updates: List[tuple[str, Any]] = []
         simple = ["title", "description", "kind", "status", "owner", "priority_class", "worktree_id", "last_error", "session_id"]
         for key in simple:
             if key in patch:
-                fields.append(f"{key}=?")
-                args.append((str(patch.get(key) or "").strip() or None) if key not in ("status", "priority_class") else str(patch.get(key) or "").strip())
+                raw_value = patch.get(key)
+                text_value = str(raw_value).strip() if raw_value is not None else ""
+                if key == "title":
+                    if not text_value:
+                        raise ValueError("missing_title")
+                    value = text_value
+                elif key == "kind":
+                    if not text_value:
+                        raise ValueError("missing_kind")
+                    value = text_value
+                elif key in ("status", "priority_class"):
+                    value = text_value
+                else:
+                    value = text_value or None
+                updates.append((key, value))
         if "plan_required" in patch:
-            fields.append("plan_required=?")
-            args.append(1 if bool(patch.get("plan_required")) else 0)
+            updates.append(("plan_required", 1 if bool(patch.get("plan_required")) else 0))
         if "payload" in patch:
-            fields.append("payload_json=?")
-            args.append(json.dumps(patch.get("payload") or {}, ensure_ascii=False))
+            updates.append(("payload_json", json.dumps(patch.get("payload") or {}, ensure_ascii=False)))
         if "metadata" in patch:
-            fields.append("metadata_json=?")
-            args.append(json.dumps(patch.get("metadata") or {}, ensure_ascii=False))
-        if not fields:
+            updates.append(("metadata_json", json.dumps(patch.get("metadata") or {}, ensure_ascii=False)))
+        if not updates:
             return get_user_task(policy=policy, user_task_id=user_task_id)
-        fields.append("updated_at=?")
-        args.append(_nowz())
-        args.append(user_task_id)
-        con.execute(f"UPDATE user_tasks SET {', '.join(fields)} WHERE user_task_id=?", tuple(args))
+        updated_at = _nowz()
+        for key, value in updates:
+            con.execute(UPDATE_USER_TASK_STATEMENTS[key], (value, updated_at, user_task_id))
         _record_event(con, user_task_id, "updated", {"patch_keys": sorted(list((patch or {}).keys()))}, actor=actor)
         con.commit()
         row2 = con.execute(

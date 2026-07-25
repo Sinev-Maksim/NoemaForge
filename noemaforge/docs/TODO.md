@@ -19,6 +19,54 @@ recalibration: [`Claude_stats.md`](../../Claude_stats.md) at the project root._
 Auto-escalation: if a delegated tier fails twice (tests/review), it escalates one
 tier up (S→M→L) and the miss is logged in `Claude_stats.md`.
 
+## 0.33.0 Prod-Ready Re-Entry TODOs
+
+Reconciled during the 0.33.0 install/re-entry hardening loop for issues #212-#221.
+
+### 0.33.0 release blockers
+
+- [x] Fix installed `/opt/noemaforge` payload integrity: root-owned immutable
+  payload, non-group-writable files, and executable bits restored from
+  `tools/prep/executable_manifest.txt`. _(M · sonnet)_
+- [x] Keep `safe-start` as start-now by default; persistent systemd enablement now
+  requires explicit `--persist-services` or boot-mode policy. _(M · sonnet)_
+- [x] Make `runtime_only` smoke profile-aware: gateway health is checked and the
+  intentionally missing main backend is reported as an expected skip. _(M · sonnet)_
+- [x] Make `mvp-smoke --json` actionable: failed checks include command, exit code,
+  stdout, stderr and report paths under the smoke state directory. _(M · sonnet)_
+- [x] Restore catalog consistency for media/admin pipelines by defining
+  `media_team`; `noemaforge pipeline validate` and `--json` pass locally. _(S · haiku)_
+- [x] Represent degraded staffing intentionally in MVP smoke by using a
+  smoke-scoped `--allow-degraded` override only inside temporary smoke state. _(M · sonnet)_
+- [x] Clean packaged systemd metadata for 0.33.0 and remove stale `*hotfix*`
+  drop-ins during install. _(S · haiku)_
+
+### Post-0.33.0
+
+- [ ] Review whether all package `tools/prep/*.sh` and `tools/ops/*.sh` entries
+  should remain executable in source, or whether `executable_manifest.txt` should
+  be narrowed to only directly invoked entrypoints. _(M · sonnet)_
+- [ ] Replace the ad hoc manifest/checksum regeneration commands with a first-class
+  0.33.x `regen_evidence.py` helper that updates manifests, sidecars and root/package
+  checksums in one documented command. _(M · sonnet)_
+
+### Research/design
+
+- [ ] Decide whether `runtime_only` smoke should include a ToolProxy live socket
+  check by default or keep ToolProxy validation in `toolproxy diag`/`mvp-smoke`.
+  _(L · opus)_
+
+### Target-host/manual validation
+
+- [ ] Capture target-host clean install evidence: `/opt/noemaforge` ownership/modes,
+  no group-writable payload, executable smoke/preflight/operator scripts, and no
+  stale hotfix drop-ins after install. _(target-gated · M)_
+- [ ] Capture target-host manual boot-mode evidence: `safe-start --llm-profile=runtime_only`
+  starts gateway/ToolProxy for the session without enabling them persistently. _(target-gated · M)_
+- [ ] Capture target-host runtime evidence: `smoke --profile runtime_only`,
+  `pipeline validate --json`, and `mvp-smoke --json` with archived state/check
+  artifact paths. _(target-gated · M)_
+
 ## Optimizations
 
 _Non-blocking improvements harvested from Codex CLI and CodeRabbit reviews. Each is optional; action when convenient. Source review tagged (e.g. `Codex #34`) for traceability._
@@ -50,7 +98,7 @@ touches release-gating logic across ~26 files + configs)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
 - [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36) _(S · haiku — DONE: explicit Test-Path guard exits 2 with a FAIL message)_
-- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
+- [x] **`role_tournament.py` backend-stop — target-only, degrades off Linux.** DONE: `systemctl()` and `_pids_for_backend` (pgrep) already `try/except`-degrade (return 127 / `[]` off Linux) and are now marked target-only by docstring; a first-class `service_manager` abstraction stays in the 0.33.1 phase. (Codex #34) _(M · sonnet — fold into 0.33.1 service-manager phase)_
 - [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34) _(S · haiku — DONE: `process_group_runner.kill_signal()`, used in `discord_bridge.py`/`role_tournament.py`)_
 **Process rule (owner directive 2026-06-11):** the `## Optimizations` section of every
 Codex review is handled **before the PR merges** — each suggestion is either applied on
@@ -70,14 +118,17 @@ periodically so older reviews do not rot in comment threads.
   restores `sess.session.messages` (`renderConversation(sess.session)`) and
   `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
   addressed.)_
-- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+- [x] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
   `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
   byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
   both as a `!restoredFromSession` fallback *and* again unconditionally, so the
   dashboard-state conversation can clobber the session-restored conversation despite the
   "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
   and make the dashboard-state render a true fallback (keep persona/artifacts loading
-  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
+  unconditional). DONE/verified: current `startup()` has one `/api/locales` call, one
+  `loadDashboardBackendState()` call, preserves session-restored conversation, still
+  merges artifacts, and the persona-selector startup regression now inspects the actual
+  `startup()` body instead of the first unrelated `Promise.allSettled` block. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [x] **`.github/scripts/setup-environments.sh`** — drop the unused
@@ -85,8 +136,14 @@ periodically so older reviews do not rot in comment threads.
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
-- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
-  runtime modules and unit tests into one shared helper. (Codex #31)
+- [x] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31) _(S · haiku —
+  DONE: `noemaforge/src/admin_gui_offline_fixture.py` now owns the shared offline
+  server scaffold + lock parity + optional in-memory JSON store; migrated
+  `stateful_admin_gui_runtime`, `runtime_device_policy_staging_runtime`,
+  `telemetry_card_truthfulness_runtime`, `task_workflow_runtime`,
+  `vault_reinventory_job_runtime`, `model_selection_continue_idempotency_runtime`,
+  plus the focused session/event/admin-UX unit tests.)_
 - [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
   (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
   `_write_job_file` through the guard (read returns None, write raises) so no job-file
@@ -128,10 +185,10 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
   Windows. No `resource` sys.modules shim (would defeat the `try/except ImportError` fallback in
   `sandbox`/`canary_runner`/`selftest_runtime`). Whole-suite `--collect-only` now exits 0
   (2206 collected). _(M · opus — DONE)_
-- [ ] **Windows collection regression guard (Codex #147 optimization)** — add the
-  `--collect-only` of the toolproxy/discord modules (or the whole suite) as a CI regression
-  check. Note: the failure mode is non-POSIX-only, so a Linux premerge runner would not catch a
-  Windows regression; a meaningful guard belongs on the self-hosted Windows runner. _(S · opus)_
+- [x] **Windows collection regression guard (Codex #147 optimization)** — DONE:
+  `.github/workflows/autonomous-pipeline.yml` now runs a self-hosted Windows
+  `pytest --collect-only` guard over the ToolProxy/Discord import regression modules
+  before Codex review, with a workflow contract test locking the guard shape. _(S · opus)_
 - [x] **POSIX/bash entrypoint tests (D2)** — DONE (#107): rewrote the five CLI tests to the Python entrypoint via a shared `_cli_bridge`; `test_autostart_policy_03103` + D3 runtime cases skip-with-reason. Was: `test_code_qa_0310`, `test_pipeline_p1_03021`,
   `test_pipeline_runtime_03019`, `test_self_improvement_03022`, `test_team_member_03101` drive the
   `bin/noemaforge` bash CLI. Rewrite to the underlying Python entrypoint via `sys.executable`, each
@@ -151,7 +208,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
 - [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
-- [ ] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34)
+- [x] **`role_tournament.py` backend-stop — target-only, degrades off Linux.** DONE: `systemctl()` and `_pids_for_backend` (pgrep) already `try/except`-degrade (return 127 / `[]` off Linux) and are now marked target-only by docstring; a first-class `service_manager` abstraction stays in the 0.33.1 phase. (Codex #34)
 - [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
@@ -189,6 +246,29 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +
   deny-by-default policy, with per-provider credentials kept local, redaction-before-egress,
   cost/rate ceilings, and explicit operator opt-in (nothing leaves the machine by default).
+- [ ] **0.34 — GameDev-ready: NoemaForge Simulation Framework (NSF) + Demo Worlds.** Turn _(XL · fable-orchestrated umbrella)_
+  NoemaForge into an "open-source platform for building impossible games through community
+  contributions and AI-assisted development." A new **NSF** tier (time / resources / factions /
+  events / entropy / logistics / politics; classical GOAP / Utility / Behaviour-Tree AI in the
+  critical loop, LLMs only for text / chronicles / lore / reports), the artifact-as-everything
+  content model (`Faction.yaml`, `Policy.yaml`, `District.yaml`, `Incident.yaml`, `Lore.md`, …),
+  the emergent loop (player action → policy artifact → simulation → incident → history → new
+  policy), sim-domain agent roles (Architect / Economist / Lore-Keeper / Balance-Analyst / QA /
+  Integrator / Historian), an Automated Balance Sandbox ("run 100 years" pre-merge) and World
+  Regression Testing. Showcase via **Demo World #1 — Arcology Governance Simulator** (a vertical
+  slice, NOT a game product; reuses the Epoch System as snapshots, multi-LLM governance, and
+  artifact lineage = "git for the world"). Full design:
+  [`reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md`](reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md) §A.
+- [ ] **0.35 — Artifact exchange (GitHub-first → decentralized P2P).** Formalize artifact _(XL · fable-orchestrated umbrella)_
+  submit / review / validate / distribute as a first-class contract. **Phase 1 (GitHub
+  substrate):** PR-based submission, mandatory agent review gates, the Balance Sandbox as a merge
+  gate, signed-manifest provenance, and the inspect → quarantine → scan → Pipeline_RFC → epoch
+  import/export policy — reusing the §B tokenless **signed proposal bundle** so account-less
+  contributors can propose (folds in the existing "version/file proposal" + "marketplace import
+  policy" items above). **Phase 2 (P2P):** decentralized exchange with no central GitHub — the
+  signed portable bundle is the wire format over relay / DHT, with capability-scoped peer trust
+  and epoch-bound integration (same contract, different transport). Full design:
+  [`reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md`](reference/GAMEDEV_DEMO_WORLDS_AND_ARTIFACT_EXCHANGE.md) §B.
 
 ### Cross-cutting tasks (any 0.33.x)
 
@@ -511,7 +591,7 @@ production readiness for non-engineer operators = NOT READY._
   path (`test_admin_state_glossary.py`).
 - [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
   response; async work shows accepted → running → status → result/failure with run id.
-- [ ] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
+- [x] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
 - [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
@@ -1919,3 +1999,74 @@ P2:
 - [x] Add MCP adapter registry under zero-trust policy.
 - [x] Add A2A only as optional reviewed interoperability layer.
 - [x] Add PEFT/LoRA lab only after evaluation and rollback gates mature.
+
+## 0.33.0 governance discoverability carry-forward
+
+- [x] Add Research_Packet for freshness-bounded cited internet scouting.
+- [x] Add Research_Packet for source-allowlisted/freshness-bounded Internet scouting.
+- [x] Add `Concept_Frame` schema for Admin/Architect task framing.
+- [x] Add `Sense_State` + `Privacy_Filter` contracts before persistence/export.
+- [x] Add bounded `Drive_State` adapter for pressure/fatigue/urgency/curiosity.
+- [x] Add Honesty Protocol templates: Unknown, Need-Research, Error_Attribution.
+- [x] Add `Slop_Score`, `Critic_Stack`, `Detection_Verdict` as layered advisory quality gates.
+- [x] Require `Pipeline_RFC` + dry-run + eval + rollback + explicit approval for pipeline mutation.
+- [x] Add full drag&drop pipeline editor implementation after alpha. Closed by `pipeline-dragdrop-editor-core`.
+
+## 0.33.0-dev remaining policy QA token index
+
+- roleflow-orchestration-core
+- baton payloads
+- runtime-default-safety-core
+- max_active_llms=1
+- selftest-event-store-core
+- noemaforge selftest events
+- selftest-rss-slope-core
+- noemaforge selftest stress
+- selftest-trend-dashboard-core
+- noemaforge selftest trend
+- Sense_Layer.Edge
+- sense-layer-edge-core
+- Sense_State / Privacy_Filter contract
+- sense-privacy-governance-core
+- Slop_Score / Critic_Stack contract
+- slop-critic-governance-core
+- task-workflow-core
+- task add/edit/prioritize/block/complete
+- Admin chat and API
+- telemetry-card-truthfulness-core
+- telemetry cards show hardware, runtime and product metrics without overstating creative-media quality
+- review-required creative-media policy
+- TinyML_Node
+- tinyml-node-core
+- wiki-patch-commit-helper-core
+- noemaforge wiki-patch commit-plan
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target
+
+
+## 0.33.0 closeout → 0.33.1 agent coordinator backlog
+
+Status: added from the 0.33.0 prod-ready handoff/review hardening cycle.
+
+### 0.33.0 closeout
+
+- [ ] Keep the active 0.33.0 work on the synchronized final integration PR.
+- [ ] Do not start broad 0.33.1 implementation until 0.33.0 is green and reviewed.
+- [ ] Verify Python and installed CLI pipeline validation paths.
+- [ ] Verify quality gate, acceptance, Semgrep, P0 ledger, and CodeRabbit review.
+- [ ] Verify no local runner artifacts are tracked in the final PR.
+- [ ] Record target-host runtime validation separately from CI evidence.
+- [ ] Retire or close draft/source PRs after the final integration PR lands.
+
+### 0.33.1 coordinator MVP
+
+- [ ] Add serialized agent task state with lease expiry and fencing.
+- [ ] Add dynamic A/B role assignment: idle agent claims writer or reviewer work.
+- [ ] Enforce `writer.agent != reviewer.agent` by default.
+- [ ] Add `/claim`, `/handoff`, `/heartbeat`, `/release`, `/resolve` commands.
+- [ ] Make reviewer/remediator consume CodeRabbit, quality, acceptance, Semgrep,
+      and merge-conflict signals.
+- [ ] Add stable coordinator audit events.
+- [ ] Consider protected environment / CODEOWNERS / merge queue only after the
+      basic coordinator is stable.

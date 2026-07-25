@@ -1125,7 +1125,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools\windows\noemaforge_che
 ```powershell
 powershell -ExecutionPolicy Bypass -File tools\windows\Export-NoemaForge-E-Vault-Metadata.ps1 \
   -VaultRoot 'E:\noemaforge-lab\data\Vault' \
-  -OutDir 'E:\Vault\manifests\noemaforge-metadata-export' \
+  -OutDir 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export' \
   -RepoRoot '<brain_root>' \
   -PythonExe '<python.exe>' \
   -RunScanVault
@@ -3895,3 +3895,47 @@ payload/
 
 
 
+
+## 0.33.0 governance discoverability carry-forward
+
+- [x] Add Research_Packet for freshness-bounded cited internet scouting.
+- [x] Add Research_Packet for source-allowlisted/freshness-bounded Internet scouting.
+- [x] Add `Concept_Frame` schema for Admin/Architect task framing.
+- [x] Add `Sense_State` + `Privacy_Filter` contracts before persistence/export.
+- [x] Add bounded `Drive_State` adapter for pressure/fatigue/urgency/curiosity.
+- [x] Add Honesty Protocol templates: Unknown, Need-Research, Error_Attribution.
+- [x] Add `Slop_Score`, `Critic_Stack`, `Detection_Verdict` as layered advisory quality gates.
+- [x] Require `Pipeline_RFC` + dry-run + eval + rollback + explicit approval for pipeline mutation.
+- [x] Add full drag&drop pipeline editor implementation after alpha. Closed by `pipeline-dragdrop-editor-core`.
+
+## 0.33.0-dev remaining policy QA token index
+
+- roleflow-orchestration-core
+- baton payloads
+- runtime-default-safety-core
+- max_active_llms=1
+- selftest-event-store-core
+- noemaforge selftest events
+- selftest-rss-slope-core
+- noemaforge selftest stress
+- selftest-trend-dashboard-core
+- noemaforge selftest trend
+- Sense_Layer.Edge
+- sense-layer-edge-core
+- Sense_State / Privacy_Filter contract
+- sense-privacy-governance-core
+- Slop_Score / Critic_Stack contract
+- slop-critic-governance-core
+- task-workflow-core
+- task add/edit/prioritize/block/complete
+- Admin chat and API
+- telemetry-card-truthfulness-core
+- telemetry cards show hardware, runtime and product metrics without overstating creative-media quality
+- review-required creative-media policy
+- TinyML_Node
+- tinyml-node-core
+- wiki-patch-commit-helper-core
+- noemaforge wiki-patch commit-plan
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target

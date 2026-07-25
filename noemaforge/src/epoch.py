@@ -115,7 +115,8 @@ def current_epoch_id(contracts_root: Optional[str] = None) -> str:
     p_txt = os.path.join(epochs_dir, "current_epoch.txt")
     try:
         if os.path.exists(p_txt):
-            v = open(p_txt, "r", encoding="utf-8").read().strip()
+            with open(p_txt, "r", encoding="utf-8") as f:
+                v = f.read().strip()
             return v or DEFAULT_EPOCH_ID
     except Exception:
         pass

@@ -65,6 +65,14 @@ DEFAULT_ROOT = _pp.root
 DEFAULT_STATE = Path(os.environ.get("NOEMAFORGE_SELFTEST_STATE", str(_pp.data_root / "selftests")))
 CATALOG_REL = Path("configs/selftest-case-catalog.json")
 POLICY_REL = Path("configs/selftest-telemetry-policy.json")
+TEST_EVENT_EXPORT_SELECT = (
+    "SELECT event_id,run_id,case_id,event_type,status,severity,ts,summary_json,metrics_json,source_json "
+    "FROM selftest_test_events ORDER BY ts ASC, event_type ASC, case_id ASC LIMIT ?"
+)
+TEST_EVENT_EXPORT_SELECT_BY_RUN = (
+    "SELECT event_id,run_id,case_id,event_type,status,severity,ts,summary_json,metrics_json,source_json "
+    "FROM selftest_test_events WHERE run_id = ? ORDER BY ts ASC, event_type ASC, case_id ASC LIMIT ?"
+)
 
 
 def nowz() -> str:
@@ -411,15 +419,12 @@ def export_test_events(state: Path, *, run_id: str = "", limit: int = 500) -> Di
     conn.row_factory = sqlite3.Row
     try:
         params: List[Any] = []
-        where = ""
+        query = TEST_EVENT_EXPORT_SELECT
         if run_id:
-            where = "WHERE run_id = ?"
+            query = TEST_EVENT_EXPORT_SELECT_BY_RUN
             params.append(run_id)
         params.append(max(1, int(limit)))
-        rows = conn.execute(
-            f"SELECT event_id,run_id,case_id,event_type,status,severity,ts,summary_json,metrics_json,source_json FROM selftest_test_events {where} ORDER BY ts ASC, event_type ASC, case_id ASC LIMIT ?",
-            params,
-        ).fetchall()
+        rows = conn.execute(query, params).fetchall()
         events = []
         for row in rows:
             events.append(
@@ -1879,5 +1884,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

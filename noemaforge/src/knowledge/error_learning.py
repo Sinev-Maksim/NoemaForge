@@ -36,6 +36,21 @@ from typing import Any, Dict, Iterable, List, Optional
 
 ROOT = Path(__file__).resolve().parents[2]
 SQL_PATH = ROOT / 'sql' / 'error_learning_loop.sqlite.sql'
+LIST_ERRORS_SQL = """
+SELECT *
+FROM error_events
+WHERE (? = '' OR component = ?)
+  AND (? = '' OR review_status = ?)
+ORDER BY created_at DESC
+LIMIT ?
+"""
+EXPORT_REGRESSION_SQL = """
+SELECT *
+FROM regression_cases
+WHERE case_status = ?
+  AND (? = '' OR component = ?)
+ORDER BY promoted_at ASC
+"""
 
 
 def _nowz() -> str:
@@ -211,21 +226,17 @@ class ErrorLearningStore:
         return d
 
     def list_errors(self, *, component: str = '', review_status: str = '', limit: int = 200) -> List[Dict[str, Any]]:
-        wh = []
-        vals: List[Any] = []
-        if str(component or '').strip():
-            wh.append('component=?')
-            vals.append(str(component))
-        if str(review_status or '').strip():
-            wh.append('review_status=?')
-            vals.append(str(review_status))
-        sql = 'SELECT * FROM error_events'
-        if wh:
-            sql += ' WHERE ' + ' AND '.join(wh)
-        sql += ' ORDER BY created_at DESC LIMIT ?'
-        vals.append(int(limit))
+        component_filter = str(component or '').strip()
+        review_status_filter = str(review_status or '').strip()
+        vals: List[Any] = [
+            component_filter,
+            component_filter,
+            review_status_filter,
+            review_status_filter,
+            int(limit),
+        ]
         con = self._connect()
-        rows = con.execute(sql, tuple(vals)).fetchall()
+        rows = con.execute(LIST_ERRORS_SQL, tuple(vals)).fetchall()
         con.close()
         out = []
         for row in rows:
@@ -375,13 +386,9 @@ class ErrorLearningStore:
     def export_regression_cases(self, out_dir: str, *, component: str = '', status: str = 'active') -> Dict[str, Any]:
         os.makedirs(str(out_dir), exist_ok=True)
         con = self._connect()
-        wh = ['case_status=?']
-        vals: List[Any] = [str(status)]
-        if str(component or '').strip():
-            wh.append('component=?')
-            vals.append(str(component))
-        sql = 'SELECT * FROM regression_cases WHERE ' + ' AND '.join(wh) + ' ORDER BY promoted_at ASC'
-        rows = con.execute(sql, tuple(vals)).fetchall()
+        component_filter = str(component or '').strip()
+        vals: List[Any] = [str(status), component_filter, component_filter]
+        rows = con.execute(EXPORT_REGRESSION_SQL, tuple(vals)).fetchall()
         con.close()
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for row in rows:

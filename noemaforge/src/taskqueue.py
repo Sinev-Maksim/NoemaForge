@@ -92,6 +92,14 @@ from platform_paths import DEFAULT_PATHS as _pp
 
 
 DEFAULT_POLICY_PATH = str(_pp.root / "configs/taskqueue-policy.yaml")
+LIST_TASKS_QUERY = """
+SELECT task_id, created_at, updated_at, domain, priority_class, status, kind, module, title, group_key, repeats, attempts, last_error
+FROM tasks
+WHERE (? = 0 OR domain = ?)
+  AND (? = 0 OR status = ?)
+ORDER BY created_at DESC
+LIMIT ?
+"""
 
 # Cooldown stamps for default background tasks.
 # We keep them outside the DB schema so they survive light DB maintenance and
@@ -118,7 +126,7 @@ STAMPS_DIR = str(_pp.data_root / "taskqueue/stamps")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -186,7 +194,7 @@ def _stamp_age_sec(group_key: str) -> Optional[float]:
         if not os.path.exists(p):
             return None
         st = os.stat(p)
-        now = dt.datetime.utcnow().timestamp()
+        now = dt.datetime.now(dt.UTC).replace(tzinfo=None).timestamp()
         return max(0.0, float(now) - float(st.st_mtime))
     except Exception:
         return None
@@ -371,6 +379,23 @@ def _connect(db_path: str) -> sqlite3.Connection:
     con.execute("PRAGMA synchronous=NORMAL;")
     _init_schema(con)
     return con
+
+
+def _where_clause(parts: List[str]) -> str:
+    if not parts:
+        return ""
+    allowed = {"domain=?", "status=?"}
+    for part in parts:
+        if part not in allowed:
+            raise ValueError("unsupported_where_clause")
+    return "WHERE " + " AND ".join(parts)
+
+
+def _placeholders(count: int) -> str:
+    n = int(count)
+    if n <= 0 or n > 100:
+        raise ValueError("invalid_placeholder_count")
+    return ",".join("?" for _ in range(n))
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -862,7 +887,7 @@ def claim_next_task(
 
     lease_sec = _claim_lease_sec(policy)
     now = _nowz()
-    lease_until = (dt.datetime.utcnow() + dt.timedelta(seconds=int(lease_sec))).isoformat() + "Z"
+    lease_until = (dt.datetime.now(dt.UTC).replace(tzinfo=None) + dt.timedelta(seconds=int(lease_sec))).isoformat() + "Z"
 
     # Optional invite checker (spine-only).
     try:
@@ -1087,24 +1112,17 @@ def list_tasks(
     db_path = _db_path(policy)
     con = _connect(db_path)
     try:
-        wh = []
-        args: List[Any] = []
-        if domain:
-            wh.append("domain=?")
-            args.append(str(domain).strip().upper())
-        if status:
-            wh.append("status=?")
-            args.append(str(status).strip().upper())
-        where = ("WHERE " + " AND ".join(wh)) if wh else ""
+        domain_filter = str(domain).strip().upper()
+        status_filter = str(status).strip().upper()
         rows = con.execute(
-            f"""
-            SELECT task_id, created_at, updated_at, domain, priority_class, status, kind, module, title, group_key, repeats, attempts, last_error
-            FROM tasks
-            {where}
-            ORDER BY created_at DESC
-            LIMIT ?
-            """,
-            tuple(args + [max(1, int(limit))]),
+            LIST_TASKS_QUERY,
+            (
+                1 if domain else 0,
+                domain_filter,
+                1 if status else 0,
+                status_filter,
+                max(1, int(limit)),
+            ),
         ).fetchall()
         out: List[Dict[str, Any]] = []
         for r in rows:
@@ -1160,14 +1178,24 @@ def has_todo_with_priority_classes(
     db_path = _db_path(policy)
     con = _connect(db_path)
     try:
-        qmarks = ",".join(["?"] * len(prios))
+        con.execute("CREATE TEMP TABLE IF NOT EXISTS taskqueue_priority_filter(priority_class TEXT PRIMARY KEY)")
+        con.execute("DELETE FROM taskqueue_priority_filter")
+        con.executemany(
+            "INSERT OR IGNORE INTO taskqueue_priority_filter(priority_class) VALUES (?)",
+            ((prio,) for prio in prios),
+        )
         row = con.execute(
-            f"SELECT 1 FROM tasks WHERE status='TODO' AND lower(priority_class) IN ({qmarks}) LIMIT 1",
-            tuple(prios),
+            """
+            SELECT 1
+            FROM tasks
+            WHERE status=?
+              AND lower(priority_class) IN (SELECT priority_class FROM taskqueue_priority_filter)
+            LIMIT 1
+            """,
+            ("TODO",),
         ).fetchone()
         return bool(row)
     except Exception:
         return False
     finally:
         con.close()
-

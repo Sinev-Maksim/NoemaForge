@@ -20,7 +20,16 @@ from typing import Any
 
 from platform_paths import DEFAULT_PATHS as _pp
 
+
+def _toolproxy_socket_default(paths: Any = _pp) -> str:
+    socket_path = paths.toolproxy_socket
+    if callable(socket_path):
+        socket_path = socket_path()
+    return str(socket_path)
+
+
 DEFAULT_TOKENS_DIR = os.environ.get("NOEMAFORGE_CAP_TOKENS_DIR", str(_pp.data_root / ".sys/cap_tokens"))
+DEFAULT_SOCKET = os.environ.get("NOEMAFORGE_TOOLPROXY_SOCKET", _toolproxy_socket_default())
 
 
 def sh(cmd: list[str], timeout: int = 20) -> str:
@@ -31,16 +40,24 @@ def sh(cmd: list[str], timeout: int = 20) -> str:
 
 
 def stat_path(path: str) -> str:
-    return sh(["bash", "-lc", f"stat -c '%A %a %U:%G %F %n' {path} 2>/dev/null || true"]).strip()
+    try:
+        return subprocess.check_output(
+            ["stat", "-c", "%A %a %U:%G %F %n", path],
+            stderr=subprocess.DEVNULL,
+            text=True,
+            timeout=5,
+        ).strip()
+    except Exception:
+        return ""
 
 
 def jprint(doc: dict[str, Any], pretty: bool = True) -> None:
     print(json.dumps(doc, ensure_ascii=False, indent=2 if pretty else None, sort_keys=False))
 
 
-def send_toolproxy(req: dict[str, Any], sock_path: str = "/run/noemaforge/toolproxy.sock") -> dict[str, Any]:
+def send_toolproxy(req: dict[str, Any], sock_path: str = DEFAULT_SOCKET, timeout: float = 180) -> dict[str, Any]:
     s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-    s.settimeout(180)
+    s.settimeout(timeout)
     try:
         s.connect(sock_path)
         s.sendall(json.dumps(req, ensure_ascii=False).encode("utf-8"))
@@ -60,15 +77,74 @@ def send_toolproxy(req: dict[str, Any], sock_path: str = "/run/noemaforge/toolpr
         return {"ok": False, "error": "non_json_toolproxy_response", "raw": raw[:2000]}
 
 
+def build_toolproxy_request(
+    *,
+    action: str,
+    token: str,
+    role: str,
+    project_id: str,
+    run_id: str,
+    stream_id: str,
+    args: dict[str, Any] | None = None,
+    trace_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "action": str(action),
+        "token": str(token),
+        "args": args or {},
+        "meta": {
+            "role": str(role),
+            "project_id": str(project_id),
+            "run_id": str(run_id),
+            "stream_id": str(stream_id),
+            "trace_id": str(trace_id or ""),
+        },
+    }
+
+
+def probe_toolproxy(sock_path: str = DEFAULT_SOCKET, timeout: float = 5.0) -> dict[str, Any]:
+    req = build_toolproxy_request(
+        action="operator.status",
+        token="toolproxy-probe.invalid",
+        role="operator",
+        project_id="noemaforge-toolproxy-probe",
+        run_id="probe",
+        stream_id="dev.work",
+        trace_id="toolproxy-probe",
+    )
+    try:
+        response = send_toolproxy(req, sock_path=sock_path, timeout=timeout)
+    except Exception as exc:
+        return {
+            "ok": False,
+            "probe": "native_json_over_unix_socket",
+            "socket": sock_path,
+            "error": str(exc),
+        }
+    reason = str(response.get("error") or response.get("reason") or "")
+    denied = response.get("ok") is False and reason in {"denied", "invalid_token", "unknown_token", "cap_missing"}
+    return {
+        "ok": bool(denied),
+        "probe": "native_json_over_unix_socket",
+        "socket": sock_path,
+        "expected": "structured_denial_for_invalid_capability_token",
+        "response": response,
+    }
+
+
 def _import_caps():
     root = os.environ.get("NOEMAFORGE_ROOT")
-    candidates = []
+    preferred = []
     if root:
-        candidates.append(str(Path(root) / "src"))
-    candidates.extend(["/opt/noemaforge/src", str(Path(__file__).resolve().parent)])
-    for c in candidates:
-        if c and c not in sys.path:
-            sys.path.insert(0, c)
+        preferred.append(str(Path(root) / "src"))
+    preferred.append(str(Path(__file__).resolve().parent))
+    for c in reversed([p for p in preferred if p]):
+        if c in sys.path:
+            sys.path.remove(c)
+        sys.path.insert(0, c)
+    opt_src = "/opt/noemaforge/src"
+    if opt_src not in sys.path:
+        sys.path.append(opt_src)
     import caps  # type: ignore
     return caps
 
@@ -88,35 +164,33 @@ def issue_test_token(tokens_dir: str = DEFAULT_TOKENS_DIR) -> str:
     return issue_token_value(tokens_dir, "llm.chat", 300, "architect", "noemaforge-toolproxy-diag", "diag", "toolproxy-diag-" + str(int(time.time())))
 
 
-def test_llm_chat(tokens_dir: str = DEFAULT_TOKENS_DIR) -> dict[str, Any]:
+def test_llm_chat(tokens_dir: str = DEFAULT_TOKENS_DIR, sock_path: str = DEFAULT_SOCKET) -> dict[str, Any]:
     token = issue_test_token(tokens_dir)
     trace_id = "toolproxy-diag-" + str(int(time.time()))
-    req = {
-        "token": token,
-        "action": "llm.chat",
-        "meta": {
-            "stream_id": "dev.work",
-            "role": "architect",
-            "project_id": "noemaforge-toolproxy-diag",
-            "run_id": "diag",
-            "trace_id": trace_id,
-        },
-        "args": {
+    req = build_toolproxy_request(
+        action="llm.chat",
+        token=token,
+        role="architect",
+        project_id="noemaforge-toolproxy-diag",
+        run_id="diag",
+        stream_id="dev.work",
+        trace_id=trace_id,
+        args={
             "model": "main",
             "messages": [{"role": "user", "content": "Return exactly: OK"}],
             "max_tokens": 8,
             "temperature": 0,
         },
-    }
-    res = send_toolproxy(req)
+    )
+    res = send_toolproxy(req, sock_path=sock_path)
     res["trace_id_sent"] = trace_id
     res["token_prefix"] = token.split(".")[0] + ".***" if "." in token else token[:16] + "***"
     return res
 
 
-def diag_report(test_llm: bool = False, tokens_dir: str = DEFAULT_TOKENS_DIR) -> dict[str, Any]:
+def diag_report(test_llm: bool = False, tokens_dir: str = DEFAULT_TOKENS_DIR, sock_path: str = DEFAULT_SOCKET) -> dict[str, Any]:
     report: dict[str, Any] = {
-        "socket": stat_path("/run/noemaforge/toolproxy.sock"),
+        "socket": stat_path(sock_path),
         "service_active": sh(["systemctl", "is-active", "noemaforge-toolproxy.service"]).strip(),
         "service_enabled": sh(["systemctl", "is-enabled", "noemaforge-toolproxy.service"]).strip(),
         "sel_dir": stat_path("/var/lib/noemaforge/sel"),
@@ -128,7 +202,7 @@ def diag_report(test_llm: bool = False, tokens_dir: str = DEFAULT_TOKENS_DIR) ->
     }
     if test_llm:
         try:
-            report["llm_chat_test"] = test_llm_chat(tokens_dir)
+            report["llm_chat_test"] = test_llm_chat(tokens_dir, sock_path=sock_path)
         except Exception as e:
             report["llm_chat_test"] = {"ok": False, "error": str(e)}
     return report
@@ -212,7 +286,7 @@ def smoke_cmd(ns: argparse.Namespace) -> int:
     live = None
     if ns.live_llm:
         try:
-            live = test_llm_chat(ns.tokens_dir)
+            live = test_llm_chat(ns.tokens_dir, sock_path=ns.socket)
             if not live.get("ok"):
                 problems.append("live llm.chat returned ok=false")
         except Exception as exc:
@@ -230,8 +304,10 @@ def build_parser() -> argparse.ArgumentParser:
     sub = ap.add_subparsers(dest="cmd")
 
     diag = sub.add_parser("diag")
+    diag.add_argument("--json", action="store_true", help="kept for compatibility; diag output is JSON for subcommands")
     diag.add_argument("--test-llm", action="store_true")
     diag.add_argument("--tokens-dir", default=DEFAULT_TOKENS_DIR)
+    diag.add_argument("--socket", default=DEFAULT_SOCKET)
 
     token = sub.add_parser("token")
     token.add_argument("--tokens-dir", default=DEFAULT_TOKENS_DIR)
@@ -270,7 +346,11 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--project-id", default="noemaforge-toolproxy-smoke")
     smoke.add_argument("--run-id", default="smoke")
     smoke.add_argument("--live-llm", action="store_true", help="also call live ToolProxy llm.chat; requires running services")
+    smoke.add_argument("--socket", default=DEFAULT_SOCKET)
     smoke.set_defaults(func=smoke_cmd)
+    probe = sub.add_parser("probe")
+    probe.add_argument("--socket", default=DEFAULT_SOCKET)
+    probe.add_argument("--timeout", type=float, default=5.0)
     return ap
 
 
@@ -282,8 +362,12 @@ def main(argv: list[str] | None = None) -> int:
         return ns.func(ns)
     if getattr(ns, "cmd", None) == "smoke":
         return ns.func(ns)
+    if getattr(ns, "cmd", None) == "probe":
+        doc = probe_toolproxy(ns.socket, ns.timeout)
+        jprint(doc)
+        return 0 if doc.get("ok") else 1
     if getattr(ns, "cmd", None) == "diag":
-        report = diag_report(bool(ns.test_llm), ns.tokens_dir)
+        report = diag_report(bool(ns.test_llm), ns.tokens_dir, sock_path=ns.socket)
     else:
         report = diag_report(bool(getattr(ns, "test_llm", False)), DEFAULT_TOKENS_DIR)
     if getattr(ns, "json", False) or getattr(ns, "cmd", None):

@@ -82,7 +82,8 @@ def ingest_feed(*, feed_url: str, epoch_dir: str, actor: Dict[str, Any], trace_i
         'safe_text_preview': '',
     }
     if os.path.exists(sanitized_path):
-        txt = open(sanitized_path, 'r', encoding='utf-8', errors='replace').read()
+        with open(sanitized_path, 'r', encoding='utf-8', errors='replace') as f:
+            txt = f.read()
         summary['safe_text_preview'] = txt[:1200]
     with open(summary_path, 'w', encoding='utf-8') as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)

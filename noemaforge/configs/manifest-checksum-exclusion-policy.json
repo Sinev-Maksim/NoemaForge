@@ -43,6 +43,7 @@
       "docs"
     ],
     "project_excluded_file_refs": [
+      ".github/scripts/setup-environments.sh",
       "AGENTS.md",
       "CLAUDE.md",
       "README.md",
@@ -89,4 +90,3 @@
     "noemaforge/docs/history/CHANGELOG.md"
   ]
 }
-

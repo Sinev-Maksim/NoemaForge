@@ -101,6 +101,24 @@ class SelfTestEventStoreRuntimeTests(unittest.TestCase):
         self.assertEqual({"selftest.run.summary", "selftest.case.result"}, {item["event_type"] for item in export["events"]})
         self.assertIn("error", {item["severity"] for item in export["events"]})
 
+    def test_export_run_id_filter_uses_bound_sql_parameter(self) -> None:
+        malicious_run_id = "events_run' OR 1=1 --"
+
+        with tempfile.TemporaryDirectory() as raw:
+            state = Path(raw) / "state"
+            conn = strt.db_connect(state)
+            try:
+                strt.record_test_events_for_report(conn, report("events_run"))
+                strt.record_test_events_for_report(conn, report(malicious_run_id, failed=False))
+            finally:
+                conn.close()
+            normal_export = strt.export_test_events(state, run_id="events_run")
+            malicious_export = strt.export_test_events(state, run_id=malicious_run_id)
+
+        self.assertEqual(3, normal_export["event_count"])
+        self.assertEqual(3, malicious_export["event_count"])
+        self.assertEqual({malicious_run_id}, {item["run_id"] for item in malicious_export["events"]})
+
     def test_events_ingest_and_export_commands_round_trip_json(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             tmp = Path(raw)

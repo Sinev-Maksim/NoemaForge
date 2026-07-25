@@ -15,13 +15,25 @@ evidence as a bundle (not just side effects). It sequentially:
 ## Usage
 
 ```bash
+# clean-venv bootstrap gate before live/functional execution:
+python -m pip install -e ".[dev]"
+noemaforge uat check
+
 noemaforge uat run --out <logging-dir>
 # headless (no GUI), a subset, or a no-side-effect plan:
 noemaforge uat run --out <dir> --no-gui --pipelines public_mwp,evolution
 noemaforge uat run --out <dir> --dry-run
 ```
 
-Options: `--out` (required), `--pipelines a,b` (default: all), `--request TEXT`
+`noemaforge uat check` is read-only. It validates the expected release branch,
+clean worktree, `VERSION` files, `pyproject.toml` dev dependency contract,
+importability of `pytest`, `yaml` and `jsonschema`, `compileall` for
+`noemaforge/src`, pytest collection, docs hygiene and UAT runner help. It does
+not launch the GUI, services, model backends, pipelines, downloads or target-host
+live checks.
+
+Options: `--out` (defaults to `$UAT_DIR` or a safe temp directory),
+`--pipelines a,b` (default: all), `--request TEXT`
 (passed to each pipeline), `--timeout N` (per pipeline), `--gui/--no-gui`,
 `--dry-run`, `--keep-display` (on by default — display-safety rule).
 

@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_release_gate_result.schema.json",
+  "title": "NoemaForge Evolution Release Gate Result",
+  "type": "object",
+  "required": ["apiVersion", "kind", "gate_id", "run_id", "created_at", "provenance", "gate_type", "status", "operator_approved", "evidence_refs", "failures"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionReleaseGateResult" },
+    "gate_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "gate_type": { "enum": ["automated", "manual", "target_only"] },
+    "status": { "enum": ["passed", "failed", "blocked"] },
+    "manual_marker": { "type": "string" },
+    "operator_approved": { "type": "boolean" },
+    "evidence_refs": { "type": "array", "items": { "type": "string" } },
+    "failures": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

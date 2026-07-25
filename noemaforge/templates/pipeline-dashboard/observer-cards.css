@@ -19,3 +19,5 @@ Tests: noemaforge/tests/test_runtime_observer_cards_qa.py
 .observer-card.ok{border-color:#246b45}
 .observer-card.warn{border-color:#775d23}
 @media(max-width:620px){.observer-cards{grid-template-columns:1fr}}
+
+/* Draft pipeline editor | drag&drop pipeline editor planned */

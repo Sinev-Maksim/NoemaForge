@@ -45,8 +45,8 @@ class PipelineToolProxyStageBindingRuntimeTests(unittest.TestCase):
         self.assertTrue(summary["exec_sandbox_guard"])
         self.assertTrue(summary["public_readmostly_guard"])
 
-    def test_evolution_development_allows_write_and_worktree_with_approval(self) -> None:
-        binding = pr.build_toolproxy_stage_binding("evolution", "development", "ask_before_write")
+    def test_evolution_implementation_plan_allows_write_and_worktree_with_approval(self) -> None:
+        binding = pr.build_toolproxy_stage_binding("evolution", "implementation_plan", "ask_before_write")
         self.assertTrue(binding["capability_token_required"])
         self.assertTrue(binding["approval_required"])
         self.assertFalse(binding["network_allowed"])
@@ -55,11 +55,29 @@ class PipelineToolProxyStageBindingRuntimeTests(unittest.TestCase):
         self.assertIn("db.write", binding["blocked_actions"])
         self.assertIn("contracts/capability_token.schema.json", binding["capability_schema_ref"])
 
-    def test_testing_stage_requires_sandbox_for_exec(self) -> None:
-        binding = pr.build_toolproxy_stage_binding("evolution", "unit_testing", "ask_before_write")
+    def test_self_development_test_execution_requires_sandbox_for_exec(self) -> None:
+        binding = pr.build_toolproxy_stage_binding("self_development", "test_execution_or_adapter_required", "ask_before_write")
         self.assertIn("exec.run", binding["allowed_actions"])
         self.assertIn("exec.run", binding["sandboxed_actions"])
         self.assertTrue(binding["sandbox_required"])
+
+    def test_evolution_and_self_development_catalogs_have_prod_contracts(self) -> None:
+        catalog = pr.load_pipeline_catalog(ROOT)
+        evolution = catalog["evolution"]
+        selfdev = catalog["self_development"]
+
+        self.assertEqual(
+            ["intake", "current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "operator_approval", "implementation_plan", "validation_plan", "release_readiness"],
+            evolution["stages"],
+        )
+        self.assertEqual("prod_launchable", evolution["pipeline_scope_policy"]["scope"])
+        self.assertEqual("degraded_plan_only", selfdev["pipeline_scope_policy"]["scope"])
+        self.assertIn("patch_generation_or_adapter_required", selfdev["stages"])
+        self.assertIn("test_execution_or_adapter_required", selfdev["stages"])
+        self.assertEqual(
+            ["produce_real_output", "require_operator_decision", "fail_actionably"],
+            selfdev["stage_contracts"]["outcomes"],
+        )
 
     def test_public_mwp_readmostly_does_not_gain_write_or_exec(self) -> None:
         binding = pr.build_toolproxy_stage_binding("public_mwp", "status_check", "guided_readmostly")
@@ -77,7 +95,8 @@ class PipelineToolProxyStageBindingRuntimeTests(unittest.TestCase):
             binding_path = run_dir / "toolproxy_stage_bindings.json"
             self.assertTrue(binding_path.exists())
             bindings = json.loads(binding_path.read_text(encoding="utf-8"))
-            self.assertIn("development", bindings)
+            self.assertIn("implementation_plan", bindings)
+            self.assertIn("release_readiness", bindings)
             sidecar = Path(packet_paths[0]).with_suffix(".json")
             packet = json.loads(sidecar.read_text(encoding="utf-8"))
             self.assertIn("toolproxy_stage_binding", packet)

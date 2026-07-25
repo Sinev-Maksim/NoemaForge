@@ -144,7 +144,7 @@ DEFAULT_POLICY = {
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _now() -> str:
-    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -467,8 +467,8 @@ def _boot_id() -> str:
 # === End NoemaForge Autodoc Function Header ===
 def _write_runtime_mode() -> None:
     try:
-        os.makedirs("/run/noemaforge", exist_ok=True)
-        with open("/run/noemaforge/mode", "w", encoding="utf-8") as f:
+        os.makedirs(str(_pp.runtime_dir), exist_ok=True)
+        with open(str(_pp.runtime_dir / "mode"), "w", encoding="utf-8") as f:
             f.write("runtime\n")
     except Exception:
         pass
@@ -492,7 +492,7 @@ def _write_runtime_mode() -> None:
 def _sel_tail(max_lines: int = 200) -> str:
     """Return last N lines of today's SEL segment (best-effort)."""
     try:
-        day = dt.datetime.utcnow().strftime("%Y-%m-%d")
+        day = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y-%m-%d")
         sel_dir = os.environ.get("NOEMAFORGE_SEL_DIR", str(_pp.data_root / "sel/segments"))
         p = os.path.join(sel_dir, f"{day}.jsonl")
         if not os.path.exists(p):
@@ -572,9 +572,9 @@ def _diagnose(report: Dict[str, Any]) -> List[Dict[str, Any]]:
         add(
             "missing_llm_gateway_bin",
             "critical",
-            "Missing /opt/noemaforge/bin/noemaforge-llm-gateway",
-            "Re-run bootstrap/provision step that installs NoemaForge bins into /opt/noemaforge/bin.",
-            {"path": "/opt/noemaforge/bin/noemaforge-llm-gateway"},
+            f"Missing {_pp.root / 'bin' / 'noemaforge-llm-gateway'}",
+            f"Re-run bootstrap/provision step that installs NoemaForge bins into {_pp.root / 'bin'}.",
+            {"path": str(_pp.root / "bin" / "noemaforge-llm-gateway")},
         )
 
     if not bool(checks.get("sandbox.bwrap")) and not bool(checks.get("sandbox.podman")):
@@ -640,7 +640,7 @@ def collect(pol: Dict[str, Any], *, mode: str, unit: str = "", requested_level: 
 
     report: Dict[str, Any] = {
         "schema": "noemaforge.bootdoctor.report/v1",
-        "ts": dt.datetime.utcnow().isoformat() + "Z",
+        "ts": dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z",
         "mode": mode,
         "level": level,
         "boot_id": _boot_id(),
@@ -654,11 +654,11 @@ def collect(pol: Dict[str, Any], *, mode: str, unit: str = "", requested_level: 
 
     # quick checks: binaries + sandbox backends
     checks: Dict[str, Any] = {}
-    checks["bin.gateway_exists"] = os.path.exists("/opt/noemaforge/bin/noemaforge-llm-gateway")
-    checks["bin.llama_server_exists"] = os.path.exists("/opt/noemaforge/bin/llama-server")
+    checks["bin.gateway_exists"] = os.path.exists(str(_pp.root / "bin" / "noemaforge-llm-gateway"))
+    checks["bin.llama_server_exists"] = os.path.exists(str(_pp.root / "bin" / "llama-server"))
     checks["sandbox.bwrap"] = shutil.which("bwrap") is not None
     checks["sandbox.podman"] = shutil.which("podman") is not None
-    checks["mode_file"] = os.path.exists("/run/noemaforge/mode")
+    checks["mode_file"] = os.path.exists(str(_pp.runtime_dir / "mode"))
 
     report["checks"] = checks
 

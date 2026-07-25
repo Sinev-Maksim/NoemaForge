@@ -31,17 +31,19 @@
     ]
   },
   "evolution": {
-    "description": "Architecture-aware development/evolution pipeline.",
+    "description": "Production evolution planning pipeline with explicit approval and release-readiness gates.",
     "project_id": "noemaforge",
     "stages": [
       "intake",
-      "architecture_clarification",
-      "development",
-      "unit_testing",
-      "integration_testing",
-      "optimization",
-      "review",
-      "merge_plan"
+      "current_state",
+      "evidence_inventory",
+      "capability_gap_analysis",
+      "mutation_plan",
+      "risk_review",
+      "operator_approval",
+      "implementation_plan",
+      "validation_plan",
+      "release_readiness"
     ],
     "team": "development_evolution_team",
     "permission_mode": "ask_before_write",
@@ -50,16 +52,68 @@
       "max_active_llms": 1
     },
     "deliverables": [
-      "architecture_note",
-      "patch_or_plan",
-      "test_report",
-      "optimization_note",
-      "merge_plan"
+      "current_state",
+      "evidence_inventory",
+      "capability_gap_analysis",
+      "mutation_plan",
+      "risk_review",
+      "implementation_plan",
+      "validation_plan",
+      "release_readiness"
     ],
+    "stage_contracts": {
+      "outcomes": [
+        "produce_real_output",
+        "require_operator_decision",
+        "fail_actionably"
+      ]
+    },
     "quality_gates": [
       "context_packet_exists",
       "artifact_registered",
       "review_or_admin_note"
+    ]
+  },
+  "self_development": {
+    "description": "Self-development planning pipeline with scope boundaries, approval gate and adapter-required execution defers.",
+    "project_id": "noemaforge_self_development",
+    "stages": [
+      "goal_intake",
+      "repo_state_scan",
+      "issue_decomposition",
+      "implementation_plan",
+      "safety_review",
+      "operator_approval",
+      "patch_generation_or_adapter_required",
+      "test_execution_or_adapter_required",
+      "review_summary",
+      "handoff"
+    ],
+    "team": "self_development_team",
+    "permission_mode": "ask_before_write",
+    "pipeline_scope": "degraded_plan_only",
+    "llm_policy": {
+      "mode": "switchable",
+      "max_active_llms": 1
+    },
+    "deliverables": [
+      "proposed_patch_plan",
+      "test_plan",
+      "risk_register",
+      "rollback_plan",
+      "implementation_report"
+    ],
+    "stage_contracts": {
+      "outcomes": [
+        "produce_real_output",
+        "require_operator_decision",
+        "fail_actionably"
+      ]
+    },
+    "quality_gates": [
+      "scope_boundaries",
+      "operator_approval_required",
+      "adapter_required_execution_deferred"
     ]
   },
   "book": {
@@ -2553,7 +2607,8 @@
     "stages": [
       "intake",
       "architecture_clarification",
-      "development",
+      "development_plan",
+      "development_execute",
       "code_analyser_visualiser",
       "qa",
       "integration_testing",

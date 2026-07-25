@@ -13,8 +13,8 @@
 # === End NoemaForge File Header ===
 
 param(
-    [string]$VaultRoot = 'E:\Vault',
-    [string]$OutDir = 'E:\Vault\manifests\noemaforge-metadata-export',
+    [string]$VaultRoot = 'E:\noemaforge-lab\data\Vault',
+    [string]$OutDir = 'E:\noemaforge-lab\data\Vault\manifests\noemaforge-metadata-export',
     [string]$RepoRoot = '',
     [string]$PythonExe = '',
     [switch]$RunScanVault,

@@ -123,7 +123,7 @@ CFG_CLARIFY = str(_pp.root / "configs/clarifications.yaml")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -652,7 +652,7 @@ def _write_inquiry(txn: Dict[str, Any], *, stream_id: str = "finance.budget") ->
         return path
 
     days = _clarify_window_days()
-    deadline = (dt.datetime.utcnow() + dt.timedelta(days=days)).isoformat() + "Z"
+    deadline = (dt.datetime.now(dt.UTC).replace(tzinfo=None) + dt.timedelta(days=days)).isoformat() + "Z"
 
     obj = {
         "inquiry_id": inquiry_id,

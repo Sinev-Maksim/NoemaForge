@@ -135,3 +135,40 @@ validation + human GO. See `noemaforge/docs/release/RELEASE_FINALIZATION_0.32.2.
 
 See [`CONTRIBUTING.md`](CONTRIBUTING.md). For vulnerabilities, use the private process in
 [`SECURITY.md`](SECURITY.md) — **do not** open a public issue. License/compliance: [`noemaforge/docs/`](noemaforge/docs/).
+
+## Release governance boundary registry
+
+This section is intentionally machine-scannable. It mirrors active governance policy boundary phrases so release QA can verify that public-facing claims remain explicit, reviewable and safe.
+
+### Community pack contribution boundary
+
+Community-safe pack contributions are quarantine-first, manifest-backed, review-gated and never auto-activated.
+
+Scan refs: community_pack_contribution_boundary
+
+### Graph gap boundary
+
+Graph-gap Administrator answers are explicit: when the hypergraph cannot answer, Administrator returns a knowledge_gap_notice, says local grounded knowledge cannot support the answer, proposes ingest or research next steps, and never improvises a supported claim.
+
+Scan refs: graph_gap_boundary
+
+### Hypergraph-first Administrator boundary
+
+Hypergraph-first Administrator answers query the hypergraph before any fallback: supported answers start from graph claim origins, include graph-backed citations, and only use docs/RAG fallback after an explicit graph miss.
+
+Scan refs: hypergraph_first_boundary
+
+### Public autonomy boundary
+
+Self-modification/autonomy is not public-ready
+
+Scan refs: public_autonomy_boundary, alpha/lab-only, approval-gated, no automatic apply
+
+## 0.33.0-dev setup/systemd/topic boundary QA note
+
+- setup-default-path-core: Setup default path boundary: The blessed onboarding path is release unpack or git clone, then root ./setup.sh in VM mode first, then host install only by explicit operator choice; Windows helpers are optional side tools and are never required for the canonical path.
+- setup-front-door-core: Setup front door boundary: Root setup.sh is the single setup front door, supports vm/host/docker-dev plus install-root/data-root/model-profile/with-share/offline-after-setup flags, and emits bootstrap/firstboot progress phases so newcomers do not discover helper scripts manually.
+- setup-mode-matrix-core: Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path.
+- systemd-happy-path-core: No happy-path install or boot-mode flow requires hand-editing systemd units
+- topic-adjacent-retrieval-core: Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.
+- topic_adjacent_boundary: Topic-adjacent retrieval uses static adjacency metadata and never falls back to fixed context windows.

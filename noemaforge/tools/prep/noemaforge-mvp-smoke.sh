@@ -38,14 +38,20 @@ if [[ -z "$STATE" ]]; then
   STATE="$(mktemp -d /tmp/noemaforge-mvp-smoke.XXXXXX)"
 fi
 mkdir -p "$STATE"
+CHECKS_DIR="$STATE/checks"
+mkdir -p "$CHECKS_DIR"
 NOEMAFORGE_BIN="$ROOT/bin/noemaforge"
 [[ -x "$NOEMAFORGE_BIN" ]] || NOEMAFORGE_BIN="$(command -v noemaforge || true)"
 [[ -x "$NOEMAFORGE_BIN" ]] || { echo "missing noemaforge CLI" >&2; exit 1; }
 
 PASS=0; FAIL=0; RESULTS=()
-record(){ local id="$1" status="$2" msg="$3"; RESULTS+=("$id|$status|$msg"); [[ "$status" == pass ]] && PASS=$((PASS+1)) || FAIL=$((FAIL+1)); }
+record(){
+  local id="$1" status="$2" msg="$3" command="${4:-}" exit_code="${5:-}" stdout_path="${6:-}" stderr_path="${7:-}" report_path="${8:-}"
+  RESULTS+=("$id|$status|$msg|$command|$exit_code|$stdout_path|$stderr_path|$report_path")
+  [[ "$status" == pass ]] && PASS=$((PASS+1)) || FAIL=$((FAIL+1))
+}
 
-export NOEMAFORGE_ROOT="$ROOT" NOEMAFORGE_PIPELINE_STATE="$STATE"
+export NOEMAFORGE_ROOT="$ROOT" NOEMAFORGE_PIPELINE_STATE="$STATE" NOEMAFORGE_SELFTEST_STATE="$STATE/selftests"
 # Smoke writes only to a temporary state dir; allow degraded_readonly override for this validation path.
 export NOEMAFORGE_ALLOW_DEGRADED_MUTATION=1
 export NOEMAFORGE_BOOT_MODE_FILE="$STATE/boot-mode"
@@ -86,17 +92,26 @@ else
   record boot_mode_show fail "boot-mode command failed"
 fi
 
-"$NOEMAFORGE_BIN" trixie-preflight --root "$ROOT" --json --skip-modelstore >/tmp/noemaforge-mvp-trixie.json 2>/tmp/noemaforge-mvp-trixie.err || true
-if [[ -s /tmp/noemaforge-mvp-trixie.json ]] && grep -q '"checks"' /tmp/noemaforge-mvp-trixie.json; then
-  record trixie_json pass "trixie-preflight emits MVP preflight shape even when host checks fail"
+trixie_dir="$CHECKS_DIR/trixie_json"; mkdir -p "$trixie_dir"
+trixie_cmd="$NOEMAFORGE_BIN trixie-preflight --root $ROOT --json --skip-modelstore"
+trixie_rc=0
+"$NOEMAFORGE_BIN" trixie-preflight --root "$ROOT" --json --skip-modelstore >"$trixie_dir/stdout.txt" 2>"$trixie_dir/stderr.txt" || trixie_rc=$?
+cp "$trixie_dir/stdout.txt" "$trixie_dir/report.json" 2>/dev/null || true
+if [[ -s "$trixie_dir/stdout.txt" ]] && grep -q '"checks"' "$trixie_dir/stdout.txt"; then
+  record trixie_json pass "trixie-preflight emits MVP preflight shape even when host checks fail" "$trixie_cmd" "$trixie_rc" "$trixie_dir/stdout.txt" "$trixie_dir/stderr.txt" "$trixie_dir/report.json"
 else
-  record trixie_json fail "trixie-preflight JSON shape missing"
+  record trixie_json fail "trixie-preflight JSON shape missing" "$trixie_cmd" "$trixie_rc" "$trixie_dir/stdout.txt" "$trixie_dir/stderr.txt" "$trixie_dir/report.json"
 fi
 
-if "$NOEMAFORGE_BIN" pipeline validate >/tmp/noemaforge-mvp-pipeline-validate.json 2>/tmp/noemaforge-mvp-pipeline-validate.err; then
-  record pipeline_validate pass "pipeline validate passed"
+pipeline_validate_dir="$CHECKS_DIR/pipeline_validate"; mkdir -p "$pipeline_validate_dir"
+pipeline_validate_cmd="$NOEMAFORGE_BIN pipeline validate --json"
+pipeline_validate_rc=0
+"$NOEMAFORGE_BIN" pipeline validate --json >"$pipeline_validate_dir/stdout.txt" 2>"$pipeline_validate_dir/stderr.txt" || pipeline_validate_rc=$?
+cp "$pipeline_validate_dir/stdout.txt" "$pipeline_validate_dir/report.json" 2>/dev/null || true
+if [[ "$pipeline_validate_rc" -eq 0 ]]; then
+  record pipeline_validate pass "pipeline validate passed" "$pipeline_validate_cmd" "$pipeline_validate_rc" "$pipeline_validate_dir/stdout.txt" "$pipeline_validate_dir/stderr.txt" "$pipeline_validate_dir/report.json"
 else
-  record pipeline_validate fail "pipeline validate failed"
+  record pipeline_validate fail "pipeline validate failed" "$pipeline_validate_cmd" "$pipeline_validate_rc" "$pipeline_validate_dir/stdout.txt" "$pipeline_validate_dir/stderr.txt" "$pipeline_validate_dir/report.json"
 fi
 
 if "$NOEMAFORGE_BIN" pipeline patterns --json --limit 3 >/tmp/noemaforge-mvp-patterns.json 2>/tmp/noemaforge-mvp-patterns.err && grep -q '"patterns"' /tmp/noemaforge-mvp-patterns.json; then
@@ -156,10 +171,25 @@ else
   record typed_context_sidecar fail "typed context sidecar missing"
 fi
 
-if [[ -n "$RUN_ID" ]] && "$NOEMAFORGE_BIN" pipeline approve "$RUN_ID" >/dev/null && "$NOEMAFORGE_BIN" pipeline advance "$RUN_ID" --stage status_check --status in_progress --note smoke >/dev/null && "$NOEMAFORGE_BIN" pipeline doctor "$RUN_ID" >/tmp/noemaforge-mvp-pipeline-doctor.json; then
-  record pipeline_lifecycle pass "approve/advance/doctor passed"
+pipeline_lifecycle_dir="$CHECKS_DIR/pipeline_lifecycle"; mkdir -p "$pipeline_lifecycle_dir"
+pipeline_lifecycle_cmd="$NOEMAFORGE_BIN pipeline approve $RUN_ID --allow-degraded && $NOEMAFORGE_BIN pipeline advance $RUN_ID --stage status_check --status in_progress --note smoke --allow-degraded && $NOEMAFORGE_BIN pipeline doctor $RUN_ID"
+pipeline_lifecycle_rc=0
+if [[ -n "$RUN_ID" ]]; then
+  {
+    "$NOEMAFORGE_BIN" pipeline approve "$RUN_ID" --allow-degraded &&
+    "$NOEMAFORGE_BIN" pipeline advance "$RUN_ID" --stage status_check --status in_progress --note smoke --allow-degraded &&
+    "$NOEMAFORGE_BIN" pipeline doctor "$RUN_ID"
+  } >"$pipeline_lifecycle_dir/stdout.txt" 2>"$pipeline_lifecycle_dir/stderr.txt" || pipeline_lifecycle_rc=$?
 else
-  record pipeline_lifecycle fail "pipeline lifecycle failed"
+  pipeline_lifecycle_rc=1
+  printf 'pipeline run id is missing\n' >"$pipeline_lifecycle_dir/stderr.txt"
+  : >"$pipeline_lifecycle_dir/stdout.txt"
+fi
+cp "$pipeline_lifecycle_dir/stdout.txt" "$pipeline_lifecycle_dir/report.json" 2>/dev/null || true
+if [[ "$pipeline_lifecycle_rc" -eq 0 ]]; then
+  record pipeline_lifecycle pass "approve/advance/doctor passed" "$pipeline_lifecycle_cmd" "$pipeline_lifecycle_rc" "$pipeline_lifecycle_dir/stdout.txt" "$pipeline_lifecycle_dir/stderr.txt" "$pipeline_lifecycle_dir/report.json"
+else
+  record pipeline_lifecycle fail "pipeline lifecycle failed" "$pipeline_lifecycle_cmd" "$pipeline_lifecycle_rc" "$pipeline_lifecycle_dir/stdout.txt" "$pipeline_lifecycle_dir/stderr.txt" "$pipeline_lifecycle_dir/report.json"
 fi
 
 if [[ -n "$RUN_ID" ]] && "$NOEMAFORGE_BIN" pipeline gate "$RUN_ID" --json >/tmp/noemaforge-mvp-pipeline-gate.json && grep -q '"ready_to_advance"' /tmp/noemaforge-mvp-pipeline-gate.json; then
@@ -257,10 +287,15 @@ else
   record persona_doctor fail "persona doctor failed"
 fi
 
-if "$NOEMAFORGE_BIN" testbench run --suite quick --out "$STATE/selftest-core" --json >/tmp/noemaforge-mvp-selftest-core.json 2>/tmp/noemaforge-mvp-selftest-core.err && grep -q '"failed": 0' /tmp/noemaforge-mvp-selftest-core.json; then
-  record selftest_core pass "testbench quick suite records resource telemetry"
+selftest_core_dir="$CHECKS_DIR/selftest_core"; mkdir -p "$selftest_core_dir"
+selftest_core_cmd="$NOEMAFORGE_BIN testbench run --suite quick --out $STATE/selftest-core --json"
+selftest_core_rc=0
+"$NOEMAFORGE_BIN" testbench run --suite quick --out "$STATE/selftest-core" --json >"$selftest_core_dir/stdout.txt" 2>"$selftest_core_dir/stderr.txt" || selftest_core_rc=$?
+cp "$selftest_core_dir/stdout.txt" "$selftest_core_dir/report.json" 2>/dev/null || true
+if [[ "$selftest_core_rc" -eq 0 ]] && grep -q '"failed": 0' "$selftest_core_dir/stdout.txt"; then
+  record selftest_core pass "testbench quick suite records resource telemetry" "$selftest_core_cmd" "$selftest_core_rc" "$selftest_core_dir/stdout.txt" "$selftest_core_dir/stderr.txt" "$selftest_core_dir/report.json"
 else
-  record selftest_core fail "testbench quick suite failed"
+  record selftest_core fail "testbench quick suite failed" "$selftest_core_cmd" "$selftest_core_rc" "$selftest_core_dir/stdout.txt" "$selftest_core_dir/stderr.txt" "$selftest_core_dir/report.json"
 fi
 
 
@@ -300,10 +335,29 @@ else
 fi
 
 mkdir -p "$STATE/wiki_repo"
-if [[ -s "$STATE/selftest-core/selftest-report.json" ]] && "$NOEMAFORGE_BIN" wiki-patch create   --wiki-repo "$STATE/wiki_repo"   --source-root "$ROOT"   --state "$STATE/wiki-patches"   --title "MVP smoke telemetry patch"   --description "MVP smoke generated wiki patch from testbench summary"   --metrics-after "$STATE/selftest-core/selftest-report.json"   --include "docs/wiki/metrics/testbench-and-regression-metrics.md"   --json >/tmp/noemaforge-mvp-wiki-patch.json 2>/tmp/noemaforge-mvp-wiki-patch.err && grep -q '"patch_dir"' /tmp/noemaforge-mvp-wiki-patch.json; then
-  record wiki_patch_create pass "wiki incremental patch can be generated from selftest report"
+wiki_patch_dir="$CHECKS_DIR/wiki_patch_create"; mkdir -p "$wiki_patch_dir"
+wiki_patch_cmd="$NOEMAFORGE_BIN wiki-patch create --wiki-repo $STATE/wiki_repo --source-root $ROOT --state $STATE/wiki-patches --title MVP smoke telemetry patch --description MVP smoke generated wiki patch from testbench summary --metrics-after $STATE/selftest-core/selftest-report.json --include docs/wiki/metrics/testbench-and-regression-metrics.md --json"
+wiki_patch_rc=0
+if [[ -s "$STATE/selftest-core/selftest-report.json" ]]; then
+  "$NOEMAFORGE_BIN" wiki-patch create \
+    --wiki-repo "$STATE/wiki_repo" \
+    --source-root "$ROOT" \
+    --state "$STATE/wiki-patches" \
+    --title "MVP smoke telemetry patch" \
+    --description "MVP smoke generated wiki patch from testbench summary" \
+    --metrics-after "$STATE/selftest-core/selftest-report.json" \
+    --include "docs/wiki/metrics/testbench-and-regression-metrics.md" \
+    --json >"$wiki_patch_dir/stdout.txt" 2>"$wiki_patch_dir/stderr.txt" || wiki_patch_rc=$?
 else
-  record wiki_patch_create fail "wiki incremental patch generation failed"
+  wiki_patch_rc=1
+  printf 'missing selftest report: %s\n' "$STATE/selftest-core/selftest-report.json" >"$wiki_patch_dir/stderr.txt"
+  : >"$wiki_patch_dir/stdout.txt"
+fi
+cp "$wiki_patch_dir/stdout.txt" "$wiki_patch_dir/report.json" 2>/dev/null || true
+if [[ "$wiki_patch_rc" -eq 0 ]] && grep -q '"patch_dir"' "$wiki_patch_dir/stdout.txt"; then
+  record wiki_patch_create pass "wiki incremental patch can be generated from selftest report" "$wiki_patch_cmd" "$wiki_patch_rc" "$wiki_patch_dir/stdout.txt" "$wiki_patch_dir/stderr.txt" "$wiki_patch_dir/report.json"
+else
+  record wiki_patch_create fail "wiki incremental patch generation failed" "$wiki_patch_cmd" "$wiki_patch_rc" "$wiki_patch_dir/stdout.txt" "$wiki_patch_dir/stderr.txt" "$wiki_patch_dir/report.json"
 fi
 
 if "$NOEMAFORGE_BIN" dashboard state --out "$STATE/dashboard-state-via-launcher.json" >/tmp/noemaforge-mvp-dashboard-launcher.txt && [[ -s "$STATE/dashboard-state-via-launcher.json" ]]; then
@@ -324,8 +378,19 @@ import json, sys
 fail = int(sys.argv[1]); passed = int(sys.argv[2]); state = sys.argv[3]
 checks = []
 for raw in sys.argv[4:]:
-    cid, status, msg = raw.split('|', 2)
-    checks.append({'id': cid, 'status': status, 'ok': status == 'pass', 'message': msg})
+    parts = (raw.split('|', 7) + [''] * 8)[:8]
+    cid, status, msg, command, exit_code, stdout_path, stderr_path, report_path = parts
+    check = {'id': cid, 'status': status, 'ok': status == 'pass', 'message': msg}
+    if command:
+        check.update({
+            'command': command,
+            'exit_code': int(exit_code) if exit_code else None,
+            'stdout_path': stdout_path or None,
+            'stderr_path': stderr_path or None,
+            'report_path': report_path or None,
+            'next': f"cat {stderr_path}" if stderr_path else None,
+        })
+    checks.append(check)
 print(json.dumps({'ok': fail == 0, 'passed': passed, 'failed': fail, 'state': state, 'checks': checks}, ensure_ascii=False, indent=2))
 PYJSON
 else

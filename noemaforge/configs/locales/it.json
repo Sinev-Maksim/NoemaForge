@@ -52,5 +52,17 @@
   "depth.until_stop": "fino allo stop",
   "pipeline.new": "+ Nuova pipeline",
   "pipeline.search": "Cerca pipeline...",
+  "message.original": "Inglese originale",
+  "admin.reply.smalltalk": "Sono qui. NoemaForge gira localmente: posso conversare, aprire Dev Team, preparare evoluzione del modello o mostrare lo stato epoch.",
+  "admin.reply.model_selection_ready": "Modalità di selezione scelta: {mode}. Ambito: {scope}. Il piano di selezione è pronto; candidati, decisione e rollback plan sono allegati. L'epoch NON viene applicata senza approve/apply separato.",
+  "admin.reply.model_evolution_ready": "Il ciclo misurato di model-evolution è pronto. Artefatti: baseline snapshot, mutation plan, candidate profile, scorecard e rollback plan. I pesi di produzione non sono stati cambiati automaticamente.",
+  "pipeline.run.started": "Avvio pipeline {pipeline_id} con lo scenario standard. Run: {run_id}.",
+  "pipeline.clarification.forwarded": "Chiarimento accettato per pipeline {pipeline_id} e inoltrato al run {run_id}: {text}",
+  "pipeline.clarification.failed": "Impossibile inoltrare il chiarimento a pipeline {pipeline_id} / run {run_id}: {error}",
+  "pipeline.clarification.question": "Chiarisci i parametri necessari per continuare la pipeline.",
+  "pipeline.handoff.message": "Handoff di {persona} richiesto per `{stage}`: {reason}. Il dashboard non deve trattare questo placeholder come lavoro di stage completato.",
+  "pipeline.handoff.admin_note": "Nota Admin: fornisci un output reale dello stage, registra la decisione dell'operatore o salta esplicitamente; il testo originale inglese resta disponibile per audit.",
+  "pipeline.handoff.question.output": "{persona}: fornisci l'output reale o la decisione dell'operatore per lo stage `{stage}`.",
+  "pipeline.handoff.question.decision": "Quale decisione, rischio e prossimo handoff devono essere registrati prima di continuare?",
   "role.user": "Utente"
 }

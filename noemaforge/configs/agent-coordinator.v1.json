@@ -1,0 +1,72 @@
+{
+  "schema_version": "agent-coordinator.v1",
+  "release_focus": {
+    "current": "0.33.0",
+    "next_after_absolute": "0.33.1",
+    "switch_rule": "Switch to 0.33.1 only after 0.33.0 has a synchronized final integration PR, green required checks, resolved CodeRabbit findings, clean artifact scan, and target-host validation recorded separately."
+  },
+  "roles": [
+    "writer",
+    "reviewer",
+    "remediator"
+  ],
+  "agents": [
+    "codex",
+    "claude"
+  ],
+  "hard_invariants": [
+    "Only one writer lease may be active for a task.",
+    "Only one reviewer/remediator lease may be active for a task.",
+    "reviewer.agent must not equal writer.agent unless emergency_self_review is explicitly enabled.",
+    "All task state transitions must carry head_sha and lease_fence.",
+    "GitHub labels/comments mirror state but are not the sole source of authority.",
+    "Validators are deterministic gates; agents consume their output and remediate."
+  ],
+  "states": [
+    "unclaimed",
+    "writer_claimed",
+    "implementing",
+    "review_requested",
+    "reviewer_claimed",
+    "reviewing",
+    "remediating",
+    "validating",
+    "changes_requested",
+    "blocked",
+    "needs_human",
+    "ready"
+  ],
+  "required_0_33_0_gates": [
+    "premerge_quality_gate",
+    "acceptance",
+    "semgrep",
+    "p0_status_ledger",
+    "coderabbit_review",
+    "pipeline_validate_python",
+    "pipeline_validate_cli",
+    "artifact_scan_clean"
+  ],
+  "planned_0_33_1_mvp": {
+    "source_of_truth": "serialized coordinator state file or external lease store",
+    "lease_minutes_default": 60,
+    "commands": [
+      "/claim",
+      "/handoff",
+      "/heartbeat",
+      "/release",
+      "/resolve",
+      "/back-to-writer"
+    ],
+    "audit_events": [
+      "claim_granted",
+      "claim_rejected",
+      "heartbeat",
+      "handoff_requested",
+      "review_started",
+      "remediation_pushed",
+      "checks_observed",
+      "ready_marked",
+      "lease_expired"
+    ]
+  }
+}

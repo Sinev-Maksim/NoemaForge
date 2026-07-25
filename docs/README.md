@@ -151,3 +151,44 @@ All other Markdown documentation is grouped into subfolders:
 - `topic-adjacent-retrieval-core` is enforced by `noemaforge/configs/topic-adjacent-retrieval-policy.json` and `noemaforge/src/topic_adjacent_retrieval_runtime.py`: Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.
 - `memory-budgeted-retrieval-core` is enforced by `noemaforge/configs/memory-budgeted-retrieval-policy.json` and `noemaforge/src/memory_budgeted_retrieval_runtime.py`: Memory-budgeted retrieval degrades gracefully: when a chunk chain exceeds active budget, NoemaForge selects highest-coherence subchunks first and adds adjacent support neighbors only if budget remains.
 - `noemaforge/configs/ci-model-gates.json` and `noemaforge/src/ci_model_gates_runtime.py` enforce offline model release evidence for latency, memory, golden replay, schema compatibility and signatures.
+
+## 0.33.0-dev setup/systemd/topic boundary QA note
+
+- setup-default-path-core: Setup default path boundary: The blessed onboarding path is release unpack or git clone, then root ./setup.sh in VM mode first, then host install only by explicit operator choice; Windows helpers are optional side tools and are never required for the canonical path.
+- setup-front-door-core: Setup front door boundary: Root setup.sh is the single setup front door, supports vm/host/docker-dev plus install-root/data-root/model-profile/with-share/offline-after-setup flags, and emits bootstrap/firstboot progress phases so newcomers do not discover helper scripts manually.
+- setup-mode-matrix-core: Setup mode boundary: Linux host mode uses native services and local paths, macOS dev mode is non-privileged validation and light workflows, VM mode is the recommended no-risk onboarding path, and docker-dev is development/test only, not the full production NoemaForge path.
+- systemd-happy-path-core: No happy-path install or boot-mode flow requires hand-editing systemd units
+- topic-adjacent-retrieval-core: Retrieval prefers topic-adjacent chunks over naive fixed windows: topic signature overlap and chapter/section locality choose the primary chunk, then adjacent support chunks are added only within budget.
+- topic_adjacent_boundary: Topic-adjacent retrieval uses static adjacency metadata and never falls back to fixed context windows.
+
+## 0.33.0-dev remaining policy QA token index
+
+- roleflow-orchestration-core
+- baton payloads
+- runtime-default-safety-core
+- max_active_llms=1
+- selftest-event-store-core
+- noemaforge selftest events
+- selftest-rss-slope-core
+- noemaforge selftest stress
+- selftest-trend-dashboard-core
+- noemaforge selftest trend
+- Sense_Layer.Edge
+- sense-layer-edge-core
+- Sense_State / Privacy_Filter contract
+- sense-privacy-governance-core
+- Slop_Score / Critic_Stack contract
+- slop-critic-governance-core
+- task-workflow-core
+- task add/edit/prioritize/block/complete
+- Admin chat and API
+- telemetry-card-truthfulness-core
+- telemetry cards show hardware, runtime and product metrics without overstating creative-media quality
+- review-required creative-media policy
+- TinyML_Node
+- tinyml-node-core
+- wiki-patch-commit-helper-core
+- noemaforge wiki-patch commit-plan
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target

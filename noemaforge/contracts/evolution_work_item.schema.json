@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_work_item.schema.json",
+  "title": "NoemaForge Evolution Work Item",
+  "type": "object",
+  "required": ["apiVersion", "kind", "work_item_id", "run_id", "status", "provenance", "objective", "requires_operator_approval", "toolproxy_required", "allowed_actions", "forbidden_actions"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionWorkItem" },
+    "work_item_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["planned", "ready", "blocked", "completed", "failed"] },
+    "provenance": { "const": "UAT request findings resolution" },
+    "objective": { "type": "string", "minLength": 1 },
+    "requires_operator_approval": { "type": "boolean" },
+    "toolproxy_required": { "const": true },
+    "allowed_actions": { "type": "array", "items": { "type": "string" } },
+    "forbidden_actions": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

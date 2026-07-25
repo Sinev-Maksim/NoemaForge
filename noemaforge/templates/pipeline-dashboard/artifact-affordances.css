@@ -13,3 +13,5 @@ Tests: artifact-card-affordance runtime, QA and performance tests.
 */
 .artifact-actions{display:flex;gap:6px;flex-wrap:wrap}
 .artifact-link{text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+
+/* Draft pipeline editor | drag&drop pipeline editor planned */

@@ -12,7 +12,4 @@
 # Tests: Syntax validation plus the release setup selftest, consistency-audit and targeted smoke checks.
 # Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
 # === End NoemaForge File Header ===
-set -euo pipefail
-. /usr/local/lib/noemaforge-common.sh
-echo '=== NoemaForge ToolProxy diagnostics ==='; stat -c 'socket: %A %a %U:%G %F %n' "${NOEMAFORGE_TOOLPROXY_SOCKET:-/run/noemaforge/toolproxy.sock}" 2>/dev/null || echo 'socket: missing'; echo -n 'service_active: '; systemctl is-active noemaforge-toolproxy.service 2>/dev/null || true; echo -n 'service_enabled: '; systemctl is-enabled noemaforge-toolproxy.service 2>/dev/null || true
-if [[ "${1:-}" == "--test-llm" ]]; then echo; echo '=== direct gateway health ==='; runuser -u "$NOEMAFORGE_USER" -- curl -sS --max-time 20 --unix-socket "${NOEMAFORGE_GATEWAY_SOCKET:-/run/noemaforge/llm/gateway.sock}" http://localhost/health || true; fi
+exec /usr/local/sbin/noemaforge toolproxy diag "$@"

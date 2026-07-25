@@ -1,7 +1,7 @@
 # === NoemaForge File Header ===
 # File: systemd/noemaforge-modelscan.service
 # Zone: release/package
-# Version: 0.32.2
+# Version: 0.33.0
 # Created: 2026-06-08
 # Modified: 2026-06-08
 # Purpose: Periodically rebuild the ModelStore registry (model_registry.json). Triggered by

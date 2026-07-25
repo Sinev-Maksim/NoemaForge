@@ -29,3 +29,5 @@ Tests: noemaforge/tests/test_pipeline_dragdrop_editor_qa.py
 .showcase-step span{color:var(--muted);font-size:12px}
 .showcase-step-actions{display:flex;gap:6px;flex-wrap:wrap}
 @media(max-width:620px){.editor-stage{grid-template-columns:1fr}.stage-actions{justify-content:start}}
+
+/* Draft pipeline editor | drag&drop pipeline editor planned */
