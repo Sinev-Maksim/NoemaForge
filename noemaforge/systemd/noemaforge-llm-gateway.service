@@ -29,6 +29,7 @@ ExecStartPre=+/usr/bin/install -d -o noemaforge -g noemaforge -m 0755 /run/noema
 ExecStart=/opt/noemaforge/bin/noemaforge-llm-gateway
 Restart=on-failure
 RestartSec=3
+ExecStopPost=-/bin/rm -f /run/noemaforge/llm/gateway.sock
 
 [Install]
 WantedBy=multi-user.target
