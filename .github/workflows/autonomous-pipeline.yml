@@ -470,6 +470,21 @@ jobs:
           }
           Set-Location -LiteralPath $env:CODEX_WORKTREE
 
+          function Test-CodexExecOption([string] $helpText, [string] $flagName) {
+            if ([string]::IsNullOrWhiteSpace($helpText) -or [string]::IsNullOrWhiteSpace($flagName)) {
+              return $false
+            }
+            # Trailing boundary widened (PR #262 review, Major): clap CLI-style
+            # help renders a flag's value hint directly after the flag name with
+            # no separating whitespace/comma, e.g. "--sandbox=<MODE>",
+            # "--sandbox[=MODE]", or "-s <MODE>". The original boundary
+            # (?:[\s,]|$) only matched whitespace/comma/end-of-string, so it
+            # missed "=" and "[" immediately after the flag and could wrongly
+            # report a genuinely-supported flag as unsupported.
+            $pattern = "(?mi)(?:^|[\s,])$([regex]::Escape($flagName))(?:[\s,=\[]|$)"
+            return [regex]::IsMatch($helpText, $pattern)
+          }
+
           # Parse a usage-limit reset time out of the Codex CLI log so the runner
           # can pause until then instead of re-failing Codex on every later push.
           function Get-CodexResetTime([string] $log) {
@@ -540,6 +555,60 @@ jobs:
             Write-SkipReview "Codex CLI is not logged in. Run: codex login (CODEX_HOME=$env:CODEX_HOME)."
             exit 0
           }
+
+          $helpPath = Join-Path $env:RUNNER_TEMP 'codex_exec_help.txt'
+          $capabilitiesPath = Join-Path $env:RUNNER_TEMP 'codex_exec_capabilities.json'
+          Remove-Item -LiteralPath $helpPath -Force -ErrorAction SilentlyContinue
+          Remove-Item -LiteralPath $capabilitiesPath -Force -ErrorAction SilentlyContinue
+
+          & $codex exec --help 2>&1 | Tee-Object -FilePath $helpPath
+          $helpExit = $LASTEXITCODE
+          $helpText = ''
+          if (Test-Path -LiteralPath $helpPath) {
+            $helpText = Get-Content -LiteralPath $helpPath -Raw
+          }
+
+          # Fail-closed guard (PR #262 review, CRITICAL): a broken/errored
+          # `codex exec --help` probe must NOT be treated the same as "this
+          # Codex CLI version genuinely doesn't support --sandbox". A non-zero
+          # exit code or empty/whitespace-only output means sandbox support
+          # could not be determined at all (crash, unexpected CLI behavior,
+          # truncated output, etc.) -- previously this silently fell through
+          # to a null sandbox flag below and codex exec was invoked WITHOUT a
+          # sandbox flag, i.e. unsandboxed. That is a fail-open security bug.
+          # Skip the review entirely instead (same SKIP-on-infra-issue
+          # contract used by every other guard in this step) rather than
+          # ever reaching the unsandboxed invocation below. The genuine
+          # "help succeeded but doesn't mention --sandbox" case (helpExit -eq 0
+          # and non-empty helpText) is untouched and still proceeds without a
+          # sandbox flag, as intended.
+          if ($helpExit -ne 0 -or [string]::IsNullOrWhiteSpace($helpText)) {
+            $probeDetail = if ([string]::IsNullOrWhiteSpace($helpText)) { 'no output' } else { 'output present but exit code non-zero' }
+            Write-SkipReview "codex exec --help probe failed (exit code $helpExit, $probeDetail): cannot confirm sandbox flag support, refusing to invoke Codex CLI unsandboxed. Fix the Codex CLI installation/invocation on the runner and retry."
+            exit 0
+          }
+
+          $sandboxFlag = $null
+          if (Test-CodexExecOption $helpText '--sandbox') {
+            $sandboxFlag = '--sandbox'
+          } elseif (Test-CodexExecOption $helpText '-s') {
+            $sandboxFlag = '-s'
+          }
+          $approvalModeFlag = $null
+          if (Test-CodexExecOption $helpText '--approval-mode') {
+            $approvalModeFlag = '--approval-mode'
+          }
+          $capabilities = [ordered]@{
+            help_exit_code = $helpExit
+            sandbox_flag = $sandboxFlag
+            approval_mode_flag = $approvalModeFlag
+            help_path = $helpPath
+          }
+          [System.IO.File]::WriteAllText(
+            $capabilitiesPath,
+            ($capabilities | ConvertTo-Json -Depth 4),
+            [System.Text.UTF8Encoding]::new($false)
+          )
           $maxDiffChars = 120000
           if ($diffText.Length -gt $maxDiffChars) {
             $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
@@ -571,6 +640,8 @@ jobs:
             "Do not modify files or push commits in this workflow run."
             "Use read-only inspection only."
             ""
+            "Detected Codex exec help options were captured to runner artifacts before invocation."
+            ""
             "Pre-executed validation digest (trusted CI output from ci/review_preflight.py):"
             '```text'
             $digestText
@@ -600,11 +671,20 @@ jobs:
           # be unavailable; the pre-flight digest embedded in the prompt
           # provides the validation results instead. GITHUB_TOKEN is also kept
           # out of this step's environment as defense in depth.
-          $prompt | & $codex exec `
-            -s read-only `
-            --skip-git-repo-check `
-            --output-last-message $reviewPath `
-            - 2>&1 | Tee-Object -FilePath $logPath
+          $codexArgs = @('exec')
+          if ($approvalModeFlag) {
+            $codexArgs += $approvalModeFlag
+            $codexArgs += 'never'
+          }
+          if ($sandboxFlag) {
+            $codexArgs += $sandboxFlag
+            $codexArgs += 'read-only'
+          }
+          $codexArgs += '--skip-git-repo-check'
+          $codexArgs += '--output-last-message'
+          $codexArgs += $reviewPath
+          $codexArgs += '-'
+          $prompt | & $codex @codexArgs 2>&1 | Tee-Object -FilePath $logPath
           $execExit = $LASTEXITCODE
 
           if ($execExit -ne 0) {
@@ -679,6 +759,13 @@ jobs:
             Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Codex CLI log was not created."
           }
 
+          if (Test-Path -LiteralPath $helpPath) {
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "### Codex exec help"
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value "Full help output is in the uploaded artifact."
+            Add-Content -LiteralPath $env:GITHUB_STEP_SUMMARY -Value ""
+          }
+
       - name: Upload review artifact
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -687,6 +774,8 @@ jobs:
           path: |
             codex_review.md
             ${{ runner.temp }}\codex_run.log
+            ${{ runner.temp }}\codex_exec_help.txt
+            ${{ runner.temp }}\codex_exec_capabilities.json
             ${{ runner.temp }}\codex-source\diff.patch
 
       - name: Post review as PR comment
