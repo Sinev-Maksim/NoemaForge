@@ -1,7 +1,7 @@
 # Broad pytest collection + failure findings — 0.33.0-dev (dev-host)
 
 Status: living triage record · Created 2026-06-16 · Branch `release/0.33.0-dev`
-line (worktree `codex/hosted-review-action`).
+(worktree `codex/hosted-review-action`).
 
 This is **not** a target-host UAT run (those are the `UAT-*.md` reports in this
 folder). It records what happened when the full developer-host unit suite
@@ -60,11 +60,16 @@ versus the collection-only fix, with no new failures.
 | ~9 | misc (`AttributeError`, `jsonschema`, …) | assorted content/schema drift | real — triage per case |
 | (206 raw refs) | stale `0.32.1` references | registry/docs not advanced to 0.33.x | real — stale-ref audit |
 
-None of the 211 are caused by the isolation fix. The large majority are **not**
-Windows-related: they are real content/docs/policy drift that exists on the
-branch independently of platform and would also fail on Debian/CI.
+The per-class counts above sum to ~214 against a 211 pytest-reported total; the
+~3-item gap is not yet reconciled (likely a handful of overlapping/double-counted
+cases between the `AssertionError` and misc buckets from the original triage
+pass) — treat 211 as the authoritative total and the per-class breakdown as
+approximate until re-audited against a fresh raw run. None of the 211 are caused
+by the isolation fix. The large majority are **not** Windows-related: they are
+real content/docs/policy drift that exists on the branch independently of
+platform and would also fail on Debian/CI.
 
-### Class A — root-doc layout drift (FileNotFoundError, ~47)
+### Class A — root-doc layout drift (FileNotFoundError, 57)
 
 Tests open `<repo-root>/CHANGELOG.md` and `<repo-root>/TODO.md` directly, but the
 canonical docs live under `noemaforge/docs/`. Either the tests should target the
@@ -130,7 +135,7 @@ runtime portability item (0.33.1 system-independence track).
 ## Reproduce locally
 
 ```powershell
-cd C:\Users\sinev\!Projects\NoemaForge
+cd <repo-root>
 $env:PYTHONPATH = "$((Resolve-Path 'noemaforge/src').Path);$((Resolve-Path 'noemaforge').Path)"
 # Whole suite (Windows-safe ignores for known non-collecting integration files):
 python -m pytest noemaforge/tests -q `
@@ -143,8 +148,8 @@ python -m pytest noemaforge/tests/test_admin_gui_init_and_events.py `
   noemaforge/tests/test_orchestration_state.py -q
 ```
 
-`NOEMAFORGE_TEST_ISOLATION_DEBUG=1` makes the conftest print which modules it
-restores before each test module.
+Setting `$env:NOEMAFORGE_TEST_ISOLATION_DEBUG = "1"` makes the conftest print
+which modules it restores before each test module.
 
 ## Status
 
