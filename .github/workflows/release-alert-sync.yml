@@ -1,0 +1,113 @@
+name: Release code-scanning alert sync
+
+# Reconciles code-scanning alerts that were fixed on a release ref (branch or
+# tag) but still show "open" on the default branch because GitHub's alert
+# list is scoped per analyzed ref, and the fix hasn't shipped to that branch
+# yet. This workflow does NOT run any scanner itself -- CodeQL's default
+# setup is already enabled repo-wide (Settings > Security > Code scanning),
+# and Semgrep runs in .github/workflows/semgrep.yml on both `main` and
+# `release/0.33.0-dev`. Adding a second, advanced-configuration CodeQL step
+# here would conflict with the default setup, so this workflow is
+# scan-free by design.
+#
+# The automatic (release/tag) trigger ALWAYS runs in dry-run mode: it prints
+# what would be dismissed to the job summary and changes nothing. Actually
+# dismissing alerts is a manual, explicit action (workflow_dispatch with
+# live_dismiss: true) so a tag push can never silently alter the security
+# posture.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: "Branch or tag to treat as the fixed/authoritative ref"
+        required: false
+        default: "release/0.33.0-dev"
+      target_branch:
+        description: "Branch whose alerts get reconciled against release_ref"
+        required: false
+        default: "main"
+      live_dismiss:
+        description: "Actually dismiss alerts instead of a dry run (requires explicit true)"
+        required: false
+        default: "false"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  sync-alerts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REPO_OWNER: Sinev-Maksim
+      REPO_NAME: NoemaForge
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+
+      - name: Install script dependencies
+        run: python -m pip install --disable-pip-version-check requests
+
+      - name: Resolve release ref and target branch
+        id: refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            release_ref="${{ inputs.release_ref }}"
+            target_branch="${{ inputs.target_branch }}"
+          else
+            release_ref="${{ github.ref_name }}"
+            target_branch="main"
+          fi
+          echo "release_ref=${release_ref}" >> "$GITHUB_OUTPUT"
+          echo "target_branch=${target_branch}" >> "$GITHUB_OUTPUT"
+
+      - name: Report open alerts for the release ref
+        run: |
+          python .github/scripts/report_alerts_for_release.py \
+            --owner "$REPO_OWNER" \
+            --repo "$REPO_NAME" \
+            --release-ref "${{ steps.refs.outputs.release_ref }}" \
+            --compare-branch "${{ steps.refs.outputs.target_branch }}" \
+            >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dry-run dismiss-fixed-alerts (always, for visibility)
+        run: |
+          python .github/scripts/dismiss-fixed-alerts.py \
+            --owner "$REPO_OWNER" \
+            --repo "$REPO_NAME" \
+            --release-ref "${{ steps.refs.outputs.release_ref }}" \
+            --target-branch "${{ steps.refs.outputs.target_branch }}" \
+            --dry-run
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Live-dismiss fixed alerts (manual opt-in only)
+        if: github.event_name == 'workflow_dispatch' && inputs.live_dismiss == 'true'
+        run: |
+          python .github/scripts/dismiss-fixed-alerts.py \
+            --owner "$REPO_OWNER" \
+            --repo "$REPO_NAME" \
+            --release-ref "${{ steps.refs.outputs.release_ref }}" \
+            --target-branch "${{ steps.refs.outputs.target_branch }}" \
+            --dismiss-reason "won't fix" \
+            --comment "Fixed in ${{ steps.refs.outputs.release_ref }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
