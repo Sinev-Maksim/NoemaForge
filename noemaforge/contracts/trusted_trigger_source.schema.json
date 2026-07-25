@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/trusted_trigger_source.schema.json",
+  "title": "NoemaForge Trusted Trigger Source Envelope",
+  "description": "Untrusted normalized trigger claim. Authorization requires a separate trusted verification context.",
+  "type": "object",
+  "required": [
+    "apiVersion",
+    "kind",
+    "source_class",
+    "content_origin",
+    "actor",
+    "repository",
+    "event",
+    "provenance",
+    "requested_authority"
+  ],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.trusted-trigger-source/v1" },
+    "kind": { "const": "TrustedTriggerSourceEnvelope" },
+    "source_class": {
+      "enum": ["explicit_owner_message", "github_app_event", "human_event", "content_only"]
+    },
+    "content_origin": {
+      "enum": [
+        "explicit_owner_message",
+        "verified_github_event",
+        "non_owner_human_comment",
+        "repository_content",
+        "diff",
+        "log",
+        "web_page",
+        "file_content",
+        "generated_artifact"
+      ]
+    },
+    "actor": {
+      "type": "object",
+      "required": ["type", "principal_id", "login", "app_id", "installation_id"],
+      "properties": {
+        "type": { "enum": ["owner", "github_app", "human", "system"] },
+        "principal_id": { "type": "string", "minLength": 1 },
+        "login": { "type": ["string", "null"] },
+        "app_id": { "type": ["integer", "null"], "minimum": 1 },
+        "installation_id": { "type": ["integer", "null"], "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "repository": { "type": "string", "minLength": 1 },
+    "event": {
+      "type": "object",
+      "required": ["type", "delivery_id"],
+      "properties": {
+        "type": { "type": "string", "minLength": 1 },
+        "delivery_id": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_id", "channel", "artifact_class", "message_id", "copied_text_claims_owner_authority"],
+      "properties": {
+        "source_id": { "type": "string", "minLength": 1 },
+        "channel": { "enum": ["conversation", "github_connector", "github_webhook", "internal"] },
+        "artifact_class": { "enum": ["direct_request", "metadata", "data"] },
+        "message_id": { "type": ["string", "null"] },
+        "copied_text_claims_owner_authority": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "requested_authority": {
+      "enum": ["create_work_item", "approve", "apply", "push", "merge", "release_marker"]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "source_class": { "const": "explicit_owner_message" } },
+        "required": ["source_class"]
+      },
+      "then": {
+        "properties": {
+          "content_origin": { "const": "explicit_owner_message" },
+          "actor": {
+            "properties": {
+              "type": { "const": "owner" },
+              "app_id": { "type": "null" },
+              "installation_id": { "type": "null" }
+            }
+          },
+          "event": {
+            "properties": {
+              "type": { "const": "owner_message" },
+              "delivery_id": { "type": "null" }
+            }
+          },
+          "provenance": {
+            "properties": {
+              "channel": { "const": "conversation" },
+              "artifact_class": { "const": "direct_request" },
+              "message_id": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "source_class": { "const": "github_app_event" } },
+        "required": ["source_class"]
+      },
+      "then": {
+        "properties": {
+          "content_origin": { "const": "verified_github_event" },
+          "actor": {
+            "properties": {
+              "type": { "const": "github_app" },
+              "app_id": { "type": "integer", "minimum": 1 },
+              "installation_id": { "type": "integer", "minimum": 1 }
+            }
+          },
+          "event": {
+            "properties": {
+              "delivery_id": { "type": "string", "minLength": 1 }
+            }
+          },
+          "provenance": {
+            "properties": {
+              "channel": { "enum": ["github_connector", "github_webhook"] },
+              "artifact_class": { "const": "metadata" }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "additionalProperties": false
+}

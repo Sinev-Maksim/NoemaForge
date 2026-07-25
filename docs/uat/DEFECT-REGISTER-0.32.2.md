@@ -7,25 +7,30 @@ reports (linked); this file owns IDs, severity, status and fix targeting.
 Update rule: change `Status` here when a fix merges (link the PR); never reuse
 IDs. New UAT runs append new IDs.
 
+_2026-07-25 sync: 14 of 15 fixpack items (D-001…D-010, U-001/U-002/U-003/U-005)
+were already merged on `release/0.33.0-dev` (PRs #126-#136, 2026-06-20/21) but
+this register was never updated to match — corrected below. Only U-004
+(AAT all-pipeline test/demo mode) remains open._
+
 ## Summary
 
 | ID | Title | Severity | Area | Status | Fix target |
 |---|---|---|---|---|---|
-| D-001 | Hardware card renders raw JSON instead of bars/gauges | Medium | Admin GUI / dashboard | Open | fixpack P2 |
-| D-002 | Epoch/model selection section not operator-readable; stale "Latest plan" | High | Admin GUI / epoch panel | Open | fixpack P1 |
-| D-003 | Admin hallucinates on known system states (`degraded_selected`) | High | Admin routing / chat | Open | fixpack P0 |
-| D-004 | Product metrics card shows raw JSON | Medium | Admin GUI / metrics | Open | fixpack P2 |
-| D-005 | Pipeline confirm OK does not transfer command to chat | High | Admin GUI / pipeline dock | Open | fixpack P0 |
-| D-006 | Pipeline diagram rendered as JSON/Mermaid source | Medium | Admin GUI / visualization | Open | fixpack P2 |
-| D-007 | Pipeline execution progress not visible | High | Admin GUI / jobs | Open | fixpack P0 |
-| D-008 | Iteration controls unclear / no visible effect | Medium | Admin GUI / chat controls | Open | fixpack P1 |
-| D-009 | Generative pipelines don't switch/greet persona | Medium | Persona routing | Open | fixpack P1 |
-| D-010 | Repeated pipeline launch lacks idempotency guard | Low | Pipeline launch | Open | fixpack P2 |
-| U-001 | Generative pipelines must return artifacts into chat | High | Pipeline UX / artifacts | Open | fixpack P0 |
-| U-002 | Every user command must produce a visible response | Critical | Chat / routing | Open | fixpack P0 |
-| U-003 | Personas identical; no selector; no return-to-admin | High | Persona UX | Open | fixpack P1 |
+| D-001 | Hardware card renders raw JSON instead of bars/gauges | Medium | Admin GUI / dashboard | Fixed | [PR #127](https://github.com/Sinev-Maksim/NoemaForge/pull/127) |
+| D-002 | Epoch/model selection section not operator-readable; stale "Latest plan" | High | Admin GUI / epoch panel | Fixed | [PR #133](https://github.com/Sinev-Maksim/NoemaForge/pull/133) |
+| D-003 | Admin hallucinates on known system states (`degraded_selected`) | High | Admin routing / chat | Fixed | [PR #130](https://github.com/Sinev-Maksim/NoemaForge/pull/130) |
+| D-004 | Product metrics card shows raw JSON | Medium | Admin GUI / metrics | Fixed | [PR #127](https://github.com/Sinev-Maksim/NoemaForge/pull/127) |
+| D-005 | Pipeline confirm OK does not transfer command to chat | High | Admin GUI / pipeline dock | Fixed | [PR #126](https://github.com/Sinev-Maksim/NoemaForge/pull/126) |
+| D-006 | Pipeline diagram rendered as JSON/Mermaid source | Medium | Admin GUI / visualization | Fixed | [PR #135](https://github.com/Sinev-Maksim/NoemaForge/pull/135) |
+| D-007 | Pipeline execution progress not visible | High | Admin GUI / jobs | Fixed | [PR #131](https://github.com/Sinev-Maksim/NoemaForge/pull/131) |
+| D-008 | Iteration controls unclear / no visible effect | Medium | Admin GUI / chat controls | Fixed | [PR #134](https://github.com/Sinev-Maksim/NoemaForge/pull/134) |
+| D-009 | Generative pipelines don't switch/greet persona | Medium | Persona routing | Fixed | [PR #128](https://github.com/Sinev-Maksim/NoemaForge/pull/128) |
+| D-010 | Repeated pipeline launch lacks idempotency guard | Low | Pipeline launch | Fixed | [PR #128](https://github.com/Sinev-Maksim/NoemaForge/pull/128) |
+| U-001 | Generative pipelines must return artifacts into chat | High | Pipeline UX / artifacts | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
+| U-002 | Every user command must produce a visible response | Critical | Chat / routing | Fixed | [PR #132](https://github.com/Sinev-Maksim/NoemaForge/pull/132) |
+| U-003 | Personas identical; no selector; no return-to-admin | High | Persona UX | Fixed | [PR #136](https://github.com/Sinev-Maksim/NoemaForge/pull/136) |
 | U-004 | Pipeline test/demo mode for AAT (all pipelines, one control) | High | Acceptance testing | Open | AAT target tier |
-| U-005 | Artifact metadata in API not surfaced as chat cards | High | Chat artifact delivery | Open | fixpack P0 |
+| U-005 | Artifact metadata in API not surfaced as chat cards | High | Chat artifact delivery | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | S-001 | Smoke chat requires literal "OK" → healthy tiny model reported `degraded` | Medium | Ops tooling / smoke | Mitigated on host, fix upstream | 0.33.x ops |
 | R-001 | `noemaforge-llm-backends-manager.service` failed once during composite window | Medium | Runtime / systemd | Open (reset-failed applied, no root cause) | 0.33.x runtime |
 | O-001 | Model-selection key-scan summary JSON full of nulls | Low | UAT/ops tooling | Open | 0.33.x ops |

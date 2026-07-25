@@ -74,6 +74,8 @@ try:
 except ImportError:  # Unix-only module; absent on Windows (dev host). POSIX rlimits no-op there.
     resource = None
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 
 def rlimits_available() -> bool:
     """True when POSIX resource limits (RLIMIT_*) can be enforced on this host.
@@ -515,7 +517,7 @@ def _run_bwrap(
         cmd += ["--tmpfs", "/tmp"]
         cmd += ["--tmpfs", "/var", "--dir", "/var/tmp", "--dir", "/var/log"]
         cmd += ["--tmpfs", "/home", "--dir", "/home/noemaforge"]
-        cmd += ["--tmpfs", "/run", "--dir", "/run/noemaforge"]
+        cmd += ["--tmpfs", "/run", "--dir", str(_pp.runtime_dir)]
         cmd += ["--dir", "/mnt", "--dir", "/media", "--dir", "/root"]
 
         # Bind system dirs read-only
@@ -786,7 +788,7 @@ def _run_microvm(
     runtime = str(mcfg.get("runtime") or "").strip()
     kernel = str(mcfg.get("kernel_path") or "").strip()
     rootfs = str(mcfg.get("rootfs_path") or "").strip()
-    work_dir = str(mcfg.get("work_dir") or "/var/lib/noemaforge/microvm/runs").strip()
+    work_dir = str(mcfg.get("work_dir") or str(_pp.data_root / "microvm" / "runs")).strip()
     vcpu = int(mcfg.get("default_vcpu") or 1)
     mem_mib = int(mcfg.get("default_mem_mib") or 1024)
 
