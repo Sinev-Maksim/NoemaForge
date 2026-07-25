@@ -11,9 +11,11 @@ import service_manager
 class TestAvailableNonLinux(unittest.TestCase):
     def setUp(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def tearDown(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def test_unavailable_on_non_linux(self):
         with unittest.mock.patch.object(sys, "platform", "win32"):
@@ -31,9 +33,11 @@ class TestAvailableLinuxNoSystemd(unittest.TestCase):
 
     def setUp(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def tearDown(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def test_unavailable_when_systemctl_not_found(self):
         with unittest.mock.patch.object(sys, "platform", "linux"):
@@ -51,9 +55,11 @@ class TestAvailableLinuxNoSystemd(unittest.TestCase):
 class TestCallUnavailable(unittest.TestCase):
     def setUp(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def tearDown(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def test_call_returns_127_when_unavailable(self):
         with unittest.mock.patch.object(sys, "platform", "win32"):
@@ -70,16 +76,18 @@ class TestCallUnavailable(unittest.TestCase):
 class TestCallAvailable(unittest.TestCase):
     def setUp(self):
         service_manager._cached_available = True
+        service_manager._SYSTEMCTL_PATH = "/usr/bin/systemctl"
 
     def tearDown(self):
         service_manager._cached_available = None
+        service_manager._SYSTEMCTL_PATH = None
 
     def test_call_delegates_to_subprocess(self):
         with unittest.mock.patch("subprocess.call", return_value=0) as mock_call:
             rc = service_manager.call("is-active", "noemaforge-llm-gateway.service")
         self.assertEqual(rc, 0)
         mock_call.assert_called_once_with(
-            ["systemctl", "is-active", "noemaforge-llm-gateway.service"],
+            ["/usr/bin/systemctl", "is-active", "noemaforge-llm-gateway.service"],
             stdout=unittest.mock.ANY,
             stderr=unittest.mock.ANY,
         )
@@ -102,6 +110,12 @@ class TestCallAvailable(unittest.TestCase):
         with unittest.mock.patch("subprocess.call", side_effect=OSError("no such file")):
             rc = service_manager.call("start", "foo.service")
         self.assertEqual(rc, service_manager.SERVICE_MANAGER_UNAVAILABLE)
+
+    def test_check_output_returns_127_on_oserror(self):
+        with unittest.mock.patch("subprocess.check_output", side_effect=OSError("no such file")):
+            rc, out = service_manager.check_output(["is-active", "foo.service"])
+        self.assertEqual(rc, service_manager.SERVICE_MANAGER_UNAVAILABLE)
+        self.assertEqual(out, "service_manager_not_available")
 
 
 if __name__ == "__main__":
