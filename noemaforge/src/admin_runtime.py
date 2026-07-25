@@ -36,12 +36,28 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence
 
 try:
-    from i18n_runtime import normalize_locale, tr
+    from i18n_runtime import localized_message, normalize_locale, tr
 except Exception:  # pragma: no cover
     def normalize_locale(value=None): return str(value or os.environ.get("NOEMAFORGE_LANG") or "en").split(".", 1)[0]
     def tr(root, key, default="", locale=None, **kwargs):
         try: return (default or key).format(**kwargs)
         except Exception: return default or key
+    def localized_message(root, key, default, locale=None, **kwargs):
+        target = normalize_locale(locale)
+        try:
+            original = str(default or key).format(**{k: v for k, v in kwargs.items() if k not in {"role", "style", "source_locale"}})
+        except Exception:
+            original = str(default or key)
+        return {
+            "key": str(key),
+            "role": str(kwargs.get("role") or "admin"),
+            "style": str(kwargs.get("style") or "admin_note"),
+            "source_locale": str(kwargs.get("source_locale") or "en"),
+            "target_locale": target,
+            "original_text": original,
+            "rendered_text": original,
+            "localized": False,
+        }
 
 import production_ai_contracts
 from noemaforge_version import RUNTIME_VERSION
@@ -581,6 +597,20 @@ def route_reply(root: Path, route: Dict[str, Any], locale: str) -> str:
     return tr(root, str(route.get("reply_key") or ""), str(route.get("reply") or ""), locale=locale)
 
 
+def attach_localized_reply(result: Dict[str, Any], root: Path, key: str, default: str, locale: str, **kwargs: Any) -> Dict[str, Any]:
+    msg = localized_message(root, key, default, locale=locale, role="admin", style="admin_note", **kwargs)
+    result["reply"] = msg["rendered_text"]
+    result["localized_reply"] = msg
+    result["message_metadata"] = {
+        "source_locale": msg["source_locale"],
+        "target_locale": msg["target_locale"],
+        "role": msg["role"],
+        "style": msg["style"],
+    }
+    result["original_text"] = msg["original_text"]
+    return result
+
+
 def detect_locale(message: str, requested: str = "") -> str:
     explicit = (requested or os.environ.get("NOEMAFORGE_LANG") or os.environ.get("LC_ALL") or os.environ.get("LANG") or "").split(".")[0]
     if explicit:
@@ -833,10 +863,13 @@ def cmd_message(args: argparse.Namespace) -> int:
         print(json_dumps(result) if args.json else result["reply"])
         return 0
     if rid in {"general", "greeting"} and is_conversational_smalltalk(message):
-        if locale.startswith("ru"):
-            result["reply"] = "Я на месте. NoemaForge работает локально: могу вести обычный диалог, открыть Dev Team, подготовить эволюцию модели или показать статус эпохи."
-        else:
-            result["reply"] = "I am here. NoemaForge is running locally: I can chat, open Dev Team, prepare model evolution, or show epoch status."
+        attach_localized_reply(
+            result,
+            root,
+            "admin.reply.smalltalk",
+            "I am here. NoemaForge is running locally: I can chat, open Dev Team, prepare model evolution, or show epoch status.",
+            locale,
+        )
         result["mode"] = "conversation"
         result["route"] = {"id": "conversation", "intent": "conversation", "label": "Admin conversation", "operator_request": message, "pipeline_id": "", "execute_mode": "conversation"}
         result["persona_switch"] = None
@@ -876,10 +909,15 @@ def cmd_message(args: argparse.Namespace) -> int:
             result["actions"].append({"type": "model_selection_plan", "result": msel})
             result["internal_events"].append("Admin routed optimization request to Optimizer")
             result["artifacts"] = collect_artifacts(result)
-            if locale.startswith("ru"):
-                result["reply"] = f"Режим отбора выбран: {mode}. Область: {scope}. План отбора модели создан; кандидаты, решение и rollback-plan прикреплены как артефакты. Эпоха НЕ применена без отдельного approve/apply."
-            else:
-                result["reply"] = f"Model-selection mode selected: {mode}. Scope: {scope}. Selection plan is ready; candidates, decision and rollback plan are attached. Epoch is NOT applied without separate approve/apply."
+            attach_localized_reply(
+                result,
+                root,
+                "admin.reply.model_selection_ready",
+                "Model-selection mode selected: {mode}. Scope: {scope}. Selection plan is ready; candidates, decision and rollback plan are attached. Epoch is NOT applied without separate approve/apply.",
+                locale,
+                mode=mode,
+                scope=scope,
+            )
             result["ok"] = bool(msel.get("ok"))
         print(json_dumps(result) if args.json else result.get("reply") or "OK")
         return 0 if result.get("ok") else 1
@@ -914,10 +952,13 @@ def cmd_message(args: argparse.Namespace) -> int:
             evo = run_model_evolution(root, evo_state, state, message, pipeline_run_id=run_id, apply=args.apply)
             result["actions"].append({"type": "model_evolution", "result": evo})
             result["internal_events"].append("Measured model-evolution artifacts produced; no production weights mutated automatically")
-            if locale.startswith("ru"):
-                result["reply"] = "Measured model-evolution cycle создан. Артефакты: baseline_snapshot, mutation_plan, candidate_profile, scorecard и rollback_plan. Production-веса не менялись автоматически."
-            else:
-                result["reply"] = "Measured model-evolution cycle is ready. Artifacts: baseline snapshot, mutation plan, candidate profile, scorecard and rollback plan. Production weights were not changed automatically."
+            attach_localized_reply(
+                result,
+                root,
+                "admin.reply.model_evolution_ready",
+                "Measured model-evolution cycle is ready. Artifacts: baseline snapshot, mutation plan, candidate profile, scorecard and rollback plan. Production weights were not changed automatically.",
+                locale,
+            )
         result["artifacts"] = collect_artifacts(result)
         result["ok"] = all(bool(action.get("result", {}).get("ok", True)) for action in result["actions"])
 
@@ -1002,5 +1043,3 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
-

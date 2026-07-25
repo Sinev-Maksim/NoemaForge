@@ -15,10 +15,20 @@
 set -euo pipefail
 
 MODE="${NOEMAFORGE_LLM_MODE:-auto}"
-REAL_CUDA="${NOEMAFORGE_LLAMA_SERVER_CUDA:-/opt/noemaforge/bin/llama-server-cuda}"
-REAL_CPU="${NOEMAFORGE_LLAMA_SERVER_CPU:-/opt/noemaforge/bin/llama-server-cpu}"
+REAL_CUDA="/opt/noemaforge/bin/llama-server-cuda"
+REAL_CPU="/opt/noemaforge/bin/llama-server-cpu"
 
-args=("$@")
+args=()
+for arg in "$@"; do
+  case "$arg" in
+    --keep-display|--no-display-stop)
+      export NOEMAFORGE_KEEP_DISPLAY=1
+      ;;
+    *)
+      args+=("$arg")
+      ;;
+  esac
+done
 
 case "$MODE" in
   cpu)

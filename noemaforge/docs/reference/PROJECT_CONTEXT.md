@@ -152,3 +152,6 @@ Graph patch provenance is now the review contract between graph state and wiki p
 
 Artifact registry rows now have a shared contract before pipeline outputs, review records or graph patches are treated as evidence. `artifact-registry-table-core` defines the required table names, columns, SHA256 evidence, relative artifact paths, trace IDs, producer metadata, review states and graph patch references. It is a JSON-table contract rather than a live storage migration: validation proves record shape and references locally without mutating artifact storage. Closed by `artifact-registry-table-core`.
 
+## Systemd happy path boundary
+
+No happy-path install or boot-mode flow requires hand-editing systemd units

@@ -52,5 +52,17 @@
   "depth.until_stop": "bis Stopp",
   "pipeline.new": "+ Neue Pipeline",
   "pipeline.search": "Pipeline suchen...",
+  "message.original": "Englisches Original",
+  "admin.reply.smalltalk": "Ich bin da. NoemaForge läuft lokal: Ich kann chatten, Dev Team öffnen, Model Evolution vorbereiten oder den Epoch-Status anzeigen.",
+  "admin.reply.model_selection_ready": "Modellauswahlmodus gewählt: {mode}. Scope: {scope}. Der Auswahlplan ist bereit; Kandidaten, Entscheidung und Rollback-Plan sind angehängt. Die Epoch wird NICHT ohne separates approve/apply angewendet.",
+  "admin.reply.model_evolution_ready": "Der gemessene Model-Evolution-Zyklus ist bereit. Artefakte: Baseline Snapshot, Mutation Plan, Candidate Profile, Scorecard und Rollback Plan. Production-Gewichte wurden nicht automatisch geändert.",
+  "pipeline.run.started": "Starte Pipeline {pipeline_id} mit dem Standardszenario. Run: {run_id}.",
+  "pipeline.clarification.forwarded": "Klarstellung für Pipeline {pipeline_id} akzeptiert und an Run {run_id} weitergegeben: {text}",
+  "pipeline.clarification.failed": "Klarstellung konnte nicht an Pipeline {pipeline_id} / Run {run_id} weitergegeben werden: {error}",
+  "pipeline.clarification.question": "Kläre die Parameter, die zum Fortsetzen der Pipeline erforderlich sind.",
+  "pipeline.handoff.message": "{persona}-Handoff für `{stage}` erforderlich: {reason}. Das Dashboard darf diesen Platzhalter nicht als abgeschlossene Stage-Arbeit behandeln.",
+  "pipeline.handoff.admin_note": "Admin-Hinweis: Liefere echte Stage-Ausgabe, dokumentiere die Operator-Entscheidung oder überspringe explizit; der englische Originaltext bleibt für Audit verfügbar.",
+  "pipeline.handoff.question.output": "{persona}: Liefere die echte Ausgabe oder Operator-Entscheidung für Stage `{stage}`.",
+  "pipeline.handoff.question.decision": "Welche Entscheidung, welches Risiko und welches nächste Handoff sollen vor dem Fortfahren dokumentiert werden?",
   "role.user": "Benutzer"
 }

@@ -69,3 +69,34 @@ def test_error_learning_store_roundtrip(tmp_path: Path) -> None:
     exported = es.export_regression_cases(str(tmp_path / 'out'), component='claim_extractor')
     assert exported['ok'] is True
     assert exported['count'] == 1
+
+
+def test_error_learning_filters_treat_sql_metacharacters_as_values(tmp_path: Path) -> None:
+    db = tmp_path / 'errors.sqlite'
+    es = ErrorLearningStore(str(db))
+    run_id = es.start_run(component='claim_extractor', book_id='book:1')
+    err_id = es.add_error_event(
+        run_id=run_id,
+        component='claim_extractor',
+        error_type='missed_gold_claim',
+    )
+    corr_id = es.add_correction(
+        error_id=err_id,
+        corrected_by='tester',
+        correction_kind='expected_claim',
+        approved_for_eval=True,
+    )
+    es.promote_regression_case(
+        error_id=err_id,
+        source_correction_id=corr_id,
+        component='claim_extractor',
+        input_payload={'query': 'A01->B01'},
+        expected_payload={'text': 'From A01 follows B01'},
+        promoted_by='tester',
+    )
+
+    injected_component = "claim_extractor' OR 1=1 --"
+    assert es.list_errors(component=injected_component) == []
+    assert es.export_regression_cases(str(tmp_path / 'out'), component=injected_component)['count'] == 0
+    assert es.export_regression_cases(str(tmp_path / 'out2'), status="active' OR 1=1 --")['count'] == 0
+    assert es.list_errors(component='claim_extractor')[0]['error_id'] == err_id

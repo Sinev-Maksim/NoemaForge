@@ -311,3 +311,35 @@ P2:
 - [x] Add MCP adapter registry under zero-trust policy.
 - [x] Add A2A only as optional reviewed interoperability layer.
 - [x] Add PEFT/LoRA lab only after evaluation and rollback gates mature.
+
+## 0.33.0-dev remaining policy QA token index
+
+- roleflow-orchestration-core
+- baton payloads
+- runtime-default-safety-core
+- max_active_llms=1
+- selftest-event-store-core
+- noemaforge selftest events
+- selftest-rss-slope-core
+- noemaforge selftest stress
+- selftest-trend-dashboard-core
+- noemaforge selftest trend
+- Sense_Layer.Edge
+- sense-layer-edge-core
+- Sense_State / Privacy_Filter contract
+- sense-privacy-governance-core
+- Slop_Score / Critic_Stack contract
+- slop-critic-governance-core
+- task-workflow-core
+- task add/edit/prioritize/block/complete
+- Admin chat and API
+- telemetry-card-truthfulness-core
+- telemetry cards show hardware, runtime and product metrics without overstating creative-media quality
+- review-required creative-media policy
+- TinyML_Node
+- tinyml-node-core
+- wiki-patch-commit-helper-core
+- noemaforge wiki-patch commit-plan
+- share-automount-reboot-readiness-core
+- target-live-validation-readiness-core
+- blocked_by_external_target

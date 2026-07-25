@@ -56,6 +56,54 @@ from typing import Any
 
 import pytest
 
+
+def _install_nonposix_import_shims() -> None:
+    """Make Unix-only runtime symbols importable during collection off-target.
+
+    NoemaForge targets Debian and uses Unix-domain-socket IPC, so ``toolproxy``
+    defines ``ThreadedUnixServer(socketserver.ThreadingMixIn,
+    socketserver.UnixStreamServer)`` at module load. ``socketserver.UnixStreamServer``
+    does not exist on Windows, so importing ``toolproxy`` (which several test
+    modules do, directly or via ``discord_bridge``) raises ``AttributeError`` at
+    class-definition time and aborts broad collection. Installing a placeholder base
+    lets the class body execute so the module imports; it is never instantiated off
+    the Debian target.
+
+    Guarded behind ``os.name != "posix"`` so the Debian target keeps the real
+    ``socketserver.UnixStreamServer`` untouched. Run at conftest import time, before
+    any test module is imported (and before ``pytest_configure`` snapshots the
+    baseline), so the placeholder is in place the first time ``toolproxy`` is
+    imported. It is set as an attribute on the already-imported ``socketserver``
+    module, not as a ``sys.modules`` entry, so the baseline-restore in
+    ``pytest_collectstart`` / the autouse fixture never strips it.
+
+    A ``resource`` shim is intentionally NOT installed. ``toolproxy`` carried a dead
+    top-level ``import resource`` (removed in this change); every other importer
+    (``sandbox``, ``canary_runner``, ``selftest_runtime``) already wraps ``import
+    resource`` in ``try/except ImportError`` and degrades gracefully on Windows. A
+    ``sys.modules`` ``resource`` placeholder would defeat that fallback (the import
+    would succeed, leaving ``resource`` non-None but empty, so the first rlimit call
+    raises ``AttributeError`` and ``rlimits_available()`` wrongly returns True) — it
+    would regress, not help.
+    """
+    if os.name == "posix":
+        return
+    import socketserver
+
+    if not hasattr(socketserver, "UnixStreamServer"):
+        class _UnixStreamServerPlaceholder(socketserver.TCPServer):
+            """Off-target import-time stand-in for the Unix-only UnixStreamServer.
+
+            Exists only so subclassing succeeds during collection; never bound to a
+            socket on Windows (toolproxy serves over a Unix socket on Debian).
+            """
+
+        socketserver.UnixStreamServer = _UnixStreamServerPlaceholder  # type: ignore[attr-defined]
+
+
+_install_nonposix_import_shims()
+
+
 # Real runtime source tree. A module is "runtime-owned" when it was imported
 # from here; the test stubs that double these modules carry no __file__ at all.
 _SRC = (Path(__file__).resolve().parent.parent / "src").resolve()

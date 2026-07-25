@@ -93,7 +93,6 @@ import pathlib
 import socket
 import socketserver
 import subprocess
-import resource
 import sys
 import time
 import uuid
@@ -255,7 +254,7 @@ CFG_PATH = str(_pp.root / "configs/toolproxy.yaml")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 class UnixHTTPConnection(http.client.HTTPConnection):

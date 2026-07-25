@@ -40,20 +40,21 @@ if [[ -d /var/lib/noemaforge/model_scorecards ]]; then
       done
 fi
 
-cat > "$BASE/README.md" <<EOF2
-# NoemaForge firstboot baseline — $STAMP
-
+{
+  printf '# NoemaForge firstboot baseline — %s\n\n' "$STAMP"
+  cat <<'EOF2'
 This bundle captures the accepted degraded firstboot state for regression checks.
 It is safe to keep as local forensic/reference state and should not contain model weights.
 
 Important fields to inspect:
 
-- \`firstboot-status.json\`
-- \`firstboot-staffing-summary.json\`
-- \`role-tournament-results.json\`
-- \`role-candidate-map.json\`
-- \`model_registry.json\`
+- `firstboot-status.json`
+- `firstboot-staffing-summary.json`
+- `role-tournament-results.json`
+- `role-candidate-map.json`
+- `model_registry.json`
 EOF2
+} > "$BASE/README.md"
 
 (
   cd "$OUT_ROOT"

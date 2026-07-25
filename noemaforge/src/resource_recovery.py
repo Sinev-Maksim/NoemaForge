@@ -63,8 +63,7 @@ BASE = str(_pp.data_root)
 ROLE_WORKDIR = os.path.join(BASE, "roles", "work")
 TOKENS_DIR = os.path.join(BASE, "tokens")
 
-# Runtime sockets (backends expose /run/noemaforge/llm/backends/<id>.sock)
-BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
+BACKENDS_SOCK_DIR = str(_pp.llm_backends_dir)
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -83,7 +82,7 @@ BACKENDS_SOCK_DIR = "/run/noemaforge/llm/backends"
 # Returns / emits: float
 # === End NoemaForge Autodoc Function Header ===
 def _now() -> float:
-    return dt.datetime.utcnow().timestamp()
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).timestamp()
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -167,7 +166,7 @@ def _load_policy_enabled_backends() -> List[str]:
     paths = []
     if e_dir:
         paths.append(os.path.join(e_dir, "llm-backends-policy.yaml"))
-    paths.append("/opt/noemaforge/configs/llm-backends-policy.yaml")
+    paths.append(str(_pp.root / "configs" / "llm-backends-policy.yaml"))
 
     try:
         import yaml

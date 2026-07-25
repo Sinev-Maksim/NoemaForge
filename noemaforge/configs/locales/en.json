@@ -52,5 +52,17 @@
   "depth.until_stop": "until stop",
   "pipeline.new": "+ New pipeline",
   "pipeline.search": "Search pipeline...",
+  "message.original": "Original English",
+  "admin.reply.smalltalk": "I am here. NoemaForge is running locally: I can chat, open Dev Team, prepare model evolution, or show epoch status.",
+  "admin.reply.model_selection_ready": "Model-selection mode selected: {mode}. Scope: {scope}. Selection plan is ready; candidates, decision and rollback plan are attached. Epoch is NOT applied without separate approve/apply.",
+  "admin.reply.model_evolution_ready": "Measured model-evolution cycle is ready. Artifacts: baseline snapshot, mutation plan, candidate profile, scorecard and rollback plan. Production weights were not changed automatically.",
+  "pipeline.run.started": "Starting pipeline {pipeline_id} with the standard scenario. Run: {run_id}.",
+  "pipeline.clarification.forwarded": "Clarification accepted for pipeline {pipeline_id} and forwarded to run {run_id}: {text}",
+  "pipeline.clarification.failed": "Failed to forward clarification to pipeline {pipeline_id} / run {run_id}: {error}",
+  "pipeline.clarification.question": "Clarify the parameters required to continue the pipeline.",
+  "pipeline.handoff.message": "{persona} handoff required for `{stage}`: {reason}. The dashboard must not treat this placeholder as completed stage work.",
+  "pipeline.handoff.admin_note": "Admin note: provide a real stage output, record the operator decision, or skip explicitly; original English text remains available for audit.",
+  "pipeline.handoff.question.output": "{persona}: provide the real output or operator decision for stage `{stage}`.",
+  "pipeline.handoff.question.decision": "What decision, risk, and next handoff should be recorded before continuing?",
   "role.user": "User"
 }

@@ -106,7 +106,7 @@ OUTBOX_NOTIF = "/workspace/outbox/notifications/daily_audit"
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -311,7 +311,7 @@ def _open_incident(*, day: str, check_id: str, tz: str, missing: List[str], in_p
 #   - out_dir, p, safe_to, ts
 # === End NoemaForge Autodoc Function Header ===
 def _create_packet(*, to_role: str, payload: Dict[str, Any]) -> str:
-    ts = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y%m%dT%H%M%SZ")
     safe_to = (to_role or "").strip().lower()
     if safe_to == "surgeon":
         out_dir = PACKETS_SURGEON

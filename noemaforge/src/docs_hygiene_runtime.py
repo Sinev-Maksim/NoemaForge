@@ -45,6 +45,7 @@ SKIPPED_DIR_NAMES = {
     ".cursor",
     ".git",
     ".hg",
+    ".noemaforge-agent-tasks",
     ".mypy_cache",
     ".pytest_cache",
     ".ruff_cache",

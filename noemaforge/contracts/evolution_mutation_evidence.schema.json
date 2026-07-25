@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://noemaforge.dev/contracts/evolution_mutation_evidence.schema.json",
+  "title": "NoemaForge Evolution Mutation Evidence",
+  "type": "object",
+  "required": ["apiVersion", "kind", "evidence_id", "run_id", "work_item_id", "created_at", "provenance", "mutation_mode", "runtime_neutral", "reference_source_policy", "artifacts"],
+  "properties": {
+    "apiVersion": { "const": "noemaforge.evolution-execution/v1" },
+    "kind": { "const": "EvolutionMutationEvidence" },
+    "evidence_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "work_item_id": { "type": "string", "minLength": 1 },
+    "created_at": { "type": "string", "minLength": 1 },
+    "provenance": { "const": "UAT request findings resolution" },
+    "mutation_mode": { "enum": ["dry_run", "patch_plan", "toolproxy_approved"] },
+    "runtime_neutral": { "const": true },
+    "reference_source_policy": {
+      "type": "object",
+      "required": ["imported_reference_source", "shipped_reference_runtime", "source_sample_disposition"],
+      "properties": {
+        "imported_reference_source": { "const": false },
+        "shipped_reference_runtime": { "const": false },
+        "source_sample_disposition": { "const": "local_only_not_shipped" }
+      },
+      "additionalProperties": false
+    },
+    "artifacts": { "type": "array", "items": { "type": "string" } }
+  },
+  "additionalProperties": false
+}

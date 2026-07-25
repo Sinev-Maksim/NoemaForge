@@ -14,6 +14,8 @@ Tests: py -3 -m unittest noemaforge/tests/test_pipeline_progress_d007.py -v
 """
 import re
 import sys
+import tempfile
+import threading
 import types
 import unittest
 from pathlib import Path
@@ -39,7 +41,7 @@ def _load_server():
         "_platform_paths": types.ModuleType("_platform_paths"),
     }
     stubs["production_ai_contracts"].new_trace_id = lambda *a, **kw: "stub-trace"
-    stubs["noemaforge_version"].RUNTIME_VERSION = "0.33.0-test"
+    stubs["noemaforge_version"].__dict__["RUNTIME_VERSION"] = "0.33.0-test"
 
     class _FakePaths:
         root = Path(".")
@@ -80,9 +82,15 @@ class TestPipelineRunStatusMethod(unittest.TestCase):
     def setUpClass(cls):
         import os
         cls.srv = object.__new__(AdminGuiServer)
+        cls._tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(cls._tmp.cleanup)
         cls.srv.root = Path(".")
         cls.srv.state = Path(".")
+        cls.srv.gui_state_dir = Path(cls._tmp.name)
+        cls.srv.bootstrap_dir = Path(cls._tmp.name)
+        cls.srv.review_dir = Path(cls._tmp.name) / "reviews"
         cls.srv.persona_state = Path(".")
+        cls.srv._conv_lock = threading.RLock()
         cls.srv.env = lambda locale="": dict(os.environ, NOEMAFORGE_ROOT=".", NOEMAFORGE_PIPELINE_STATE=".")
 
     def test_method_exists(self):
@@ -209,6 +217,12 @@ class TestRenderPipelineRunPanelExists(unittest.TestCase):
         body = m.group(1)
         self.assertIn("pipelineById", body)
         self.assertIn("stages", body)
+
+    def test_render_reads_pipeline_id_from_stdout(self):
+        m = re.search(r'function renderPipelineRunPanel\(result\)\s*\{(.+?)\n\}', self.src, re.DOTALL)
+        self.assertIsNotNone(m)
+        body = m.group(1)
+        self.assertIn("stdout.pipeline_id", body)
 
     def test_render_creates_stage_list(self):
         m = re.search(r'function renderPipelineRunPanel\(result\)\s*\{(.+?)\n\}', self.src, re.DOTALL)

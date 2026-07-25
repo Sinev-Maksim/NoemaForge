@@ -42,6 +42,10 @@ jobs:
           persist-credentials: false
 
       # Scan only source languages present in the repository with pinned local rules.
+      # The django subprocess-injection rule stays ACTIVE repo-wide so real injections
+      # are caught. Its one historical hit (uat_runtime.py) is fixed at the source —
+      # pipeline_id is regex-validated to a safe token before subprocess.run — with a
+      # single scoped inline `# nosemgrep` at that line, instead of killing the rule.
       - name: Run Semgrep CE
         run: >-
           semgrep scan

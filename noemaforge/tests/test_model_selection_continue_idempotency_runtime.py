@@ -58,13 +58,32 @@ class ModelSelectionContinueIdempotencyRuntimeTests(unittest.TestCase):
         job = sequence["final_jobs"]["jobs"][0]
 
         self.assertEqual("needs_privilege", job["status"])
+        self.assertEqual("plan_only", job["action_state"])
+        self.assertEqual("operator_approved_run_required", job["next_action"])
         self.assertEqual("model-selection-continue:full_composite:4", job["idempotency_key"])
         self.assertEqual("preserve_display_manager", job["display_policy"])
         self.assertIn("--dry-run", job["safe_command"])
         self.assertIn("--keep-display", job["safe_command"])
         self.assertIn("--show-candidates", job["safe_command"])
         self.assertIn("real_command_requires_operator_terminal", job)
+        self.assertIn("--keep-display", job["next_action_command"])
         self.assertTrue(any(item["type"] == "model_selection_continue" for item in job["artifacts"]))
+
+    def test_continue_transition_payload_names_plan_only_state(self) -> None:
+        sequence = msci.build_continue_idempotency_sequence(package_root=ROOT)
+        payload = sequence["first"]["transition_payload"]
+
+        self.assertEqual("normal_mode_recovery", payload["kind"])
+        self.assertEqual("plan_only", payload["state"])
+        self.assertFalse(payload["started"])
+        self.assertFalse(payload["running"])
+        self.assertFalse(payload["completed"])
+        self.assertEqual("operator_approved_run_required", payload["next_action"])
+        self.assertIn("--dry-run", payload["safe_command"])
+        self.assertNotIn("--dry-run", payload["run_command"])
+        self.assertIn("--keep-display", payload["run_command"])
+        self.assertEqual("not_started", payload["terminal_result"]["state"])
+        self.assertEqual("preserve_display_manager", payload["display_policy"])
 
 
 if __name__ == "__main__":

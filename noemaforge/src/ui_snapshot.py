@@ -95,6 +95,38 @@ except Exception:  # pragma: no cover
 
 
 SCHEMA = "noemaforge.ui.snapshot/v1"
+TASK_ORDER_SQL = {
+    "created_desc": "created_at DESC",
+    "priority_created": "prio_index ASC, created_at ASC",
+    "updated_desc": "updated_at DESC",
+    "claimed_created_desc": "claimed_at DESC, created_at DESC",
+}
+
+TASK_ORDER_KEY_BY_SQL = {sql: key for key, sql in TASK_ORDER_SQL.items()}
+TASK_FETCH_QUERIES = {
+    key: f"""
+            SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
+                   module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
+            FROM tasks
+            WHERE status=?
+            ORDER BY {order_sql}
+            LIMIT ?
+            """
+    for key, order_sql in TASK_ORDER_SQL.items()
+}
+
+
+def _task_order_key(order_key: str) -> str:
+    key = str(order_key or "").strip()
+    if key in TASK_ORDER_SQL:
+        return key
+    if key in TASK_ORDER_KEY_BY_SQL:
+        return TASK_ORDER_KEY_BY_SQL[key]
+    raise ValueError("unsupported_task_order")
+
+
+def _task_order_sql(order_key: str) -> str:
+    return TASK_ORDER_SQL[_task_order_key(order_key)]
 
 # Inbox snapshot caching: avoid rescanning inbox trees on every UI poll.
 INBOX_CACHE_TTL_SEC = float(os.environ.get("NOEMAFORGE_INBOX_CACHE_TTL_SEC", "10"))
@@ -120,7 +152,7 @@ _INBOX_CACHE: Dict[str, Any] = {"ts": 0.0, "state_root": "", "data": None}
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -467,16 +499,13 @@ def _tq_pick_fields(r: sqlite3.Row) -> Dict[str, Any]:
 # === End NoemaForge Autodoc Function Header ===
 def _tq_fetch(con: sqlite3.Connection, *, status: str, limit: int, order_sql: str) -> List[Dict[str, Any]]:
     try:
+        order_key = _task_order_key(order_sql)
         rows = con.execute(
-            f"""
-            SELECT task_id, created_at, updated_at, domain, priority_class, prio_index, status, kind,
-                   module, title, group_key, repeats, attempts, claimed_by, claimed_at, lease_until, last_error
-            FROM tasks
-            WHERE status=?
-            ORDER BY {order_sql}
-            LIMIT ?
-            """,
-            (status.upper(), max(1, int(limit))),
+            TASK_FETCH_QUERIES[order_key],
+            (
+                status.upper(),
+                max(1, int(limit)),
+            ),
         ).fetchall()
         return [_tq_pick_fields(r) for r in rows]
     except Exception:
@@ -512,10 +541,10 @@ def load_taskqueue(db_path: str) -> Dict[str, Any]:
         }
     try:
         summary = _tq_summary(con)
-        current = _tq_fetch(con, status="IN_PROGRESS", limit=5, order_sql="claimed_at DESC, created_at DESC")
-        next_tasks = _tq_fetch(con, status="TODO", limit=20, order_sql="prio_index ASC, created_at ASC")
-        recent_done = _tq_fetch(con, status="DONE", limit=20, order_sql="updated_at DESC")
-        deadletters = _tq_fetch(con, status="DEADLETTER", limit=20, order_sql="updated_at DESC")
+        current = _tq_fetch(con, status="IN_PROGRESS", limit=5, order_sql="claimed_created_desc")
+        next_tasks = _tq_fetch(con, status="TODO", limit=20, order_sql="priority_created")
+        recent_done = _tq_fetch(con, status="DONE", limit=20, order_sql="updated_desc")
+        deadletters = _tq_fetch(con, status="DEADLETTER", limit=20, order_sql="updated_desc")
         return {
             "db_path": db_path,
             "available": True,
@@ -836,7 +865,7 @@ def load_telemetry(llm_calls_path: str, limit: int = 50) -> Dict[str, Any]:
 # === End NoemaForge Autodoc Function Header ===
 def _iso_ts(ts: float) -> str:
     try:
-        return dt.datetime.utcfromtimestamp(float(ts)).isoformat() + "Z"
+        return dt.datetime.fromtimestamp(float(ts), dt.UTC).replace(tzinfo=None).isoformat() + "Z"
     except Exception:
         return ""
 

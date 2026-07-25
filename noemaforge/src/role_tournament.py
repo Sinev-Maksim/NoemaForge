@@ -647,6 +647,104 @@ def write_modelstore_manifest(modelstore_root: str, model: Dict[str, Any], model
     return {"model_id": model_id, "manifest": str(target / "manifest.yaml"), "source": source}
 
 
+def preflight_modelstore_staging(modelstore_root: str) -> Dict[str, Any]:
+    models_dir = Path(modelstore_root) / "models"
+    probe_name = f".noemaforge-stage-preflight-{os.getpid()}-{time.time_ns()}"
+    probe_dir = models_dir / probe_name
+    manifest_path = probe_dir / "manifest.yaml"
+    link_path = probe_dir / "model.gguf"
+    cleanup_errors: List[str] = []
+    failure_doc: Optional[Dict[str, Any]] = None
+    try:
+        models_dir.mkdir(parents=True, exist_ok=True)
+        probe_dir.mkdir(mode=0o770)
+        os.symlink("preflight-placeholder.gguf", str(link_path))
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            f.write("apiVersion: noemaforge.model/v1\nkind: ModelArtifact\npreflight: true\n")
+    except Exception as e:
+        failure_doc = {
+            "apiVersion": "noemaforge.modelstore/v1",
+            "kind": "ModelStoreStagingPreflight",
+            "ok": False,
+            "modelstore_root": str(modelstore_root),
+            "models_dir": str(models_dir),
+            "probe_dir": str(probe_dir),
+            "reason": f"{type(e).__name__}: {e}",
+            "message": "Current user cannot stage ModelStore model directories required by live role tournament.",
+            "expected": {
+                "models_dir": "writable and searchable by the operator or NoemaForge service user",
+                "staging_operations": ["mkdir model dir", "create model.gguf symlink", "write manifest.yaml"],
+                "typical_path": "/var/lib/modelstore/models/<model_id>/",
+            },
+            "operator_actions": [
+                "Run the approved first-start or tournament command as the service user/group that owns ModelStore.",
+                "When elevation is required for model selection, preserve the graphical session with the approved --keep-display path.",
+                "Repair /var/lib/modelstore ownership or group write/search permissions before rerunning live mode.",
+            ],
+        }
+        try:
+            st = models_dir.stat()
+            failure_doc["models_dir_stat"] = {"mode_octal": oct(st.st_mode & 0o7777), "uid": st.st_uid, "gid": st.st_gid}
+        except Exception:
+            pass
+    finally:
+        for path in (link_path, manifest_path):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                pass
+            except Exception as cleanup_error:
+                cleanup_errors.append(f"{path}:{cleanup_error!r}")
+        try:
+            probe_dir.rmdir()
+        except FileNotFoundError:
+            pass
+        except Exception as cleanup_error:
+            cleanup_errors.append(f"{probe_dir}:{cleanup_error!r}")
+    if failure_doc is not None:
+        failure_doc["cleanup_errors"] = cleanup_errors
+        return failure_doc
+    if cleanup_errors:
+        return {
+            "apiVersion": "noemaforge.modelstore/v1",
+            "kind": "ModelStoreStagingPreflight",
+            "ok": False,
+            "modelstore_root": str(modelstore_root),
+            "models_dir": str(models_dir),
+            "probe_dir": str(probe_dir),
+            "checked": ["mkdir_model_dir", "create_model_symlink", "write_manifest"],
+            "cleanup_errors": cleanup_errors,
+            "reason": "cleanup_probe_dir_failed",
+            "message": "ModelStore staging preflight created probe artifacts but could not clean them completely.",
+            "operator_actions": [
+                "Inspect and remove the reported preflight probe artifacts before rerunning live role tournament.",
+                "Repair ModelStore ownership or permissions so the operator or NoemaForge service user can clean staging probes.",
+            ],
+        }
+    return {
+        "apiVersion": "noemaforge.modelstore/v1",
+        "kind": "ModelStoreStagingPreflight",
+        "ok": True,
+        "modelstore_root": str(modelstore_root),
+        "models_dir": str(models_dir),
+        "probe_dir": str(probe_dir),
+        "checked": ["mkdir_model_dir", "create_model_symlink", "write_manifest", "cleanup_probe_dir"],
+        "cleanup_errors": cleanup_errors,
+    }
+
+
+def _write_modelstore_staging_preflight_failure(state_dir: str, preflight: Dict[str, Any]) -> None:
+    write_json(os.path.join(state_dir, "modelstore-staging-preflight.json"), preflight)
+    emit_progress(
+        state_dir,
+        phase="modelstore_staging_preflight_failed",
+        modelstore_root=preflight.get("modelstore_root"),
+        models_dir=preflight.get("models_dir"),
+        reason=preflight.get("reason"),
+        score="n/a",
+    )
+
+
 def wait_socket(sock: str, timeout_sec: int = 90) -> bool:
     deadline = time.time() + timeout_sec
     while time.time() < deadline:
@@ -665,6 +763,15 @@ def stat_is_socket(path: str) -> bool:
 
 
 def systemctl(*args: str) -> int:
+    """Run ``systemctl <args>`` and return its exit code.
+
+    systemd is a Linux-production surface (the LLM backends run as systemd units).
+    Delegates to the ``service_manager`` cross-platform abstraction, which
+    returns ``SERVICE_MANAGER_UNAVAILABLE`` (127) instead of raising when
+    systemctl is absent, so the start/stop/kill backend flows degrade
+    gracefully rather than crash off Linux (0.33.1 service management;
+    Codex #34).
+    """
     return _svcmgr.call(*args)
 
 
@@ -1019,7 +1126,13 @@ def run_tournament(
     matrix = build_eligibility(inventory, roles)
     os.makedirs(state_dir, exist_ok=True)
     # Reset streaming progress artifacts at the beginning of each run.
-    stale_files = ["role-tournament-progress.json", "role-tournament-progress.jsonl", "model-run-records.json", "role-candidate-map.filtered.json"]
+    stale_files = [
+        "role-tournament-progress.json",
+        "role-tournament-progress.jsonl",
+        "model-run-records.json",
+        "role-candidate-map.filtered.json",
+        "modelstore-staging-preflight.json",
+    ]
     if _env_bool("NOEMAFORGE_TOURNAMENT_CLEAR_MODEL_HEALTH", False):
         stale_files.extend(["model-health-registry.json", "model-exclusion-list.json", "model-failure-report.json"])
     for stale_name in stale_files:
@@ -1045,7 +1158,7 @@ def run_tournament(
         for role_key, rec in matrix.get("roles", {}).items():
             role_results[role_key]["blocked"] = [m for m in rec.get("models") or [] if not m.get("runnable_now")]
             role_results[role_key]["probe_only"] = True
-        return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+        return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
 
     # Evaluate model once, then run every eligible role-specific pack while it is loaded.
     models_by_id = {str(m.get("model_id") or ""): m for m in inventory.get("models") or []}
@@ -1056,6 +1169,21 @@ def run_tournament(
             runnable_ids.append(mid)
     # Stable order from inventory, not by size. This ensures size is not a rank signal.
     ordered = [str(m.get("model_id") or "") for m in inventory.get("models") or [] if str(m.get("model_id") or "") in runnable_ids]
+    if ordered:
+        modelstore_preflight = preflight_modelstore_staging(modelstore_root)
+        write_json(os.path.join(state_dir, "modelstore-staging-preflight.json"), modelstore_preflight)
+        if not modelstore_preflight.get("ok"):
+            _write_modelstore_staging_preflight_failure(state_dir, modelstore_preflight)
+            model_run_records.append({
+                "model_id": "__modelstore_staging_preflight__",
+                "logical_model_id": "__modelstore_staging_preflight__",
+                "started": False,
+                "candidate_iteration_started": False,
+                "reason": "modelstore_staging_preflight_failed",
+                "preflight": os.path.join(state_dir, "modelstore-staging-preflight.json"),
+            })
+            persist_model_run_records(state_dir, model_run_records)
+            return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
     for model_index, mid in enumerate(ordered, start=1):
         if time.time() >= total_deadline:
             emit_progress(state_dir, phase="total_timeout", selection_mode=selection_mode, processed_models=len(model_run_records), total_models=len(ordered))
@@ -1200,10 +1328,10 @@ def run_tournament(
             break
         if selection_mode == "normal" and all_roles_have_required_candidates(role_results):
             break
-    return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n)
+    return finalize_results(inventory, role_results, model_run_records, state_dir, selection_mode=selection_mode, composite_top_n=composite_top_n, runtime_mode=runtime_mode)
 
 
-def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], model_run_records: List[Dict[str, Any]], state_dir: str, *, selection_mode: str = "normal", composite_top_n: int = -1) -> Dict[str, Any]:
+def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], model_run_records: List[Dict[str, Any]], state_dir: str, *, selection_mode: str = "normal", composite_top_n: int = -1, runtime_mode: str = "probe") -> Dict[str, Any]:
     shortlists_dir = os.path.join(state_dir, "role-shortlists")
     os.makedirs(shortlists_dir, exist_ok=True)
     health_registry = _load_model_health_registry(state_dir)
@@ -1231,7 +1359,16 @@ def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], mo
     role_candidate_map["unique_selected_model_ids"] = unique
     if not unique:
         infra_failure_path = os.path.join(state_dir, "runtime-infrastructure-failure.json")
-        if os.path.exists(infra_failure_path):
+        modelstore_preflight_path = os.path.join(state_dir, "modelstore-staging-preflight.json")
+        modelstore_preflight_failed = False
+        if os.path.exists(modelstore_preflight_path):
+            try:
+                modelstore_preflight_failed = not bool(load_json(modelstore_preflight_path).get("ok"))
+            except Exception:
+                modelstore_preflight_failed = True
+        if modelstore_preflight_failed:
+            role_candidate_map["selection_diagnostics"]["no_candidates_reason"] = "modelstore_staging_preflight_failed"
+        elif os.path.exists(infra_failure_path):
             role_candidate_map["selection_diagnostics"]["no_candidates_reason"] = "runtime_infrastructure_failed"
         elif excluded_models:
             role_candidate_map["selection_diagnostics"]["no_candidates_reason"] = "no_candidates_after_failed_model_filter"
@@ -1256,13 +1393,16 @@ def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], mo
             "full_composite": "evaluate all runnable models and produce composition plan from top N candidates",
         },
         "inventory_summary": inventory.get("summary") or {},
-        "runtime_mode": "run" if model_run_records else "probe",
+        "runtime_mode": runtime_mode,
         "model_run_records": model_run_records,
         "roles": role_results,
         "role_shortlists_dir": shortlists_dir,
         "role_candidate_map": os.path.join(state_dir, "role-candidate-map.json"),
         "composite_selection_plan": os.path.join(state_dir, "composite-selection-plan.json") if composite_plan else None,
     }
+    modelstore_preflight_path = os.path.join(state_dir, "modelstore-staging-preflight.json")
+    if os.path.exists(modelstore_preflight_path):
+        result_doc["modelstore_staging_preflight"] = modelstore_preflight_path
     write_json(os.path.join(state_dir, "role-candidate-map.json"), role_candidate_map)
     write_json(os.path.join(state_dir, "role-candidate-map.filtered.json"), role_candidate_map)
     emit_progress(state_dir, phase="candidate_map_filtered", excluded_model_count=len(excluded_models), selected_models=len(unique), score="n/a")
@@ -1275,6 +1415,19 @@ def finalize_results(inventory: Dict[str, Any], role_results: Dict[str, Any], mo
         for mid in unique:
             f.write(mid + "\n")
     return result_doc
+
+
+def _is_critical_runtime_role(role_key: str) -> bool:
+    lowered = str(role_key or "").lower()
+    return "llm" in lowered or "admin" in lowered or "dev" in lowered
+
+
+def _selected_critical_runtime_models(doc: Dict[str, Any]) -> int:
+    return sum(
+        len((role_doc.get("selected") or []))
+        for role_key, role_doc in (doc.get("roles") or {}).items()
+        if _is_critical_runtime_role(str(role_key))
+    )
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -1327,12 +1480,34 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
     if args.cmd == "run":
         doc = run_tournament(inv, catalog, pack_root=args.pack_root, state_dir=args.state_dir, modelstore_root=args.modelstore_root, scorecards_dir=args.scorecards_dir, runtime_mode=args.runtime_mode, role_filter=args.role, selection_mode=args.selection_mode, composite_top_n=args.composite_top_n)
-        print(json.dumps({"ok": True, "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {})}, ensure_ascii=False, indent=2))
         # In actual run mode fail early when no role got any selected model. Specialized runtime-missing roles can remain empty;
         # the critical check is at least one LLM/admin/dev role selected.
         if args.runtime_mode == "run":
-            selected_total = sum(len((r.get("selected") or [])) for r in (doc.get("roles") or {}).values())
-            return 0 if selected_total > 0 else 73
+            selected_total = _selected_critical_runtime_models(doc)
+            preflight_path = os.path.join(args.state_dir, "modelstore-staging-preflight.json")
+            preflight: Dict[str, Any] = {}
+            if os.path.exists(preflight_path):
+                try:
+                    preflight = load_json(preflight_path)
+                except Exception:
+                    preflight = {}
+            if selected_total <= 0:
+                if preflight and not preflight.get("ok"):
+                    print(json.dumps({
+                        "ok": False,
+                        "error": "modelstore_staging_preflight_failed",
+                        "message": preflight.get("message"),
+                        "reason": preflight.get("reason"),
+                        "preflight": preflight_path,
+                        "results": os.path.join(args.state_dir, "role-tournament-results.json"),
+                    }, ensure_ascii=False, indent=2))
+                else:
+                    print(json.dumps({"ok": False, "error": "no_selected_critical_models", "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {}), "critical_selected_models": selected_total}, ensure_ascii=False, indent=2))
+                return 73
+        payload = {"ok": True, "results": os.path.join(args.state_dir, "role-tournament-results.json"), "roles": len(doc.get("roles") or {})}
+        if doc.get("modelstore_staging_preflight"):
+            payload["modelstore_staging_preflight"] = doc.get("modelstore_staging_preflight")
+        print(json.dumps(payload, ensure_ascii=False, indent=2))
         return 0
     return 2
 

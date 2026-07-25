@@ -1,0 +1,151 @@
+{
+  "apiVersion": "noemaforge.evolution-execution/v1",
+  "kind": "EvolutionExecutionContractExampleSet",
+  "provenance": "UAT request findings resolution",
+  "examples": {
+    "EvolutionRun": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionRun",
+      "run_id": "evo-run-266-local-contract",
+      "created_at": "2026-07-18T19:30:00Z",
+      "provenance": "UAT request findings resolution",
+      "runtime_neutral": true,
+      "external_reference_policy": {
+        "source_samples_local_only": true,
+        "reference_runtime_shipped": false
+      },
+      "safety_invariants": {
+        "single_active_heavy_llm": true,
+        "explicit_operator_approval": true,
+        "toolproxy_capability_boundary": true,
+        "contract_epochs_runtime_immutable": true,
+        "no_hidden_llm_media_camera_microphone_gpu_autostart": true
+      },
+      "work_items": ["evo-work-266-contracts"],
+      "resource_leases": ["evo-lease-266-heavy-llm"],
+      "events": ["evo-event-266-created"],
+      "agent_requests": ["evo-request-266-review"],
+      "agent_results": ["evo-result-266-review"],
+      "mutation_evidence": ["evo-mutation-266-contracts"],
+      "review_evidence": ["evo-review-266-codex"],
+      "release_gate_results": ["evo-gate-266-automated"]
+    },
+    "EvolutionWorkItem": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionWorkItem",
+      "work_item_id": "evo-work-266-contracts",
+      "run_id": "evo-run-266-local-contract",
+      "status": "completed",
+      "provenance": "UAT request findings resolution",
+      "objective": "Define runtime-neutral NF-native Evolution execution contracts.",
+      "requires_operator_approval": true,
+      "toolproxy_required": true,
+      "allowed_actions": ["schema_validation", "example_validation", "unit_test"],
+      "forbidden_actions": ["process_launch", "github_mutation", "model_invocation", "service_mutation"]
+    },
+    "EvolutionEvent": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionEvent",
+      "event_id": "evo-event-266-created",
+      "run_id": "evo-run-266-local-contract",
+      "work_item_id": "evo-work-266-contracts",
+      "created_at": "2026-07-18T19:31:00Z",
+      "provenance": "UAT request findings resolution",
+      "event_type": "created",
+      "severity": "info",
+      "message": "Runtime-neutral contract validation started.",
+      "evidence_ref": "prelaunch/governance/evolution_execution_contracts.example.json"
+    },
+    "EvolutionAgentRequest": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionAgentRequest",
+      "request_id": "evo-request-266-review",
+      "run_id": "evo-run-266-local-contract",
+      "work_item_id": "evo-work-266-contracts",
+      "created_at": "2026-07-18T19:32:00Z",
+      "provenance": "UAT request findings resolution",
+      "agent_role": "independent_reviewer",
+      "capability_token_ref": "capability-token:evolution-contract-review:local-only",
+      "toolproxy_required": true,
+      "approval_required": true,
+      "requested_actions": ["review_schema_contracts", "run_focused_tests"],
+      "forbidden_actions": ["start_model_worker", "push_branch", "apply_service_change"]
+    },
+    "EvolutionAgentResult": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionAgentResult",
+      "result_id": "evo-result-266-review",
+      "request_id": "evo-request-266-review",
+      "run_id": "evo-run-266-local-contract",
+      "created_at": "2026-07-18T19:35:00Z",
+      "provenance": "UAT request findings resolution",
+      "agent_role": "independent_reviewer",
+      "status": "succeeded",
+      "artifacts": ["prelaunch/governance/evolution_execution_contracts.example.json"],
+      "machine_readable_result": {
+        "decision": "pass",
+        "blocking_findings": 0
+      }
+    },
+    "EvolutionResourceLease": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionResourceLease",
+      "lease_id": "evo-lease-266-heavy-llm",
+      "run_id": "evo-run-266-local-contract",
+      "created_at": "2026-07-18T19:33:00Z",
+      "provenance": "UAT request findings resolution",
+      "resource_kind": "heavy_llm",
+      "exclusive": true,
+      "approval_required": true,
+      "one_active_heavy_worker_limit": true,
+      "expires_at": "2026-07-19T19:33:00Z"
+    },
+    "EvolutionMutationEvidence": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionMutationEvidence",
+      "evidence_id": "evo-mutation-266-contracts",
+      "run_id": "evo-run-266-local-contract",
+      "work_item_id": "evo-work-266-contracts",
+      "created_at": "2026-07-18T19:34:00Z",
+      "provenance": "UAT request findings resolution",
+      "mutation_mode": "patch_plan",
+      "runtime_neutral": true,
+      "reference_source_policy": {
+        "imported_reference_source": false,
+        "shipped_reference_runtime": false,
+        "source_sample_disposition": "local_only_not_shipped"
+      },
+      "artifacts": ["noemaforge/contracts/evolution_run.schema.json"]
+    },
+    "EvolutionIndependentReviewEvidence": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionIndependentReviewEvidence",
+      "review_id": "evo-review-266-codex",
+      "run_id": "evo-run-266-local-contract",
+      "work_item_id": "evo-work-266-contracts",
+      "created_at": "2026-07-18T19:36:00Z",
+      "provenance": "UAT request findings resolution",
+      "producer_agent_id": "claude-producer",
+      "reviewer_agent_id": "codex-reviewer",
+      "reviewed_head": "aaa5137a0f3370fe4ce61503b9cde14004621f35",
+      "target_head": "aaa5137a0f3370fe4ce61503b9cde14004621f35",
+      "fresh_until": "2099-01-01T00:00:00Z",
+      "decision": "pass",
+      "findings": []
+    },
+    "EvolutionReleaseGateResult": {
+      "apiVersion": "noemaforge.evolution-execution/v1",
+      "kind": "EvolutionReleaseGateResult",
+      "gate_id": "evo-gate-266-automated",
+      "run_id": "evo-run-266-local-contract",
+      "created_at": "2026-07-18T19:37:00Z",
+      "provenance": "UAT request findings resolution",
+      "gate_type": "automated",
+      "status": "passed",
+      "manual_marker": "",
+      "operator_approved": false,
+      "evidence_refs": ["noemaforge/tests/test_evolution_execution_contracts_runtime.py"],
+      "failures": []
+    }
+  }
+}

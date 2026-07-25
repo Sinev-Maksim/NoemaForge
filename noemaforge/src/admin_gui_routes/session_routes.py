@@ -52,6 +52,10 @@ def persona_catalog(handler: Any) -> None:
     handler._send_json(handler.server.persona_catalog_api())
 
 
+def persona_rules(handler: Any) -> None:
+    handler._send_json(handler.server.persona_rules())
+
+
 # --- POST handlers ---------------------------------------------------------------
 def persona_switch(handler: Any, body: Dict[str, Any]) -> None:
     name = str(body.get("name") or "Admin")
@@ -72,6 +76,8 @@ def admin_message(handler: Any, body: Dict[str, Any]) -> None:
         max_steps=int(body.get("max_steps") or 0),
         time_budget_minutes=int(body.get("time_budget_minutes") or 0),
         until_stop=bool(body.get("until_stop", False)),
+        run_mode=str(body.get("run_mode") or ""),
+        composite_top_n=int(body.get("composite_top_n") or 0),
     ))
 
 
@@ -107,6 +113,7 @@ def get_routes() -> Dict[str, Any]:
         "/api/inactivity/status": inactivity_status,
         "/api/persona/current": persona_current,
         "/api/persona/catalog": persona_catalog,
+        "/api/persona/rules": persona_rules,
     }
 
 

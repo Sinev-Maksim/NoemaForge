@@ -18,6 +18,8 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'src'))
 import pipeline_runtime
 
@@ -25,6 +27,9 @@ import pipeline_runtime
 def test_public_mwp_pipeline_lifecycle(tmp_path, capsys, monkeypatch):
     root = Path(__file__).resolve().parents[1]
     state = tmp_path / 'state'
+    staffing = tmp_path / 'firstboot-staffing-summary.json'
+    staffing.write_text(json.dumps({'staffing_state': 'complete'}), encoding='utf-8')
+    monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
     pipeline_runtime.main(['--root', str(root), '--state', str(state), 'validate'])
     validate = json.loads(capsys.readouterr().out)
     assert validate['ok'] is True
@@ -64,3 +69,46 @@ def test_public_mwp_pipeline_lifecycle(tmp_path, capsys, monkeypatch):
     assert exported['ok'] is True
     assert archive.exists()
     assert archive.with_suffix(archive.suffix + '.sha256').exists()
+
+
+def test_validate_accepts_json_flag_and_media_team_resolves(tmp_path, capsys):
+    root = Path(__file__).resolve().parents[1]
+    state = tmp_path / 'state'
+    pipeline_runtime.main(['--root', str(root), '--state', str(state), 'validate', '--json'])
+    validate = json.loads(capsys.readouterr().out)
+    assert validate['ok'] is True
+    assert validate['pipeline_count'] >= 100
+    assert not [p for p in validate['problems'] if 'media_team' in p]
+
+
+def test_degraded_selected_blocks_without_explicit_override_and_allows_smoke_override(tmp_path, capsys, monkeypatch):
+    root = Path(__file__).resolve().parents[1]
+    state = tmp_path / 'state'
+    staffing = tmp_path / 'firstboot-staffing-summary.json'
+    staffing.write_text(json.dumps({'staffing_state': 'degraded_selected'}), encoding='utf-8')
+    monkeypatch.setenv('NOEMAFORGE_FIRSTBOOT_STAFFING_SUMMARY', str(staffing))
+
+    pipeline_runtime.main([
+        '--root', str(root), '--state', str(state),
+        'run', 'public_mwp', '--task-id', 'pytest', '--request', 'smoke', '--allow-degraded',
+    ])
+    created = json.loads(capsys.readouterr().out)
+    run_id = created['run_id']
+
+    with pytest.raises(SystemExit) as exc_info:
+        pipeline_runtime.main(['--root', str(root), '--state', str(state), 'approve', run_id])
+    assert exc_info.value.code == 3
+    blocked = json.loads(capsys.readouterr().out)
+    assert blocked['reason'] == 'degraded_readonly'
+    assert blocked['staffing_state'] == 'degraded_selected'
+
+    pipeline_runtime.main(['--root', str(root), '--state', str(state), 'approve', run_id, '--allow-degraded'])
+    approved = json.loads(capsys.readouterr().out)
+    assert approved['status'] == 'approved'
+
+    pipeline_runtime.main([
+        '--root', str(root), '--state', str(state),
+        'advance', run_id, '--stage', 'status_check', '--status', 'in_progress', '--allow-degraded',
+    ])
+    advanced = json.loads(capsys.readouterr().out)
+    assert advanced['stage'] == 'status_check'

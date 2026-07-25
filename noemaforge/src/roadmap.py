@@ -75,6 +75,15 @@ DEFAULT_DB_PATH = os.environ.get("NOEMAFORGE_ROADMAP_DB", str(_pp.data_root / "r
 DEFAULT_EXPORT_DIR = str(_pp.data_root / "roadmaps/exports")
 
 
+def _stage_target_roles(con: sqlite3.Connection, roles: List[str]) -> None:
+    n = len(roles)
+    if n <= 0 or n > 100:
+        raise ValueError("invalid_target_role_count")
+    con.execute("CREATE TEMP TABLE IF NOT EXISTS temp_roadmap_target_roles(role TEXT PRIMARY KEY)")
+    con.execute("DELETE FROM temp_roadmap_target_roles")
+    con.executemany("INSERT OR IGNORE INTO temp_roadmap_target_roles(role) VALUES(?)", ((role,) for role in roles))
+
+
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
 # Purpose: Implement the routine ' nowz'.
@@ -94,7 +103,7 @@ DEFAULT_EXPORT_DIR = str(_pp.data_root / "roadmaps/exports")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -365,17 +374,17 @@ def list_signals_since(
     con = _connect(db_path)
     try:
         if roles:
-            qs = ",".join(["?"] * len(roles))
+            _stage_target_roles(con, roles)
             rows = con.execute(
-                f"""
+                """
                 SELECT signal_id, created_at, target_role, key, title, description,
                        source_stream, source_role, project_id, run_id, process_id
                 FROM signals
-                WHERE created_at > ? AND target_role IN ({qs})
+                WHERE created_at > ? AND target_role IN (SELECT role FROM temp_roadmap_target_roles)
                 ORDER BY created_at ASC
                 LIMIT ?
                 """,
-                (since, *roles, lim),
+                (since, lim),
             ).fetchall()
         else:
             rows = con.execute(

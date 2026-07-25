@@ -30,7 +30,14 @@ except Exception as e:  # pragma: no cover
     raise
 
 MODELSTORE = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", "/var/lib/modelstore")
-LLAMA_SERVER = os.environ.get("NOEMAFORGE_LLAMA_SERVER", "/opt/noemaforge/bin/llama-server")
+DEFAULT_LLAMA_SERVER = "/opt/noemaforge/bin/llama-server"
+
+
+def _validated_llama_server() -> tuple[bool, str]:
+    configured = str(os.environ.get("NOEMAFORGE_LLAMA_SERVER") or "").strip()
+    if configured and configured != DEFAULT_LLAMA_SERVER:
+        return False, f"unsupported NOEMAFORGE_LLAMA_SERVER={configured!r}; expected {DEFAULT_LLAMA_SERVER}"
+    return True, DEFAULT_LLAMA_SERVER
 
 
 def _load_manifest(path: Path) -> Dict[str, Any]:
@@ -55,19 +62,26 @@ def _artifact_for(model_id: str) -> str:
 
 def main(argv: list[str]) -> int:
     if len(argv) < 3:
-        print("usage: noemaforge-llama-start <model_id> <socket_path> [extra llama-server args...]", file=sys.stderr)
+        print("usage: noemaforge-llama-start <model_id> <socket_path>", file=sys.stderr)
         return 2
     model_id = argv[1].strip()
     sock = argv[2].strip()
     extra = argv[3:]
+    if extra:
+        print(f"[noemaforge-llama-start][ERROR] unsupported extra llama-server args: {extra!r}", file=sys.stderr)
+        return 2
     if not model_id or "/" in model_id or model_id.startswith("."):
         print(f"[noemaforge-llama-start][ERROR] invalid model_id={model_id!r}", file=sys.stderr)
         return 2
     if not runtime_safety.safe_backend_id(model_id):
         print(f"[noemaforge-llama-start][ERROR] refusing unsafe/non-head backend id: {model_id}", file=sys.stderr)
         return 71
-    if not os.path.exists(LLAMA_SERVER) or not os.access(LLAMA_SERVER, os.X_OK):
-        print(f"[noemaforge-llama-start][ERROR] llama-server is missing or not executable: {LLAMA_SERVER}", file=sys.stderr)
+    ok_server, reason_server = _validated_llama_server()
+    if not ok_server:
+        print(f"[noemaforge-llama-start][ERROR] {reason_server}", file=sys.stderr)
+        return 70
+    if not os.path.exists(DEFAULT_LLAMA_SERVER) or not os.access(DEFAULT_LLAMA_SERVER, os.X_OK):
+        print(f"[noemaforge-llama-start][ERROR] llama-server is missing or not executable: {DEFAULT_LLAMA_SERVER}", file=sys.stderr)
         return 70
     artifact = _artifact_for(model_id)
     ok_rt, reason_rt, meta_rt = runtime_safety.validate_artifact_path(artifact)
@@ -87,16 +101,17 @@ def main(argv: list[str]) -> int:
             print(f"[noemaforge-llama-start][ERROR] shard_meta={meta}", file=sys.stderr)
         return 71
     Path(os.path.dirname(sock)).mkdir(parents=True, exist_ok=True)
-    cmd = [
-        LLAMA_SERVER,
+    print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
+    os.execl(
+        "/opt/noemaforge/bin/llama-server",
+        "/opt/noemaforge/bin/llama-server",
+        "--keep-display",
         "--model", artifact,
         "--host", sock,
         "--device", "none",
         "--n-gpu-layers", "0",
         "--no-kv-offload",
-    ] + extra
-    print(f"[noemaforge-llama-start] exec model_id={model_id} artifact={artifact} sock={sock}", file=sys.stderr)
-    os.execv(LLAMA_SERVER, cmd)
+    )
     return 127
 
 

@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import platform as _platform
 import shutil
 import socket
@@ -227,7 +228,27 @@ def collect_report(package_root: Optional[Path] = None, *, probe_admin: bool = T
     _check(checks, "model_backends", LEVEL_INFO,
            f"detected backends: {found or 'none on PATH'}", backends=backends)
 
-    # 11. Display-safety reminder (always informational)
+    # 11. Sudo availability (best-effort, non-interactive)
+    sudo_path = shutil.which("sudo") or None
+    geteuid = getattr(os, "geteuid", None)
+    effective_uid = int(geteuid()) if callable(geteuid) else None
+    sudo_available = bool(sudo_path) and effective_uid == 0
+    sudo_level = LEVEL_INFO if sudo_available else LEVEL_WARN
+    sudo_detail = {
+        "available": sudo_available,
+        "sudo_path": sudo_path,
+        "effective_uid": effective_uid,
+        "interactive_prompt_expected": bool(sudo_path) and not sudo_available,
+    }
+    _check(
+        checks,
+        "sudo_available",
+        sudo_level,
+        "sudo is available without an interactive prompt" if sudo_available else "sudo is not available without an interactive prompt",
+        **sudo_detail,
+    )
+
+    # 12. Display-safety reminder (always informational)
     _check(checks, "display_safety", LEVEL_INFO,
            "model-selection / heavy-GPU commands must carry --keep-display to preserve the desktop")
 

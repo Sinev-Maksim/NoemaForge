@@ -124,7 +124,7 @@ DEFAULT_STATE_JSON = os.path.join(DEFAULT_STATE_DIR, "state.json")
 # Returns / emits: str
 # === End NoemaForge Autodoc Function Header ===
 def _nowz() -> str:
-    return dt.datetime.utcnow().isoformat() + "Z"
+    return dt.datetime.now(dt.UTC).replace(tzinfo=None).isoformat() + "Z"
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -444,7 +444,7 @@ def _db_upsert_seen(db_path: str, dev: Dict[str, Any]) -> None:
 # === End NoemaForge Autodoc Function Header ===
 def _mint_session_token(ttl_sec: int) -> Dict[str, Any]:
     tok = uuid.uuid4().hex
-    now = dt.datetime.utcnow()
+    now = dt.datetime.now(dt.UTC).replace(tzinfo=None)
     exp = now + dt.timedelta(seconds=max(10, int(ttl_sec)))
     return {"token": tok, "issued_at": now.isoformat() + "Z", "expires_at": exp.isoformat() + "Z"}
 
@@ -520,7 +520,7 @@ def _is_expired(sess: Dict[str, Any]) -> bool:
             return True
         exp2 = exp.replace("Z", "+00:00")
         dt_exp = dt.datetime.fromisoformat(exp2)
-        return dt.datetime.utcnow().replace(tzinfo=dt.timezone.utc) >= dt_exp
+        return dt.datetime.now(dt.UTC) >= dt_exp
     except Exception:
         return True
 

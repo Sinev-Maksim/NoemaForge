@@ -74,7 +74,9 @@ class PipelineEditorPackQATests(unittest.TestCase):
         assert _existing_docs, "no candidate documentation file exists"
         for path in _existing_docs:
             text = path.read_text(encoding="utf-8")
-            self.assertIn("- [ ] Add full drag&drop pipeline editor implementation after alpha.", text, str(path))
+            open_marker = "- [ ] Add full drag&drop pipeline editor implementation after alpha."
+            closed_marker = "- [x] Add full drag&drop pipeline editor implementation after alpha."
+            self.assertTrue(open_marker in text or closed_marker in text, str(path))
 
 
 if __name__ == "__main__":
