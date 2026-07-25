@@ -95,17 +95,140 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             {"model_id": "safe", "reason": "default_safety_filter"},
             {"model_id": "svc", "reason": "systemctl_start_failed:1"},
             {"model_id": "slow", "reason": "TimeoutError('timed out')"},
+            {"model_id": "slow", "reason": "TimeoutError('timed out')"},
+            {"model_id": "bad-api", "selection_status": "invalid_backend_calls"},
+            {"model_id": "bad-api-2", "reason": "invalid_backend_calls"},
         ]
         summary = uatfix.summarize_model_run_records(records)
-        self.assertEqual(summary["model_runs"], 7)
+        self.assertEqual(summary["model_runs"], 10)
         self.assertEqual(summary["models_started"], 3)
         self.assertEqual(summary["classification_counts"]["completed"], 1)
         self.assertEqual(summary["classification_counts"]["partial_valid"], 1)
         self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
         self.assertEqual(summary["classification_counts"]["systemctl_start_failed"], 1)
-        self.assertEqual(summary["classification_counts"]["timeout"], 1)
+        self.assertEqual(summary["classification_counts"]["timeout"], 2)
+        self.assertEqual(summary["classification_counts"]["invalid_backend_calls"], 2)
         self.assertEqual(summary["classification_counts"]["safety-filtered"], 1)
         self.assertEqual(summary["classification_counts"]["unknown"], 1)
+        self.assertEqual(summary["failed_model_ids"], ["bad-api", "bad-api-2", "old", "slow", "svc", "warm"])
+        self.assertEqual(
+            summary["failure_groups_by_model"],
+            [
+                {
+                    "model_id": "bad-api",
+                    "logical_model_id": "",
+                    "classifications": ["invalid_backend_calls"],
+                    "reasons": ["invalid_backend_calls"],
+                },
+                {
+                    "model_id": "bad-api-2",
+                    "logical_model_id": "",
+                    "classifications": ["invalid_backend_calls"],
+                    "reasons": ["invalid_backend_calls"],
+                },
+                {
+                    "model_id": "old",
+                    "logical_model_id": "",
+                    "classifications": ["unknown"],
+                    "reasons": ["previously_failed_runtime"],
+                },
+                {
+                    "model_id": "slow",
+                    "logical_model_id": "",
+                    "classifications": ["timeout"],
+                    "reasons": ["TimeoutError('timed out')"],
+                },
+                {
+                    "model_id": "svc",
+                    "logical_model_id": "",
+                    "classifications": ["systemctl_start_failed"],
+                    "reasons": ["systemctl_start_failed:1"],
+                },
+                {
+                    "model_id": "warm",
+                    "logical_model_id": "",
+                    "classifications": ["warmup_failed"],
+                    "reasons": ["warmup_failed"],
+                },
+            ],
+        )
+        self.assertEqual(
+            summary["failure_groups_by_reason"],
+            [
+                {
+                    "classification": "invalid_backend_calls",
+                    "reason": "invalid_backend_calls",
+                    "count": 2,
+                    "model_ids": ["bad-api", "bad-api-2"],
+                },
+                {
+                    "classification": "systemctl_start_failed",
+                    "reason": "systemctl_start_failed:1",
+                    "count": 1,
+                    "model_ids": ["svc"],
+                },
+                {
+                    "classification": "timeout",
+                    "reason": "TimeoutError('timed out')",
+                    "count": 2,
+                    "model_ids": ["slow"],
+                },
+                {
+                    "classification": "unknown",
+                    "reason": "previously_failed_runtime",
+                    "count": 1,
+                    "model_ids": ["old"],
+                },
+                {
+                    "classification": "warmup_failed",
+                    "reason": "warmup_failed",
+                    "count": 1,
+                    "model_ids": ["warm"],
+                },
+            ],
+        )
+
+    def test_never_started_record_without_reason_is_not_classified_completed(self) -> None:
+        # A model run that never started and has no reason/selection_status
+        # recorded is genuinely unknown, not "completed". It must not be
+        # silently reported with a "completed" reason inside the
+        # failure/incomplete grouping used for triage output.
+        records = [{"model_id": "ghost"}]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(summary["classification_counts"]["unknown"], 1)
+        self.assertEqual(summary["reason_counts"], {"unknown": 1})
+        self.assertEqual(len(summary["failed_or_incomplete"]), 1)
+        self.assertEqual(summary["failed_or_incomplete"][0]["classification"], "unknown")
+        self.assertEqual(summary["failed_or_incomplete"][0]["reason"], "unknown")
+        self.assertNotEqual(summary["failed_or_incomplete"][0]["reason"], "completed")
+
+    def test_started_record_without_reason_is_still_classified_completed(self) -> None:
+        # The legitimate "completed" shape (a record that DID start and
+        # finished with no explicit reason field) must keep working.
+        records = [{"model_id": "ok", "started": True}]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(summary["classification_counts"]["completed"], 1)
+        self.assertEqual(summary["reason_counts"], {"completed": 1})
+        self.assertEqual(summary["failed_or_incomplete"], [])
+
+    def test_model_id_less_failed_records_are_not_merged_into_one_group(self) -> None:
+        # Multiple failed records that all lack a model_id must not collapse
+        # into a single ""-keyed group: each record's classification/reason
+        # would otherwise be silently merged as if it came from one model.
+        records = [
+            {"reason": "warmup_failed"},
+            {"reason": "invalid_backend_calls"},
+        ]
+        summary = uatfix.summarize_model_run_records(records)
+        self.assertEqual(len(summary["failure_groups_by_model"]), 2)
+        self.assertEqual(
+            sorted(group["reasons"][0] for group in summary["failure_groups_by_model"]),
+            ["invalid_backend_calls", "warmup_failed"],
+        )
+        for group in summary["failure_groups_by_model"]:
+            self.assertEqual(group["model_id"], "")
+        # Empty model_id groups still don't leak into failed_model_ids.
+        self.assertEqual(summary["failed_model_ids"], [])
 
     def test_summarize_artifacts_counts_generator_paths_once(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_artifact_summary_") as td:
@@ -227,6 +350,22 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
             self.assertEqual(summary["models_started"], 1)
             self.assertEqual(summary["classification_counts"]["completed"], 1)
             self.assertEqual(summary["classification_counts"]["warmup_failed"], 1)
+            self.assertEqual(summary["failed_model_ids"], ["m2"])
+            self.assertEqual(summary["failure_groups_by_model"][0]["reasons"], ["warmup_failed"])
+
+    def test_summarize_artifacts_counts_generator_paths(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_artifact_summary_") as td:
+            root = Path(td)
+            one = root / "one.json"
+            two = root / "two.json"
+            one.write_text(json.dumps({"records": [{"model_id": "m1", "started": True}]}), encoding="utf-8")
+            two.write_text(json.dumps({"records": [{"model_id": "m2", "reason": "warmup_failed"}]}), encoding="utf-8")
+
+            summary = uatfix.summarize_artifacts(path for path in (one, two))
+
+            self.assertEqual(summary["artifact_count"], 2)
+            self.assertEqual(summary["model_runs"], 2)
+            self.assertEqual(summary["failed_model_ids"], ["m2"])
 
     def test_firstboot_selection_artifacts_record_stale_health_scope(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_firstboot_stale_scope_") as td:

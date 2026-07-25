@@ -406,13 +406,16 @@ def extract_model_run_records(*artifacts: Any) -> List[Dict[str, Any]]:
 def classify_runtime_finding(record: Dict[str, Any]) -> str:
     """Stable runtime finding classes for release decision summaries."""
     reason = str(record.get("reason") or "").strip()
-    lowered = reason.lower()
+    selection_status = str(record.get("selection_status") or "").strip()
+    lowered = " ".join(part.lower() for part in (reason, selection_status) if part)
     if bool(record.get("partial_valid")):
         return "partial_valid"
     if lowered in {"", "completed"} and bool(record.get("started")):
         return "completed"
     if lowered == "default_safety_filter" or "default_safety_filter" in lowered:
         return "safety-filtered"
+    if "invalid_backend_calls" in lowered:
+        return "invalid_backend_calls"
     if "warmup_failed" in lowered:
         return "warmup_failed"
     if "timeout" in lowered or "timed out" in lowered:
@@ -420,6 +423,22 @@ def classify_runtime_finding(record: Dict[str, Any]) -> str:
     if lowered.startswith("systemctl_start_failed"):
         return "systemctl_start_failed"
     return "unknown"
+
+
+def _runtime_reason(record: Dict[str, Any]) -> str:
+    reason = str(record.get("reason") or "").strip()
+    if reason:
+        return reason
+    selection_status = str(record.get("selection_status") or "").strip()
+    if selection_status and selection_status != "completed":
+        return selection_status
+    if not bool(record.get("started")):
+        # Never started and no reason/selection_status recorded: this is a
+        # genuinely unknown outcome, not a completed run. Defaulting to
+        # "completed" here would misclassify never-started records inside
+        # failure/incomplete groupings (see summarize_model_run_records).
+        return "unknown"
+    return "completed"
 
 
 def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
@@ -430,23 +449,78 @@ def summarize_model_run_records(records: Iterable[Dict[str, Any]]) -> Dict[str, 
         for rec in records:
             materialized.extend(normalize_model_run_records(rec))
     classes = Counter(classify_runtime_finding(rec) for rec in materialized)
-    raw_reasons = Counter(str(rec.get("reason") or "completed") for rec in materialized)
+    raw_reasons = Counter(_runtime_reason(rec) for rec in materialized)
     failed_or_incomplete = [
         {
             "model_id": rec.get("model_id"),
             "logical_model_id": rec.get("logical_model_id"),
             "classification": classify_runtime_finding(rec),
-            "reason": rec.get("reason") or "completed",
+            "reason": _runtime_reason(rec),
         }
         for rec in materialized
         if classify_runtime_finding(rec) not in {"completed", "partial_valid", "safety-filtered"}
     ]
+    failure_groups_by_model: List[Dict[str, Any]] = []
+    grouped_by_model: Dict[str, Dict[str, Any]] = {}
+    grouped_by_reason: Dict[tuple[str, str], Dict[str, Any]] = {}
+    for index, rec in enumerate(failed_or_incomplete):
+        model_id = str(rec.get("model_id") or "").strip()
+        logical_model_id = str(rec.get("logical_model_id") or "").strip()
+        classification = str(rec.get("classification") or "unknown")
+        reason = str(rec.get("reason") or "completed")
+        # Records without a model_id must not collapse into a single ""-keyed
+        # group: that would silently merge distinct failures as if they came
+        # from one model. Give each model_id-less record its own group key.
+        group_key = model_id if model_id else f"__no_model_id__{index}"
+        if group_key not in grouped_by_model:
+            grouped_by_model[group_key] = {
+                "model_id": model_id,
+                "logical_model_id": logical_model_id,
+                "classifications": [],
+                "reasons": [],
+            }
+        model_group = grouped_by_model[group_key]
+        if classification not in model_group["classifications"]:
+            model_group["classifications"].append(classification)
+        if reason not in model_group["reasons"]:
+            model_group["reasons"].append(reason)
+
+        reason_key = (classification, reason)
+        if reason_key not in grouped_by_reason:
+            grouped_by_reason[reason_key] = {
+                "classification": classification,
+                "reason": reason,
+                "count": 0,
+                "model_ids": [],
+            }
+        reason_group = grouped_by_reason[reason_key]
+        reason_group["count"] += 1
+        if model_id and model_id not in reason_group["model_ids"]:
+            reason_group["model_ids"].append(model_id)
+
+    failure_groups_by_model = sorted(
+        grouped_by_model.values(),
+        key=lambda item: (
+            item["model_id"],
+            item["logical_model_id"],
+        ),
+    )
+    failure_groups_by_reason = sorted(
+        grouped_by_reason.values(),
+        key=lambda item: (
+            item["classification"],
+            item["reason"],
+        ),
+    )
     return {
         "model_runs": len(materialized),
         "models_started": sum(1 for rec in materialized if bool(rec.get("started"))),
         "classification_counts": dict(sorted(classes.items())),
         "reason_counts": dict(sorted(raw_reasons.items())),
         "failed_or_incomplete": failed_or_incomplete,
+        "failed_model_ids": [item["model_id"] for item in failure_groups_by_model if item["model_id"]],
+        "failure_groups_by_model": failure_groups_by_model,
+        "failure_groups_by_reason": failure_groups_by_reason,
     }
 
 
