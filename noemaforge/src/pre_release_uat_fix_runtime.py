@@ -16,6 +16,9 @@ from pathlib import Path, PurePosixPath
 from typing import Any, Dict, Iterable, List, Optional
 
 CANONICAL_GATEWAY_SOCKET = "/run/noemaforge/llm/gateway.sock"
+CANONICAL_MAIN_BACKEND_SOCKET = "/run/noemaforge/llm/backends/main.sock"
+CANONICAL_TOOLPROXY_SOCKET = "/run/noemaforge/toolproxy.sock"
+CANONICAL_GATEWAY_SMOKE_URL = "http://localhost/v1/models"
 LEGACY_GATEWAY_SOCKETS = [
     "/run/noemaforge/llm-gateway.sock",
     "/run/noemaforge/gateway.sock",
@@ -29,6 +32,24 @@ _SRC_PATH_RE = re.compile(r"(/[A-Za-z0-9_./-]+/src)(?:/|\s|$)")
 def gateway_socket_candidates() -> List[str]:
     """Return probe order: canonical target socket first, legacy fallbacks after."""
     return [CANONICAL_GATEWAY_SOCKET, *LEGACY_GATEWAY_SOCKETS]
+
+
+def gateway_probe_spec() -> Dict[str, Any]:
+    """Return the canonical read-only gateway smoke shape for target forensics."""
+    return {
+        "socket": CANONICAL_GATEWAY_SOCKET,
+        "url": CANONICAL_GATEWAY_SMOKE_URL,
+        "method": "GET",
+        "protocol": "http_over_unix_socket",
+        "command": [
+            "curl",
+            "-fsS",
+            "--unix-socket",
+            CANONICAL_GATEWAY_SOCKET,
+            CANONICAL_GATEWAY_SMOKE_URL,
+        ],
+        "legacy_socket_candidates": list(LEGACY_GATEWAY_SOCKETS),
+    }
 
 
 def _posix(path: str | os.PathLike[str]) -> str:
@@ -293,6 +314,81 @@ def contract_epoch_paths(epoch_id: str, *, data_root: str = "/var/lib/noemaforge
         "epochs_dir": str(base),
         "current": str(base / "current"),
         "epoch_dir": str(base / epoch) if epoch else "",
+    }
+
+
+def resolve_current_epoch_state(contracts_root: Path | str) -> Dict[str, Any]:
+    """Resolve contracts/epochs/current and current_epoch.txt without mutation."""
+    root = Path(contracts_root)
+    epochs_dir = root / "epochs"
+    current = epochs_dir / "current"
+    txt = epochs_dir / "current_epoch.txt"
+    current_epoch_txt = ""
+    problems: List[str] = []
+
+    try:
+        current_epoch_txt = txt.read_text(encoding="utf-8", errors="replace").strip()
+    except OSError:
+        problems.append("current_epoch_txt_missing_or_unreadable")
+
+    current_is_symlink = current.is_symlink()
+    current_exists = current.exists()
+    current_target = ""
+    current_target_exists = False
+    current_target_epoch_id = ""
+    try:
+        if current_is_symlink or current_exists:
+            target = current.resolve(strict=False)
+            current_target = str(target)
+            current_target_exists = target.exists()
+            current_target_epoch_id = target.name
+        else:
+            problems.append("current_epoch_link_missing")
+    except OSError as exc:
+        problems.append(f"current_epoch_link_unreadable:{exc}")
+
+    epoch_id = current_epoch_txt or current_target_epoch_id
+    epoch_dir = epochs_dir / epoch_id if epoch_id else None
+    epoch_dir_exists = bool(epoch_dir and epoch_dir.is_dir())
+    if epoch_id and not epoch_dir_exists:
+        problems.append("current_epoch_dir_missing")
+    if current_epoch_txt and current_target_epoch_id and current_epoch_txt != current_target_epoch_id:
+        problems.append("current_epoch_txt_target_mismatch")
+    if current_is_symlink and not current_target_exists:
+        problems.append("current_epoch_link_dangling")
+
+    # A basename/id match is not sufficient: an external symlink target can share
+    # the expected epoch id's *name* while resolving to a path entirely outside the
+    # canonical epochs directory (e.g. an unrelated directory that happens to be
+    # named "00006"). Require the full resolved path to equal the canonical
+    # `<epochs_dir>/<epoch_id>` path before treating "current" as pointing at the
+    # applied epoch.
+    current_target_matches_canonical_dir = True
+    if current_target and epoch_dir is not None:
+        try:
+            canonical_epoch_dir = str(epoch_dir.resolve(strict=False))
+        except OSError:
+            canonical_epoch_dir = str(epoch_dir)
+        current_target_matches_canonical_dir = current_target == canonical_epoch_dir
+        if not current_target_matches_canonical_dir:
+            problems.append("current_epoch_link_outside_canonical_dir")
+
+    return {
+        "ok": not problems,
+        "contracts_root": str(root),
+        "epochs_dir": str(epochs_dir),
+        "current": str(current),
+        "current_exists": current_exists,
+        "current_is_symlink": current_is_symlink,
+        "current_target": current_target,
+        "current_target_exists": current_target_exists,
+        "current_target_epoch_id": current_target_epoch_id,
+        "current_target_matches_canonical_dir": current_target_matches_canonical_dir,
+        "current_epoch_txt": current_epoch_txt,
+        "current_epoch_id": epoch_id,
+        "epoch_dir": str(epoch_dir) if epoch_dir else "",
+        "epoch_dir_exists": epoch_dir_exists,
+        "problems": problems,
     }
 
 
@@ -614,6 +710,164 @@ def locate_operator_degraded_apply(root: Path) -> Optional[Path]:
     if not candidates:
         return None
     return max(candidates, key=lambda item: item[0])[1]
+
+
+def _load_json_or_dict(value: Any) -> Dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, (str, Path)):
+        try:
+            loaded = load_json_any(Path(value))
+            return loaded if isinstance(loaded, dict) else {}
+        except (OSError, json.JSONDecodeError):
+            return {}
+    return {}
+
+
+def _bool_from_health(value: Any) -> bool:
+    if isinstance(value, dict):
+        if "ok" in value:
+            return bool(value.get("ok"))
+        if "present" in value:
+            return bool(value.get("present"))
+        state = str(value.get("state") or value.get("status") or "").lower()
+        return state in {"ok", "ready", "active", "present", "healthy"}
+    return bool(value)
+
+
+def _reconcile_direct_and_summary_health(direct: Any, summary_value: Any) -> tuple[bool, bool]:
+    """Give a direct, current health probe precedence over an indirect summary field.
+
+    ``direct`` is expected to be the freshly-collected probe artifact (e.g. a
+    ``gateway_health`` document); ``summary_value`` is a possibly-stale field pulled
+    from an apply summary recorded earlier/elsewhere. When both are present and they
+    disagree, this is a genuine conflict worth surfacing rather than something an
+    ``or`` should silently paper over by letting the stale/indirect field win.
+
+    Returns ``(effective_ok, conflict)``.
+    """
+    direct_present = isinstance(direct, dict) and bool(direct)
+    direct_ok = _bool_from_health(direct) if direct_present else None
+    summary_present = summary_value is not None
+    summary_ok = _bool_from_health(summary_value) if summary_present else None
+    if direct_ok is not None and summary_ok is not None and direct_ok != summary_ok:
+        return direct_ok, True
+    if direct_ok is not None:
+        return direct_ok, False
+    if summary_ok is not None:
+        return summary_ok, False
+    return False, False
+
+
+def reconcile_post_apply_forensics(
+    *,
+    apply_summary: Any = None,
+    firstboot_status: Any = None,
+    current_epoch: Optional[Dict[str, Any]] = None,
+    contracts_root: Path | str | None = None,
+    prestart_requests: Any = None,
+    backend_health: Any = None,
+    gateway_health: Any = None,
+    toolproxy_diag: Any = None,
+) -> Dict[str, Any]:
+    """Classify post-apply evidence without probing live services."""
+    apply_doc = _load_json_or_dict(apply_summary)
+    status_doc = _load_json_or_dict(firstboot_status)
+    requests_doc = _load_json_or_dict(prestart_requests)
+    backend_doc = _load_json_or_dict(backend_health)
+    gateway_doc = _load_json_or_dict(gateway_health)
+    toolproxy_doc = _load_json_or_dict(toolproxy_diag)
+    epoch_doc = dict(current_epoch or {})
+    if not epoch_doc and contracts_root is not None:
+        epoch_doc = resolve_current_epoch_state(contracts_root)
+
+    # Do NOT fall back to the *current* epoch id here: the current epoch is merely
+    # what is active right now, not evidence of what an apply actually applied. If
+    # neither the apply summary nor the firstboot status recorded an explicit
+    # applied_epoch_id, that is missing evidence, not something to fabricate by
+    # borrowing the current epoch id.
+    applied_epoch_id = str(
+        apply_doc.get("applied_epoch_id")
+        or status_doc.get("applied_epoch_id")
+        or ""
+    ).strip()
+    current_epoch_target = str(epoch_doc.get("current_target") or epoch_doc.get("epoch_dir") or "").strip()
+    current_epoch_id = str(epoch_doc.get("current_epoch_id") or "").strip()
+    post_backend_ok = _bool_from_health(backend_doc) or _bool_from_health(apply_doc.get("post_backend_ok")) or _bool_from_health(apply_doc.get("main_backend_smoke"))
+    post_gateway_ok, post_gateway_health_conflict = _reconcile_direct_and_summary_health(
+        gateway_doc, apply_doc.get("post_gateway_ok")
+    )
+    toolproxy_ok = _bool_from_health(toolproxy_doc)
+
+    probe = gateway_probe_spec()
+    observed_socket = str(gateway_doc.get("socket") or gateway_doc.get("sock") or gateway_doc.get("path") or apply_doc.get("gateway_socket") or "").strip()
+    observed_protocol = str(gateway_doc.get("protocol") or apply_doc.get("gateway_protocol") or "").strip()
+    canonical_protocol_aliases = {probe["protocol"], "http", "http_unix", "http_over_unix_socket"}
+    gateway_probe_metadata_recorded = bool(observed_socket or observed_protocol)
+    # Affirmative evidence is required for BOTH the socket and the protocol before a
+    # probe is confirmed canonical. An absent/empty value must never silently satisfy
+    # this check (it previously matched via `observed_socket in {"", canonical}`,
+    # which let a probe that was never recorded at all pass as "canonical").
+    canonical_probe_used = bool(
+        observed_socket
+        and observed_protocol
+        and observed_socket == probe["socket"]
+        and observed_protocol in canonical_protocol_aliases
+    )
+    if not gateway_probe_metadata_recorded:
+        gateway_probe_evidence = "unrecorded"
+    elif canonical_probe_used:
+        gateway_probe_evidence = "canonical"
+    else:
+        gateway_probe_evidence = "mismatch"
+
+    blockers: List[str] = []
+    if not applied_epoch_id:
+        blockers.append("applied_epoch_id_missing")
+    if not current_epoch_target:
+        blockers.append("current_epoch_target_missing")
+    if applied_epoch_id and current_epoch_id and applied_epoch_id != current_epoch_id:
+        blockers.append("applied_epoch_current_epoch_mismatch")
+    if epoch_doc.get("problems"):
+        blockers.extend(f"contracts:{item}" for item in epoch_doc.get("problems") or [])
+    if post_gateway_health_conflict:
+        blockers.append("post_gateway_health_conflict")
+    if not post_gateway_ok:
+        blockers.append("post_gateway_not_ok")
+    if not post_backend_ok:
+        blockers.append("post_backend_not_ok")
+
+    if post_backend_ok and not post_gateway_ok:
+        if not canonical_probe_used:
+            determination = "wrong_smoke_path_or_protocol"
+        elif not _bool_from_health(gateway_doc.get("socket_present", gateway_doc.get("present", True))):
+            determination = "gateway_outage"
+        else:
+            determination = "gateway_smoke_failed"
+    elif "current_epoch_target_missing" in blockers and current_epoch_id:
+        determination = "summary_helper_issue"
+    elif blockers:
+        determination = "post_apply_evidence_incomplete"
+    else:
+        determination = "post_apply_state_reconciled"
+
+    return {
+        "ok": not blockers,
+        "determination": determination,
+        "applied_epoch_id": applied_epoch_id,
+        "current_epoch_id": current_epoch_id,
+        "current_epoch_target": current_epoch_target,
+        "post_backend_ok": post_backend_ok,
+        "post_gateway_ok": post_gateway_ok,
+        "post_gateway_health_conflict": post_gateway_health_conflict,
+        "toolproxy_diag_ok": toolproxy_ok,
+        "canonical_gateway_probe": probe,
+        "canonical_gateway_probe_used": canonical_probe_used,
+        "gateway_probe_evidence": gateway_probe_evidence,
+        "firstboot_state": status_doc.get("state") or "",
+        "prestart_request_count": len(requests_doc.get("requests") or []) if isinstance(requests_doc.get("requests"), list) else 0,
+        "blockers": blockers,
+    }
 
 
 def write_failure_report(out_dir: Path, *, stem: str, error: str, context: Optional[Dict[str, Any]] = None) -> Dict[str, str]:
