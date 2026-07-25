@@ -606,6 +606,271 @@ class PreReleaseUATFixRuntimeTests(unittest.TestCase):
                 report["sources"]["composite_selection_plan"]["invalid_fields"],
             )
 
+    def test_summarize_model_selection_decision_rejects_stringy_boolean_dry_run(self) -> None:
+        # bool("false") is True in Python -- a malformed string-typed artifact field
+        # must never be silently coerced to True and treated as a real dry run.
+        summary = uatfix.summarize_model_selection_decision({
+            "mode": "full_composite",
+            "dry_run": "false",
+            "ready_to_apply": 1,
+        })
+
+        self.assertIs(summary["dry_run"], False)
+        self.assertIs(summary["ready_to_apply"], False)
+        self.assertIn("dry_run", summary["invalid_fields"])
+        self.assertIn("ready_to_apply", summary["invalid_fields"])
+
+    def test_reconcile_full_composite_artifacts_blocks_stringy_dry_run_field(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_stringy_bool_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": "false",
+                "ready_to_apply": True,
+                "chosen_by_role": {"operator.admin/administrator": {"model_id": "m-admin"}},
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "selected",
+                "selected_roles": 1,
+                "target_met_roles": 1,
+                "selected_model_count": 1,
+                "selected_model_ids": ["m-admin"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "m-admin", "score": 0.91},
+                        "selected": [{"model_id": "m-admin", "score": 0.91}],
+                    },
+                }
+            }), encoding="utf-8")
+            records = [{"model_id": "m-admin", "started": True}]
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {"operator.admin/administrator": {}},
+                "model_run_records": records,
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps({"records": records}), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {"operator.admin/administrator": {"candidate_count": 1, "candidates": ["m-admin"]}},
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root)
+
+            self.assertIs(report["sources"]["model_selection_decision"]["dry_run"], False)
+            self.assertIn("model_selection_decision_invalid_fields", report["mismatches"])
+            self.assertIn("not_dry_run", report["dry_run_evaluation_scope"]["blocking_reasons"])
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+
+    def test_summarize_staffing_summary_rejects_non_list_collection_fields(self) -> None:
+        # A string field would previously be iterated character-by-character
+        # (for x in "m-admin" yields 'm','-','a',...); an int field would raise
+        # TypeError outright since `2 or []` is truthy and `list(2)` is not iterable.
+        summary = uatfix.summarize_staffing_summary({
+            "staffing_state": "degraded_selected",
+            "selected_roles": 1,
+            "target_met_roles": 1,
+            "selected_model_count": 1,
+            "selected_model_ids": "m-admin",
+            "missing_mandatory_core_roles": 2,
+            "unstaffed_roles": {"not": "a-list"},
+        })
+
+        self.assertEqual([], summary["selected_model_ids"])
+        self.assertEqual([], summary["missing_mandatory_core_roles"])
+        self.assertEqual([], summary["unstaffed_roles"])
+        self.assertIn("selected_model_ids", summary["invalid_fields"])
+        self.assertIn("missing_mandatory_core_roles", summary["invalid_fields"])
+        self.assertIn("unstaffed_roles", summary["invalid_fields"])
+
+    def test_summarize_composite_selection_plan_rejects_non_list_candidates(self) -> None:
+        # `len(role_spec.get("candidates") or [])` would raise TypeError when
+        # "candidates" is a truthy non-list (e.g. an int).
+        summary = uatfix.summarize_composite_selection_plan({
+            "top_n": 0,
+            "roles": {
+                "operator.admin/administrator": {"candidates": 5},
+            },
+            "missing_candidate_roles": "role-a",
+        })
+
+        self.assertIn("roles.candidates", summary["invalid_fields"])
+        self.assertIn("missing_candidate_roles", summary["invalid_fields"])
+        self.assertEqual([], summary["missing_candidate_roles"])
+
+    def test_summarize_preferred_model_run_records_flags_empty_dedicated_vs_nonempty_embedded(self) -> None:
+        embedded_tournament = {"model_run_records": [{"model_id": "m1", "started": True}]}
+
+        summary = uatfix.summarize_preferred_model_run_records([], embedded_tournament, dedicated_loaded=True)
+
+        self.assertEqual(0, summary["model_runs"])
+        self.assertEqual("model-run-records.json", summary["source"])
+        self.assertTrue(summary["dedicated_present_and_empty"])
+        self.assertEqual(1, summary["embedded_model_runs"])
+
+    def test_summarize_preferred_model_run_records_falls_back_only_when_dedicated_absent(self) -> None:
+        embedded_tournament = {"model_run_records": [{"model_id": "m1", "started": True}]}
+
+        summary = uatfix.summarize_preferred_model_run_records(None, embedded_tournament, dedicated_loaded=False)
+
+        self.assertEqual(1, summary["model_runs"])
+        self.assertEqual("role-tournament-results.json:model_run_records", summary["source"])
+
+    def test_reconcile_full_composite_artifacts_flags_empty_dedicated_records_against_nonempty_embedded(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_empty_dedicated_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": True,
+                "chosen_by_role": {"operator.admin/administrator": {"model_id": "m-admin"}},
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "selected",
+                "selected_roles": 1,
+                "target_met_roles": 1,
+                "selected_model_count": 1,
+                "selected_model_ids": ["m-admin"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "m-admin", "score": 0.91},
+                        "selected": [{"model_id": "m-admin", "score": 0.91}],
+                    },
+                }
+            }), encoding="utf-8")
+            embedded_records = [{"model_id": "m-admin", "started": True}, {"model_id": "m-dev", "started": True}]
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {"operator.admin/administrator": {}},
+                "model_run_records": embedded_records,
+            }), encoding="utf-8")
+            # Dedicated artifact is present and genuinely, validly empty -- this must
+            # NOT be silently treated the same as "absent" / fallback to embedded.
+            (root / "model-run-records.json").write_text(json.dumps([]), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {"operator.admin/administrator": {"candidate_count": 1, "candidates": ["m-admin"]}},
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root)
+
+            self.assertEqual("model-run-records.json", report["sources"]["model_run_records"]["source"])
+            self.assertEqual(0, report["sources"]["model_run_records"]["model_runs"])
+            self.assertIn("dedicated_model_run_records_empty_but_embedded_present", report["mismatches"])
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+
+    def test_reconcile_full_composite_artifacts_ignores_cli_retry_flag_contradicted_by_recorded_evidence(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_cli_flag_provenance_") as td:
+            root = Path(td)
+            records = [{"model_id": "ok", "started": True}]
+            records.extend({"model_id": f"old-{idx}", "reason": "previously_failed_runtime"} for idx in range(9))
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": True,
+                "chosen_by_role": {"operator.admin/administrator": {"model_id": "ok"}},
+                # Recorded evidence: the ORIGINAL run did NOT retry failed models.
+                "dry_run_evaluation_scope": {
+                    "retry_failed_models": False,
+                    "clear_model_health": False,
+                },
+            }), encoding="utf-8")
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "degraded_selected",
+                "selected_roles": 1,
+                "target_met_roles": 1,
+                "selected_model_count": 1,
+                "selected_model_ids": ["ok"],
+            }), encoding="utf-8")
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "chosen": {"model_id": "ok", "score": 0.9},
+                        "selected": [{"model_id": "ok", "score": 0.9}],
+                    }
+                }
+            }), encoding="utf-8")
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {"operator.admin/administrator": {}},
+                "model_run_records": records,
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps({"records": records}), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {"operator.admin/administrator": {"candidate_count": 1, "candidates": ["ok"]}},
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            # An analyst re-runs the CLI with --retry-failed-models even though the
+            # ORIGINAL run (recorded in dry_run_evaluation_scope) did not retry. This
+            # unverified CLI claim must not flip the gate result on unchanged artifacts.
+            report = uatfix.reconcile_full_composite_artifacts(root, retry_failed_models=True)
+
+            self.assertFalse(report["dry_run_evaluation_scope"]["retry_failed_models"])
+            self.assertIn("persisted_model_health_reused", report["dry_run_evaluation_scope"]["blocking_reasons"])
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+            self.assertTrue(report["cli_flag_provenance"]["retry_failed_models_cli_argument"])
+            self.assertFalse(report["cli_flag_provenance"]["retry_failed_models_effective"])
+            self.assertTrue(report["cli_flag_provenance"]["cli_retry_failed_models_contradicted_by_evidence"])
+
+    def test_reconcile_full_composite_artifacts_detects_zero_versus_nonzero_role_count_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf_forensics_zero_mismatch_") as td:
+            root = Path(td)
+            (root / "model-selection-decision.json").write_text(json.dumps({
+                "mode": "full_composite",
+                "dry_run": True,
+                "ready_to_apply": False,
+                "chosen_by_role": {},
+            }), encoding="utf-8")
+            # staffing_summary reports zero selected roles...
+            (root / "firstboot-staffing-summary.json").write_text(json.dumps({
+                "staffing_state": "failed_selection",
+                "selected_roles": 0,
+                "target_met_roles": 0,
+                "selected_model_count": 0,
+                "selected_model_ids": [],
+            }), encoding="utf-8")
+            # ...but role_candidate_map disagrees: it actually selected one role.
+            # A truthiness-guarded comparison (`if a and b and a != b`) would silently
+            # skip this because 0 is falsy; the real values 0 != 1 must be compared.
+            (root / "role-candidate-map.json").write_text(json.dumps({
+                "roles": {
+                    "operator.admin/administrator": {
+                        "selected": [{"model_id": "m-admin", "score": 0.9}],
+                    }
+                }
+            }), encoding="utf-8")
+            (root / "role-tournament-results.json").write_text(json.dumps({
+                "selection_mode": "full_composite",
+                "roles": {"operator.admin/administrator": {}},
+                "model_run_records": [{"model_id": "m-admin", "started": True}],
+            }), encoding="utf-8")
+            (root / "model-run-records.json").write_text(json.dumps([{"model_id": "m-admin", "started": True}]), encoding="utf-8")
+            (root / "composite-selection-plan.json").write_text(json.dumps({
+                "top_n": 0,
+                "roles": {"operator.admin/administrator": {"candidate_count": 1, "candidates": ["m-admin"]}},
+                "estimated_compositions": 1,
+                "materialized": True,
+                "valid_compositions": 1,
+            }), encoding="utf-8")
+
+            report = uatfix.reconcile_full_composite_artifacts(root)
+
+            self.assertIn("selected_roles_mismatch", report["mismatches"])
+            self.assertFalse(report["max_complexity_gate"]["accepted"])
+
     def test_forensics_cli_returns_nonzero_when_gate_is_not_accepted(self) -> None:
         with tempfile.TemporaryDirectory(prefix="nf_forensics_cli_fail_") as td:
             stdout = io.StringIO()

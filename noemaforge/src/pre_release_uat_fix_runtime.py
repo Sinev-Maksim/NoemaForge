@@ -589,8 +589,41 @@ def _safe_int(value: Any, *, field: str, invalid_fields: List[str], default: int
         return default
 
 
+def _safe_bool(value: Any, *, field: str, invalid_fields: List[str], default: bool = False) -> bool:
+    """Accept only a real JSON boolean (Python bool after json.load).
+
+    `bool("false")` is True (any non-empty string is truthy) -- a malformed or
+    string-typed field in an artifact must never be silently coerced like that.
+    Anything that isn't already a bool is recorded as an invalid-field condition
+    and the conservative default is returned instead.
+    """
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    invalid_fields.append(field)
+    return default
+
+
+def _safe_list(value: Any, *, field: str, invalid_fields: List[str]) -> List[Any]:
+    """Only accept an actual list for fields expected to be collections.
+
+    Iterating a non-list directly is a classic footgun: a string silently yields
+    its individual characters instead of the intended items, and an int raises
+    TypeError. Anything other than a list (or an absent/None value, which is a
+    normal "nothing reported" case) is recorded as an invalid-field condition.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return value
+    invalid_fields.append(field)
+    return []
+
+
 def summarize_model_selection_decision(decision: Any) -> Dict[str, Any]:
     doc = decision if isinstance(decision, dict) else {}
+    invalid_fields: List[str] = []
     chosen_by_role = doc.get("chosen_by_role") if isinstance(doc.get("chosen_by_role"), dict) else {}
     chosen_model_ids = sorted(
         {
@@ -599,31 +632,40 @@ def summarize_model_selection_decision(decision: Any) -> Dict[str, Any]:
             if isinstance(candidate, dict) and _candidate_model_id(candidate)
         }
     )
+    missing_mandatory_core_roles = _safe_list(
+        doc.get("missing_mandatory_core_roles"), field="missing_mandatory_core_roles", invalid_fields=invalid_fields
+    )
     return {
         "mode": str(doc.get("mode") or ""),
-        "dry_run": bool(doc.get("dry_run")),
-        "ready_to_apply": bool(doc.get("ready_to_apply")),
+        "dry_run": _safe_bool(doc.get("dry_run"), field="dry_run", invalid_fields=invalid_fields),
+        "ready_to_apply": _safe_bool(doc.get("ready_to_apply"), field="ready_to_apply", invalid_fields=invalid_fields),
         "chosen_roles": len(chosen_by_role),
         "chosen_model_ids": chosen_model_ids,
         "unique_chosen_models": len(chosen_model_ids),
         "staffing_state": str(doc.get("staffing_state") or ""),
-        "missing_mandatory_core_roles": list(doc.get("missing_mandatory_core_roles") or []),
+        "missing_mandatory_core_roles": missing_mandatory_core_roles,
         "has_dry_run_evaluation_scope": isinstance(doc.get("dry_run_evaluation_scope"), dict),
+        "invalid_fields": sorted(set(invalid_fields)),
     }
 
 
 def summarize_staffing_summary(staffing: Any) -> Dict[str, Any]:
     doc = staffing if isinstance(staffing, dict) else {}
-    selected_model_ids = sorted({str(item).strip() for item in (doc.get("selected_model_ids") or []) if str(item).strip()})
     invalid_fields: List[str] = []
+    raw_selected_model_ids = _safe_list(
+        doc.get("selected_model_ids"), field="selected_model_ids", invalid_fields=invalid_fields
+    )
+    selected_model_ids = sorted({str(item).strip() for item in raw_selected_model_ids if str(item).strip()})
     return {
         "staffing_state": str(doc.get("staffing_state") or ""),
         "selected_roles": _safe_int(doc.get("selected_roles"), field="selected_roles", invalid_fields=invalid_fields),
         "target_met_roles": _safe_int(doc.get("target_met_roles"), field="target_met_roles", invalid_fields=invalid_fields),
         "selected_model_count": _safe_int(doc.get("selected_model_count"), field="selected_model_count", invalid_fields=invalid_fields, default=len(selected_model_ids)),
         "selected_model_ids": selected_model_ids,
-        "missing_mandatory_core_roles": list(doc.get("missing_mandatory_core_roles") or []),
-        "unstaffed_roles": list(doc.get("unstaffed_roles") or []),
+        "missing_mandatory_core_roles": _safe_list(
+            doc.get("missing_mandatory_core_roles"), field="missing_mandatory_core_roles", invalid_fields=invalid_fields
+        ),
+        "unstaffed_roles": _safe_list(doc.get("unstaffed_roles"), field="unstaffed_roles", invalid_fields=invalid_fields),
         "invalid_fields": invalid_fields,
     }
 
@@ -689,12 +731,13 @@ def summarize_composite_selection_plan(plan: Any) -> Dict[str, Any]:
     for role_spec in roles.values():
         if not isinstance(role_spec, dict):
             continue
+        role_candidates = _safe_list(role_spec.get("candidates"), field="roles.candidates", invalid_fields=invalid_fields)
         candidate_counts.append(
             _safe_int(
                 role_spec.get("candidate_count"),
                 field="roles.candidate_count",
                 invalid_fields=invalid_fields,
-                default=len(role_spec.get("candidates") or []),
+                default=len(role_candidates),
             )
         )
     return {
@@ -703,25 +746,64 @@ def summarize_composite_selection_plan(plan: Any) -> Dict[str, Any]:
         "estimated_compositions": _safe_int(doc.get("estimated_compositions"), field="estimated_compositions", invalid_fields=invalid_fields),
         "valid_compositions": _safe_int(doc.get("valid_compositions"), field="valid_compositions", invalid_fields=invalid_fields, default=len(compositions)),
         "materialized": bool(doc.get("materialized")),
-        "missing_candidate_roles": list(doc.get("missing_candidate_roles") or []),
+        "missing_candidate_roles": _safe_list(
+            doc.get("missing_candidate_roles"), field="missing_candidate_roles", invalid_fields=invalid_fields
+        ),
         "total_candidate_slots": sum(candidate_counts),
         "invalid_fields": sorted(set(invalid_fields)),
     }
 
 
-def summarize_preferred_model_run_records(model_run_records: Any, tournament: Any) -> Dict[str, Any]:
-    """Prefer the dedicated artifact and fall back to tournament-embedded records."""
+def summarize_preferred_model_run_records(
+    model_run_records: Any,
+    tournament: Any,
+    *,
+    dedicated_loaded: bool = True,
+) -> Dict[str, Any]:
+    """Prefer the dedicated artifact; fall back to tournament-embedded records only when
+    the dedicated artifact is genuinely absent or failed to load.
+
+    A dedicated artifact that is present and validly empty is NOT the same as an absent
+    one: silently substituting the embedded source in that case would hide a real
+    inconsistency (dedicated source says "zero records", embedded source disagrees).
+    Callers must pass `dedicated_loaded=False` only when the dedicated artifact file is
+    missing or could not be parsed -- never merely because it normalized to an empty list.
+    """
     dedicated = normalize_model_run_records(model_run_records)
     embedded = normalize_model_run_records(tournament)
-    if dedicated:
+    if dedicated_loaded:
         summary = summarize_model_run_records(dedicated)
         summary["source"] = "model-run-records.json"
         summary["embedded_model_runs"] = len(embedded)
+        summary["dedicated_present_and_empty"] = bool(not dedicated)
         return summary
     summary = summarize_model_run_records(embedded)
     summary["source"] = "role-tournament-results.json:model_run_records"
     summary["embedded_model_runs"] = len(embedded)
     return summary
+
+
+def _recorded_dry_run_scope_flags(decision_doc: Any) -> Dict[str, Optional[bool]]:
+    """Return retry_failed_models/clear_model_health as recorded by the ORIGINAL run.
+
+    `_write_selection_artifacts` persists the flags that were actually in effect for a
+    run inside `model-selection-decision.json`'s `dry_run_evaluation_scope`. That is run
+    evidence. A CLI flag supplied to THIS analysis invocation is not: re-running the
+    analysis tool with different flags on unchanged artifacts must not be able to flip
+    the computed gate result. Only a real `bool` recorded in the artifact counts as
+    corroboration; anything else (missing key, wrong type, no scope at all) is "not
+    recorded" and must not be trusted.
+    """
+    doc = decision_doc if isinstance(decision_doc, dict) else {}
+    scope = doc.get("dry_run_evaluation_scope")
+    if not isinstance(scope, dict):
+        return {"retry_failed_models": None, "clear_model_health": None}
+    retry_val = scope.get("retry_failed_models")
+    clear_val = scope.get("clear_model_health")
+    return {
+        "retry_failed_models": retry_val if isinstance(retry_val, bool) else None,
+        "clear_model_health": clear_val if isinstance(clear_val, bool) else None,
+    }
 
 
 def reconcile_full_composite_artifacts(
@@ -733,11 +815,20 @@ def reconcile_full_composite_artifacts(
     artifact_paths = forensic_artifact_paths(root)
     artifact_results = {key: _load_json_artifact(path) for key, path in artifact_paths.items()}
     loaded = {key: artifact_results[key]["data"] for key in artifact_paths}
+
+    def artifact_ok(key: str) -> bool:
+        result = artifact_results[key]
+        return bool(result["present"] and not result["error"])
+
     decision_summary = summarize_model_selection_decision(loaded["decision"])
     staffing_summary = summarize_staffing_summary(loaded["staffing_summary"])
     candidate_map_summary = summarize_role_candidate_map(loaded["role_candidate_map"])
     tournament_summary = summarize_role_tournament_results(loaded["role_tournament_results"])
-    model_run_summary = summarize_preferred_model_run_records(loaded["model_run_records"], loaded["role_tournament_results"])
+    model_run_summary = summarize_preferred_model_run_records(
+        loaded["model_run_records"],
+        loaded["role_tournament_results"],
+        dedicated_loaded=artifact_ok("model_run_records"),
+    )
     composite_summary = summarize_composite_selection_plan(loaded["composite_selection_plan"])
 
     mode = (
@@ -746,12 +837,29 @@ def reconcile_full_composite_artifacts(
         or ("full_composite" if loaded["composite_selection_plan"] else "")
     )
     dry_run = bool(decision_summary["dry_run"])
+
+    # CLI flags describe the ANALYST's current invocation, not what actually happened
+    # during the run being analyzed. Only trust the recorded run evidence; an unverified
+    # CLI claim is ignored for gate computation (never used to relax the gate) rather
+    # than trusted outright.
+    recorded_flags = _recorded_dry_run_scope_flags(loaded["decision"])
+    retry_failed_models_recorded = recorded_flags["retry_failed_models"]
+    clear_model_health_recorded = recorded_flags["clear_model_health"]
+    effective_retry_failed_models = bool(retry_failed_models_recorded) if retry_failed_models_recorded is not None else False
+    effective_clear_model_health = bool(clear_model_health_recorded) if clear_model_health_recorded is not None else False
+    cli_retry_failed_models_contradicted = bool(
+        retry_failed_models_recorded is not None and bool(retry_failed_models) != retry_failed_models_recorded
+    )
+    cli_clear_model_health_contradicted = bool(
+        clear_model_health_recorded is not None and bool(clear_model_health) != clear_model_health_recorded
+    )
+
     evaluation_scope = classify_full_composite_dry_run_scope(
         model_run_summary,
         mode=mode,
         dry_run=dry_run,
-        retry_failed_models=retry_failed_models,
-        clear_model_health=clear_model_health,
+        retry_failed_models=effective_retry_failed_models,
+        clear_model_health=effective_clear_model_health,
     )
 
     mismatches: List[str] = []
@@ -759,22 +867,30 @@ def reconcile_full_composite_artifacts(
         mismatches.append("composite_selection_plan_missing_for_full_composite")
     if decision_summary["mode"] and tournament_summary["selection_mode"] and decision_summary["mode"] != tournament_summary["selection_mode"]:
         mismatches.append("selection_mode_mismatch")
-    if staffing_summary["selected_roles"] and candidate_map_summary["selected_roles"] and staffing_summary["selected_roles"] != candidate_map_summary["selected_roles"]:
-        mismatches.append("selected_roles_mismatch")
-    if decision_summary["chosen_roles"] and candidate_map_summary["chosen_roles"] and decision_summary["chosen_roles"] != candidate_map_summary["chosen_roles"]:
-        mismatches.append("chosen_roles_mismatch")
-    if staffing_summary["selected_model_count"] and candidate_map_summary["unique_selected_models"] and staffing_summary["selected_model_count"] != candidate_map_summary["unique_selected_models"]:
-        mismatches.append("selected_model_count_mismatch")
-    if tournament_summary["model_run_records_count"] and model_run_summary["model_runs"] and tournament_summary["model_run_records_count"] != model_run_summary["model_runs"]:
-        mismatches.append("model_run_record_count_mismatch")
+    if artifact_ok("staffing_summary") and artifact_ok("role_candidate_map"):
+        if staffing_summary["selected_roles"] != candidate_map_summary["selected_roles"]:
+            mismatches.append("selected_roles_mismatch")
+        if staffing_summary["selected_model_count"] != candidate_map_summary["unique_selected_models"]:
+            mismatches.append("selected_model_count_mismatch")
+    if artifact_ok("decision") and artifact_ok("role_candidate_map"):
+        if decision_summary["chosen_roles"] != candidate_map_summary["chosen_roles"]:
+            mismatches.append("chosen_roles_mismatch")
+    if artifact_ok("role_tournament_results") and artifact_ok("model_run_records"):
+        if tournament_summary["model_run_records_count"] != model_run_summary["model_runs"]:
+            mismatches.append("model_run_record_count_mismatch")
     if candidate_map_summary["measured_candidate_count"] > 0 and model_run_summary["model_runs"] == 0:
         mismatches.append("measured_candidates_without_model_run_evidence")
     if candidate_map_summary["selected_roles"] > 0 and model_run_summary["models_started"] == 0:
         mismatches.append("selected_roles_without_started_models")
     if decision_summary["ready_to_apply"] and staffing_summary["missing_mandatory_core_roles"]:
         mismatches.append("ready_to_apply_with_missing_mandatory_roles")
-    if loaded["composite_selection_plan"] and composite_summary["role_count"] and candidate_map_summary["role_count"] and composite_summary["role_count"] != candidate_map_summary["role_count"]:
-        mismatches.append("composite_role_count_mismatch")
+    if artifact_ok("composite_selection_plan") and artifact_ok("role_candidate_map"):
+        if composite_summary["role_count"] != candidate_map_summary["role_count"]:
+            mismatches.append("composite_role_count_mismatch")
+    if model_run_summary.get("dedicated_present_and_empty") and model_run_summary.get("embedded_model_runs"):
+        mismatches.append("dedicated_model_run_records_empty_but_embedded_present")
+    if decision_summary["invalid_fields"]:
+        mismatches.append("model_selection_decision_invalid_fields")
     if staffing_summary["invalid_fields"]:
         mismatches.append("staffing_summary_invalid_fields")
     if composite_summary["invalid_fields"]:
@@ -811,6 +927,16 @@ def reconcile_full_composite_artifacts(
         },
         "mismatches": mismatches,
         "dry_run_evaluation_scope": evaluation_scope,
+        "cli_flag_provenance": {
+            "retry_failed_models_cli_argument": bool(retry_failed_models),
+            "clear_model_health_cli_argument": bool(clear_model_health),
+            "retry_failed_models_recorded": retry_failed_models_recorded,
+            "clear_model_health_recorded": clear_model_health_recorded,
+            "retry_failed_models_effective": effective_retry_failed_models,
+            "clear_model_health_effective": effective_clear_model_health,
+            "cli_retry_failed_models_contradicted_by_evidence": cli_retry_failed_models_contradicted,
+            "cli_clear_model_health_contradicted_by_evidence": cli_clear_model_health_contradicted,
+        },
         "artifact_integrity_blockers": artifact_integrity_blockers,
         "max_complexity_gate": {
             "accepted": bool(evaluation_scope["ok_to_label_max_complexity"] and not mismatches and not artifact_integrity_blockers),
