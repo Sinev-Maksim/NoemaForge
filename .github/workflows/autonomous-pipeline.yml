@@ -474,7 +474,14 @@ jobs:
             if ([string]::IsNullOrWhiteSpace($helpText) -or [string]::IsNullOrWhiteSpace($flagName)) {
               return $false
             }
-            $pattern = "(?mi)(?:^|[\s,])$([regex]::Escape($flagName))(?:[\s,]|$)"
+            # Trailing boundary widened (PR #262 review, Major): clap CLI-style
+            # help renders a flag's value hint directly after the flag name with
+            # no separating whitespace/comma, e.g. "--sandbox=<MODE>",
+            # "--sandbox[=MODE]", or "-s <MODE>". The original boundary
+            # (?:[\s,]|$) only matched whitespace/comma/end-of-string, so it
+            # missed "=" and "[" immediately after the flag and could wrongly
+            # report a genuinely-supported flag as unsupported.
+            $pattern = "(?mi)(?:^|[\s,])$([regex]::Escape($flagName))(?:[\s,=\[]|$)"
             return [regex]::IsMatch($helpText, $pattern)
           }
 
@@ -560,6 +567,27 @@ jobs:
           if (Test-Path -LiteralPath $helpPath) {
             $helpText = Get-Content -LiteralPath $helpPath -Raw
           }
+
+          # Fail-closed guard (PR #262 review, CRITICAL): a broken/errored
+          # `codex exec --help` probe must NOT be treated the same as "this
+          # Codex CLI version genuinely doesn't support --sandbox". A non-zero
+          # exit code or empty/whitespace-only output means sandbox support
+          # could not be determined at all (crash, unexpected CLI behavior,
+          # truncated output, etc.) -- previously this silently fell through
+          # to a null sandbox flag below and codex exec was invoked WITHOUT a
+          # sandbox flag, i.e. unsandboxed. That is a fail-open security bug.
+          # Skip the review entirely instead (same SKIP-on-infra-issue
+          # contract used by every other guard in this step) rather than
+          # ever reaching the unsandboxed invocation below. The genuine
+          # "help succeeded but doesn't mention --sandbox" case (helpExit -eq 0
+          # and non-empty helpText) is untouched and still proceeds without a
+          # sandbox flag, as intended.
+          if ($helpExit -ne 0 -or [string]::IsNullOrWhiteSpace($helpText)) {
+            $probeDetail = if ([string]::IsNullOrWhiteSpace($helpText)) { 'no output' } else { 'output present but exit code non-zero' }
+            Write-SkipReview "codex exec --help probe failed (exit code $helpExit, $probeDetail): cannot confirm sandbox flag support, refusing to invoke Codex CLI unsandboxed. Fix the Codex CLI installation/invocation on the runner and retry."
+            exit 0
+          }
+
           $sandboxFlag = $null
           if (Test-CodexExecOption $helpText '--sandbox') {
             $sandboxFlag = '--sandbox'
@@ -581,9 +609,6 @@ jobs:
             ($capabilities | ConvertTo-Json -Depth 4),
             [System.Text.UTF8Encoding]::new($false)
           )
-          if ($helpExit -ne 0) {
-            Write-Warning "Codex exec --help exited with code $helpExit; continuing with the most compatible prompt invocation."
-          }
           $maxDiffChars = 120000
           if ($diffText.Length -gt $maxDiffChars) {
             $diffText = $diffText.Substring(0, $maxDiffChars) + [Environment]::NewLine + "[diff.patch truncated by workflow after $maxDiffChars characters]"
