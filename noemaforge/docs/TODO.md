@@ -118,14 +118,17 @@ periodically so older reviews do not rot in comment threads.
   restores `sess.session.messages` (`renderConversation(sess.session)`) and
   `selected_composite_top_n` in addition to `selected_mode`; the restore concern is
   addressed.)_
-- [ ] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
+- [x] **Dashboard `startup()` runs duplicated init blocks** (found 2026-06-21 night watch) —
   `noemaforge/templates/pipeline-dashboard/app.js` loads `/api/locales` twice (two
   byte-identical blocks) and calls `loadDashboardBackendState()` + `renderConversation()`
   both as a `!restoredFromSession` fallback *and* again unconditionally, so the
   dashboard-state conversation can clobber the session-restored conversation despite the
   "session restore first; fall back to dashboard state" comment. Dedupe to one locale load
   and make the dashboard-state render a true fallback (keep persona/artifacts loading
-  unconditional). Needs GUI verification — not auto-fixed at night. _(M · sonnet)_
+  unconditional). DONE/verified: current `startup()` has one `/api/locales` call, one
+  `loadDashboardBackendState()` call, preserves session-restored conversation, still
+  merges artifacts, and the persona-selector startup regression now inspects the actual
+  `startup()` body instead of the first unrelated `Promise.allSettled` block. _(M · sonnet)_
 - [x] **Dedupe the `health()["api"]` endpoint list** in `admin_gui_server.py` —
   verify no duplicated entries after the events/session additions. (Codex #10) _(S — DONE: removed 6 duplicate endpoints)_
 - [x] **`.github/scripts/setup-environments.sh`** — drop the unused
@@ -133,8 +136,14 @@ periodically so older reviews do not rot in comment threads.
 - [x] **`brainui.py` path containment** — prefer
   `os.path.commonpath([assets_real, full_real]) == assets_real` over prefix
   string checks. (Codex #11) _(verified safe: realpath + `startswith(assets_real + os.sep)` boundary already prevents prefix-sibling escapes)_
-- [ ] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
-  runtime modules and unit tests into one shared helper. (Codex #31)
+- [x] **Centralize the offline `AdminGuiServer` double/parity setup** repeated across
+  runtime modules and unit tests into one shared helper. (Codex #31) _(S · haiku —
+  DONE: `noemaforge/src/admin_gui_offline_fixture.py` now owns the shared offline
+  server scaffold + lock parity + optional in-memory JSON store; migrated
+  `stateful_admin_gui_runtime`, `runtime_device_policy_staging_runtime`,
+  `telemetry_card_truthfulness_runtime`, `task_workflow_runtime`,
+  `vault_reinventory_job_runtime`, `model_selection_continue_idempotency_runtime`,
+  plus the focused session/event/admin-UX unit tests.)_
 - [x] **`_safe_job_file()` extra guard** — DONE: reject path separators / parent refs
   (`/`, `\`, `..`, `.`) up front before `resolve()`, and route `_read_job_file` /
   `_write_job_file` through the guard (read returns None, write raises) so no job-file
