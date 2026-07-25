@@ -32,6 +32,7 @@ ExecStartPre=-/usr/local/sbin/noemaforge-sel-fix
 ExecStart=/usr/bin/python3 /opt/noemaforge/src/toolproxy.py
 Restart=on-failure
 RestartSec=3
+ExecStopPost=-/bin/rm -f /run/noemaforge/toolproxy.sock
 
 [Install]
 WantedBy=multi-user.target

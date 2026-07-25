@@ -645,6 +645,9 @@ Privileged operations such as Vault re-inventory, model-selection continuation a
 - Added a version-agnostic installer (`install_noemaforge_mvp.sh`) and aligned `setup.sh`/dry-run policy to it.
 - Added the artifact-driven AAT acceptance suite (results tree + `acceptance.yml`) with release-tier checksum/signed-manifest cases.
 - Split and hardened the Admin GUI control-plane routes; added a deterministic admin-state glossary.
+- Admin GUI / operator UX fixpack: confirm-before-run with live run-progress, a no-silent-noop guarantee, dashboard glossary (D003), pipeline diagram view (D006) and editor flows (D009/D010), epoch-panel readability, metrics and artifact chat cards, and persona selector (U003).
+- `noema` command surface: `noema doctor` read-only readiness (backend matrix, approved profiles, active epoch, policy status), `noema start`, and a one-command UAT runner that records events, optionally launches the Admin GUI, runs every pipeline and bundles the artifacts.
+- Security hardening: job-id path-traversal guard in the job manager, plus DOM-XSS and subprocess-injection Semgrep fixes.
 - Security and CI hardening: resolved open CodeQL findings, pinned GitHub Actions, branch-protection rulesets as code, and self-hosted Codex review-runner hardening (read-only sandbox, English-only output).
 - System-independence/portability groundwork (cross-platform paths, runtime-device policy) toward 0.33.1.
 - Model-routing telemetry/stats and routing policy.
