@@ -7,7 +7,7 @@ Active development line: `release/0.33.0-dev`.
 This is the forward-looking project roadmap. Task-level tracking lives in the
 canonical [`noemaforge/docs/TODO.md`](../noemaforge/docs/TODO.md). The focused
 Loop → Harness integration plan is maintained in
-[`noemaforge/docs/HARNESS_EVOLUTION_TODO.md`](../noemaforge/docs/HARNESS_EVOLUTION_TODO.md)
+[`noemaforge/docs/backlog/HARNESS_EVOLUTION_TODO.md`](../noemaforge/docs/backlog/HARNESS_EVOLUTION_TODO.md)
 and umbrella issue [#304](https://github.com/Sinev-Maksim/NoemaForge/issues/304).
 Historical backlog remains in
 [`docs/backlog/ROADMAP_AND_TODO.md`](backlog/ROADMAP_AND_TODO.md).
