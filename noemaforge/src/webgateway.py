@@ -71,6 +71,7 @@ except Exception:  # pragma: no cover
     httpx = None  # type: ignore
 
 from quarantine import create_incident
+from platform_paths import DEFAULT_PATHS as _pp
 
 try:
     from seclog import append_event
@@ -368,7 +369,7 @@ def _mode_guard(eff: Dict[str, Any]) -> Tuple[bool, str]:
     runtime_allowed = bool(mode.get("runtime_allowed", False))
 
     try:
-        with open("/run/noemaforge/mode", "r", encoding="utf-8") as f:
+        with open(str(_pp.runtime_dir / "mode"), "r", encoding="utf-8") as f:
             current_mode = (f.read() or "").strip()
     except Exception:
         current_mode = "prestart"
@@ -396,7 +397,7 @@ def _mode_guard(eff: Dict[str, Any]) -> Tuple[bool, str]:
 # === End NoemaForge Autodoc Function Header ===
 def _quarantine_root(eff: Dict[str, Any]) -> str:
     dl = eff.get("downloads") or {}
-    return str(dl.get("quarantine_root") or "/var/lib/noemaforge/quarantine/incidents")
+    return str(dl.get("quarantine_root") or str(_pp.data_root / "quarantine" / "incidents"))
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -896,8 +897,8 @@ def approve_incident(
 # === End NoemaForge Autodoc Function Header ===
 def _toolvault_paths(eff: Dict[str, Any]) -> Tuple[str, str]:
     imp = eff.get("imports") or {}
-    artifacts = str(imp.get("artifacts_dir") or "/var/lib/noemaforge/toolvault/artifacts")
-    manifests = str(imp.get("manifests_dir") or "/var/lib/noemaforge/toolvault/manifests")
+    artifacts = str(imp.get("artifacts_dir") or str(_pp.vault_dir / "artifacts"))
+    manifests = str(imp.get("manifests_dir") or str(_pp.vault_dir / "manifests"))
     return artifacts, manifests
 
 
@@ -1069,7 +1070,7 @@ def promote_incident(
             })
 
     elif t in ("docsvault.rss_item", "docsvault.page"):
-        docs_root = str(promote_cfg.get("docs_root") or "/var/lib/noemaforge/docs")
+        docs_root = str(promote_cfg.get("docs_root") or str(_pp.data_root / "docs"))
         os.makedirs(docs_root, exist_ok=True)
         host = str(meta.get("host") or "unknown")
         day = dt.datetime.now(dt.UTC).replace(tzinfo=None).strftime("%Y/%m/%d")
@@ -1112,7 +1113,7 @@ def promote_incident(
         out.update({"docsvault_path": dst_dir, "sanitized": sanitized})
 
     elif t == "codevault.snapshot":
-        code_root = str(promote_cfg.get("code_root") or "/var/lib/noemaforge/codevault")
+        code_root = str(promote_cfg.get("code_root") or str(_pp.data_root / "codevault"))
         os.makedirs(code_root, exist_ok=True)
         dst_dir = os.path.join(code_root, "git", "snapshots")
         os.makedirs(dst_dir, exist_ok=True)

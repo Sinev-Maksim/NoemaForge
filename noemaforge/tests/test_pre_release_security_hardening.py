@@ -304,6 +304,55 @@ class SqlAllowlistHelperTests(unittest.TestCase):
             with store._connect() as con:
                 self.assertIn("books", store._all_tables(con))
 
+    def test_prep_store_export_ignores_untrusted_table_names(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-prep-store-export-") as tmp:
+            root = Path(tmp)
+            store = PrepStore(str(root / "prep.sqlite"))
+            store.enqueue_book(
+                source_id="src1",
+                source_path="/tmp/book.md",
+                book_title="Book",
+                book_checksum="abc123",
+                canonicalization_profile="default",
+            )
+            out_dir = root / "export"
+            bad_table = "books); DROP TABLE books;--"
+
+            result = store.export_jsonl(out_dir=str(out_dir), tables=[bad_table])
+
+            self.assertEqual({"ok": True, "out_dir": str(out_dir), "tables": {}}, result)
+            self.assertFalse((out_dir / f"{bad_table}.jsonl").exists())
+            with store._connect() as con:
+                self.assertIn("books", store._all_tables(con))
+                self.assertEqual(1, con.execute("SELECT COUNT(*) FROM books").fetchone()[0])
+
+    def test_prep_store_summarize_book_binds_book_id(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="nf-prep-store-summarize-") as tmp:
+            store = PrepStore(str(Path(tmp) / "prep.sqlite"))
+            rep = store.enqueue_book(
+                source_id="src1",
+                source_path="/tmp/book.md",
+                book_title="Book",
+                book_checksum="abc123",
+                canonicalization_profile="default",
+            )
+            book_id = rep["book_id"]
+
+            safe = store.summarize_book(book_id=book_id)
+            self.assertTrue(safe["ok"])
+            self.assertEqual(book_id, safe["book"]["book_id"])
+
+            malicious_book_id = f"{book_id}' OR '1'='1"
+            injected = store.summarize_book(book_id=malicious_book_id)
+            self.assertFalse(injected["ok"])
+            self.assertEqual({}, injected["book"])
+            self.assertEqual(0, injected["counts"]["chapters"])
+
+            # The real book's row and counts must be unaffected by the injection attempt.
+            still_safe = store.summarize_book(book_id=book_id)
+            self.assertTrue(still_safe["ok"])
+            self.assertEqual(book_id, still_safe["book"]["book_id"])
+
     def test_scan_tg_schema_upgrade_uses_ddl_allowlist(self) -> None:
         with self.assertRaises(ValueError):
             scan_tg._message_schema_upgrade_sql("pi_bad_lines; DROP TABLE messages;--", "INTEGER")

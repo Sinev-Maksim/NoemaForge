@@ -216,7 +216,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
-- [ ] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet)_
+- [x] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet — DONE: `skill_proposal_runtime.py` parses untrusted `SKILL.md` into a `SkillProposal` JSON record, keeps activation state `quarantined`, extracts requested tools/permissions for SSR/QA review, enforces size/section caps, and never registers or executes imported skill content.)_
 - [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
 - [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
 - [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
@@ -578,9 +578,13 @@ retained through 2026-06-26.
 
 _Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
 and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
-detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+detail in `../uat/UAT-*.md`. Original verdict driving this section: Admin GUI =
 PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
-production readiness for non-engineer operators = NOT READY._
+production readiness for non-engineer operators = NOT READY.
+2026-07-25 status: all P0/P1/P2 items below are merged on `release/0.33.0-dev`
+(PRs #126-#136); only U-004 (AAT all-pipeline demo mode, tracked under Runtime/ops
+follow-ups below) remains open. Target-host re-validation of the fixpack is still
+pending before the production-readiness verdict can be flipped._
 
 ### P0 — trust and feedback loop (blocks operator use)
 
@@ -589,42 +593,42 @@ production readiness for non-engineer operators = NOT READY._
   the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
   in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
   path (`test_admin_state_glossary.py`).
-- [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
+- [x] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet — DONE: PR #132)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [x] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
-- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
+- [x] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — DONE: PR #131)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
   to artifacts/logs (text-only is acceptable for MVP).
-- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet)_
+- [x] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet — DONE: PR #129)_
   already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
   result cards with open/download/copy actions; readable failure message on error.
 
 ### P1 — comprehension and persona UX
 
-- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet)_
+- [x] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet — DONE: PR #133)_
   state terms, full model names on hover, internally consistent progress numbers, and a
   "Latest plan" that reflects the actually applied run (no stale `normal` after a real
   `full_composite`).
-- [ ] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — persona routing + prompt design)_
+- [x] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — DONE: PR #136)_
   behavior/tone/scope per persona, switch logged in chat, completion offers
   stay / return-to-Admin / switch.
-- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku)_
+- [x] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku — DONE: PR #128)_
   launch the chat shows the switch and the persona greets with next steps.
-- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet)_
+- [x] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet — DONE: PR #134)_
   label change + "next message runs as N-step cycle" notice + iteration progress), or are
   disabled with a warning where unsupported.
 
 ### P2 — presentation polish and guards
 
-- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku)_
+- [x] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku — DONE: PR #127)_
   JSON only behind Details/Debug.
-- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku)_
+- [x] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku — DONE: PR #127)_
   status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
   no raw JSON in the default view.
-- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — offline renderer, no CDN allowed)_
+- [x] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — DONE: PR #135)_
   error if rendering fails; source behind debug).
-- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku)_
+- [x] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku — DONE: PR #128)_
   interval prompts start-new / continue-existing / cancel; existing runs visible.
 
 ### Runtime / ops follow-ups (0.33.x)
