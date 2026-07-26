@@ -9,8 +9,9 @@ IDs. New UAT runs append new IDs.
 
 _2026-07-25 sync: 14 of 15 fixpack items (D-001…D-010, U-001/U-002/U-003/U-005)
 were already merged on `release/0.33.0-dev` (PRs #126-#136, 2026-06-20/21) but
-this register was never updated to match — corrected below. Only U-004
-(AAT all-pipeline test/demo mode) remains open._
+this register was never updated to match — corrected below. U-004 (AAT
+all-pipeline test/demo mode), the remaining item, is implemented same-day —
+see its row below._
 
 ## Summary
 
@@ -29,7 +30,7 @@ this register was never updated to match — corrected below. Only U-004
 | U-001 | Generative pipelines must return artifacts into chat | High | Pipeline UX / artifacts | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | U-002 | Every user command must produce a visible response | Critical | Chat / routing | Fixed | [PR #132](https://github.com/Sinev-Maksim/NoemaForge/pull/132) |
 | U-003 | Personas identical; no selector; no return-to-admin | High | Persona UX | Fixed | [PR #136](https://github.com/Sinev-Maksim/NoemaForge/pull/136) |
-| U-004 | Pipeline test/demo mode for AAT (all pipelines, one control) | High | Acceptance testing | Open | AAT target tier |
+| U-004 | Pipeline test/demo mode for AAT (all pipelines, one control) | High | Acceptance testing | Fixed | PR pending (this branch: `claude/u004-aat-allpipeline`) |
 | U-005 | Artifact metadata in API not surfaced as chat cards | High | Chat artifact delivery | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | S-001 | Smoke chat requires literal "OK" → healthy tiny model reported `degraded` | Medium | Ops tooling / smoke | Mitigated on host, fix upstream | 0.33.x ops |
 | R-001 | `noemaforge-llm-backends-manager.service` failed once during composite window | Medium | Runtime / systemd | Open (reset-failed applied, no root cause) | 0.33.x runtime |

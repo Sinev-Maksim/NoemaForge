@@ -639,10 +639,21 @@ pending before the production-readiness verdict can be flipped._
 - [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
-- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
+- [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
-  do not stop the batch by default.
+  do not stop the batch by default. DONE: `aat_allpipeline_runtime.py` +
+  `AdminGuiServer.aat_run_all_pipelines_start()` (job-based, `POST
+  /api/aat/run-all-pipelines`). "Safe test mode" reuses the existing
+  `permission_mode` taxonomy instead of inventing a new dry-run concept:
+  `plan_only` pipelines run end-to-end automatically, `ask_before_write`/
+  `guided_readmostly` are started and expected to stop at their own approval
+  gate (`blocked_pending_approval`, not a failure), `guided_admin`/
+  `explicit_only`/`manual_only` are excluded from the batch by design.
+  Built-in prompts are auto-derived from each pipeline's own registered
+  `description`. One pipeline raising never stops the batch. Report is a
+  JSON+Markdown pair under `<data_root>/aat_reports/<job_id>/`, delivered as
+  a job artifact like any other pipeline output.
 - [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
