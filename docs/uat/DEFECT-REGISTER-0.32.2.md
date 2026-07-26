@@ -30,7 +30,7 @@ see its row below._
 | U-001 | Generative pipelines must return artifacts into chat | High | Pipeline UX / artifacts | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | U-002 | Every user command must produce a visible response | Critical | Chat / routing | Fixed | [PR #132](https://github.com/Sinev-Maksim/NoemaForge/pull/132) |
 | U-003 | Personas identical; no selector; no return-to-admin | High | Persona UX | Fixed | [PR #136](https://github.com/Sinev-Maksim/NoemaForge/pull/136) |
-| U-004 | Pipeline test/demo mode for AAT (all pipelines, one control) | High | Acceptance testing | Fixed | PR pending (this branch: `claude/u004-aat-allpipeline`) |
+| U-004 | Pipeline test/demo mode for AAT (all pipelines, one control) | High | Acceptance testing | Fixed | [PR #327](https://github.com/Sinev-Maksim/NoemaForge/pull/327) |
 | U-005 | Artifact metadata in API not surfaced as chat cards | High | Chat artifact delivery | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | S-001 | Smoke chat requires literal "OK" → healthy tiny model reported `degraded` | Medium | Ops tooling / smoke | Mitigated on host, fix upstream | 0.33.x ops |
 | R-001 | `noemaforge-llm-backends-manager.service` failed once during composite window | Medium | Runtime / systemd | Open (reset-failed applied, no root cause) | 0.33.x runtime |
