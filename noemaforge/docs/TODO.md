@@ -217,7 +217,12 @@ _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope.
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
 - [x] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet — DONE: `skill_proposal_runtime.py` parses untrusted `SKILL.md` into a `SkillProposal` JSON record, keeps activation state `quarantined`, extracts requested tools/permissions for SSR/QA review, enforces size/section caps, and never registers or executes imported skill content.)_
-- [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
+- [x] Add SkillProposal schema with SSR/QA review status. _(M · sonnet — DONE:
+  `noemaforge/contracts/skill_proposal.schema.json` requires `ssr_status` /
+  `qa_status` enums (`pending`/`ssr_review`/`approved`/`rejected`) plus a
+  `safety` block asserting `requires_ssr_review`/`requires_qa_review`;
+  `skill_proposal_runtime.py` emits both fields as `"pending"` on every parsed
+  proposal, covered by `test_skill_proposal_runtime.py`.)_
 - [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
 - [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
 - [ ] Add provider-runtime-resolver design doc. _(L · opus — 0.33.2 foundation design)_
