@@ -1,0 +1,119 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/signal-v2-tokens.css
+Zone: gui/shell
+Version: 0.33.0
+Created: 2026-07-26
+Purpose: Signal v2 design tokens -- color (oklch), typography, shape/spacing --
+  shared by the nav-rail shell and every screen built on top of it. Three
+  "experience waves" re-theme the same tokens on <body data-wave="...">:
+  operator (default), guided (warm amber), play (purple, radial bg).
+Inputs: none (pure CSS custom properties).
+Outputs: :root and [data-wave] custom-property sets consumed by
+  signal-v2-shell.css and the existing style.css (whose --bg/--panel/--line/
+  --accent/etc. variables are intentionally remapped to these tokens below,
+  so existing cards/buttons/inputs re-theme for free without any class or
+  markup changes).
+Notes: Font stacks list "Instrument Sans"/"JetBrains Mono" first for hosts
+  that have them installed, with solid system-font fallbacks -- NOT loaded
+  from Google Fonts or any CDN. NoemaForge is offline-first by design (see
+  src/brainui.py's own "no external network required" goal); this file never
+  fetches a remote resource.
+=== End NoemaForge File Header ===
+*/
+
+:root{
+  /* --- Signal v2 raw tokens (Operator wave, default) --- */
+  --sig-bg: oklch(0.15 0.018 240);
+  --sig-card: oklch(0.17 0.02 240);
+  --sig-card-inset: oklch(0.13 0.016 240);
+  --sig-border: oklch(0.28 0.02 240);
+  --sig-border-subtle: oklch(0.24 0.02 240);
+  --sig-accent: oklch(0.75 0.11 210);
+  --sig-ok: oklch(0.82 0.1 160);
+  --sig-warn: oklch(0.8 0.13 85);
+  --sig-danger: oklch(0.6 0.14 25);
+  --sig-text: #e9edf2;
+  --sig-text-strong: #c6cdd5;
+  --sig-muted: #8a93a0;
+  --sig-bg-image: none;
+
+  /* --- Typography --- */
+  --sig-font-ui: "Instrument Sans", ui-sans-serif, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Inter", sans-serif;
+  --sig-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+  --sig-font-narrative: "Georgia", "Times New Roman", serif;
+  --sig-size-label: 10px;
+  --sig-size-secondary: 12px;
+  --sig-size-body: 13px;
+  --sig-size-control: 14px;
+  --sig-size-card-title: 16px;
+  --sig-size-screen-title: clamp(20px, 2.4vw, 22px);
+  --sig-label-tracking: .12em;
+
+  /* --- Shape & spacing --- */
+  --sig-radius-card: 15px;
+  --sig-radius-chip: 999px;
+  --sig-radius-inset: 10px;
+  --sig-card-padding: 15px;
+  --sig-chip-padding: 5px 11px;
+  --sig-grid-gap: 16px;
+  --sig-stack-gap: 7px;
+
+  /* --- Shell geometry --- */
+  --sig-rail-width: 88px;
+  --sig-header-height: 64px;
+  --sig-aside-width: 400px;
+}
+
+/* Guided wave: warm amber, lighter background */
+:root[data-wave="guided"]{
+  --sig-bg: oklch(0.22 0.025 80);
+  --sig-card: oklch(0.25 0.03 80);
+  --sig-card-inset: oklch(0.19 0.024 80);
+  --sig-border: oklch(0.36 0.035 80);
+  --sig-border-subtle: oklch(0.31 0.03 80);
+  --sig-accent: oklch(0.78 0.13 80);
+  --sig-warn: oklch(0.82 0.14 75);
+  --sig-bg-image: none;
+}
+
+/* Play wave: purple, radial background, narrative text in Georgia italic */
+:root[data-wave="play"]{
+  --sig-bg: oklch(0.16 0.03 302);
+  --sig-card: oklch(0.2 0.035 302);
+  --sig-card-inset: oklch(0.14 0.028 302);
+  --sig-border: oklch(0.32 0.045 302);
+  --sig-border-subtle: oklch(0.27 0.04 302);
+  --sig-accent: oklch(0.78 0.14 300);
+  --sig-bg-image: radial-gradient(ellipse at top, oklch(0.22 0.05 300) 0%, oklch(0.16 0.03 302) 60%);
+}
+:root[data-wave="play"] .bubble{
+  font-family: var(--sig-font-narrative);
+  font-style: italic;
+}
+
+/*
+ * Remap the existing style.css palette variables onto the Signal v2 tokens.
+ * Every existing card/button/input already styles itself via var(--bg),
+ * var(--panel), var(--line), var(--accent), var(--good), var(--bad),
+ * var(--warn) -- overriding those names here re-themes the whole page
+ * with zero changes to style.css class rules or to app.js.
+ */
+:root{
+  --bg: var(--sig-bg);
+  --panel: var(--sig-card);
+  --panel2: var(--sig-card-inset);
+  --line: var(--sig-border);
+  --text: var(--sig-text);
+  --muted: var(--sig-muted);
+  --accent: var(--sig-accent);
+  --good: var(--sig-ok);
+  --bad: var(--sig-danger);
+  --warn: var(--sig-warn);
+  --radius: var(--sig-radius-card);
+}
+
+body{
+  font-family: var(--sig-font-ui);
+  background-image: var(--sig-bg-image);
+}
