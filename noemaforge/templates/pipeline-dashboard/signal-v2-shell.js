@@ -41,11 +41,9 @@ Tests: manual -- open the dashboard, click each wave button and rail item.
     var buttons = document.querySelectorAll("#sig-wave-switch [data-wave-value]");
     for (var i = 0; i < buttons.length; i++) {
       var btn = buttons[i];
-      if (btn.getAttribute("data-wave-value") === wave) {
-        btn.classList.add("active");
-      } else {
-        btn.classList.remove("active");
-      }
+      var isSelected = btn.getAttribute("data-wave-value") === wave;
+      btn.classList.toggle("active", isSelected);
+      btn.setAttribute("aria-pressed", isSelected ? "true" : "false");
     }
     try {
       window.localStorage.setItem(WAVE_STORAGE_KEY, wave);

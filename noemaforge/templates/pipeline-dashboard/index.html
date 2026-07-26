@@ -49,9 +49,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       <header class="sig-header">
         <h1 class="sig-header-title" id="sig-screen-title">Chat</h1>
         <div class="sig-wave-switch" id="sig-wave-switch" role="group" aria-label="Experience wave">
-          <button type="button" data-wave-value="operator" class="active">Operator</button>
-          <button type="button" data-wave-value="guided">Guided</button>
-          <button type="button" data-wave-value="play">Play</button>
+          <button type="button" data-wave-value="operator" class="active" aria-pressed="true">Operator</button>
+          <button type="button" data-wave-value="guided" aria-pressed="false">Guided</button>
+          <button type="button" data-wave-value="play" aria-pressed="false">Play</button>
         </div>
         <div class="sig-header-controls"></div>
       </header>
@@ -171,6 +171,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       </aside>
     </section>
   </main>
+      </div>
+    </div>
+  </div>
 
   <section id="sig-screen-personas" class="sig-screen hidden" aria-label="Persona roster">
     <div class="sig-screen-head">

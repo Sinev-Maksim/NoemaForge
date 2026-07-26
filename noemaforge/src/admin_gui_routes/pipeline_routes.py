@@ -54,6 +54,10 @@ def pipeline_run(handler: Any, body: Dict[str, Any]) -> None:
     handler._send_json(handler.server.pipeline_run(str(body.get("pipeline") or body.get("pipeline_id") or "public_mwp"), str(body.get("request") or "GUI pipeline request"), allow_degraded=bool(body.get("allow_degraded", False))))
 
 
+def aat_run_all_pipelines(handler: Any, body: Dict[str, Any]) -> None:
+    handler._send_json(handler.server.aat_run_all_pipelines_start())
+
+
 def pipeline_approve(handler: Any, body: Dict[str, Any]) -> None:
     handler._send_json(handler.server.pipeline_action("approve", str(body.get("run_id") or ""), body))
 
@@ -94,6 +98,7 @@ def post_routes() -> Dict[str, Any]:
         "/api/admin/modify-pipeline": modify_pipeline,
         "/api/pipeline/run": pipeline_run,
         "/api/pipelines/start": pipeline_run,
+        "/api/aat/run-all-pipelines": aat_run_all_pipelines,
         "/api/pipeline/approve": pipeline_approve,
         "/api/pipeline/advance": pipeline_advance,
         "/api/pipelines/draft": pipeline_draft,

@@ -39,9 +39,9 @@ Notes: Font stacks list "Instrument Sans"/"JetBrains Mono" first for hosts
   --sig-bg-image: none;
 
   /* --- Typography --- */
-  --sig-font-ui: "Instrument Sans", ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
-  --sig-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
-  --sig-font-narrative: Georgia, "Times New Roman", serif;
+  --sig-font-ui: "Instrument Sans", ui-sans-serif, -apple-system, "BlinkMacSystemFont", "Segoe UI", "Inter", sans-serif;
+  --sig-font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", "Menlo", "Consolas", "Liberation Mono", monospace;
+  --sig-font-narrative: "Georgia", "Times New Roman", serif;
   --sig-size-label: 10px;
   --sig-size-secondary: 12px;
   --sig-size-body: 13px;
