@@ -217,7 +217,12 @@ _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope.
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
 - [x] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet — DONE: `skill_proposal_runtime.py` parses untrusted `SKILL.md` into a `SkillProposal` JSON record, keeps activation state `quarantined`, extracts requested tools/permissions for SSR/QA review, enforces size/section caps, and never registers or executes imported skill content.)_
-- [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
+- [x] Add SkillProposal schema with SSR/QA review status. _(M · sonnet — DONE:
+  `noemaforge/contracts/skill_proposal.schema.json` requires `ssr_status` /
+  `qa_status` enums (`pending`/`ssr_review`/`approved`/`rejected`) plus a
+  `safety` block asserting `requires_ssr_review`/`requires_qa_review`;
+  `skill_proposal_runtime.py` emits both fields as `"pending"` on every parsed
+  proposal, covered by `test_skill_proposal_runtime.py`.)_
 - [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
 - [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
 - [ ] Add provider-runtime-resolver design doc. _(L · opus — 0.33.2 foundation design)_
@@ -561,12 +566,26 @@ release→main conflict resolution; statuses updated on restore._
   non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
   both renderers with hostile payloads and verify literal text plus preserved
   controls. Remaining `insecure-innerhtml` sinks in these components: 0.
-- [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
-  raw-query construction path and parameterize or constrain active inputs.
-- [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
-  hardened parsing at every untrusted or externally supplied XML boundary.
-- [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
-  Prove fixed argv/environment allowlists or remove tainted command construction.
+- [x] **Audit and fix dynamic SQL findings (15 baseline findings).** DONE (#325):
+  hardened dynamic SQL construction across 7 call sites (alerts #99-179).
+  0 open `sql`/`raw-query` code-scanning alerts on `release/0.33.0-dev`
+  (verified 2026-07-26); the 15 still shown on `main` are pending propagation
+  at the next release cut, not unfixed.
+- [x] **Audit and fix XML input-boundary findings (5 baseline findings).** DONE
+  (#181): `privileged_gui_job_runner.py`, `persona_runtime.py`, `glove_agent.py`
+  parse via `defusedxml.ElementTree` with a regex entity-reference guard on the
+  stdlib fallback path (defusedxml stays an optional extra per the stdlib-only
+  runtime rule); `ci/acceptance_runner.py` no longer parses XML at all. 0 open
+  `use-defused-xml*` alerts on `release/0.33.0-dev` (verified 2026-07-26); the 5
+  still shown on `main` are pending propagation at the next release cut.
+- [x] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
+  DONE (#324 + prior `uat_runtime.py` fix): resolved tainted-subprocess-env
+  findings in `prestart.py` (alerts #137, #139); `uat_runtime.py`'s
+  command-injection finding is fixed at the source (`pipeline_id` is
+  regex-validated to a safe token before `subprocess.run`) with a scoped inline
+  `# nosemgrep`. 0 open `subprocess`/`tainted-env` alerts on
+  `release/0.33.0-dev` (verified 2026-07-26); the 3 still shown on `main` are
+  pending propagation at the next release cut.
 
 The open counts above are Semgrep baseline findings, not confirmed
 vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
@@ -674,7 +693,18 @@ from a CDN._
 - [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — DONE: PR #327)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
-  do not stop the batch by default.
+  do not stop the batch by default. DONE: `aat_allpipeline_runtime.py` +
+  `AdminGuiServer.aat_run_all_pipelines_start()` (job-based, `POST
+  /api/aat/run-all-pipelines`). "Safe test mode" reuses the existing
+  `permission_mode` taxonomy instead of inventing a new dry-run concept:
+  `plan_only` pipelines run end-to-end automatically, `ask_before_write`/
+  `guided_readmostly` are started and expected to stop at their own approval
+  gate (`blocked_pending_approval`, not a failure), `guided_admin`/
+  `explicit_only`/`manual_only` are excluded from the batch by design.
+  Built-in prompts are auto-derived from each pipeline's own registered
+  `description`. One pipeline raising never stops the batch. Report is a
+  JSON+Markdown pair under `<data_root>/aat_reports/<job_id>/`, delivered as
+  a job artifact like any other pipeline output.
 - [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
