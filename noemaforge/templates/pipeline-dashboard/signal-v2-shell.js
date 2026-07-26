@@ -5,14 +5,19 @@ Zone: gui/shell
 Version: 0.33.0
 Created: 2026-07-26
 Purpose: Signal v2 shell behavior -- experience-wave switcher (persisted,
-  instant re-theme via CSS custom properties) and nav-rail scroll-anchor
-  navigation. Deliberately separate from app.js: this file only touches the
-  new .sig-* shell elements it adds in index.html and never reads or writes
-  any existing app.js state, so a Signal v2 phase-1 rollback is a two-line
-  <link>/<script> removal with zero risk to chat/pipeline/task logic.
+  instant re-theme via CSS custom properties) and nav-rail navigation. For
+  rail items backed by real on-page content (data-rail-target) it scroll-
+  anchors; for phase-2 screens (data-screen-target, e.g. Settings) it only
+  dispatches a "sig:screen-change" DocumentEvent -- signal-v2-screens.js owns
+  what showing/hiding a screen actually does, so this file stays ignorant of
+  which screens exist. Deliberately separate from app.js: this file only
+  touches the new .sig-* shell elements it adds in index.html and never
+  reads or writes any existing app.js state, so a Signal v2 phase-1 rollback
+  is a two-line <link>/<script> removal with zero risk to chat/pipeline/task
+  logic.
 Inputs: DOM elements #sig-wave-switch, #sig-rail-nav, #sig-screen-title;
   localStorage key "noemaforge.signal_v2.wave".
-Outputs: body[data-wave] attribute; scroll position.
+Outputs: body[data-wave] attribute; scroll position; "sig:screen-change" event.
 Side effects: localStorage write (wave preference only, no runtime data).
 Tests: manual -- open the dashboard, click each wave button and rail item.
 === End NoemaForge File Header ===
@@ -90,8 +95,19 @@ Tests: manual -- open the dashboard, click each wave button and rail item.
       if (screenTitle) {
         screenTitle.textContent = item.getAttribute("data-rail-label") || screenTitle.textContent;
       }
+      var screenId = item.getAttribute("data-screen-target");
+      if (screenId) {
+        // Phase 2 screens (Settings, Persona roster) live outside #sig-app-main
+        // and are shown/hidden rather than scrolled to. signal-v2-screens.js
+        // owns what "showing" a screen actually does; this file only notifies
+        // it, keeping the two files loosely coupled (shell.js has no idea
+        // Settings/Personas exist).
+        document.dispatchEvent(new CustomEvent("sig:screen-change", { detail: { screenId: screenId } }));
+        return;
+      }
       var targetId = item.getAttribute("data-rail-target");
       if (targetId) {
+        document.dispatchEvent(new CustomEvent("sig:screen-change", { detail: { screenId: null } }));
         var targetEl = document.getElementById(targetId);
         if (targetEl && typeof targetEl.scrollIntoView === "function") {
           targetEl.scrollIntoView({ behavior: "smooth", block: "start" });
