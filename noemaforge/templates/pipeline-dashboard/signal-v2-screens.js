@@ -29,6 +29,7 @@ Tests: manual -- open Settings, confirm locale/device/persona controls still
 
   var personaCatalogPromise = null;
   var settingsRelocated = false;
+  var railPersonaNavBound = false;
 
   function fetchPersonaCatalog() {
     if (!personaCatalogPromise) {
@@ -96,6 +97,18 @@ Tests: manual -- open Settings, confirm locale/device/persona controls still
     grid.appendChild(frag);
   }
 
+  function goToPersonaScreen() {
+    document.dispatchEvent(new CustomEvent("sig:screen-change", { detail: { screenId: "sig-screen-personas" } }));
+    var screenTitle = document.getElementById("sig-screen-title");
+    if (screenTitle) {
+      screenTitle.textContent = "Personas";
+    }
+    var navItems = document.querySelectorAll(".sig-rail-item");
+    for (var i = 0; i < navItems.length; i++) {
+      navItems[i].classList.remove("active");
+    }
+  }
+
   function renderRailPersonaStack(personas) {
     var stack = document.getElementById("sig-rail-personas");
     if (!stack || !personas.length) {
@@ -117,15 +130,19 @@ Tests: manual -- open Settings, confirm locale/device/persona controls still
     frag.appendChild(count);
     stack.innerHTML = "";
     stack.appendChild(frag);
-    stack.addEventListener("click", function () {
-      document.dispatchEvent(new CustomEvent("sig:screen-change", { detail: { screenId: "sig-screen-personas" } }));
-      var screenTitle = document.getElementById("sig-screen-title");
-      if (screenTitle) {
-        screenTitle.textContent = "Personas";
-      }
-      var navItems = document.querySelectorAll(".sig-rail-item");
-      for (var i = 0; i < navItems.length; i++) {
-        navItems[i].classList.remove("active");
+    // Bind nav listeners exactly once: this renderer re-runs on every
+    // Personas screen visit (see initPersonaScreen), but `stack` itself is
+    // never replaced, so re-adding a listener each time would stack up
+    // duplicate handlers.
+    if (railPersonaNavBound) {
+      return;
+    }
+    railPersonaNavBound = true;
+    stack.addEventListener("click", goToPersonaScreen);
+    stack.addEventListener("keydown", function (event) {
+      if (event.key === "Enter" || event.key === " " || event.key === "Spacebar") {
+        event.preventDefault();
+        goToPersonaScreen();
       }
     });
   }
@@ -160,6 +177,24 @@ Tests: manual -- open Settings, confirm locale/device/persona controls still
     }
   }
 
+  /**
+   * Relocate a checkbox by moving its whole `<label class="check">` wrapper
+   * (not just the <input>), so the label/input pairing -- and with it the
+   * accessible name and click-to-toggle behavior -- survives the move.
+   */
+  function relocateCheckField(inputId, containerId) {
+    var input = document.getElementById(inputId);
+    var container = document.getElementById(containerId);
+    if (!input || !container) {
+      return;
+    }
+    var wrapper = input.closest("label.check") || input.parentElement;
+    if (!wrapper || wrapper.parentElement === container) {
+      return;
+    }
+    container.appendChild(wrapper);
+  }
+
   function initSettingsScreen() {
     if (settingsRelocated) {
       return;
@@ -168,10 +203,8 @@ Tests: manual -- open Settings, confirm locale/device/persona controls still
     relocate("locale-select", "sig-settings-locale-row", "Locale");
     relocate("persona-select", "sig-settings-persona-row", "Active persona");
     relocate("persona-rules", "sig-settings-persona-row", null);
-    relocate("admin-execute", "sig-settings-session-row", null);
-    relocate("label-execute", "sig-settings-session-row", null);
-    relocate("admin-prepare-media", "sig-settings-session-row", null);
-    relocate("label-media-plan", "sig-settings-session-row", null);
+    relocateCheckField("admin-execute", "sig-settings-session-row");
+    relocateCheckField("admin-prepare-media", "sig-settings-session-row");
     relocate("device-policy", "sig-settings-device-row", "Device");
     relocate("device-policy-reset", "sig-settings-device-row", null);
     relocate("gui-shutdown", "sig-settings-shutdown-row", null);
