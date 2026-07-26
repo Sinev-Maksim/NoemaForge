@@ -1,0 +1,181 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/signal-v2-shell.css
+Zone: gui/shell
+Version: 0.33.0
+Created: 2026-07-26
+Purpose: Signal v2 app shell chrome -- 88px nav rail, header (screen title +
+  Operator/Guided/Play wave switcher + locale/device selects) -- wrapping the
+  existing page content. Depends on signal-v2-tokens.css custom properties.
+Inputs: HTML structure added in index.html (.sig-shell, .sig-rail, .sig-header).
+Outputs: Fixed-rail, scrollable-content layout; instant re-theme on wave switch.
+Tests: visual smoke at http://127.0.0.1:8765/.
+Notes: Rail items without an implemented destination screen yet (Evolver,
+  Epochs, Settings) are marked aria-disabled with a "planned" title instead of
+  silently doing nothing on click (this codebase treats silent no-ops as a
+  defect class -- see U-002 in docs/uat/DEFECT-REGISTER-0.32.2.md). Items with
+  real on-page content (Chat, Pipelines, Models/Epoch, Tasks, Artifacts)
+  scroll-anchor to it; full per-screen routing is later Signal v2 phases.
+=== End NoemaForge File Header ===
+*/
+
+html, body{ height: 100%; }
+body{
+  background-color: var(--sig-bg);
+  margin: 0;
+}
+
+.sig-shell{
+  display: flex;
+  min-height: 100vh;
+}
+
+/* --- Nav rail --- */
+.sig-rail{
+  flex: 0 0 var(--sig-rail-width);
+  width: var(--sig-rail-width);
+  background: var(--sig-card);
+  border-right: 1px solid var(--sig-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 0;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.sig-rail-logo{
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--sig-accent);
+  color: var(--sig-bg);
+  display: grid;
+  place-items: center;
+  font-family: var(--sig-font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+.sig-rail-nav{
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  align-items: stretch;
+}
+.sig-rail-item{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 4px;
+  border: none;
+  border-left: 2px solid transparent;
+  background: none;
+  color: var(--sig-muted);
+  cursor: pointer;
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  border-radius: 0;
+}
+.sig-rail-item .sig-rail-icon{
+  font-size: 16px;
+  line-height: 1;
+  font-family: var(--sig-font-ui);
+}
+.sig-rail-item:hover{ color: var(--sig-text); background: var(--sig-card-inset); }
+.sig-rail-item.active{ color: var(--sig-accent); border-left-color: var(--sig-accent); background: var(--sig-card-inset); }
+.sig-rail-item[aria-disabled="true"]{ opacity: .4; cursor: not-allowed; }
+.sig-rail-item[aria-disabled="true"]:hover{ background: none; color: var(--sig-muted); }
+
+.sig-rail-personas{
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  align-items: center;
+}
+.sig-rail-persona-avatar{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--sig-border);
+  object-fit: cover;
+  background: var(--sig-card-inset);
+}
+
+/* --- Header --- */
+.sig-main{
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sig-header{
+  height: var(--sig-header-height);
+  min-height: var(--sig-header-height);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--sig-border);
+  background: var(--sig-card);
+}
+.sig-header-title{
+  font-size: var(--sig-size-screen-title);
+  font-weight: 600;
+  color: var(--sig-text);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sig-wave-switch{
+  display: flex;
+  border: 1px solid var(--sig-border);
+  border-radius: var(--sig-radius-chip);
+  padding: 2px;
+  gap: 2px;
+  justify-self: center;
+}
+.sig-wave-switch button{
+  border: none;
+  background: none;
+  color: var(--sig-muted);
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-secondary);
+  padding: 5px 12px;
+  border-radius: var(--sig-radius-chip);
+  cursor: pointer;
+}
+.sig-wave-switch button.active{
+  background: var(--sig-accent);
+  color: var(--sig-bg);
+}
+.sig-header-controls{
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-self: end;
+}
+
+.sig-content{
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+@media (max-width: 900px){
+  .sig-rail{ display: none; }
+  .sig-header{ grid-template-columns: 1fr; grid-auto-rows: auto; row-gap: 6px; height: auto; padding: 10px 14px; }
+  .sig-wave-switch{ justify-self: start; }
+  .sig-header-controls{ justify-self: start; flex-wrap: wrap; }
+}

@@ -22,8 +22,38 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
   <link rel="stylesheet" href="observer-cards.css" />
   <link rel="stylesheet" href="pipeline-editor.css" />
   <link rel="stylesheet" href="artifact-affordances.css" />
+  <!-- Signal v2 tokens/shell load last so their body/color-variable rules win
+       the cascade over the equal-specificity rules above (see signal-v2-shell.js
+       header comment for why these files stay separate from style.css/app.js). -->
+  <link rel="stylesheet" href="signal-v2-tokens.css" />
+  <link rel="stylesheet" href="signal-v2-shell.css" />
 </head>
 <body>
+  <div class="sig-shell">
+    <nav class="sig-rail" aria-label="Primary navigation">
+      <div class="sig-rail-logo" aria-hidden="true">N</div>
+      <div class="sig-rail-nav" id="sig-rail-nav">
+        <button type="button" class="sig-rail-item active" data-rail-target="chat-log" data-rail-label="Chat"><span class="sig-rail-icon" aria-hidden="true">&#128172;</span>Chat</button>
+        <button type="button" class="sig-rail-item" data-rail-target="pipeline-dock" data-rail-label="Pipelines"><span class="sig-rail-icon" aria-hidden="true">&#9878;</span>Pipelines</button>
+        <button type="button" class="sig-rail-item" data-rail-target="epoch-title" data-rail-label="Models"><span class="sig-rail-icon" aria-hidden="true">&#9670;</span>Models</button>
+        <button type="button" class="sig-rail-item" data-rail-target="tasks" data-rail-label="Tasks"><span class="sig-rail-icon" aria-hidden="true">&#9745;</span>Tasks</button>
+        <button type="button" class="sig-rail-item" data-rail-target="artifacts" data-rail-label="Artifacts"><span class="sig-rail-icon" aria-hidden="true">&#9638;</span>Artifacts</button>
+        <button type="button" class="sig-rail-item" aria-disabled="true" title="Evolver: planned, not yet implemented" data-rail-label="Evolver"><span class="sig-rail-icon" aria-hidden="true">&#10142;</span>Evolver</button>
+        <button type="button" class="sig-rail-item" aria-disabled="true" title="Epochs timeline: planned, not yet implemented" data-rail-label="Epochs"><span class="sig-rail-icon" aria-hidden="true">&#9689;</span>Epochs</button>
+        <button type="button" class="sig-rail-item" aria-disabled="true" title="Settings: planned, not yet implemented" data-rail-label="Settings"><span class="sig-rail-icon" aria-hidden="true">&#9881;</span>Settings</button>
+      </div>
+    </nav>
+    <div class="sig-main">
+      <header class="sig-header">
+        <h1 class="sig-header-title" id="sig-screen-title">Chat</h1>
+        <div class="sig-wave-switch" id="sig-wave-switch" role="group" aria-label="Experience wave">
+          <button type="button" data-wave-value="operator" class="active">Operator</button>
+          <button type="button" data-wave-value="guided">Guided</button>
+          <button type="button" data-wave-value="play">Play</button>
+        </div>
+        <div class="sig-header-controls"></div>
+      </header>
+      <div class="sig-content">
   <main class="app" aria-label="NoemaForge Admin Chat">
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
@@ -139,6 +169,9 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       </aside>
     </section>
   </main>
+      </div>
+    </div>
+  </div>
 
   <div id="context-menu" class="context-menu hidden"></div>
   <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><div id="modal-body" class="modal-body"></div></div></div>
@@ -159,6 +192,7 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     </div>
   </div>
   <script src="app.js"></script>
+  <script src="signal-v2-shell.js"></script>
 </body>
 </html>
 

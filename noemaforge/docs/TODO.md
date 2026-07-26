@@ -581,10 +581,42 @@ and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per
 detail in `../uat/UAT-*.md`. Original verdict driving this section: Admin GUI =
 PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
 production readiness for non-engineer operators = NOT READY.
-2026-07-25 status: all P0/P1/P2 items below are merged on `release/0.33.0-dev`
-(PRs #126-#136); only U-004 (AAT all-pipeline demo mode, tracked under Runtime/ops
-follow-ups below) remains open. Target-host re-validation of the fixpack is still
-pending before the production-readiness verdict can be flipped._
+2026-07-25 status: all P0/P1/P2 items below, plus U-004 (AAT all-pipeline demo
+mode, PR #327), are merged on `release/0.33.0-dev`. Target-host re-validation
+of the fixpack is still pending before the production-readiness verdict can
+be flipped._
+
+## Signal v2 admin GUI redesign (owner directive 2026-07-26 — mandatory for 0.33.0)
+
+_Design handoff: nav-rail shell, oklch color tokens, 3 experience waves
+(Operator/Guided/Play), 8 screens (Pipelines/Models/Tasks/Artifacts/Evolver/
+Epochs/Settings/Persona-gallery) + 2 detail pop-ups, replacing the current
+single-page Admin GUI. Full token/screen spec lives only in the design
+handoff bundle (not checked into the repo); phases below follow its own
+suggested implementation order. Deliberate deviation: the handoff specifies
+Instrument Sans/JetBrains Mono via Google Fonts CDN -- NoemaForge is
+offline-first (no external network required), so these fonts are declared as
+first preference in the font stack with system-font fallbacks, never fetched
+from a CDN._
+
+- [x] **Phase 1 -- tokens + shell** (rail, header, wave switcher). DONE: _(L · opus)_
+  `templates/pipeline-dashboard/signal-v2-tokens.css` (oklch palette ×3 waves,
+  typography, shape tokens; remaps existing `--bg/--panel/--line/--accent/etc.`
+  so every existing card/button re-themes with zero class/markup changes),
+  `signal-v2-shell.css` (88px nav rail, 64px header), `signal-v2-shell.js`
+  (wave switcher persisted to localStorage, rail scroll-anchor nav) — kept
+  fully separate from `style.css`/`app.js` so this phase is a two-line
+  `<link>`/`<script>` revert with zero risk to existing chat/pipeline/task
+  logic. Rail items without an implemented screen yet (Evolver, Epochs,
+  Settings) are `aria-disabled` with a "planned" title rather than a silent
+  no-op click.
+- [ ] **Phase 2 -- persona gallery (7d) + Settings (7c)** (static, fast wins per _(M · sonnet)_
+  handoff's own suggested order).
+- [ ] **Phase 3 -- Tasks board (5c) + Artifacts panes (5d)** (existing APIs). _(M · sonnet)_
+- [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
+- [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_
+  **timeline (7b)** — the latter three need new endpoints (hypotheses, arena,   endpoints)_
+  epoch rollback) that do not exist yet.
 
 ### P0 — trust and feedback loop (blocks operator use)
 
