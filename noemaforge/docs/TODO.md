@@ -610,8 +610,21 @@ from a CDN._
   logic. Rail items without an implemented screen yet (Evolver, Epochs,
   Settings) are `aria-disabled` with a "planned" title rather than a silent
   no-op click.
-- [ ] **Phase 2 -- persona gallery (7d) + Settings (7c)** (static, fast wins per _(M · sonnet)_
-  handoff's own suggested order).
+- [x] **Phase 2 -- persona gallery (7d) + Settings (7c)**. DONE: real data _(M · sonnet)_
+  throughout, nothing invented -- `signal-v2-screens.js` fetches the existing
+  `/api/persona/catalog` (23 real personas, already used by the classic
+  persona-select dropdown) for the card grid and rail avatar stack; Settings
+  is built by *relocating* (not duplicating) 8 already-wired real controls
+  (locale/persona-select/device-policy/execute+media-plan checkboxes/
+  shutdown) from the classic header, so every control keeps its exact prior
+  behavior. Design-handoff roster used 17 renamed personas (Демихов, Grace
+  Hopper, ...) that don't match this system's actual 23-persona catalog
+  (Атлас, Сигурд, Северин, ...) -- used the real catalog, not the mockup
+  names. Verified live: all 23 portraits load (caught and removed a
+  `loading="lazy"` that silently left 18/23 images unloaded even after
+  scrolling into view -- not worth the correctness risk for ~20 small SVGs),
+  screen switching and wave re-theming both verified against the new
+  screens, 0 console errors.
 - [ ] **Phase 3 -- Tasks board (5c) + Artifacts panes (5d)** (existing APIs). _(M · sonnet)_
 - [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
 - [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_

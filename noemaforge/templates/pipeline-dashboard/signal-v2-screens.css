@@ -1,0 +1,141 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/signal-v2-screens.css
+Zone: gui/shell
+Version: 0.33.0
+Created: 2026-07-26
+Purpose: Signal v2 phase 2 -- styling for the Persona roster (7d) and
+  Settings (7c) screens rendered by signal-v2-screens.js. Depends on
+  signal-v2-tokens.css custom properties.
+Inputs: markup added in index.html (#sig-screen-personas, #sig-screen-settings)
+  and populated at runtime by signal-v2-screens.js.
+Outputs: 4-column (responsive) persona card grid; grouped settings rows.
+Tests: visual smoke at http://127.0.0.1:8765/ -- open Settings, open the
+  persona stack at the bottom of the rail.
+=== End NoemaForge File Header ===
+*/
+
+.sig-screen{ max-width: 1100px; }
+.sig-screen.hidden{ display: none; }
+.sig-screen-head{ margin-bottom: var(--sig-grid-gap); }
+.sig-eyebrow{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-label);
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-accent);
+  margin: 0 0 4px;
+}
+.sig-screen-note{ margin: 0; font-size: var(--sig-size-secondary); }
+.sig-screen-note code{
+  font-family: var(--sig-font-mono);
+  background: var(--sig-card-inset);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+/* --- Persona roster (7d) --- */
+.sig-persona-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--sig-grid-gap);
+}
+.sig-persona-card{
+  background: var(--sig-card);
+  border: 1px solid var(--sig-border);
+  border-radius: var(--sig-radius-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.sig-persona-portrait{
+  height: 160px;
+  background: var(--sig-card-inset);
+  position: relative;
+}
+.sig-persona-portrait img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.sig-persona-style-label{
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-text-strong);
+  background: color-mix(in oklch, var(--sig-bg) 65%, transparent);
+  padding: 2px 7px;
+  border-radius: var(--sig-radius-chip);
+}
+.sig-persona-body{ padding: var(--sig-card-padding); display: flex; flex-direction: column; gap: 4px; }
+.sig-persona-name{ font-size: var(--sig-size-card-title); font-weight: 600; color: var(--sig-text); margin: 0; }
+.sig-persona-role{ font-size: var(--sig-size-secondary); color: var(--sig-muted); margin: 0; }
+
+/* --- Settings (7c) --- */
+.sig-settings-groups{ display: flex; flex-direction: column; gap: var(--sig-grid-gap); }
+.sig-settings-group{
+  background: var(--sig-card);
+  border: 1px solid var(--sig-border);
+  border-radius: var(--sig-radius-card);
+  padding: var(--sig-card-padding);
+}
+.sig-settings-group h2{
+  font-size: var(--sig-size-card-title);
+  margin: 0 0 10px;
+  font-weight: 600;
+  color: var(--sig-text);
+}
+.sig-settings-row{
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.sig-settings-row:empty::before{
+  content: "Nothing to relocate here yet.";
+  color: var(--sig-muted);
+  font-size: var(--sig-size-secondary);
+  font-style: italic;
+}
+.sig-settings-static{
+  margin: 0;
+  color: var(--sig-text-strong);
+  font-size: var(--sig-size-body);
+  line-height: 1.5;
+}
+.sig-relocated-field{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-muted);
+}
+
+/* --- Rail persona stack --- */
+.sig-rail-personas{
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+.sig-rail-persona-avatar{
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--sig-border);
+  object-fit: cover;
+  background: var(--sig-card-inset);
+}
+.sig-rail-persona-count{
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  color: var(--sig-muted);
+}
