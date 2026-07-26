@@ -95,6 +95,8 @@ TOOLPROXY_BLOCKED_BY_STAGE_DEFAULT = [
 ]
 TOOLPROXY_WRITE_STAGE_TERMS = {
     "development",
+    "implementation",
+    "patch",
     "drafting",
     "docs_update",
     "changelog",
@@ -132,13 +134,25 @@ DEFAULT_PIPELINES: Dict[str, Dict[str, Any]] = {
         "deliverables": ["status_note", "safe_runtime_check", "first_chat_note", "first_pipeline_note", "support_bundle_plan"],
     },
     "evolution": {
-        "description": "Architecture-aware development/evolution pipeline.",
+        "description": "Production evolution planning pipeline with explicit approval and release-readiness gates.",
         "project_id": "noemaforge",
-        "stages": ["intake", "architecture_clarification", "development_plan", "development_execute", "unit_testing", "integration_testing", "optimization", "review", "merge_plan"],
+        "stages": ["intake", "current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "operator_approval", "implementation_plan", "validation_plan", "release_readiness"],
         "team": "development_evolution_team",
         "permission_mode": "ask_before_write",
         "llm_policy": {"mode": "switchable", "max_active_llms": 1},
-        "deliverables": ["architecture_note", "patch_or_plan", "test_report", "optimization_note", "merge_plan"],
+        "deliverables": ["current_state", "evidence_inventory", "capability_gap_analysis", "mutation_plan", "risk_review", "implementation_plan", "validation_plan", "release_readiness"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
+    },
+    "self_development": {
+        "description": "Self-development planning pipeline with scope boundaries, approval gate and adapter-required execution defers.",
+        "project_id": "noemaforge_self_development",
+        "stages": ["goal_intake", "repo_state_scan", "issue_decomposition", "implementation_plan", "safety_review", "operator_approval", "patch_generation_or_adapter_required", "test_execution_or_adapter_required", "review_summary", "handoff"],
+        "team": "self_development_team",
+        "permission_mode": "ask_before_write",
+        "pipeline_scope": "degraded_plan_only",
+        "llm_policy": {"mode": "switchable", "max_active_llms": 1},
+        "deliverables": ["proposed_patch_plan", "test_plan", "risk_register", "rollback_plan", "implementation_report"],
+        "stage_contracts": {"outcomes": ["produce_real_output", "require_operator_decision", "fail_actionably"]},
     },
     "book": {
         "description": "Research-to-book pipeline with editor/reviewer handoffs.",
@@ -180,6 +194,11 @@ DEFAULT_TEAMS: Dict[str, Dict[str, Any]] = {
         "roles": ["architect", "developer", "tester", "integration_tester", "optimizer", "reviewer", "archivist"],
         "handoff": "single active LLM; each role receives the previous context packet and writes a new artifact",
     },
+    "self_development_team": {
+        "coordinator": "administrator",
+        "roles": ["scope_reviewer", "repo_scanner", "planner", "safety_reviewer", "operator_gate", "adapter_executor", "qa_reviewer", "handoff_archivist"],
+        "handoff": "single active LLM; planning/review stages are deterministic and code/test execution defers to explicit adapters plus operator approval",
+    },
     "book_team": {
         "coordinator": "editor_in_chief",
         "roles": ["researcher", "outline_architect", "writer", "editor", "fact_checker", "archivist"],
@@ -220,7 +239,7 @@ def build_toolproxy_stage_binding(pipeline_id: str, stage: str, permission_mode:
         allowed.add("exec.run")
     if any(term in stage_key for term in TOOLPROXY_REVIEW_STAGE_TERMS):
         mutating_allowed.extend(["task.update", "roadmap.record"])
-    if str(pipeline_id) == "evolution" and stage_key in {"development", "development_plan", "development_execute", "review", "merge_plan"}:
+    if str(pipeline_id) in {"evolution", "self_development"} and stage_key in {"development", "development_plan", "development_execute", "implementation_plan", "patch_generation_or_adapter_required", "review", "review_summary", "merge_plan", "handoff"}:
         mutating_allowed.append("worktree.enter")
 
     allowed.update(mutating_allowed)
@@ -783,6 +802,10 @@ def actionable_missing_worker(run: Dict[str, Any], stage: str, quality: Dict[str
         return actionable_backend_required(run, stage, quality, reply_state, worker)
     return {
         "state": "blocked_missing_worker",
+        "selection_state": "blocked_missing_worker",
+        "degraded_reason": "no_deterministic_local_worker_or_refreshed_selection",
+        "required_capability": capability,
+        "required_adapter": "",
         "code": "blocked_missing_worker",
         "message": f"Stage `{stage}` has no deterministic local worker/backend in pipeline_runtime.py; no real output can be produced automatically.",
         "missing_component": "pipeline_stage_worker",
@@ -810,6 +833,10 @@ def actionable_backend_required(run: Dict[str, Any], stage: str, quality: Dict[s
     return {
         "state": "blocked_backend_required",
         "status": "blocked_backend_required",
+        "selection_state": "blocked_backend_required",
+        "degraded_reason": "backend_required_for_stage_capability",
+        "required_capability": capability,
+        "required_adapter": required_backend,
         "code": f"backend_required_for_{capability}",
         "message": message,
         "missing_component": required_backend,
@@ -850,6 +877,10 @@ def actionable_placeholder_output_before_completion(
     return {
         "state": "blocked_placeholder_output",
         "status": "blocked_placeholder_output",
+        "selection_state": "blocked_placeholder_output",
+        "degraded_reason": "placeholder_output_cannot_complete_stage",
+        "required_capability": str(worker.get("stage_capability") or selection_refresh.classify_stage_capability(stage)),
+        "required_adapter": str(worker.get("required_adapter") or ""),
         "code": "placeholder_output_before_completion",
         "message": (
             f"Pipeline `{run.get('pipeline_id')}` cannot complete because stage `{stage}` "
@@ -938,6 +969,8 @@ def execute_generic_local_stage_worker(conn: sqlite3.Connection, run: Dict[str, 
         f"- run_id: `{run.get('run_id')}`",
         f"- request: {request or 'No operator request text was provided.'}",
         f"- worker_status: `{worker.get('worker_status')}`",
+        f"- selection_state: `{worker.get('selection_state') or 'valid_selected'}`",
+        f"- degraded_reason: `{worker.get('degraded_reason') or ''}`",
         f"- resolved_role: `{resolved_role}`",
         f"- fallback_policy: `{fallback}`",
     ]
@@ -960,7 +993,7 @@ def execute_generic_local_stage_worker(conn: sqlite3.Connection, run: Dict[str, 
         "",
         "## Decision",
         "",
-        f"Use the refreshed selection worker `{resolved_role}` as an execution authority for this `{capability}` artifact. The runtime produced a concrete stage output without starting hidden LLM, media, camera, microphone, GPU, or privileged services.",
+        f"Use the refreshed selection worker `{resolved_role}` as the deterministic artifact source for this `{capability}` stage. The runtime produced a concrete planning/review artifact without starting hidden LLM, media, camera, microphone, GPU, or privileged services.",
         "",
         "## Evidence/Input summary",
         "",
@@ -991,6 +1024,8 @@ def execute_generic_local_stage_worker(conn: sqlite3.Connection, run: Dict[str, 
         {
             "source": "deterministic_local_stage_worker",
             "stage_capability": capability,
+            "selection_state": worker.get("selection_state") or "valid_selected",
+            "degraded_reason": worker.get("degraded_reason") or "",
             "worker_resolution": worker,
             "output_quality": quality,
             "version": RUNTIME_VERSION,
@@ -1002,6 +1037,8 @@ def execute_generic_local_stage_worker(conn: sqlite3.Connection, run: Dict[str, 
         "worker_type": "deterministic_local_text_stage_worker",
         "stage": stage,
         "stage_capability": capability,
+        "selection_state": worker.get("selection_state") or "valid_selected",
+        "degraded_reason": worker.get("degraded_reason") or "",
         "run_id": run.get("run_id"),
         "pipeline_id": pipeline_id,
         "worker_resolution": worker,

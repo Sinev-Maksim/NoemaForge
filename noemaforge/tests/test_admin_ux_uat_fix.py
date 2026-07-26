@@ -169,16 +169,15 @@ class PipelineStatusAndArtifactTests(unittest.TestCase):
             status = srv.pipeline_run_status("run_stage_handoff_v2")
 
             self.assertTrue(status["ok"])
-            self.assertEqual("architecture_clarification", status["current_stage"])
+            self.assertEqual("current_state", status["current_stage"])
             self.assertTrue(status["clarification_required"])
             self.assertEqual("stage_handoff_required", status["waiting_reason"])
             self.assertTrue(status["questions"])
             handoff = status["stage_handoff"]
-            self.assertEqual("Architect", handoff["persona"])
             self.assertEqual("run_stage_handoff_v2", handoff["run_id"])
 
             reply = srv.pipeline_stage_reply("run_stage_handoff_v2", {
-                "stage": "architecture_clarification",
+                "stage": "current_state",
                 "message": "Operator decision: keep local-first handoff explicit.",
                 "action": "reply",
             })
@@ -237,8 +236,9 @@ class PipelineStatusAndArtifactTests(unittest.TestCase):
             srv = _server(tmp)
             srv.state = state
             before = srv.pipeline_run_status("run_reply_state")
+            self.assertEqual("current_state", before["current_stage"])
             before_version = before["stage_handoff"]["handoff_version"]
-            reply = srv.pipeline_stage_reply("run_reply_state", {"stage": "architecture_clarification", "message": "operator decision", "action": "reply"})
+            reply = srv.pipeline_stage_reply("run_reply_state", {"stage": "current_state", "message": "operator decision", "action": "reply"})
             after = srv.pipeline_run_status("run_reply_state")
         self.assertEqual("operator_reply_recorded", reply["operator_reply_state"]["state"])
         self.assertEqual("operator_reply_recorded", after["operator_reply_state"]["state"])
