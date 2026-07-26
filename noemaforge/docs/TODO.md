@@ -625,7 +625,26 @@ from a CDN._
   scrolling into view -- not worth the correctness risk for ~20 small SVGs),
   screen switching and wave re-theming both verified against the new
   screens, 0 console errors.
-- [ ] **Phase 3 -- Tasks board (5c) + Artifacts panes (5d)** (existing APIs). _(M · sonnet)_
+- [ ] **Phase 3 -- Tasks board (5c) + Artifacts panes (5d).** Investigated _(M · sonnet -- see blockers)_
+  2026-07-26, deliberately NOT built shallow: real gaps found, not just
+  remaining effort.
+  - **Artifacts (5d):** no `/api/artifacts`-style *list* endpoint exists --
+    only single-artifact `/api/artifacts/open` and `/api/artifacts/download`
+    (confirmed via `Grep` across `admin_gui_server.py`). `app.js`'s
+    `latestArtifacts` is populated only as a side effect of conversation/job
+    history, not independently queryable. A real 3-pane browser (group list |
+    file list | preview) needs a new backend list endpoint first -- building
+    the screen without one would mean either duplicating app.js's transient
+    state (fragile, exactly the coupling phase 1/2 deliberately avoided) or
+    faking data. Blocked on that endpoint, not on frontend effort.
+  - **Tasks (5c):** `/api/tasks` does return a real `status` per task, so a
+    status-grouped board is technically buildable, but the live system
+    currently has 0 real tasks (only "expected default tasks" in a
+    placeholder state, category=SELF_IMPROVE/SECURITY/PLANNED etc. rather
+    than a clean pending/blocked/done enum) -- a 4-column Kanban board would
+    render mostly-empty columns against current real data and isn't
+    verifiable as an improvement over the existing list view without more
+    realistic task volume to test against.
 - [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
 - [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_
   **timeline (7b)** — the latter three need new endpoints (hypotheses, arena,   endpoints)_
