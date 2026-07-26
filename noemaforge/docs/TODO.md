@@ -671,7 +671,7 @@ from a CDN._
 - [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
-- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
+- [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — DONE: PR #327)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
   do not stop the batch by default.
