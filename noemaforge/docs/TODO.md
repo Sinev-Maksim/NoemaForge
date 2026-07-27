@@ -737,9 +737,23 @@ from a CDN._
   `description`. One pipeline raising never stops the batch. Report is a
   JSON+Markdown pair under `<data_root>/aat_reports/<job_id>/`, delivered as
   a job artifact like any other pipeline output.
-- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
+- [x] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
-  path quoting in evidence-collection helpers.
+  path quoting in evidence-collection helpers. _(investigated + fixed 2026-07-27: the
+  `07g-model-selection-summary.json` key-scan and the hand-assembled `07k` normalized
+  verdict from the 2026-06-10 UAT session (`UAT-2026-06-10-first-start-full-composite.md`)
+  were ad-hoc terminal commands from that session, never committed scripts — grep for
+  `key-scan`/`normalized-verdict` across the tree hits only this TODO line. The
+  normalized-verdict extraction O-001 asks for already exists as `noemaforge first-start
+  summary --json` (`first_start_summary.py`, predates the UAT session); future UAT runs
+  should use it instead of ad-hoc key-scanning. O-002's unit-name-quoting class of bug is
+  real and was found in two committed evidence-collection helpers: `noemaforge_status.py`
+  `collect()` and `bootdoctor.py` `_detect_failed_units()` both ran `systemctl --failed
+  --no-legend` without `--plain`, so `line.split()[0]` captured the leading `●`
+  state-marker glyph instead of the unit name — `noemaforge status --json`'s
+  `failed_units` field surfaced `["●"]` and `bootdoctor` silently dropped every failed
+  unit (the glyph never ends in `.service`/`.timer`). Fixed by adding `--plain` at both
+  call sites, with regression tests.)_
 - [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
   starts the localhost dashboard) in the operator guide.
 
