@@ -664,7 +664,47 @@ from a CDN._
     render mostly-empty columns against current real data and isn't
     verifiable as an improvement over the existing list view without more
     realistic task volume to test against.
-- [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
+- [x] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph _(L · opus — DONE: PR #336)_
+  editor last. DONE: real data throughout. The Pipelines rail item stops
+  scroll-anchoring into the classic dock and becomes a real screen
+  (`data-screen-target="sig-screen-pipelines"`), same pattern as phase 2's
+  Settings/Personas. `signal-v2-pipelines.js` fetches `/api/pipelines/catalog`
+  (101 real pipelines, the backend's own 6 groups Core/Development/Governance/
+  Media/Model/Vault as filter chips, real id/description/stages/
+  persona_codename/pipeline_scope per card), `/api/pipelines/<id>/diagram` for
+  the pop-up stage flow and `/api/pipelines/<id>/stats` for the stats block.
+  No Mermaid library added (runtime stays dependency-free, offline-first): the
+  flow is drawn as plain SVG exactly like the classic dock's diagram modal,
+  with the endpoint's mermaid source exposed verbatim in a collapsed
+  `<details>`. `runs_passed`/`runs_failed`/`avg_duration_sec` are null in every
+  current response and are surfaced as an explicit "not yet tracked" line
+  carrying the backend's own note — not fake zeros, not a fake pass-rate chart
+  (same call phase 3 made). Run action included after investigating `app.js`:
+  it needs **zero** duplicated run logic — `startPipeline()` is a plain global
+  and `#pipeline-confirm` already lives outside `#sig-app-main`, so the button
+  returns to the Chat screen and delegates to the classic D-005 confirm flow
+  (editable request staged into the composer; nothing starts until Send).
+  Returning to Chat first is load-bearing: the staged request lands in
+  `#admin-message` *inside* the hidden `#sig-app-main`, so skipping that step
+  would have looked like a silent no-op (U-002). Fixed a phase-2 markup defect
+  found while wiring this: three stray `</div>` closers made every
+  `.sig-screen` parse as a body-level sibling outside `.sig-content`, so
+  opening Settings/Personas rendered them at y=1270 — below the 100vh shell and
+  entirely outside the viewport; all screens now render at y=84 under the
+  header. Classic `#pipeline-dock` untouched (side note: it caps its list at
+  `.slice(0,90)`, so 11 of the 101 pipelines were never visible there — the new
+  grid shows all 101). Verified live: grid + group filtering, mouse and
+  keyboard card opening, per-id diagram/stats, all three close paths with focus
+  restore, run hand-off up to the staged (unsent) request, all 3 waves
+  re-theming the screen and the SVG, phase-2 screens still working, no
+  horizontal overflow at 375px, 0 console errors. Pixel screenshots were not
+  possible in that session (browser pane not compositing) — verification is
+  DOM/behavioral against the live server, stated as such in the PR.
+- [ ] **Phase 4b -- drag-drop stage/graph editor on the Pipelines screen.** Deferred _(M · sonnet)_
+  from phase 4 per TODO's own "graph editor last" ordering. A drag-drop editor
+  already exists in the classic dock (`openPipelineEditor` in `app.js`, saving
+  through `/api/pipelines/draft` as draft-only); phase 4b is about bringing it
+  onto the Signal v2 screen, not writing a new one.
 - [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_
   **timeline (7b)** — the latter three need new endpoints (hypotheses, arena,   endpoints)_
   epoch rollback) that do not exist yet.
