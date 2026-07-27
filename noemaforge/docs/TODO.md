@@ -1045,10 +1045,16 @@ Target-host required items:
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
   `claude/task-19-sha256sums-premerge-check` (8 tests: 5 source-text + 3
-  functional pwsh subprocess). The check currently flags 4 files added during
-  0.32.2 hardening that are absent from SHA256SUMS and need regeneration on
-  the target host: `event_log.py`, `noemaforge_version.py`,
-  `orchestration_state.py`, `session_store.py`.
+  functional pwsh subprocess). This is a premerge *staleness detector*, not a
+  regenerator — it does not conflict with the item above, which is about the
+  manual dev-branch regeneration workflow being obsolete, not about whether
+  staleness should be flagged. The check currently flags 4 files added during
+  0.32.2 hardening that are absent from SHA256SUMS: `event_log.py`,
+  `noemaforge_version.py`, `orchestration_state.py`, `session_store.py`.
+  Per CLAUDE.md, evidence (including SHA256SUMS) is regenerated only at
+  pre-release by `publish-evidence.yml`, never manually on a dev branch or
+  the target host mid-development — this flag is expected to clear itself
+  once evidence is regenerated at actual release time, not before.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 
