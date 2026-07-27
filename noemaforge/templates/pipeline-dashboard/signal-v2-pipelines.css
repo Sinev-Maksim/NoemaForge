@@ -1,0 +1,326 @@
+/*
+=== NoemaForge File Header ===
+File: templates/pipeline-dashboard/signal-v2-pipelines.css
+Zone: gui/shell
+Version: 0.33.0
+Created: 2026-07-27
+Purpose: Signal v2 phase 4 -- styling for the Pipelines card grid (5a) and the
+  pipeline detail pop-up (6a) rendered by signal-v2-pipelines.js. Mirrors the
+  phase-2 .sig-persona-card visual language (same card background, border,
+  radius and padding tokens) rather than introducing a second card style.
+Inputs: markup added in index.html (#sig-screen-pipelines, #sig-pipeline-modal)
+  and populated at runtime by signal-v2-pipelines.js. Depends on
+  signal-v2-tokens.css custom properties, so all three experience waves
+  re-theme this screen with no extra rules.
+Outputs: responsive pipeline card grid, group filter chips, modal overlay,
+  stage-flow SVG theming, stat tiles.
+Tests: visual smoke at http://127.0.0.1:8890/ -- open Pipelines from the rail,
+  switch waves, open and close a card.
+=== End NoemaForge File Header ===
+*/
+
+/* --- Group filter bar --- */
+.sig-pipeline-toolbar{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: var(--sig-grid-gap);
+}
+.sig-pipeline-filters{
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sig-pipeline-filter{
+  font-family: var(--sig-font-ui);
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-muted);
+  background: var(--sig-card-inset);
+  border: 1px solid var(--sig-border-subtle);
+  border-radius: var(--sig-radius-chip);
+  padding: var(--sig-chip-padding);
+  cursor: pointer;
+}
+.sig-pipeline-filter:hover{ color: var(--sig-text); border-color: var(--sig-border); }
+.sig-pipeline-filter.active{
+  color: var(--sig-bg);
+  background: var(--sig-accent);
+  border-color: var(--sig-accent);
+}
+.sig-pipeline-count{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-label);
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-muted);
+  margin: 0 0 0 auto;
+}
+
+/* --- Card grid (5a) --- */
+.sig-pipeline-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+  gap: var(--sig-grid-gap);
+}
+.sig-pipeline-card{
+  background: var(--sig-card);
+  border: 1px solid var(--sig-border);
+  border-radius: var(--sig-radius-card);
+  padding: var(--sig-card-padding);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sig-stack-gap);
+  cursor: pointer;
+  position: relative;
+}
+.sig-pipeline-card:hover{ border-color: var(--sig-accent); }
+.sig-pipeline-card:focus-visible{
+  outline: 2px solid var(--sig-accent);
+  outline-offset: 2px;
+}
+.sig-pipeline-card-head{
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.sig-pipeline-id{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-card-title);
+  font-weight: 600;
+  color: var(--sig-text);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.sig-pipeline-group{
+  flex: none;
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-accent);
+  border: 1px solid var(--sig-border-subtle);
+  border-radius: var(--sig-radius-chip);
+  padding: 2px 8px;
+}
+.sig-pipeline-desc{
+  margin: 0;
+  font-size: var(--sig-size-secondary);
+  line-height: 1.45;
+  color: var(--sig-muted);
+}
+.sig-pipeline-desc.empty{ font-style: italic; opacity: .75; }
+.sig-pipeline-stages{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.sig-stage-chip{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-label);
+  color: var(--sig-text-strong);
+  background: var(--sig-card-inset);
+  border-radius: var(--sig-radius-inset);
+  padding: 3px 7px;
+}
+.sig-stage-chip.more{ color: var(--sig-muted); }
+.sig-pipeline-meta{
+  margin: 0;
+  font-size: var(--sig-size-label);
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--sig-muted);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.sig-meta-sep{ opacity: .5; }
+.sig-pipeline-scope{
+  align-self: flex-start;
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  color: var(--sig-warn);
+  border: 1px solid currentColor;
+  border-radius: var(--sig-radius-chip);
+  padding: 1px 7px;
+}
+.sig-pipeline-scope.launchable{ color: var(--sig-ok); }
+
+/* --- Detail pop-up (6a) --- */
+.sig-modal{
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in oklch, var(--sig-bg) 78%, transparent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.sig-modal.hidden{ display: none; }
+.sig-modal-inner{
+  position: relative;
+  width: min(760px, 100%);
+  max-height: 86vh;
+  overflow-y: auto;
+  background: var(--sig-card);
+  border: 1px solid var(--sig-border);
+  border-radius: var(--sig-radius-card);
+  padding: 22px;
+}
+.sig-modal-close{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: var(--sig-card-inset);
+  border: 1px solid var(--sig-border-subtle);
+  color: var(--sig-text);
+  border-radius: var(--sig-radius-chip);
+  width: 28px;
+  height: 28px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.sig-modal-close:hover{ border-color: var(--sig-accent); color: var(--sig-accent); }
+.sig-modal-title{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-screen-title);
+  color: var(--sig-text);
+  margin: 0 40px 6px 0;
+  overflow-wrap: anywhere;
+}
+.sig-modal-desc{
+  margin: 0 0 12px;
+  font-size: var(--sig-size-body);
+  line-height: 1.5;
+  color: var(--sig-text-strong);
+}
+.sig-modal-meta{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.sig-modal-fact{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--sig-card-inset);
+  border-radius: var(--sig-radius-chip);
+  padding: var(--sig-chip-padding);
+}
+.sig-modal-fact-key{
+  font-family: var(--sig-font-mono);
+  font-size: 9px;
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-muted);
+}
+.sig-modal-fact-value{ font-size: var(--sig-size-secondary); color: var(--sig-text); }
+.sig-modal-section{ margin-bottom: 18px; }
+.sig-modal-section > h3{
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-label);
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-accent);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+/* Stage-flow SVG: classed, not hard-coded, so every wave re-themes it. */
+.sig-diagram-scroll{
+  overflow-x: auto;
+  background: var(--sig-card-inset);
+  border-radius: var(--sig-radius-inset);
+  padding: 10px;
+}
+.sig-diagram-box{ fill: var(--sig-card); stroke: var(--sig-accent); stroke-width: 1.4; }
+.sig-diagram-label{ fill: var(--sig-text); font-family: var(--sig-font-mono); font-size: 11px; }
+.sig-diagram-link{ stroke: var(--sig-accent); stroke-width: 1.4; }
+.sig-diagram-arrow{ fill: var(--sig-accent); }
+.sig-diagram-source{ margin-top: 10px; }
+.sig-diagram-source summary{
+  cursor: pointer;
+  color: var(--sig-muted);
+  font-size: var(--sig-size-secondary);
+}
+.sig-diagram-source pre{
+  margin: 8px 0 0;
+  font-size: 11px;
+  white-space: pre-wrap;
+  color: var(--sig-text-strong);
+}
+
+/* Stats */
+.sig-stat-row{ display: flex; gap: 10px; flex-wrap: wrap; }
+.sig-stat-tile{
+  background: var(--sig-card-inset);
+  border-radius: var(--sig-radius-inset);
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 110px;
+}
+.sig-stat-value{ font-family: var(--sig-font-mono); font-size: 22px; color: var(--sig-text); }
+.sig-stat-label{
+  font-size: var(--sig-size-label);
+  letter-spacing: var(--sig-label-tracking);
+  text-transform: uppercase;
+  color: var(--sig-muted);
+}
+.sig-stat-caption{
+  margin: 10px 0 4px;
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-muted);
+}
+.sig-run-list{
+  margin: 0;
+  padding-left: 18px;
+  font-family: var(--sig-font-mono);
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-text-strong);
+}
+.sig-stat-untracked{
+  margin: 12px 0 0;
+  font-size: var(--sig-size-secondary);
+  line-height: 1.5;
+  color: var(--sig-muted);
+  border-left: 2px solid var(--sig-warn);
+  padding-left: 10px;
+}
+.sig-stat-untracked strong{ color: var(--sig-warn); font-weight: 600; }
+
+/* Run hand-off */
+.sig-modal-actions{ display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.sig-modal-run{
+  font-family: var(--sig-font-ui);
+  font-size: var(--sig-size-control);
+  color: var(--sig-bg);
+  background: var(--sig-accent);
+  border: 1px solid var(--sig-accent);
+  border-radius: var(--sig-radius-chip);
+  padding: 7px 16px;
+  cursor: pointer;
+}
+.sig-modal-run:hover{ filter: brightness(1.08); }
+.sig-modal-run-hint{
+  margin: 0;
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-muted);
+  flex: 1 1 240px;
+}
+.sig-modal-notice{
+  margin: 10px 0 0;
+  font-size: var(--sig-size-secondary);
+  color: var(--sig-warn);
+}
+.sig-modal-notice.hidden{ display: none; }
+
+@media (max-width: 700px){
+  .sig-modal{ padding: 10px; }
+  .sig-modal-inner{ padding: 16px; max-height: 92vh; }
+}
