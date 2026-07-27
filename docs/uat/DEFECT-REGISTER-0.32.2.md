@@ -34,8 +34,8 @@ see its row below._
 | U-005 | Artifact metadata in API not surfaced as chat cards | High | Chat artifact delivery | Fixed | [PR #129](https://github.com/Sinev-Maksim/NoemaForge/pull/129) |
 | S-001 | Smoke chat requires literal "OK" → healthy tiny model reported `degraded` | Medium | Ops tooling / smoke | Mitigated on host, fix upstream | 0.33.x ops |
 | R-001 | `noemaforge-llm-backends-manager.service` failed once during composite window | Medium | Runtime / systemd | Open (reset-failed applied, no root cause) | 0.33.x runtime |
-| O-001 | Model-selection key-scan summary JSON full of nulls | Low | UAT/ops tooling | Fixed (was a session-local ad-hoc scan, not a committed script; normalized-verdict extraction already exists — see `noemaforge/docs/TODO.md` O-001/O-002 note) | [PR TBD](https://github.com/Sinev-Maksim/NoemaForge/pulls) |
-| O-002 | UAT helper quoting bugs (`●` unit query, literal `{` dir) | Low | UAT/ops tooling | Fixed (unit-name parsing bug: `noemaforge_status.py`/`bootdoctor.py` missing `--plain`; the literal-brace dir was session-local, no repo script found) | [PR TBD](https://github.com/Sinev-Maksim/NoemaForge/pulls) |
+| O-001 | Model-selection key-scan summary JSON full of nulls | Low | UAT/ops tooling | Fixed (was a session-local ad-hoc scan, not a committed script; normalized-verdict extraction already exists — see `noemaforge/docs/TODO.md` O-001/O-002 note) | [PR #337](https://github.com/Sinev-Maksim/NoemaForge/pull/337) |
+| O-002 | UAT helper quoting bugs (`●` unit query, literal `{` dir) | Low | UAT/ops tooling | Fixed (unit-name parsing bug: `noemaforge_status.py`/`bootdoctor.py` missing `--plain`; the literal-brace dir was session-local, no repo script found) | [PR #337](https://github.com/Sinev-Maksim/NoemaForge/pull/337) |
 | O-003 | Admin GUI has no TCP listener by default | Info | Admin GUI / docs | By design — document operator start path | docs |
 
 Severity scale: Critical (blocks core use) > High (blocks production
