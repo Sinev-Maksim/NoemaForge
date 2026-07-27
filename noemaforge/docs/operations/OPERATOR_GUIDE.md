@@ -1096,6 +1096,50 @@ noemaforge dashboard state --out noemaforge/templates/pipeline-dashboard/dashboa
 
 The dashboard launcher only writes state or serves static files. It does not start `noemaforge-llama@main`, the gateway, ToolProxy or any heavy model.
 
+### Admin GUI default network posture (0.33.0)
+
+The NoemaForge Admin GUI server does not start automatically on daemon/service startup. No TCP listener is bound until the operator explicitly starts the localhost dashboard.
+
+#### Default behavior
+
+- **No auto-start**: The Admin GUI is not started by any systemd service or boot timer. The runtime/LLM autostart (`noemaforge-autostart-gui.timer`, `noemaforge-autostart-wogui.service`) manages only the NoemaForge runtime, not the Admin GUI server.
+- **Localhost-only binding**: When started, the Admin GUI server binds exclusively to the loopback address `127.0.0.1` on port `8765`. Non-loopback bind addresses are refused by default to prevent accidental network exposure of the control plane.
+- **Explicit operator start**: To launch the Admin GUI, run:
+
+```bash
+noema start
+```
+
+This one-command start performs readiness checks, ensures user-writable data directories exist, launches the Admin GUI server as a subprocess, and opens the dashboard in the browser. The server runs at `http://127.0.0.1:8765/`.
+
+#### Alternative: background start
+
+To launch the Admin GUI in the background without waiting:
+
+```bash
+noema start --background
+```
+
+The server process runs independently; the terminal prompt returns immediately.
+
+#### Alternative: explicit network binding (unsupported)
+
+To bind the Admin GUI to a non-loopback address (not recommended in production):
+
+```bash
+noema start --host <address> --allow-nonlocal-host
+```
+
+This is a development-only override. The control plane is designed for localhost operation only; binding to network addresses exposes privileged operations to the network.
+
+#### Verify the server is not running
+
+```bash
+curl http://127.0.0.1:8765/api/health 2>&1 | head -1
+```
+
+If the server is stopped, this will fail with a connection error (e.g., `curl: (7) Failed to connect to 127.0.0.1 port 8765`).
+
 #### Template import and approval
 
 ```bash
