@@ -740,7 +740,7 @@ from a CDN._
 - [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
-- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
+- [x] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku — DONE: PR #335)_
   starts the localhost dashboard) in the operator guide.
 
 ## 0.32.2 release-hardening checkpoints
