@@ -414,7 +414,7 @@ def _first_run_level(pol: Dict[str, Any]) -> Optional[str]:
 #   - failed, ln, unit
 # === End NoemaForge Autodoc Function Header ===
 def _detect_failed_units() -> List[str]:
-    rc, out, _ = _run(["systemctl", "--failed", "--no-legend"], timeout_sec=10)
+    rc, out, _ = _run(["systemctl", "--failed", "--plain", "--no-legend"], timeout_sec=10)
     if rc != 0:
         return []
     failed: List[str] = []
