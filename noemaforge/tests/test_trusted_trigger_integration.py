@@ -364,6 +364,8 @@ class AdminGuiOwnerSessionGuardTests(unittest.TestCase):
             ROOT / "configs" / "admin-gui-mutation-policy.json"
         )
         self.assertTrue(policy.valid, policy.error)
+        self.assertEqual({"/api/session/owner-bootstrap"}, set(policy.unauthenticated_exact))
+        self.assertIn("/api/aat/run-all-pipelines", set(policy.owner_required_exact))
         table_routes = set(admin_gui_routes.post_routes())
         inline_exact = {"/api/session/mode", "/api/shutdown"}
         self.assertEqual(
@@ -380,13 +382,20 @@ class AdminGuiOwnerSessionGuardTests(unittest.TestCase):
         bootstrap = self.make_handler("/api/session/owner-bootstrap")
         decision = owner_guard_runtime._guard_for_handler(bootstrap).evaluate(bootstrap, bootstrap.path)
         self.assertTrue(decision["allowed"])
-        missing = self.make_handler("/api/shutdown")
-        decision = owner_guard_runtime._guard_for_handler(missing).evaluate(missing, missing.path)
-        self.assertFalse(decision["allowed"])
-        self.assertIn("owner_session_capability_invalid", decision["reason_codes"])
+        for path in ("/api/shutdown", "/api/aat/run-all-pipelines"):
+            with self.subTest(path=path):
+                missing = self.make_handler(path)
+                decision = owner_guard_runtime._guard_for_handler(missing).evaluate(missing, missing.path)
+                self.assertFalse(decision["allowed"])
+                self.assertIn("owner_session_capability_invalid", decision["reason_codes"])
 
     def test_valid_session_covers_exact_and_prefix_mutations(self) -> None:
-        for path in ("/api/epoch/apply", "/api/jobs/job-1/cancel", "/api/pipeline/run/run-1/reply"):
+        for path in (
+            "/api/epoch/apply",
+            "/api/aat/run-all-pipelines",
+            "/api/jobs/job-1/cancel",
+            "/api/pipeline/run/run-1/reply",
+        ):
             with self.subTest(path=path):
                 handler = self.make_handler(path, issue_cookie=True)
                 decision = owner_guard_runtime._guard_for_handler(handler).evaluate(handler, path)

@@ -29,6 +29,7 @@
       "/api/admin/modify-pipeline",
       "/api/pipeline/run",
       "/api/pipelines/start",
+      "/api/aat/run-all-pipelines",
       "/api/pipeline/approve",
       "/api/pipeline/advance",
       "/api/pipelines/draft",
