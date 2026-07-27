@@ -5,12 +5,10 @@ name: Premerge quality gate
 # Zone: release/package
 # Version: 0.33.0
 # Created: 2026-05-28
-# Purpose: Read-only premerge quality gate for PRs targeting the active release branch
-#   and main. The expected version is derived from the version source of truth
-#   (noemaforge_version.RUNTIME_VERSION), so this gate is version-agnostic and works for
-#   0.32.2 and 0.33.0 alike. Fails fast on version violations, compile errors or tracked
-#   cache files. No auto-commits, no auto-push, no auto-tagging.
-# Notes: Code comments are English-only.
+# Modified: 2026-07-24
+# Purpose: Read-only premerge gates for the full proposal/test-only self-improvement
+#   UAT harness and the standard compile/config/version/git-hygiene checks.
+# Notes: Code comments are English-only; no auto-commit, push, apply or release action.
 # === End NoemaForge File Header ===
 
 on:
@@ -25,8 +23,49 @@ permissions:
   pull-requests: read
 
 jobs:
+  self-improvement-uat:
+    name: Self-improvement UAT harness (CLI · bootstrap · authenticated GUI)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          show-progress: false
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.11"
+
+      - name: Install PyYAML
+        run: pip install pyyaml --quiet
+
+      - name: Run end-to-end self-improvement UAT harness
+        run: |
+          evidence_dir="$RUNNER_TEMP/noemaforge-self-improvement-uat"
+          mkdir -p "$evidence_dir"
+          chmod 700 "$evidence_dir"
+          echo "EVIDENCE_DIR=$evidence_dir" >> "$GITHUB_ENV"
+          set -o pipefail
+          bash noemaforge/tools/uat/run-self-improvement-uat-preflight.sh \
+            --repo-root "$PWD" \
+            --expected-head "$(git rev-parse HEAD)" \
+            --port 18876 \
+            --out "$evidence_dir" 2>&1 | tee "$evidence_dir/harness.log"
+
+      - name: Upload redacted UAT evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: noemaforge-self-improvement-uat-evidence
+          path: ${{ env.EVIDENCE_DIR }}
+          retention-days: 14
+          if-no-files-found: warn
+
   quality-gate:
     name: Quality gate (py_compile · JSON · YAML · versions · git hygiene)
+    needs: self-improvement-uat
     runs-on: ubuntu-latest
 
     steps:
@@ -60,11 +99,15 @@ jobs:
           echo "py_compile: $count files, $errs errors"
           [ "$errs" -eq 0 ] || exit 1
 
+      # ── 1a. Trusted ingress and owner-session regression suite ───────────
+      - name: Trusted trigger and owner-session integration tests
+        run: |
+          python -W error::ResourceWarning noemaforge/tests/test_trusted_trigger_integration.py
+          python -W error::ResourceWarning noemaforge/tests/test_admin_gui_owner_guard_import_order.py
+
       # ── 2. No RUNTIME_VERSION= assignment outside noemaforge_version.py ──
       - name: No forbidden RUNTIME_VERSION assignment
         run: |
-          # Anchor to line-start: avoids matching string literals in test
-          # assertIn(f'RUNTIME_VERSION = "..."') calls.
           hits=$(grep -rn "^\s*RUNTIME_VERSION\s*=" --include="*.py" noemaforge/src/ \
             | grep -v "noemaforge/src/noemaforge_version.py" \
             | grep -v "import RUNTIME_VERSION" || true)
@@ -118,7 +161,7 @@ jobs:
           if d.get("status") == "pre-alpha" or d.get("channel") == "pre-alpha":
               failed.append(f"stale pre-alpha status={d.get('status')!r} channel={d.get('channel')!r}")
           if failed:
-              print("FAIL docs/release.json:"); print("\n".join(f"  {x}" for x in failed)); sys.exit(1)
+              print(f"FAIL docs/release.json:"); print("\n".join(f"  {x}" for x in failed)); sys.exit(1)
           print(f"PASS: docs/release.json fields OK (version={d['version']} release={d['release']})")
           PYEOF
 
@@ -164,13 +207,7 @@ jobs:
           fi
           echo "PASS: no tracked __pycache__ or *.py[co]"
 
-      # ── 8. (removed) Release manifest/checksum evidence ──────────────────
-      # Release evidence (MANIFEST/SHA256SUMS) is a PRE-RELEASE concern only:
-      # it is not tracked, not regenerated and not verified on dev/PR branches
-      # (owner directive 2026-06-14). The evidence is generated and verified
-      # solely at release time by publish-evidence.yml (tag/dispatch), which
-      # assembles it into the signed release bundle. This removes the recurring
-      # cross-PR checksum churn entirely.
+      # ── 8. Release evidence is generated only by the release workflow ────
 
       # ── 9. Shell syntax check (bash -n) ───────────────────────────────────
       - name: Shell syntax check (bash -n) on .sh files
@@ -183,14 +220,13 @@ jobs:
           echo "bash -n: $count files, $errs syntax errors"
           [ "$errs" -eq 0 ] || exit 1
 
-      # ── 10. Wiki integrity (links · hub index · no dumps) ────────────────
+      # ── 10. Wiki integrity ────────────────────────────────────────────────
       - name: Wiki integrity (links, hub index, no consolidated dumps)
         run: python ci/wiki_check.py
 
-      # ── 11. Docs hygiene (markdown layout · forbidden text · canon files) ─
+      # ── 11. Docs hygiene ──────────────────────────────────────────────────
       - name: Docs hygiene gate
         run: python noemaforge/src/docs_hygiene_runtime.py --project-root .
 
-      # ── Summary ───────────────────────────────────────────────────────────
       - name: Summary
         run: echo "All premerge quality gates passed."
