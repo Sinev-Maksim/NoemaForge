@@ -2,9 +2,9 @@
 # === NoemaForge File Header ===
 # File: noemaforge/tools/prep/noemaforge-dashboard.sh
 # Zone: release/package
-# Version: 0.32.1
+# Version: 0.33.0
 # Created: 2026-05-14
-# Modified: 2026-05-14
+# Modified: 2026-07-24
 # Purpose: Provide NoemaForge release functionality for the packaged local runtime.
 # Inputs: Command-line arguments, environment variables, package files and local NoemaForge runtime state as applicable.
 # Outputs: Structured command output, files, service state or UI state as documented by the caller.
@@ -30,6 +30,7 @@ Usage:
   noemaforge dashboard state [--out FILE]
   noemaforge dashboard serve [--port 8765]
   noemaforge dashboard start [--port 8765]
+  noemaforge dashboard owner-url [--port 8765]
   noemaforge dashboard stop
   noemaforge dashboard status
   noemaforge dashboard autostart-enable [--port 8765] [--now] [--dry-run]
@@ -43,7 +44,7 @@ units under XDG_CONFIG_HOME and never require root.
 USAGE
 }
 action="${1:-path}"; shift || true
-case "$action" in path|state|serve|start|stop|status|autostart-enable|autostart-disable|autostart-status) MODE="$action" ;; -h|--help|help) usage; exit 0 ;; *) echo "unknown dashboard action: $action" >&2; usage; exit 2 ;; esac
+case "$action" in path|state|serve|start|owner-url|stop|status|autostart-enable|autostart-disable|autostart-status) MODE="$action" ;; -h|--help|help) usage; exit 0 ;; *) echo "unknown dashboard action: $action" >&2; usage; exit 2 ;; esac
 NOW=0
 DRY_RUN=0
 USER_UNIT_DIR="${NOEMAFORGE_SYSTEMD_USER_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user}"
@@ -64,9 +65,38 @@ done
 UI="$ROOT/templates/pipeline-dashboard"
 [[ -d "$UI" ]] || { echo "missing dashboard UI: $UI" >&2; exit 1; }
 RUNDIR="${XDG_STATE_HOME:-$HOME/.local/state}/noemaforge"
+umask 077
 mkdir -p "$RUNDIR"
-# For user-started GUI consoles, avoid failing on root-owned /var/lib/noemaforge.
-# Explicit --state/env keeps its value; otherwise use an operator-writable cache.
+chmod 700 "$RUNDIR"
+OWNER_BOOTSTRAP_FILE="$RUNDIR/owner-bootstrap.token"
+owner_bootstrap_url() {
+  local token=""
+  [[ -f "$OWNER_BOOTSTRAP_FILE" ]] || return 1
+  token="$(cat "$OWNER_BOOTSTRAP_FILE")"
+  [[ ${#token} -ge 32 ]] || return 1
+  printf 'http://127.0.0.1:%s/owner-bootstrap.html#%s\n' "$PORT" "$token"
+}
+prepare_owner_bootstrap() {
+  local token
+  token="$(OWNER_BOOTSTRAP_FILE="$OWNER_BOOTSTRAP_FILE" python3 - <<'PY'
+import os
+import secrets
+
+path = os.environ["OWNER_BOOTSTRAP_FILE"]
+token = secrets.token_urlsafe(48)
+flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0)
+fd = os.open(path, flags, 0o600)
+try:
+    os.fchmod(fd, 0o600)
+    os.write(fd, token.encode("utf-8"))
+    os.fsync(fd)
+finally:
+    os.close(fd)
+print(token)
+PY
+)"
+  owner_bootstrap_url
+}
 if [[ -z "$STATE_FROM_ENV" && ! -w "$(dirname "$STATE")" ]]; then STATE="$RUNDIR/pipelines"; fi
 if [[ -z "$PERSONA_FROM_ENV" && ! -w "$(dirname "$PERSONA_STATE")" ]]; then PERSONA_STATE="$RUNDIR/personas"; fi
 if [[ -z "$EVOLUTION_FROM_ENV" && ! -w "$(dirname "$EVOLUTION_STATE")" ]]; then EVOLUTION_STATE="$RUNDIR/model-evolution"; fi
@@ -107,7 +137,6 @@ Persistent=false
 
 [Install]
 WantedBy=timers.target
-
 TIMER
 }
 systemctl_user_available() {
@@ -121,9 +150,10 @@ case "$MODE" in
     echo "$OUT"
     ;;
   serve)
-    # Generate a cache snapshot for debugging when possible, but the browser uses
-    # /api/state dynamically and does not require writes into the packaged UI dir.
     python3 "$ROOT/src/pipeline_runtime.py" --root "$ROOT" --state "$STATE" dashboard-state --persona-state "$PERSONA_STATE" --out "$RUNDIR/dashboard-state.json" >/dev/null || true
+    BOOTSTRAP_URL="$(prepare_owner_bootstrap)"
+    echo "NoemaForge owner bootstrap: $BOOTSTRAP_URL"
+    export NOEMAFORGE_OWNER_BOOTSTRAP_TOKEN_FILE="$OWNER_BOOTSTRAP_FILE"
     exec python3 "$ROOT/src/admin_gui_server.py" --root "$ROOT" --state "$STATE" --persona-state "$PERSONA_STATE" --evolution-state "$EVOLUTION_STATE" --port "$PORT"
     ;;
   start)
@@ -131,20 +161,40 @@ case "$MODE" in
     LOGFILE="$RUNDIR/dashboard.log"
     if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
       echo "NoemaForge dashboard already running: pid=$(cat "$PIDFILE") http://127.0.0.1:$PORT/"
+      owner_bootstrap_url 2>/dev/null | sed 's/^/NoemaForge owner bootstrap: /' || true
       exit 0
     fi
+    : > "$LOGFILE"
+    chmod 600 "$LOGFILE"
     nohup "$ROOT/tools/prep/noemaforge-dashboard.sh" serve --root "$ROOT" --state "$STATE" --persona-state "$PERSONA_STATE" --evolution-state "$EVOLUTION_STATE" --port "$PORT" >"$LOGFILE" 2>&1 &
     echo $! > "$PIDFILE"
     echo "NoemaForge dashboard started: pid=$(cat "$PIDFILE") http://127.0.0.1:$PORT/ log=$LOGFILE"
+    for _ in $(seq 1 40); do
+      line="$(grep -m1 '^NoemaForge owner bootstrap:' "$LOGFILE" 2>/dev/null || true)"
+      if [[ -n "$line" ]]; then
+        echo "$line"
+        break
+      fi
+      sleep 0.05
+    done
+    ;;
+  owner-url)
+    if url="$(owner_bootstrap_url)"; then
+      echo "NoemaForge owner bootstrap: $url"
+    else
+      echo "No pending owner bootstrap token. Restart the dashboard to create a new one." >&2
+      exit 1
+    fi
     ;;
   stop)
     PIDFILE="$RUNDIR/dashboard.pid"
     if [[ -f "$PIDFILE" ]] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
       kill "$(cat "$PIDFILE")" 2>/dev/null || true
-      rm -f "$PIDFILE"
+      rm -f "$PIDFILE" "$OWNER_BOOTSTRAP_FILE"
       echo "NoemaForge dashboard stopped"
     else
       pkill -f 'admin_gui_server.py .*--port' 2>/dev/null || true
+      rm -f "$OWNER_BOOTSTRAP_FILE"
       echo "NoemaForge dashboard not running"
     fi
     ;;
