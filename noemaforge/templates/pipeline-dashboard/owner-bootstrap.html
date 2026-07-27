@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NoemaForge owner session bootstrap</title>
+  <style>
+    body { font-family: sans-serif; max-width: 42rem; margin: 4rem auto; padding: 0 1rem; }
+    #status { white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>NoemaForge owner session bootstrap</h1>
+  <p id="status">Establishing the local operator session…</p>
+  <script>
+    (() => {
+      const status = document.getElementById('status');
+      const token = window.location.hash.slice(1);
+      history.replaceState(null, '', '/owner-bootstrap.html');
+      if (!token) {
+        status.textContent = 'Bootstrap token is missing. Restart the dashboard launcher and use the new owner bootstrap URL.';
+        return;
+      }
+      fetch('/api/session/owner-bootstrap', {
+        method: 'POST',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({token})
+      }).then(async (response) => {
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.error || `bootstrap denied (${response.status})`);
+        }
+        window.location.replace(payload.redirect || '/');
+      }).catch((error) => {
+        status.textContent = `Owner session bootstrap failed: ${error.message}`;
+      });
+    })();
+  </script>
+</body>
+</html>
