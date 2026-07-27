@@ -164,7 +164,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
 PY
 
 STATUS_BEFORE="$(git -C "$REPO_ROOT" status --porcelain=v1 --untracked-files=all | sha256sum | awk '{print $1}')"
-TREE_BEFORE="$(git -C "$REPO_ROOT" ls-files -z | xargs -0 -r sha256sum | sha256sum | awk '{print $1}')"
+TREE_BEFORE="$(git -C "$REPO_ROOT" ls-files -z | (cd "$REPO_ROOT" && xargs -0 -r sha256sum) | sha256sum | awk '{print $1}')"
 
 echo "UAT_STAGE=phase_a_cli_preflight"
 PHASE_A_STATE="$OUT/phase-a-state"
@@ -303,7 +303,7 @@ cleanup
 trap - EXIT INT TERM
 HEAD_AFTER="$(git -C "$REPO_ROOT" rev-parse HEAD)"
 STATUS_AFTER="$(git -C "$REPO_ROOT" status --porcelain=v1 --untracked-files=all | sha256sum | awk '{print $1}')"
-TREE_AFTER="$(git -C "$REPO_ROOT" ls-files -z | xargs -0 -r sha256sum | sha256sum | awk '{print $1}')"
+TREE_AFTER="$(git -C "$REPO_ROOT" ls-files -z | (cd "$REPO_ROOT" && xargs -0 -r sha256sum) | sha256sum | awk '{print $1}')"
 [[ "$HEAD_BEFORE" == "$HEAD_AFTER" ]] || { echo "git head changed during UAT" >&2; exit 7; }
 [[ "$STATUS_BEFORE" == "$STATUS_AFTER" ]] || { echo "git worktree status changed during UAT" >&2; exit 7; }
 [[ "$TREE_BEFORE" == "$TREE_AFTER" ]] || { echo "tracked source fingerprint changed during UAT" >&2; exit 7; }
