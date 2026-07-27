@@ -719,7 +719,7 @@ from a CDN._
 - [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure _(target-gated · M · sonnet for log analysis)_
   observed during the composite first-start window (plan-only oneshot; `reset-failed` was
   applied on host but is not a fix); add a regression check.
-- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
+- [x] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku — DONE: PR #334)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
 - [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — DONE: PR #327)_
