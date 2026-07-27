@@ -93,7 +93,7 @@ test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`
 a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
 touches release-gating logic across ~26 files + configs)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete — `release/0.32.2-hardening` shipped to `main` long ago and A1 moved evidence generation into CI on the merged tree (PR #88), so a branch-behind-base SHA256SUMS mismatch is no longer possible; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
@@ -203,7 +203,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
   `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
   skip-with-reason at the test layer. _(L · opus — 0.33.1)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete/duplicate of the identical item above — `release/0.32.2-hardening` shipped, superseded by A1 evidence-in-CI PR #88; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
@@ -908,7 +908,7 @@ from a CDN._
 
 ### P1 — PR #2 reviewability (manual action)
 
-- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.) _(obsolete — 0.32.2-era PR #2 housekeeping)_
+- [x] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. _(obsolete — PR #2 was 0.32.2-era housekeeping, long since closed/merged; ticked 2026-07-27.)_
 
 ## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
 
@@ -1021,9 +1021,10 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   `save_message()` called `append_message` twice, doubling session message
   count and halving the effective 500-message window.
 
-- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verify and tick)_
-  unbounded growth of the job index. Blocked until task-11
-  (`claude/task-11-wire-preflight`) merges to release.
+- [x] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verified 2026-07-27:
+  unbounded growth of the job index. `prune_terminal()` present at
+  `noemaforge/src/job_manager.py:293` on `release/0.33.0-dev`; `claude/jobmanager-prune-terminal`
+  confirmed an ancestor of `release/0.33.0-dev`.)_
 
 - [x] **Add idempotency integration test for `/api/model-selection/continue`**
   Done in `claude/task-15-idempotency-test` (13 tests pass). Covers:
@@ -1039,7 +1040,7 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
 
 Target-host required items:
 
-- [ ] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88; evidence generation is CI/pre-release-only per CLAUDE.md, never a manual dev-branch step; ticked 2026-07-27.)_
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
