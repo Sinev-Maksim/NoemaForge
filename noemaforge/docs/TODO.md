@@ -208,7 +208,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
 - [x] **`run_admin_gui.ps1`: fail loudly when `-PythonExe` is given but does not exist**, instead of silently falling back to the `py` launcher / `lib_python.ps1`. (Codex #36)
-- [x] **`role_tournament.py` backend-stop — target-only, degrades off Linux.** DONE: `systemctl()` and `_pids_for_backend` (pgrep) already `try/except`-degrade (return 127 / `[]` off Linux) and are now marked target-only by docstring; a first-class `service_manager` abstraction stays in the 0.33.1 phase. (Codex #34)
+- [x] **`role_tournament.py` backend-stop is still Linux/systemd-specific** (`systemctl(...)`); the `SIGKILL` guard only fixes the Windows attribute error, not a cross-platform stop flow — guard it or mark it target-only explicitly. (Codex #34) _(DONE PR #141: new service_manager.py abstraction; role_tournament.systemctl() + llm_backends_manager._systemctl() migrated; socket paths use platform_paths.llm_backends_dir)_
 - [x] **DRY the `getattr(signal, "SIGKILL", signal.SIGTERM)` fallback** into a shared helper/constant if the pattern recurs beyond `discord_bridge.py`/`role_tournament.py`. (Codex #34)
 
 ## 0.33.0 Roadmap — Hermes-inspired (post-0.32.2)
@@ -246,6 +246,7 @@ _Forward-looking milestones and cross-cutting tasks requested for the 0.33.x cyc
   (builds on the 0.32.2 `platform_paths` migration + sandbox/canary Windows import-safety).
   Acceptance: the artifact-driven AAT suite + the full test matrix pass identically on
   Linux / macOS / Windows.
+- [ ] **TODO(031-opt2):** Migrate remaining direct `systemctl` calls in `noemaforge_status.py` to `service_manager.call()`/`check_output()` abstraction. (Codex #141 Opt 2 — deferred, fold into 0.33.1 system-independence wave) _(S · haiku)_
 - [ ] **0.33.2 — hybrid LLM usage.** Allow using external/hosted LLMs alongside local _(XL · fable-orchestrated umbrella)_
   models: a provider-runtime resolver for the top ~10 LLMs (e.g. Codex/OpenAI,
   Claude/Anthropic, Gemini, Llama, Mistral, …) behind the ToolProxy capability token +

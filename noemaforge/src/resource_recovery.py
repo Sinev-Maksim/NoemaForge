@@ -57,6 +57,7 @@ from typing import Any, Dict, List, Optional
 
 import epoch
 from platform_paths import DEFAULT_PATHS as _pp
+import service_manager as _svcmgr
 
 BASE = str(_pp.data_root)
 ROLE_WORKDIR = os.path.join(BASE, "roles", "work")
@@ -250,8 +251,8 @@ def _stop_backend(bid: str) -> bool:
     # In real system we run under systemd. If not available, just return False.
     unit = f"noemaforge-llama@{bid}.service"
     try:
-        p = subprocess.run(["/usr/bin/systemctl", "stop", unit], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return p.returncode == 0
+        rc = _svcmgr.call("stop", unit)
+        return rc == 0
     except Exception:
         return False
 

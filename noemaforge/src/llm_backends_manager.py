@@ -59,6 +59,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 from platform_paths import DEFAULT_PATHS as _pp
+import service_manager as _svcmgr
 
 try:
     import runtime_safety
@@ -73,7 +74,7 @@ except Exception:  # pragma: no cover
 
 DEFAULT_CONTRACTS_ROOT = os.environ.get("NOEMAFORGE_CONTRACTS_ROOT", str(_pp.data_root / "contracts"))
 DEFAULT_POLICY_FALLBACK = str(_pp.root / "configs/llm-backends-policy.yaml")
-DEFAULT_SOCK_DIR = "/run/noemaforge/llm/backends"
+DEFAULT_SOCK_DIR = str(_pp.llm_backends_dir)
 DEFAULT_MODELSTORE_ROOT = os.environ.get("NOEMAFORGE_MODELSTORE_ROOT", str(_pp.data_root.parent / "modelstore"))
 DEFAULT_RUNTIME_DESIRED_COUNT = int(os.environ.get("NOEMAFORGE_RUNTIME_DESIRED_COUNT", "1"))
 
@@ -201,13 +202,7 @@ def _select_active_desired(pol: Dict[str, Any], desired_all: List[Dict[str, Any]
 
 
 def _systemctl(args: List[str]) -> Tuple[int, str]:
-    try:
-        out = subprocess.check_output(["systemctl"] + args, stderr=subprocess.STDOUT)
-        return 0, out.decode("utf-8", errors="replace")
-    except subprocess.CalledProcessError as e:
-        return int(e.returncode), (e.output or b"").decode("utf-8", errors="replace")
-    except Exception as e:
-        return 1, repr(e)
+    return _svcmgr.check_output(args)
 
 
 def _running_llama_units() -> List[Dict[str, str]]:

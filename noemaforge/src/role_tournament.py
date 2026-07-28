@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 from platform_paths import DEFAULT_PATHS as _pp
 from process_group_runner import kill_signal
+import service_manager as _svcmgr
 
 try:
     import yaml  # type: ignore
@@ -312,7 +313,7 @@ def _result_has_runtime_error(result: Dict[str, Any]) -> str:
 
 
 def _pids_for_backend(modelstore_id: str) -> List[int]:
-    sock = f"/run/noemaforge/llm/backends/{modelstore_id}.sock"
+    sock = str(_pp.llm_backends_dir / f"{modelstore_id}.sock")
     try:
         cp = subprocess.run(["pgrep", "-f", sock], text=True, capture_output=True, timeout=5)
     except Exception:
@@ -765,19 +766,17 @@ def systemctl(*args: str) -> int:
     """Run ``systemctl <args>`` and return its exit code.
 
     systemd is a Linux-production surface (the LLM backends run as systemd units).
-    Off Linux — or anywhere ``systemctl`` is absent — this is N/A: it returns 127
-    (command-not-found) instead of raising, so the start/stop/kill backend flows
-    degrade gracefully rather than crash. Target-only by design (0.33.1 service
-    management; Codex #34).
+    Delegates to the ``service_manager`` cross-platform abstraction, which
+    returns ``SERVICE_MANAGER_UNAVAILABLE`` (127) instead of raising when
+    systemctl is absent, so the start/stop/kill backend flows degrade
+    gracefully rather than crash off Linux (0.33.1 service management;
+    Codex #34).
     """
-    try:
-        return subprocess.call(["systemctl", *args], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        return 127
+    return _svcmgr.call(*args)
 
 
 def start_gguf_backend(modelstore_id: str) -> Tuple[bool, str, str]:
-    sock = f"/run/noemaforge/llm/backends/{modelstore_id}.sock"
+    sock = str(_pp.llm_backends_dir / f"{modelstore_id}.sock")
     if runtime_safety is not None:
         ok_safe, reason, meta = runtime_safety.validate_modelstore_backend(DEFAULT_MODELSTORE, modelstore_id)
         if not ok_safe:
@@ -855,7 +854,7 @@ def stop_gguf_backend(modelstore_id: str) -> None:
         _kill_backend_processes(modelstore_id, kill_signal())
     _ACTIVE_BACKENDS.discard(modelstore_id)
     try:
-        os.unlink(f"/run/noemaforge/llm/backends/{modelstore_id}.sock")
+        os.unlink(str(_pp.llm_backends_dir / f"{modelstore_id}.sock"))
     except Exception:
         pass
 
