@@ -3,25 +3,79 @@
   "$id": "noemaforge.engineering-guardrails/v1",
   "type": "object",
   "additionalProperties": false,
-  "required": ["apiVersion", "version", "classification", "control", "workspace", "side_effects", "external_process_contract", "paths", "runtime_discovery", "agents", "security", "review", "pipeline", "budget", "uat_findings", "comments", "terminal"],
+  "required": [
+    "apiVersion",
+    "version",
+    "classification",
+    "control",
+    "workspace",
+    "side_effects",
+    "external_process_contract",
+    "paths",
+    "runtime_discovery",
+    "agents",
+    "security",
+    "review",
+    "pipeline",
+    "budget",
+    "uat_findings",
+    "comments",
+    "terminal"
+  ],
   "properties": {
-    "apiVersion": {"const": "noemaforge.engineering-guardrails/v1"},
-    "version": {"type": "string"},
-    "classification": {"const": "UAT request findings resolution"},
-    "source_status": {"type": "object"},
-    "control": {"type": "object"},
-    "workspace": {"type": "object"},
-    "side_effects": {"type": "object"},
-    "external_process_contract": {"type": "object"},
-    "paths": {"type": "object"},
-    "runtime_discovery": {"type": "object"},
-    "agents": {"type": "object"},
-    "security": {"type": "object"},
-    "review": {"type": "object"},
-    "pipeline": {"type": "object"},
-    "budget": {"type": "object"},
-    "uat_findings": {"type": "object"},
-    "comments": {"type": "object"},
-    "terminal": {"type": "object"}
+    "apiVersion": {
+      "const": "noemaforge.engineering-guardrails/v1"
+    },
+    "version": {
+      "type": "string"
+    },
+    "classification": {
+      "const": "UAT request findings resolution"
+    },
+    "source_status": {
+      "type": "object"
+    },
+    "control": {
+      "type": "object"
+    },
+    "workspace": {
+      "type": "object"
+    },
+    "side_effects": {
+      "type": "object"
+    },
+    "external_process_contract": {
+      "type": "object"
+    },
+    "paths": {
+      "type": "object"
+    },
+    "runtime_discovery": {
+      "type": "object"
+    },
+    "agents": {
+      "type": "object"
+    },
+    "security": {
+      "type": "object"
+    },
+    "review": {
+      "type": "object"
+    },
+    "pipeline": {
+      "type": "object"
+    },
+    "budget": {
+      "type": "object"
+    },
+    "uat_findings": {
+      "type": "object"
+    },
+    "comments": {
+      "type": "object"
+    },
+    "terminal": {
+      "type": "object"
+    }
   }
 }
