@@ -181,5 +181,28 @@
     "print_local_path_and_file_uri": true,
     "exclude_disposable_worktrees": true,
     "status": "agreed"
+  },
+  "interfaces": {
+    "single_source_machine_readable_contract_required": true,
+    "duplicated_cross_component_enum_forbidden": true,
+    "callsite_literals_must_be_subset_of_contract": true,
+    "cross_file_parity_preflight_required": true,
+    "status": "recommended",
+    "derived_from": [
+      "NW-UAT-WIN-049"
+    ]
+  },
+  "package_closure": {
+    "runtime_dependency_contract_required": true,
+    "manifest_consistency_not_sufficient": true,
+    "build_fails_on_missing_required_runtime_file": true,
+    "startup_closure_preflight_before_worktree_or_agents": true,
+    "structural_failure_short_circuits_expensive_work": true,
+    "immutable_inputs_exist_before_hash_or_test": true,
+    "status": "recommended",
+    "derived_from": [
+      "NW-UAT-WIN-050",
+      "NW-UAT-WIN-051"
+    ]
   }
 }
