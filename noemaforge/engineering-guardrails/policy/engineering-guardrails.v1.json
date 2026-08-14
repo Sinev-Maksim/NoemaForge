@@ -7,10 +7,29 @@
     "recommended": "New generalized guardrail derived from repeated failures and the research self-audit."
   },
   "control": {
-    "stagnation_limit_per_task": {"default": 4, "minimum": 1, "zero_means_unlimited": false, "status": "agreed"},
-    "traversal_depth_limit": {"default": 0, "minimum": 0, "zero_means_unlimited": true, "status": "agreed"},
-    "global_iteration_limit": {"default": 0, "minimum": 0, "zero_means_unlimited": true, "status": "agreed"},
-    "charge_product_attempt_only_after_candidate_materialized": {"value": true, "status": "recommended", "rationale": "Provider/transport failure must not consume product-task stagnation budget."}
+    "stagnation_limit_per_task": {
+      "default": 4,
+      "minimum": 1,
+      "zero_means_unlimited": false,
+      "status": "agreed"
+    },
+    "traversal_depth_limit": {
+      "default": 0,
+      "minimum": 0,
+      "zero_means_unlimited": true,
+      "status": "agreed"
+    },
+    "global_iteration_limit": {
+      "default": 0,
+      "minimum": 0,
+      "zero_means_unlimited": true,
+      "status": "agreed"
+    },
+    "charge_product_attempt_only_after_candidate_materialized": {
+      "value": true,
+      "status": "recommended",
+      "rationale": "Provider/transport failure must not consume product-task stagnation budget."
+    }
   },
   "workspace": {
     "isolated_worktree_required": true,
@@ -31,13 +50,23 @@
   },
   "external_process_contract": {
     "unbounded_payload_in_argv_forbidden": true,
-    "large_prompt_transport": ["stdin_utf8_bytes", "utf8_file", "bounded_structured_ipc"],
+    "large_prompt_transport": [
+      "stdin_utf8_bytes",
+      "utf8_file",
+      "bounded_structured_ipc"
+    ],
     "stdin_text_writer_default_encoding_forbidden": true,
     "utf8_byte_roundtrip_canary_required": true,
     "interactive_process_requires_real_tty": true,
     "native_stderr_must_be_classified_not_treated_as_automatic_failure": true,
     "status": "recommended",
-    "derived_from": ["NW-UAT-WIN-029", "NW-UAT-WIN-032", "NW-UAT-WIN-042", "NW-UAT-WIN-046", "NW-UAT-WIN-047"]
+    "derived_from": [
+      "NW-UAT-WIN-029",
+      "NW-UAT-WIN-032",
+      "NW-UAT-WIN-042",
+      "NW-UAT-WIN-046",
+      "NW-UAT-WIN-047"
+    ]
   },
   "paths": {
     "filesystem_operations_use_native_path_objects": true,
@@ -64,7 +93,11 @@
     "status": "agreed"
   },
   "security": {
-    "skill_access_decision": ["persona_purpose", "capability", "skill_danger"],
+    "skill_access_decision": [
+      "persona_purpose",
+      "capability",
+      "skill_danger"
+    ],
     "avoid_exception_list_as_primary_model": true,
     "dangerous_skill_requires_compatible_persona_and_policy": true,
     "status": "agreed"
@@ -72,7 +105,12 @@
   "review": {
     "exact_candidate_sha_binding_required": true,
     "candidate_change_invalidates_only_affected_reviews": true,
-    "blocked_review_short_circuits": ["reproducer", "cost_estimator", "budget_router", "gcp"],
+    "blocked_review_short_circuits": [
+      "reproducer",
+      "cost_estimator",
+      "budget_router",
+      "gcp"
+    ],
     "markdown_only_independent_cocheck_required": true,
     "coderabbit_required_if_prior_affected_finding_originated_from_coderabbit": true,
     "coderabbit_code_config_infra_exact_sha_normally_required": true,
@@ -80,7 +118,20 @@
     "status": "agreed"
   },
   "pipeline": {
-    "ordered": ["finding", "work_item", "minimal_fix", "local_deterministic_checks", "affected_independent_review", "review_gate", "reproducer", "cost_estimation", "budget_route", "gcp_gate_if_required", "formal_result", "next_iteration"],
+    "ordered": [
+      "finding",
+      "work_item",
+      "minimal_fix",
+      "local_deterministic_checks",
+      "affected_independent_review",
+      "review_gate",
+      "reproducer",
+      "cost_estimation",
+      "budget_route",
+      "gcp_gate_if_required",
+      "formal_result",
+      "next_iteration"
+    ],
     "fix_before_reproducer": true,
     "review_before_reproducer": true,
     "status": "agreed"
@@ -102,7 +153,10 @@
   },
   "uat_findings": {
     "label": "UAT request findings resolution",
-    "dual_track": ["third_party_prerequisite", "package_fallback"],
+    "dual_track": [
+      "third_party_prerequisite",
+      "package_fallback"
+    ],
     "generalize_root_cause_not_single_symptom": true,
     "new_regression_guard_required": true,
     "status": "agreed"
@@ -110,7 +164,11 @@
   "comments": {
     "explain_invariant_and_why": true,
     "avoid_narrating_obvious_code": true,
-    "workaround_comment_requires": ["finding_id", "reason", "removal_condition"],
+    "workaround_comment_requires": [
+      "finding_id",
+      "reason",
+      "removal_condition"
+    ],
     "version_history_belongs_in_changelog_not_inline_code_comment": true,
     "security_boundary_comment_required": true,
     "status": "recommended"
