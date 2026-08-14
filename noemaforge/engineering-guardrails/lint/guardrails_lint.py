@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 from __future__ import annotations
+
 import argparse
+import hashlib
+import json
 import pathlib
 import re
-import sys
 
 FORBIDDEN_TEXT_PATTERNS = {
     "prompt_in_argv": re.compile(r"\$arguments\s*\+=\s*\$prompt", re.I),
@@ -13,6 +15,10 @@ FORBIDDEN_TEXT_PATTERNS = {
     "git_push_literal": re.compile(r"\bgit\s+push\b", re.I),
     "gcloud_literal": re.compile(r"\bgcloud\s+", re.I),
     "inline_parenthesized_if": re.compile(r"\(\s*\n\s*if\s*\(", re.I),
+    "duplicated_agent_mode_validateset": re.compile(
+        r"\[ValidateSet\([^]]*(?:implementer|proposal|diagnostic|reviewer|transport)",
+        re.I,
+    ),
 }
 
 REQUIRED_MARKERS = (
@@ -21,6 +27,11 @@ REQUIRED_MARKERS = (
     "READY_SIGNAL",
 )
 
+
+def sha256(path: pathlib.Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("root", type=pathlib.Path)
@@ -28,19 +39,17 @@ def main() -> int:
     root = args.root.resolve()
 
     errors: list[str] = []
-    all_text = []
+    scripts: dict[pathlib.Path, str] = {}
 
     for path in root.rglob("*"):
-        if not path.is_file():
-            continue
-        if path.suffix.lower() not in {".ps1", ".cmd"}:
+        if not path.is_file() or path.suffix.lower() not in {".ps1", ".cmd"}:
             continue
         try:
             text = path.read_text(encoding="utf-8-sig")
         except UnicodeDecodeError:
             errors.append(f"NON_UTF8_FILE {path.relative_to(root)}")
             continue
-        all_text.append(text)
+        scripts[path] = text
         for name, pattern in FORBIDDEN_TEXT_PATTERNS.items():
             if pattern.search(text):
                 errors.append(f"{name} {path.relative_to(root)}")
@@ -48,16 +57,15 @@ def main() -> int:
             if line.rstrip(" \t") != line:
                 errors.append(f"TRAILING_WHITESPACE {path.relative_to(root)}:{lineno}")
 
-    joined = "\n".join(all_text)
+    joined = "\n".join(scripts.values())
+
     for marker in REQUIRED_MARKERS:
         if marker not in joined:
             errors.append(f"MISSING_MARKER {marker}")
 
-    # Same-provider local Codex review must not be described as independent.
     if re.search(r"fresh\s+independent\s+Codex\s+review", joined, re.I):
         errors.append("FALSE_INDEPENDENCE_LABEL fresh independent Codex review")
 
-    # Byte-safe stdin must be represented by BaseStream.Write or an explicit file pipe.
     if "AGENT_PROMPT_TRANSPORT=stdin" in joined:
         byte_safe = (
             ".StandardInput.BaseStream" in joined
@@ -67,6 +75,71 @@ def main() -> int:
         if not byte_safe:
             errors.append("STDIN_NOT_BYTE_EXPLICIT")
 
+    controller = root / "RUN_AGENT_SELF_HEAL.ps1"
+    if controller.exists():
+        protocol_path = root / "AGENT_PROTOCOL.json"
+        requirements_path = root / "PACKAGE_REQUIREMENTS.json"
+
+        if not protocol_path.is_file():
+            errors.append("MISSING_AGENT_PROTOCOL")
+            allowed_modes: set[str] = set()
+        else:
+            try:
+                protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                errors.append(f"INVALID_AGENT_PROTOCOL {exc}")
+                protocol = {}
+            if protocol.get("apiVersion") != "noemaforge.agent-protocol/v1":
+                errors.append("BAD_AGENT_PROTOCOL_API_VERSION")
+            raw_modes = protocol.get("modes", [])
+            if not isinstance(raw_modes, list) or not all(isinstance(x, str) for x in raw_modes):
+                errors.append("BAD_AGENT_PROTOCOL_MODES")
+                allowed_modes = set()
+            else:
+                allowed_modes = set(raw_modes)
+                if len(allowed_modes) != len(raw_modes):
+                    errors.append("DUPLICATE_AGENT_PROTOCOL_MODE")
+
+        controller_text = controller.read_text(encoding="utf-8-sig")
+        callsite_modes = set(re.findall(r'-Mode\s+"([^"]+)"', controller_text))
+        unknown = sorted(callsite_modes - allowed_modes)
+        if unknown:
+            errors.append("AGENT_MODE_CALLSITE_OUTSIDE_CONTRACT " + ",".join(unknown))
+
+        if not requirements_path.is_file():
+            errors.append("MISSING_PACKAGE_REQUIREMENTS")
+        else:
+            try:
+                requirements = json.loads(requirements_path.read_text(encoding="utf-8"))
+            except Exception as exc:
+                errors.append(f"INVALID_PACKAGE_REQUIREMENTS {exc}")
+                requirements = {}
+            if requirements.get("apiVersion") != "noemaforge.package-requirements/v1":
+                errors.append("BAD_PACKAGE_REQUIREMENTS_API_VERSION")
+            for item in requirements.get("requiredFiles", []):
+                rel = item.get("path")
+                expected = item.get("sha256")
+                if not isinstance(rel, str) or not rel:
+                    errors.append("BAD_REQUIRED_FILE_PATH")
+                    continue
+                target = root / pathlib.PurePosixPath(rel)
+                if not target.is_file():
+                    errors.append(f"MISSING_REQUIRED_FILE {rel}")
+                    continue
+                if expected:
+                    actual = sha256(target)
+                    if actual.lower() != str(expected).lower():
+                        errors.append(
+                            f"REQUIRED_FILE_SHA_MISMATCH {rel} expected={expected} actual={actual}"
+                        )
+
+        if "PACKAGE_CLOSURE_PREFLIGHT" not in controller_text:
+            errors.append("MISSING_PACKAGE_CLOSURE_PREFLIGHT")
+        if "AGENT_PROTOCOL_PARITY_PREFLIGHT" not in controller_text:
+            errors.append("MISSING_AGENT_PROTOCOL_PARITY_PREFLIGHT")
+        if controller_text.find("PACKAGE_CLOSURE_PREFLIGHT") > controller_text.find("Test-AgentProtocolTransport `"):
+            errors.append("PACKAGE_PREFLIGHT_AFTER_AGENT_CALL")
+
     if errors:
         print("NOEMAFORGE_GUARDRAILS=FAIL")
         for error in errors:
@@ -75,6 +148,7 @@ def main() -> int:
 
     print("NOEMAFORGE_GUARDRAILS=PASS")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
