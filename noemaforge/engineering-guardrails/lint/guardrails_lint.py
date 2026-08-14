@@ -57,7 +57,7 @@ def main() -> int:
     if re.search(r"fresh\s+independent\s+Codex\s+review", joined, re.I):
         errors.append("FALSE_INDEPENDENCE_LABEL fresh independent Codex review")
 
-    # Byte-safe stdin must be represented by explicit encoding plus BaseStream bytes.
+    # Byte-safe stdin must be represented by BaseStream.Write or an explicit file pipe.
     if "AGENT_PROMPT_TRANSPORT=stdin" in joined:
         byte_safe = (
             ".StandardInput.BaseStream" in joined
