@@ -3,6 +3,10 @@
 Before handing any new Night Watch bundle to the user, all applicable checks must be PASS:
 
 ## Contract / architecture
+- [ ] every cross-component enum/status/capability interface has one machine-readable source of truth;
+- [ ] call-site values and consumer/producer bindings pass contract-parity preflight;
+- [ ] executable package dependency closure is declared and complete before worktree/provider/model activity;
+- [ ] structural package/environment failure short-circuits all expensive agent work;
 - [ ] exact base is explicit and checked at runtime;
 - [ ] source-of-truth schemas/contracts are reused, not duplicated ad hoc;
 - [ ] persona/capability/provider/independence are separate;
