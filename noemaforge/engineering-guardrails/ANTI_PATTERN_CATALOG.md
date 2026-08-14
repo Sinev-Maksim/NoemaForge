@@ -14,3 +14,6 @@
 | Persona masquerades as independent reviewer | same engine under multiple personas | `independence_key` on actual engine/model/session |
 | Review bypass | downstream continued after blocked review | mechanical short-circuit regression |
 | Fallback becomes a second fragile system | portable/runtime/provider fallback untested | fallback canary + same contract tests as primary path |
+| Cross-file contract drift | controller rejected `transport` mode that helper allowed | single machine-readable interface contract + parity preflight |
+| Internally consistent but incomplete package | v2.7 manifest valid while required candidate payload was absent | runtime dependency-closure contract + build/startup closure checks |
+| Structural preflight continued into model spend | missing payload still triggered transport/mutation canaries | deterministic structural classification + fail-fast before provider calls |
