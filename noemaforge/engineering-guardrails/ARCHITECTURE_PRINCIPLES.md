@@ -88,3 +88,11 @@ A product repair attempt is charged only after a candidate edit/proposal is succ
 Every `UAT request findings resolution` must add:
 1. the root-cause fix;
 2. a generalized static/runtime guard that would have caught the class before user execution.
+
+### Shared interface contracts
+Any interface shared by two or more components must have one machine-readable source of truth. Controller/helper/provider adapters must not duplicate mode/status/capability enums. Static and runtime parity checks verify that literal call sites are a subset of the shared contract.
+
+### Package dependency closure
+A package manifest that hashes only shipped files is not proof that the package is complete. Every executable bundle declares its required runtime dependency closure, including payloads, tests/contracts required by the harness, and fixed hashes where applicable. Package closure is validated before worktree creation and before any provider/model invocation.
+
+Structural package/environment failures short-circuit expensive work. They do not enter the product repair loop and do not consume product-task stagnation budget. Required immutable inputs are checked for existence before hashing or execution.
