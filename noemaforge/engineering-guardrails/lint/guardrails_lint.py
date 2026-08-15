@@ -19,6 +19,9 @@ FORBIDDEN_TEXT_PATTERNS = {
         r"\[ValidateSet\([^]]*(?:implementer|proposal|diagnostic|reviewer|transport)",
         re.I,
     ),
+    "review_stdout_stderr_concat": re.compile(
+        r"\$reviewer\.stdout\s*\+\s*[^\n]*\$reviewer\.stderr", re.I
+    ),
 }
 
 REQUIRED_MARKERS = (
@@ -139,6 +142,17 @@ def main() -> int:
             errors.append("MISSING_AGENT_PROTOCOL_PARITY_PREFLIGHT")
         if controller_text.find("PACKAGE_CLOSURE_PREFLIGHT") > controller_text.find("Test-AgentProtocolTransport `"):
             errors.append("PACKAGE_PREFLIGHT_AFTER_AGENT_CALL")
+
+        if "Parse-LocalReviewResult" not in controller_text:
+            errors.append("MISSING_LOCAL_REVIEW_RESULT_PARSER")
+        if "-MachineOutput $reviewer.stdout" not in controller_text:
+            errors.append("LOCAL_REVIEW_NOT_DESIGNATED_CHANNEL_ONLY")
+        if "review_evidence_sha_mismatch" not in controller_text:
+            errors.append("MISSING_LOCAL_REVIEW_EVIDENCE_SHA_BINDING")
+        if "CONTROL_PLANE_RETRY_EXHAUSTED" not in controller_text:
+            errors.append("MISSING_CONTROL_PLANE_RETRY_BOUNDARY")
+        if "Get-ProposalNewlineStyle" not in controller_text:
+            errors.append("MISSING_PROPOSAL_EOL_NORMALIZATION")
 
     if errors:
         print("NOEMAFORGE_GUARDRAILS=FAIL")
