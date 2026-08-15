@@ -70,8 +70,6 @@ The deep-research report was useful but several statements must NOT become polic
 
 ## 3. New generalized guardrails from the repeated-rake audit
 
-These are recommended additions derived from live failures:
-
 ### External-process invocation contract
 No unbounded or user/model-generated payload may be transported in argv. Use UTF-8 bytes on stdin, a UTF-8 file, or another bounded structured IPC channel.
 
@@ -96,3 +94,15 @@ Any interface shared by two or more components must have one machine-readable so
 A package manifest that hashes only shipped files is not proof that the package is complete. Every executable bundle declares its required runtime dependency closure, including payloads, tests/contracts required by the harness, and fixed hashes where applicable. Package closure is validated before worktree creation and before any provider/model invocation.
 
 Structural package/environment failures short-circuit expensive work. They do not enter the product repair loop and do not consume product-task stagnation budget. Required immutable inputs are checked for existence before hashing or execution.
+
+### Machine verdict channels
+A machine verdict is parsed only from its designated structured-output channel. Provider diagnostics and stderr may be preserved as evidence but never participate in verdict parsing. Exactly one structured result is required and it binds to the exact candidate SHA plus the immutable evidence SHA. Missing, contradictory, malformed, or stale results are `UNAVAILABLE`/fail-closed, never PASS.
+
+### Review surfaces
+A same-provider local Codex session is an optional co-check, not an independent review vote. Its read/shell/evidence surfaces are capabilities, not assumptions. When shell access is unavailable, an immutable exact-patch snapshot may be embedded as the review surface. Local co-check unavailability is a notice and cannot replace the required remote independent exact-SHA review.
+
+### Control plane versus product plane
+Provider, transport, proposal parsing/application, harness, and reviewer-protocol failures are control-plane failures. They have separate bounded recovery and never become product task identities, never consume product stagnation, and never authorize product-code edits to repair the control plane.
+
+### Proposal preimage portability
+Structured proposal matching uses canonical LF logical text while preserving the target file's original newline style on write-back. Mixed-newline targets fail closed. Newline normalization does not weaken path, uniqueness, size, or immutable-test guards.
