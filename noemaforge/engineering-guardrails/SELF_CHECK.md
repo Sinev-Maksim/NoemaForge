@@ -37,7 +37,25 @@ Before handing any new Night Watch bundle to the user, all applicable checks mus
 - [ ] stable task identity ignores timestamps/temp paths/noisy fingerprints;
 - [ ] product attempt is charged only after candidate materialization + post-fix gate;
 - [ ] provider/transport failures are typed separately;
-- [ ] unchanged patch SHA + same task is treated as stagnation/no progress.
+- [ ] control-plane failures cannot create product task keys or product-code edits;
+- [ ] control-plane recovery has a separate bounded retry budget;
+- [ ] unchanged patch SHA + same product task is treated as stagnation/no progress.
+
+## Review / machine verdicts
+- [ ] verdict parsing reads only the designated machine-output/last-message channel;
+- [ ] stderr is diagnostic-only and excluded from verdict parsing;
+- [ ] exactly one structured result is required;
+- [ ] review result binds exact candidate SHA and immutable evidence SHA;
+- [ ] malformed/contradictory/stale result is unavailable/fail-closed, never PASS;
+- [ ] same-provider local co-check is optional/not independent;
+- [ ] local co-check provider/protocol unavailability does not replace remote independent review;
+- [ ] shell-independent exact-patch review evidence is available when local shell access is unavailable.
+
+## Proposal application
+- [ ] CRLF/LF proposal preimages are matched on canonical LF logical text;
+- [ ] original target newline style is preserved on write-back;
+- [ ] mixed-newline target fails closed;
+- [ ] path allowlist, unique-preimage, size and immutable-test guards remain active.
 
 ## Tests / evidence
 - [ ] existing tests are hash-locked/immutable;
