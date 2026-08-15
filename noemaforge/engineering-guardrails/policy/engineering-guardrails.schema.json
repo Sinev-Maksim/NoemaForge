@@ -23,29 +23,77 @@
     "terminal"
   ],
   "properties": {
-    "apiVersion": {"const": "noemaforge.engineering-guardrails/v1"},
-    "version": {"type": "string"},
-    "classification": {"const": "UAT request findings resolution"},
-    "source_status": {"type": "object"},
-    "control": {"type": "object"},
-    "workspace": {"type": "object"},
-    "side_effects": {"type": "object"},
-    "external_process_contract": {"type": "object"},
-    "paths": {"type": "object"},
-    "runtime_discovery": {"type": "object"},
-    "agents": {"type": "object"},
-    "security": {"type": "object"},
-    "review": {"type": "object"},
-    "pipeline": {"type": "object"},
-    "budget": {"type": "object"},
-    "uat_findings": {"type": "object"},
-    "comments": {"type": "object"},
-    "terminal": {"type": "object"},
-    "interfaces": {"type": "object"},
-    "package_closure": {"type": "object"},
-    "machine_verdicts": {"type": "object"},
-    "review_surfaces": {"type": "object"},
-    "repair_plane_separation": {"type": "object"},
-    "proposal_preimage": {"type": "object"}
+    "apiVersion": {
+      "const": "noemaforge.engineering-guardrails/v1"
+    },
+    "version": {
+      "type": "string"
+    },
+    "classification": {
+      "const": "UAT request findings resolution"
+    },
+    "source_status": {
+      "type": "object"
+    },
+    "control": {
+      "type": "object"
+    },
+    "workspace": {
+      "type": "object"
+    },
+    "side_effects": {
+      "type": "object"
+    },
+    "external_process_contract": {
+      "type": "object"
+    },
+    "paths": {
+      "type": "object"
+    },
+    "runtime_discovery": {
+      "type": "object"
+    },
+    "agents": {
+      "type": "object"
+    },
+    "security": {
+      "type": "object"
+    },
+    "review": {
+      "type": "object"
+    },
+    "pipeline": {
+      "type": "object"
+    },
+    "budget": {
+      "type": "object"
+    },
+    "uat_findings": {
+      "type": "object"
+    },
+    "comments": {
+      "type": "object"
+    },
+    "terminal": {
+      "type": "object"
+    },
+    "interfaces": {
+      "type": "object"
+    },
+    "package_closure": {
+      "type": "object"
+    },
+    "machine_verdicts": {
+      "type": "object"
+    },
+    "review_surfaces": {
+      "type": "object"
+    },
+    "repair_plane_separation": {
+      "type": "object"
+    },
+    "proposal_preimage": {
+      "type": "object"
+    }
   }
 }
