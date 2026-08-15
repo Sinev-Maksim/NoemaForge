@@ -42,6 +42,10 @@
     "comments": {"type": "object"},
     "terminal": {"type": "object"},
     "interfaces": {"type": "object"},
-    "package_closure": {"type": "object"}
+    "package_closure": {"type": "object"},
+    "machine_verdicts": {"type": "object"},
+    "review_surfaces": {"type": "object"},
+    "repair_plane_separation": {"type": "object"},
+    "proposal_preimage": {"type": "object"}
   }
 }
