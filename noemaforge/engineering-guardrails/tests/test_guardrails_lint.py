@@ -128,3 +128,38 @@ def test_rejects_wrong_required_file_hash():
         }
     )
     assert rc != 0 and "REQUIRED_FILE_SHA_MISMATCH" in out
+
+
+def test_rejects_review_verdict_stderr_contamination():
+    controller = (
+        base_markers()
+        + "AGENT_PROTOCOL_PARITY_PREFLIGHT\nPACKAGE_CLOSURE_PREFLIGHT\n"
+        + '$reviewText = $reviewer.stdout + "`n" + $reviewer.stderr\n'
+    )
+    protocol = {"apiVersion": "noemaforge.agent-protocol/v1", "modes": ["reviewer"]}
+    requirements = {"apiVersion": "noemaforge.package-requirements/v1", "requiredFiles": []}
+    rc, out = run_case(
+        {
+            "RUN_AGENT_SELF_HEAL.ps1": controller,
+            "AGENT_PROTOCOL.json": json.dumps(protocol),
+            "PACKAGE_REQUIREMENTS.json": json.dumps(requirements),
+        }
+    )
+    assert rc != 0 and "review_stdout_stderr_concat" in out
+
+
+def test_rejects_controller_without_review_and_plane_guards():
+    controller = base_markers() + "AGENT_PROTOCOL_PARITY_PREFLIGHT\nPACKAGE_CLOSURE_PREFLIGHT\n"
+    protocol = {"apiVersion": "noemaforge.agent-protocol/v1", "modes": ["reviewer"]}
+    requirements = {"apiVersion": "noemaforge.package-requirements/v1", "requiredFiles": []}
+    rc, out = run_case(
+        {
+            "RUN_AGENT_SELF_HEAL.ps1": controller,
+            "AGENT_PROTOCOL.json": json.dumps(protocol),
+            "PACKAGE_REQUIREMENTS.json": json.dumps(requirements),
+        }
+    )
+    assert rc != 0
+    assert "MISSING_LOCAL_REVIEW_RESULT_PARSER" in out
+    assert "MISSING_CONTROL_PLANE_RETRY_BOUNDARY" in out
+    assert "MISSING_PROPOSAL_EOL_NORMALIZATION" in out
