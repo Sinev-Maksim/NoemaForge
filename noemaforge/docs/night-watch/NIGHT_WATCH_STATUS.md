@@ -8,57 +8,86 @@
 
 ## Executive status
 
-The older statement “v3.8.5 freeze/replay is still unfinished” is superseded by later qualification evidence dated 2026-09-16.
-
-The available evidence establishes that the **frozen/build-side v3.8.5 qualification completed successfully**, including immutable inner/outer ZIP checks, repeated pre-send/fault/deployment qualification, and real cumulative handoff replay.
-
-This does **not** yet establish all external trust-boundary gates.
+The exact frozen v3.8.5 outer installer archive has now been recovered and byte-verified.
 
 ```text
+EXACT_FROZEN_ARTIFACT_RECOVERED=PASS
+OUTER_ZIP_SHA256=6adbcabac444c393cb40b7f4cb495b6a78d410c2adefe2ce81cbd74aad3dbd5d
+INNER_ZIP_SHA256=16e11736e5241e310b56f84acdd3a71e1d95b9a27f3a29d9ee26f221b45e371c
+
 LOCAL_FROZEN_RELEASE_QUALIFICATION=PASS
+BYTE_LEVEL_RECHECK=PASS
 REAL_CUMULATIVE_HANDOFF_REPLAY=PASS
 ROOT_CAUSE_EXTRAPOLATION=PASS
 
-REAL_WINDOWS_TARGET_FINAL_FROZEN_RUN=NOT_CONFIRMED
+REAL_TARGET_HOST_FINAL_FROZEN_RUN=PENDING_USER_RUN
 REMOTE_EXACT_SHA_INDEPENDENT_REVIEW=NOT_CONFIRMED
 CODERABBIT_FINAL_GATE=NOT_CONFIRMED
 HUMAN_RELEASE_GO=NOT_GRANTED
 RELEASE_PROMOTION=NOT_AUTHORIZED
 ```
 
-## Frozen v3.8.5 identities
+## Exact recovered artifact
 
-```text
-OUTER_ZIP_SHA256=6adbcabac444c393cb40b7f4cb495b6a78d410c2adefe2ce81cbd74aad3dbd5d
-INNER_ZIP_SHA256=16e11736e5241e310b56f84acdd3a71e1d95b9a27f3a29d9ee26f221b45e371c
-CUMULATIVE_HANDOFF_SHA256=35070d06fbec7fd8a883ad440b880ebdbf4be731e69d356228e0579811096f79
-```
+Recovered library source:
 
-## Qualification evidence
+`/ОС_ИИ/NightWatch-Agent-Self-Heal(20260916-194020).zip`
 
-The final release-test matrix records:
+Durable recovered copy:
 
-- 3 consecutive full pre-send PASS;
+`/NightWatch-Recovered/NightWatch-Agent-Self-Heal.zip`
+
+Size: `183265` bytes.
+
+The recovered bytes match the previously recorded frozen outer identity exactly.
+
+## Independent byte-level recheck
+
+Independent archive audit on the recovered exact bytes is PASS:
+
+- outer SHA-256 matches the frozen identity;
+- outer ZIP CRC PASS, 7 entries;
+- no duplicate/casefold/path-traversal/symlink hazards;
+- installer-manifest sizes and SHA values all match;
+- inner SHA agrees across the actual nested bytes, `SEALED_RELEASE_SHA256.txt`, and `INSTALLER_MANIFEST.json`;
+- inner ZIP CRC PASS, 35 entries;
+- inner `SHA256SUMS.json` closure PASS: 34 declared files plus the manifest itself;
+- `PACKAGE_REQUIREMENTS.json` closure and SHA parity PASS;
+- all JSON parses;
+- all Python sources compile;
+- PowerShell BOM/CRLF contract PASS;
+- CMD ASCII/CRLF contract PASS;
+- executable PowerShell smart-quote guard PASS.
+
+## Fresh rerun evidence
+
+The recovered exact bytes were clean-extracted and rerun through the release validator.
+
+Successful release-mode full pre-send runs observed against the exact frozen bytes: **5**. Each successful run reported:
+
+- `PRE_SEND_DRY_RUN=PASS`;
 - `SKIP_COUNT=0`;
-- 5 fault-injection PASS cycles;
-- 30 priority failure classes;
-- 56 scenario checks;
-- 96 provider-role permutations;
-- 5 deployment-selftest PASS cycles;
-- 34 deployment checks per final self-test;
-- empty-current acceptance PASS;
-- dirty-current acceptance PASS;
-- final outer ZIP CRC PASS (7 entries);
-- final inner ZIP CRC PASS (35 entries);
-- real cumulative handoff replay PASS;
-- repeat handoff merge byte-idempotent;
-- handoff history advanced 11 -> 12 runs with 1069 objects.
+- `deployment_selftest=PASS`;
+- `fault_injection_selftest=PASS`;
+- `pre_send_policy_parity=PASS`.
 
-Root-cause extrapolation records 3 stable cycles and 0 unresolved defects in the final cycle.
+Host-runtime-mode validation also reran PASS.
 
-## Deployment semantics qualified by the evidence
+Direct deployment self-test additionally reran **5 / 5 PASS**, with **34 checks** and zero failures each time.
 
-The v3.8.5 installer/release line uses:
+Direct startup-hardening, provider-role-degradation, harness-regression, and the 21 routing-contract tests also PASS.
+
+### Self-pollution guard observation
+
+One ad-hoc direct routing-test invocation was intentionally/notably run outside the sealed runner without `PYTHONDONTWRITEBYTECODE`; it produced one `__pycache__` artifact in that extracted working copy.
+
+The next pre-send correctly failed only `no_build_bytecode_artifacts` while the immutable outer/inner ZIP identities remained unchanged. A fresh clean extraction returned PASS again.
+
+This confirms the pollution guard is live; it is not a frozen-package defect.
+
+## Deployment semantics
+
+The qualified deployment model remains:
 
 ```text
 immutable sealed inner release
@@ -69,41 +98,20 @@ immutable sealed inner release
 -> rollback + quarantine on failure
 ```
 
-The prior file-by-file active-tree deployment is superseded.
+File-by-file mutation of active `current` remains superseded.
 
-The evidence also records:
+## Target-host gate
 
-- clean/missing/empty `current` as a first-class scenario;
-- previous current restoration after post-swap failure;
-- correct intentional empty-state restoration when no previous current existed;
-- fixed installer log at `logs/NightWatch-last-installer.log`;
-- persistent installer shell/visibility;
-- failure reporting with stage/type/message/rollback information;
-- bounded release qualification to prevent the validator itself from turning sequential subprocess stalls into an availability failure.
+The only runtime gate now waiting on the operator is execution of **this exact outer SHA** on the real Windows host, preserving installer, host-preflight, and run logs.
 
-## Important evidence limitation
+The package's current launcher invokes `powershell.exe`. On a modern Windows installation that normally means Windows PowerShell 5.1 even though the operating system itself is current. PowerShell 5.1 was a compatibility floor, not a requirement that the OS be old.
 
-`NightWatch-Agent-Self-Heal_HOST_PRE_SEND_FINAL.json` is a **host-runtime-mode qualification report produced in the Linux build sandbox**. Its own environment note states that native AST parsing is performed on Windows before controller startup.
-
-Therefore it is valid evidence for host-runtime policy/closure logic, but it is **not evidence that the exact final frozen v3.8.5 outer/inner bytes were actually executed on a real Windows PowerShell 5.1 host**.
-
-Older real-Windows logs prove that the Windows pathway existed and exposed earlier defects, but they refer to older v3.5.x/v3.8.x iterations and cannot be substituted for an exact-final-v3.8.5 target run.
-
-## Documentation drift found during recheck
-
-The later `ENGINEERING_SELF_CHECK.md` copy still contains unchecked release-freeze items for:
-
-- final extrapolation cycle;
-- 3 consecutive pre-send passes;
-- 5 consecutive fault passes;
-- dirty-overlay/path/read-only/handoff replay;
-- repeat handoff idempotence;
-- immutable final ZIP validation.
-
-Those unchecked boxes are stale relative to the later final release evidence listed above. Do not use them to downgrade the already-proven build qualification. The document must be regenerated/synchronized from evidence rather than manually trusted.
+If execution specifically under PowerShell 7 / `pwsh.exe` is desired, that is a source change and must be frozen as a new release identity rather than silently modifying the exact qualified v3.8.5 bytes.
 
 ## Promotion boundary
 
-v3.8.5 is **locally frozen/build-qualified**, but it remains outside final production promotion until the remaining external gates are evidenced against the exact frozen identities above.
+v3.8.5 is **exact-artifact recovered, byte-rechecked, and locally frozen/build-qualified**.
+
+It is not yet a promoted production release until the remaining external gates are evidenced against the exact identity above.
 
 No merge/tag/deploy follows from this document alone.
