@@ -44,3 +44,16 @@ Classification: `UAT request findings resolution`
 - Defined shadow disagreement classes and external evidence layout.
 - Kept all operator-private/secret directives outside GitHub; public code is not allowed to depend on them for correctness or authority.
 - First code slice remains intentionally non-mutating.
+
+
+## 2026-09-21 — architecture correction: Night Watch is code evolution
+
+Classification: `UAT request findings resolution`
+
+- Corrected the integration architecture after restoring earlier design context.
+- Night Watch is now explicitly canonicalized as the **code-evolution repair/qualification component** of the NoemaForge Evolution pipeline.
+- Superseded the mistaken target architecture in which Night Watch would become a permanent shadow/coordinator beside another code-evolution implementation.
+- Preserved `night_watch_readonly.py` as an observation/projection/UAT boundary, not the production mutation entry point.
+- Bound future Night Watch integration to canonical **code** Evolution work items, bounded isolated code mutation, qualification and evidence projection.
+- Explicitly separated **model mutation/evolution** as the second Evolution branch whose architecture will be designed later.
+- Night Watch has no model-mutation authority.
