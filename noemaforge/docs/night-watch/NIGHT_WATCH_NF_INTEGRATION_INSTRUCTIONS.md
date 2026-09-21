@@ -1,11 +1,37 @@
-# Night Watch -> NoemaForge Integration Instructions
+# Night Watch / NoemaForge Code-Evolution Integration Instructions
 
 **Status:** canonical public engineering instructions  
 **Classification:** `UAT request findings resolution`
 
-These instructions define how agents work on the Night Watch -> NoemaForge integration. Private/operator-only overlays are explicitly out of scope for this file.
+## 1. Core identity
 
-## 1. Work protocol: SSK2
+Treat Night Watch as **the code-evolution execution/repair/qualification component of the NoemaForge Evolution pipeline**.
+
+Do not design it as:
+
+- a parallel top-level coordinator;
+- a permanent shadow sidecar to another code-evolution implementation;
+- a model-evolution engine.
+
+Model mutation/evolution is a separate future Evolution branch.
+
+## 2. Canonical routing rule
+
+```text
+Evolution work item
+-> classify lane
+
+code/repository repair or qualification
+-> Night Watch
+
+model mutation/evolution
+-> NOT Night Watch
+-> future separately designed branch
+```
+
+If lane classification is ambiguous, do not silently execute.
+
+## 3. SSK2 work protocol
 
 Use:
 
@@ -17,167 +43,153 @@ Meaning
 -> Control contour 2: scenario/acceptance
 ```
 
-Do not start implementation until the objective, non-goals, trust boundary, success criteria and rollback condition are written.
-
-Anything that cannot be tested must be labelled best-effort rather than silently treated as a requirement.
-
-## 2. Per-finding execution cycle
-
-For every integration finding:
+For each finding:
 
 ```text
 finding
 -> stable work-item identity
--> classify owner/plane
+-> ownership/plane classification
+-> diagnostic/scout
 -> smallest safe implementation
--> local deterministic checks
--> scope-aware review
--> reproducer (base FAIL, candidate PASS)
+-> candidate materialization
+-> deterministic aggregate checks
+-> scope-aware logically separate review
+-> reproducer: base FAIL / candidate PASS
 -> negative control
--> cost estimate / budget routing when external or heavy execution is needed
--> external gate if required
--> formal result/evidence
+-> extrapolation / neighboring regressions
+-> qualification evidence
 -> checkpoint
 ```
 
-A review failure stops reproducer/cost/budget/heavy execution unless the review itself is the object under repair.
+## 4. Code-mutation authority
 
-## 3. Integration invariants
+Night Watch may mutate **code** only when the canonical code Evolution work item grants a bounded mutation scope.
 
-Agents MUST preserve:
+Before untrusted mutation:
 
-- NF is the source of truth for canonical task/run state;
-- `noemaforge.evolution-execution/v1` is reused, not forked;
-- the existing read-only Night Watch adapter remains zero-write;
-- no external/reference text is executed as instruction;
-- tests/evidence are immutable during self-heal;
-- mutation authority is explicit, scoped, short-lived and NF-owned;
-- producer and independent acceptor are distinct;
-- exact base/head identity is carried through every review/evidence object;
-- no merge/release/deploy is inferred from a local PASS;
-- one active heavy LLM/resource worker unless the canonical policy explicitly changes;
-- all useful WIP is checkpointed to `night-watch`;
-- incomplete checkpoints contain `unstable, saved for context`;
-- changed understanding/rules/status are updated in canonical Markdown in the same iteration.
+- persist exact pre-attempt candidate/patch identity;
+- bind exact base;
+- define allowed paths;
+- define immutable paths/tests/contracts;
+- define rollback target.
 
-## 4. Mode discipline
+After mutation:
 
-Until a phase has passed its acceptance gates, do not silently escalate its authority.
+- enforce changed-path containment;
+- reject immutable-test/evidence edits;
+- aggregate safe sibling checks;
+- restore exact prior state after rejected/out-of-scope attempts;
+- verify rollback SHA.
 
-Allowed progression:
+Rollback failure is a hard integrity stop.
 
-`off -> observe -> shadow -> proposal -> bounded_execution -> native`
+## 5. Model-mutation exclusion
 
-An implementation must fail closed if runtime configuration claims a more privileged mode than the compiled/qualified boundary supports.
+Night Watch MUST NOT:
 
-## 5. Read-only and shadow rules
+- mutate model weights;
+- fine-tune/train models;
+- define model-evolution acceptance semantics;
+- silently reinterpret model-selection work as code repair;
+- acquire model-mutation authority through a generic provider/tool capability.
 
-In `observe` or `shadow`:
+Generic model/provider calls used to reason about or implement code are not "model evolution". The excluded branch is mutation/evolution **of the models themselves**.
 
-- no repository mutation;
-- no Git/GitHub mutation;
-- no service control;
-- no credential changes;
-- no production task mutation;
-- no model/provider invocation unless the mode contract explicitly allows it and an NF lease exists;
-- evidence/output writes go only to the approved external state/evidence root.
+## 6. NF/Night Watch ownership boundary
 
-Before/after repository and observed-state fingerprints must match.
+NF owns:
 
-## 6. Proposal rules
+- canonical Evolution work item;
+- global Controller state;
+- Event Store/projection semantics;
+- persona/Skill semantics;
+- global resource authorization;
+- production approval;
+- merge/release/deploy authority.
 
-A proposal is data, not authority.
+Night Watch owns for code work items:
 
-It must include:
+- repair state machine;
+- diagnosis;
+- bounded code mutation;
+- deterministic validation;
+- local review orchestration;
+- reproducer/fault/regression work;
+- candidate qualification;
+- evidence and exact-SHA handoff;
+- durable resumable execution checkpoints.
 
-- stable work item ID;
-- exact base SHA;
-- patch/candidate SHA;
-- declared changed paths;
-- rationale;
-- deterministic checks;
-- evidence refs.
+## 7. Read-only adapter
 
-NF validates containment before any apply path is considered.
+Keep `night_watch_readonly.py` read-only.
 
-## 7. Bounded mutation rules
+It is an observation/projection/recovery tool and must not become the mutation entry point.
 
-When `bounded_execution` is eventually introduced:
+Code mutation belongs to the Night Watch code-evolution execution path under an explicit work-item capability.
 
-- capture exact pre-attempt patch/state identity first;
-- work only in an isolated worktree;
-- enforce allowed paths before and after;
-- reject all `noemaforge/tests/**` edits;
-- clean rogue untracked paths on rollback;
-- verify exact rollback SHA;
-- treat rollback failure as hard integrity loss;
-- never grant merge/tag/release/deploy authority to the executor.
-
-## 8. Review rules
+## 8. Review and acceptance
 
 Same-provider/local co-check is useful but not independent acceptance.
 
-Independent review evidence must bind:
-
-- producer;
-- reviewer;
-- reviewed head;
-- target head;
-- freshness;
-- decision;
-- findings.
-
-Markdown-only changes still require an independent co-check when they alter architecture/rules/contracts.
-
-CodeRabbit is scope-aware rather than universal; CodeRabbit-originated findings require the CodeRabbit path to be satisfied.
-
-## 9. Reproducer rules
-
-For a true repair claim, prefer:
+Required trust progression:
 
 ```text
-base => FAIL
-candidate => PASS
-negative control => proves the test can fail for the intended reason
+Night Watch candidate
+-> deterministic gates
+-> local logically separate reviewer
+-> sealed exact-SHA evidence
+-> independent remote review / CI
+-> human/release authority
 ```
 
-A green candidate alone is not sufficient evidence that the root cause was fixed.
+Implementer cannot accept its own candidate.
 
-## 10. Success-first / max-evidence
+## 9. SUCCESS_FIRST_MAX_EVIDENCE
 
-Do not stop at the first recoverable or independent failure.
+Recover/degrade/continue on recoverable independent failures.
 
-Continue safe sibling checks and recovery routes to maximize evidence, but stop immediately if:
+Fail closed only when integrity/safety/evidence validity is lost, including:
 
-- integrity cannot be established;
-- exact rollback cannot be proven;
-- mutation containment is unknown;
-- cumulative evidence lineage is corrupt;
-- separation of duties would be violated.
+- exact rollback cannot be established;
+- mutation scope is untrusted;
+- exact base unavailable after bounded recovery;
+- evidence lineage corrupt;
+- immutable tests would have to be weakened;
+- separation of duties cannot be preserved.
 
-## 11. Documentation discipline
+## 10. Resource behavior
 
-If losing the chat would impair continuation, update repository Markdown.
+Night Watch may request/use provider/resource leases for code-evolution work through NF policy.
 
-At minimum, material changes update one or more of:
+It does not become the global Resource Broker.
 
-- integration plan;
-- integration status/checklist;
-- development rules;
-- decision log/changelog;
-- recovery instructions.
+Multiple logical roles may execute sequentially against shared typed context and durable checkpoints even when only one heavy LLM lease is active.
 
-Chat is transport, not canonical storage.
+## 11. Repository durability
 
-## 12. Secret/private context boundary
+All useful non-secret intermediate code-evolution work is checkpointed to `night-watch`.
 
-Private/operator-only instructions MUST NOT be copied into this file or any normal GitHub artifact.
+Incomplete checkpoints use:
 
-The public implementation may expose a generic local private-overlay hook, but:
+`unstable, saved for context`
 
-- private content remains outside Git;
-- logs contain hashes/reason codes, not private text;
-- private context cannot grant additional authority;
-- private context cannot weaken tests, review, safety or release gates;
-- public/declassified outputs must remain independently understandable.
+If understanding/rules/status changed, update canonical Markdown in the same iteration.
 
+## 12. Private-context boundary
+
+Private/operator-only directives remain outside GitHub.
+
+They may inform research/design, but cannot:
+
+- add authority;
+- weaken tests/review/safety;
+- become required to understand production correctness;
+- leak into normal evidence/handoffs.
+
+## 13. Current implementation instruction
+
+Do not implement the previously proposed permanent `NightWatchShadowCoordinator` architecture.
+
+Instead design the NF binding that dispatches **code Evolution work items into the Night Watch state machine** and projects Night Watch results/evidence back into canonical Evolution state.
+
+Explicitly reject/defer model-evolution work items until the separate model-mutation architecture exists.
