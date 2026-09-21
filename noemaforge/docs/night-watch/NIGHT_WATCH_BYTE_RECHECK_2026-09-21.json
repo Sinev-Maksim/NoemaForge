@@ -1,0 +1,108 @@
+{
+  "apiVersion": "noemaforge.night-watch-independent-recheck/v1",
+  "releaseVersion": "v3.8.5",
+  "classification": "UAT request findings resolution",
+  "exactBase": "a3c172f5d60113876f0c103010de411fc30b8c38",
+  "outerSha256": "6adbcabac444c393cb40b7f4cb495b6a78d410c2adefe2ce81cbd74aad3dbd5d",
+  "innerSha256": "16e11736e5241e310b56f84acdd3a71e1d95b9a27f3a29d9ee26f221b45e371c",
+  "outerEntries": 7,
+  "innerEntries": 35,
+  "freshReleaseModePassesObserved": 5,
+  "freshHostRuntimeModePassesObserved": 1,
+  "directDeploymentCycles": {
+    "passes": 5,
+    "checksPerCycle": 34,
+    "failures": 0
+  },
+  "directRoutingContractTests": {
+    "tests": 21,
+    "status": "PASS"
+  },
+  "checks": [
+    {
+      "name": "outer_sha256",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_crc",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_entry_count",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_zip_path_safety",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_manifest_version",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_manifest_exact_base",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_manifest_file_hashes",
+      "status": "PASS"
+    },
+    {
+      "name": "outer_inner_sha_consensus",
+      "status": "PASS"
+    },
+    {
+      "name": "inner_crc",
+      "status": "PASS"
+    },
+    {
+      "name": "inner_entry_count",
+      "status": "PASS"
+    },
+    {
+      "name": "inner_zip_path_safety",
+      "status": "PASS"
+    },
+    {
+      "name": "inner_sha_manifest_integrity",
+      "status": "PASS"
+    },
+    {
+      "name": "package_version_consistency",
+      "status": "PASS"
+    },
+    {
+      "name": "package_exact_base",
+      "status": "PASS"
+    },
+    {
+      "name": "package_requirements_closure",
+      "status": "PASS"
+    },
+    {
+      "name": "all_json_parse",
+      "status": "PASS"
+    },
+    {
+      "name": "all_python_compile",
+      "status": "PASS"
+    },
+    {
+      "name": "windows_script_encoding_contract",
+      "status": "PASS"
+    },
+    {
+      "name": "powershell_smart_quote_contract",
+      "status": "PASS"
+    }
+  ],
+  "negativeControl": {
+    "event": "ad_hoc_routing_test_created_python_bytecode_in_extracted_tree",
+    "detectedBy": "no_build_bytecode_artifacts",
+    "result": "FAIL_AS_EXPECTED",
+    "frozenArchiveBytesUnchanged": true,
+    "cleanReextractRecovered": true
+  },
+  "targetHostRun": "PENDING_USER_RUN",
+  "status": "PASS"
+}
