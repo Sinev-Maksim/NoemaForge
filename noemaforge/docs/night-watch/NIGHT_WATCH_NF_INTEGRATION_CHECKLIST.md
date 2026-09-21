@@ -10,10 +10,10 @@
 - [x] Single-writer / dual-observer migration rule is defined.
 - [x] Shadow -> proposal -> bounded execution -> native rollout is defined.
 - [x] Private operator context is excluded from GitHub artifacts.
-- [ ] Decide exact module/config names for the first integration slice.
-- [ ] Define the shadow-result disagreement contract.
-- [ ] Define the exact state/evidence root layout for integrated runs.
-- [ ] Define feature-flag/config schema and invalid transition behavior.
+- [x] Decide exact module/config names for the first integration slice.
+- [x] Define the shadow-result disagreement contract.
+- [x] Define the exact state/evidence root layout for integrated runs.
+- [x] Define feature-flag/config state set and fail-closed invalid/higher-authority behavior.
 
 ## First implementation slice
 
