@@ -30,3 +30,17 @@ Classification: `UAT request findings resolution`
 - Confirmed self-pollution guard with an ad-hoc bytecode negative control; immutable frozen archive bytes were unchanged and clean re-extraction returned PASS.
 - Preserved a durable Library copy at `/NightWatch-Recovered/NightWatch-Agent-Self-Heal.zip`.
 - Target-host execution of this exact outer SHA remains the next operator gate.
+
+
+## 2026-09-21 — NoemaForge seamless-integration preparation
+
+Classification: `UAT request findings resolution`
+
+- Added the public Night Watch -> NoemaForge seamless-integration method.
+- Selected a shadow -> proposal -> bounded execution -> native migration with NF as the single authoritative writer.
+- Reused `noemaforge.evolution-execution/v1` as the canonical integration language.
+- Defined SSK2-based public engineering instructions and phase gates.
+- Selected first-slice module/config/test/UAT paths.
+- Defined shadow disagreement classes and external evidence layout.
+- Kept all operator-private/secret directives outside GitHub; public code is not allowed to depend on them for correctness or authority.
+- First code slice remains intentionally non-mutating.
