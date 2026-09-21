@@ -1,53 +1,64 @@
-# Night Watch -> NoemaForge Integration Preparation Checklist
+# Night Watch -> NoemaForge Code-Evolution Integration Checklist
 
 **Classification:** `UAT request findings resolution`
 
-## Architecture preparation
+## Architecture
 
-- [x] NF remains the canonical control plane.
-- [x] Existing read-only Night Watch adapter is the Phase-1 boundary.
-- [x] Existing `noemaforge.evolution-execution/v1` contracts are the integration language.
-- [x] Single-writer / dual-observer migration rule is defined.
-- [x] Shadow -> proposal -> bounded execution -> native rollout is defined.
-- [x] Private operator context is excluded from GitHub artifacts.
-- [x] Decide exact module/config names for the first integration slice.
-- [x] Define the shadow-result disagreement contract.
-- [x] Define the exact state/evidence root layout for integrated runs.
-- [x] Define feature-flag/config state set and fail-closed invalid/higher-authority behavior.
+- [x] Night Watch identified as the **code-evolution part of the NF Evolution pipeline**.
+- [x] Model mutation/evolution separated as a second, future branch.
+- [x] NF remains the higher-level canonical Controller/state authority.
+- [x] `noemaforge.evolution-execution/v1` remains the cross-system contract family.
+- [x] Existing read-only adapter remains an observation/projection boundary.
+- [x] Night Watch bounded code mutation is distinct from read-only observation.
+- [x] Night Watch has no model-mutation authority.
+- [x] Independent review and human release authority remain outside Night Watch.
+- [ ] Define the canonical lane discriminator for code vs future model Evolution work.
+- [ ] Define exact NF -> Night Watch run-binding schema.
+- [ ] Define Night Watch -> NF event/result projection for resumable attempts.
+- [ ] Define canonical restart/idempotency key semantics if existing contracts are insufficient.
 
-## First implementation slice
+## Code-evolution binding
 
-- [ ] Add integration mode policy: `off|observe|shadow|proposal`.
-- [ ] Add NF-owned Night Watch coordinator.
-- [ ] Accept one canonical `EvolutionWorkItem`.
-- [ ] Emit canonical `EvolutionEvent`.
-- [ ] Emit canonical `EvolutionAgentResult`.
-- [ ] Bind exact base/head and evidence hashes.
-- [ ] Prove repeat run byte-idempotence.
-- [ ] Prove repository zero-write.
-- [ ] Prove observed Night Watch state zero-write.
-- [ ] Add disagreement reporting between NF native and Night Watch shadow results.
-- [ ] Add UAT runner with evidence outside repository/state roots.
-- [ ] Keep mutation disabled.
+- [ ] Accept one canonical code `EvolutionWorkItem`.
+- [ ] Reject/defer model-evolution work items.
+- [ ] Bind exact base SHA.
+- [ ] Create isolated worktree/workspace.
+- [ ] Create stable Night Watch run/work-item mapping.
+- [ ] Pass only canonical granted capability/scope.
+- [ ] Execute diagnostic/scout stage.
+- [ ] Execute bounded code implementer stage where authorized.
+- [ ] Aggregate deterministic product gates.
+- [ ] Run logically separate local review.
+- [ ] Run reproducer / negative control where a repair claim is made.
+- [ ] Preserve immutable tests/evidence.
+- [ ] Persist exact candidate/evidence SHA.
+- [ ] Project progress/evidence back into NF canonical state.
+- [ ] Prove stop/restart/resume without duplicate product attempts.
+- [ ] Prove unrelated NF state remains unchanged.
 
-## Promotion to proposal mode
+## Existing Night Watch semantics to preserve
 
-- [ ] Proposal artifact schema/mapping defined.
-- [ ] Allowed changed-path set enforced.
-- [ ] Immutable tests/evidence rejection enforced.
-- [ ] Base FAIL / candidate PASS / negative control proven.
-- [ ] Scope-aware independent review proven.
-- [ ] Rollback identity defined before any future mutation.
+- [x] SUCCESS_FIRST_MAX_EVIDENCE.
+- [x] product-plane / control-plane separation.
+- [x] structured verdicts.
+- [x] exact candidate/evidence identity.
+- [x] bounded mutation and exact rollback.
+- [x] immutable tests.
+- [x] stagnation/progress accounting.
+- [x] root-cause extrapolation.
+- [x] fault/regression qualification.
+- [x] cumulative evidence/handoff integrity.
+- [x] external independent-review boundary.
+- [x] durable GitHub WIP checkpoints.
 
-## Promotion to bounded execution
+## Explicitly deferred: model evolution
 
-- [ ] ToolProxy/capability lease designed.
-- [ ] One work item / exact base / worktree / path scope / expiry enforced.
-- [ ] Pre-attempt exact patch identity persisted.
-- [ ] Exact rollback verified.
-- [ ] Provider/resource lease integrated.
-- [ ] Merge/tag/release/deploy remains impossible for executor.
-- [ ] Target-host UAT completed.
-- [ ] Independent exact-head review completed.
-- [ ] Human GO required for activation.
+- [ ] Model mutation state machine.
+- [ ] Model mutation scope/rollback semantics.
+- [ ] Training/fine-tuning/evolution resource policy.
+- [ ] Model candidate identity/versioning.
+- [ ] Model evaluation/acceptance contract.
+- [ ] Model-specific independent review.
+- [ ] Model promotion/rollback policy.
 
+These items are intentionally **not blockers for Night Watch code-evolution integration**. They belong to the second Evolution branch and will be designed separately.
