@@ -5,38 +5,64 @@
 **Branch:** `night-watch`
 
 ```text
-ARCHITECTURE_METHOD=DRAFTED
-PUBLIC_AGENT_INSTRUCTIONS=DRAFTED
-PRIVATE_OPERATOR_OVERLAY=LOCAL_ONLY
-FIRST_SLICE_MODULE_NAMES=SELECTED
-CODE_INTEGRATION=NOT_STARTED
-MUTATION_AUTHORITY=DISABLED
+ARCHITECTURE_IDENTITY=CODE_EVOLUTION_LANE
+NIGHT_WATCH_ROLE=CODE_REPAIR_AND_QUALIFICATION_HARNESS
+READONLY_ADAPTER=OBSERVATION_BOUNDARY
+CODE_MUTATION=BOUNDED_AND_WORK_ITEM_SCOPED
+MODEL_MUTATION=OUT_OF_SCOPE
+MODEL_EVOLUTION_ARCHITECTURE=DEFERRED_SEPARATE_BRANCH
+GLOBAL_NF_CONTROL_PLANE=NOEMAFORGE
+CODE_INTEGRATION_BINDING=NOT_IMPLEMENTED
 ```
 
-## Prepared
+## Corrected architecture
 
-- seamless migration method: shadow -> proposal -> bounded execution -> native;
-- NF single-writer / Night Watch observer-advisor rule;
-- canonical `noemaforge.evolution-execution/v1` mapping;
-- SSK2 engineering instructions;
-- public/private context separation;
-- first-slice file/module layout;
-- disagreement classes;
-- external state/evidence layout;
-- phase promotion gates.
+Night Watch is the code-oriented execution/state-machine component of NoemaForge Evolution.
 
-## Next implementation slice
+It is not:
 
-Implement only:
+- a parallel NF coordinator;
+- a permanent shadow adviser beside another canonical code-evolution engine;
+- the model-evolution subsystem.
 
-1. `night-watch-integration-policy.json` with `off|observe|shadow|proposal`;
-2. `evolution_adapters/night_watch_integration.py`;
-3. canonical `EvolutionWorkItem` input validation;
-4. read-only adapter invocation;
-5. canonical `EvolutionEvent` + `EvolutionAgentResult` output;
-6. deterministic integration fingerprint;
-7. zero-write/deterministic replay tests;
-8. shadow disagreement reporting;
-9. external UAT evidence runner.
+The Evolution pipeline is now explicitly decomposed conceptually into:
 
-No mutation, provider invocation, GitHub write, merge, release or deployment authority belongs in this slice.
+```text
+Evolution
+1. code evolution -> Night Watch
+2. model evolution -> design separately later
+```
+
+## Existing foundations
+
+Already available:
+
+- canonical `noemaforge.evolution-execution/v1` contracts;
+- proven read-only Night Watch adapter;
+- qualified Night Watch self-heal runner;
+- exact-base/worktree isolation;
+- bounded code mutation and rollback rules;
+- deterministic/product aggregate gates;
+- local reviewer separation;
+- fault/regression/extrapolation qualification;
+- exact-SHA evidence/handoff;
+- external independent-review boundary.
+
+## Next integration slice
+
+Design/implement the **binding between canonical code Evolution work items and the Night Watch runner**, including:
+
+1. code-vs-model lane discrimination;
+2. stable NF work-item -> Night Watch run identity;
+3. exact-base/workspace materialization;
+4. bounded authority/scope transfer;
+5. resumable Night Watch execution;
+6. canonical progress/evidence projection back to NF;
+7. restart/idempotency proof;
+8. explicit rejection/defer of model-evolution work items.
+
+The previously drafted standalone shadow-coordinator target is superseded.
+
+## Deferred second Evolution part
+
+Model mutation/evolution will be designed separately and is not required to complete Night Watch integration into the code-evolution lane.
