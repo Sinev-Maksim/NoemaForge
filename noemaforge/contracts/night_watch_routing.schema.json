@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "noemaforge.night-watch-routing/v1",
+  "title": "NoemaForge Night Watch Review Routing Envelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "apiVersion",
+    "provenance",
+    "candidate_sha",
+    "change_scope",
+    "persona_id",
+    "implementer_provider",
+    "coderabbit_required",
+    "selected_reviewers",
+    "blockers",
+    "notices",
+    "review_gate_pass",
+    "route",
+    "downstream",
+    "provider_observations"
+  ],
+  "properties": {
+    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
+    "provenance": {"const": "UAT request findings resolution"},
+    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+    "change_scope": {"enum": ["code", "config", "infra", "markdown"]},
+    "persona_id": {"type": "string", "minLength": 1},
+    "implementer_provider": {"type": "string", "minLength": 1},
+    "coderabbit_required": {"type": "boolean"},
+    "selected_reviewers": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "blockers": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "notices": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1},
+      "uniqueItems": true
+    },
+    "review_gate_pass": {"type": "boolean"},
+    "route": {"enum": ["LOCAL_REVIEW_GATE_PASS", "YIELD_BLOCKED_REVIEW_QUALITY", "LOCAL_REVIEW_CODE_BLOCK", "YIELD_WAITING_EXTERNAL_REVIEW", "YIELD_BLOCKED_ENGINE_CAPABILITY", "BLOCKED_REVIEW_GATE"]},
+    "downstream": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "build_reproducer",
+        "call_cost_estimator",
+        "route_budget",
+        "start_gcp"
+      ],
+      "properties": {
+        "build_reproducer": {"type": "boolean"},
+        "call_cost_estimator": {"const": false},
+        "route_budget": {"const": false},
+        "start_gcp": {"const": false}
+      }
+    },
+    "provider_observations": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/providerObservation"
+      }
+    }
+  },
+  "$defs": {
+    "providerObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider_availability",
+        "surface_readiness",
+        "quality_calibration",
+        "vote_eligibility",
+        "metadata_side_effects",
+        "independence_key",
+        "review_observed",
+        "bound_candidate_sha"
+      ],
+      "properties": {
+        "provider_availability": {
+          "enum": ["available", "blocked_external", "unavailable", "unknown"]
+        },
+        "surface_readiness": {
+          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
+        },
+        "quality_calibration": {
+          "enum": ["calibrated", "failed", "unproven", "not_required"]
+        },
+        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
+        "metadata_side_effects": {
+          "enum": ["none_observed", "observed", "unknown"]
+        },
+        "independence_key": {"type": "string", "minLength": 1},
+        "review_observed": {"type": "boolean"},
+        "bound_candidate_sha": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+            {"type": "null"}
+          ]
+        }
+      }
+    }
+  }
+}
