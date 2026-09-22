@@ -78,6 +78,12 @@ A CodeRabbit surface can therefore be simultaneously:
 - but ineligible for a semantic gate when the relevant quality calibration has
   failed or remains unproven.
 
+## Self-validating route envelope
+
+The serialized route envelope carries enough deterministic context to revalidate its own review-gate semantics: persona configuration/capabilities/provider candidates, the review-policy switches, affected prior reviewers, and provider capabilities. The validator recomputes contextual vote eligibility, CodeRabbit requirement (including the Markdown-history case), required Git-helper and independent-persona presence, blocker/route consistency, and downstream release. Unknown blocker/notice codes fail closed.
+
+The envelope is still evidence, not authentication or authority: the NF caller must bind it to the trusted work item/policy/evidence lineage. But a contradictory envelope cannot become valid merely by asserting `review_gate_pass=true`.
+
 ## Review-gate short circuit
 
 A failed review gate cannot start the reproducer, cost estimator, budget route,
