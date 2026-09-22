@@ -1,0 +1,61 @@
+{
+  "apiVersion": "noemaforge.night-watch-target-host-evidence/v1",
+  "classification": "UAT request findings resolution",
+  "observedAt": "2026-09-21T10:30:43Z",
+  "packageVersion": "v3.8.5",
+  "expectedBase": "a3c172f5d60113876f0c103010de411fc30b8c38",
+  "targetHost": {
+    "os": "Microsoft Windows NT 10.0.26100.0",
+    "powershellVersion": "5.1.26100.9444",
+    "powershellEdition": "Desktop",
+    "workspace": "C:\\Users\\sinev\\!Projects\\NoemaForge-NightWatch"
+  },
+  "installer": {
+    "status": "PASS",
+    "deploymentModel": "sibling_stage_verify_directory_swap_postverify_rollback",
+    "innerSealedReleaseSha256": "16e11736e5241e310b56f84acdd3a71e1d95b9a27f3a29d9ee26f221b45e371c",
+    "priorCurrentPreserved": true
+  },
+  "hostPreflight": {
+    "status": "PASS",
+    "nativeAstParse": "PASS",
+    "packageClosure": "PASS",
+    "processCapture": "PASS",
+    "utf8Roundtrip": "PASS",
+    "gitRuntime": "PASS",
+    "evidenceStorage": "PASS",
+    "pythonDiscovery": "PASS",
+    "targetHostPreSend": "PASS",
+    "skipCount": 0
+  },
+  "selfHeal": {
+    "terminalReason": "IMPLEMENTATION_COMPLETE_INDEPENDENT_REVIEW_PENDING",
+    "implementation": "PASS",
+    "mainUatComplete": false,
+    "productRepairAttemptsCharged": 5,
+    "infrastructureRecoveryAttempts": 3,
+    "finalCandidatePatchSha256": "38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020",
+    "localDeterministicGates": "PASS",
+    "finalLocalCoCheck": "PASS",
+    "remoteIndependentReviewRequired": true,
+    "codeRabbitRequired": true,
+    "acceptance": "PENDING",
+    "acceptanceReason": "DISTINCT_PROVIDER_UNAVAILABLE",
+    "nextTypedGate": "WAIT_FOR_DISTINCT_INDEPENDENT_REVIEW_PROVIDER"
+  },
+  "providers": {
+    "codexCli": {
+      "ready": true,
+      "reason": "utf8_roundtrip_pass"
+    },
+    "claudeCli": {
+      "ready": false,
+      "reason": "provider_transport_process_failed"
+    }
+  },
+  "evidenceLimitations": [
+    "Target logs bind executable runtime bytes to the exact frozen inner sealed-release SHA, but do not themselves record the outer installer-envelope SHA.",
+    "Uploaded history.zip is historical/stale (generated 2026-08-15) and does not contain the 2026-09-21 v3.8.5 run or final candidate patch bytes."
+  ],
+  "status": "PASS_WITH_PENDING_EXTERNAL_REVIEW"
+}
