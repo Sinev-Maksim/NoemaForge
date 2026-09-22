@@ -70,7 +70,7 @@ To satisfy the no-lost-work rule, recover the current `NoemaForge-NightWatch-han
 
 ## Candidate recovery and review
 
-The current cumulative handoff has now been recovered and integrity-verified:
+The current cumulative handoff has been recovered and integrity-verified:
 
 ```text
 HANDOFF_SHA256=ef5ca29f1a7fb92cfca46cad2706267791788f98e99aec0a87332ebd7e55af80
@@ -84,40 +84,54 @@ The exact original candidate patch is persisted under:
 
 `docs/night-watch/candidates/CONTINUATION_CANDIDATE_38882b.patch`.
 
-Independent adversarial code review did **not** accept the original candidate despite its green focused suite. Three blocking fail-open/strictness defects were found:
+The original candidate's 21 focused routing tests pass, but adversarial review found fail-open/strictness defects. The original candidate verdict is therefore `REQUEST_CHANGES`, not acceptance.
 
-1. unknown `change_scope` values could avoid the CodeRabbit-required scope policy;
-2. provider/persona records did not strictly validate field types/collection semantics and could leak raw runtime errors;
-3. serialized route envelopes could validate contradictory PASS semantics instead of recomputing trust-boundary invariants.
+Two extrapolation/review cycles found and corrected nine related defect classes, including:
 
-The original candidate verdict is therefore:
+- unknown-scope CodeRabbit downgrade;
+- non-strict provider/persona inputs and raw error leakage;
+- contradictory PASS route envelopes;
+- forgeable contextual vote eligibility;
+- missing self-validation of required Git-helper and independent-persona reviews;
+- missing Markdown CodeRabbit-history context;
+- open blocker/route code domains;
+- scalar/mapping collection coercion in builders.
 
-`REQUEST_CHANGES`
+The corrected WIP is persisted directly in the `night-watch` source tree. The serialized route envelope now carries enough deterministic review context to revalidate its own semantics, while remaining evidence rather than authentication/authority.
 
-A corrected WIP iteration is now persisted directly in the `night-watch` source tree. Corrections include closed scope/route enums, strict provider/persona contracts, independent-review capability enforcement, typed malformed-input rejection, and semantic route-envelope validation.
-
-Fresh focused validation of the corrected WIP:
+Fresh focused/adversarial validation:
 
 ```text
-ROUTING_UNIT_TESTS=PASS 26/26
-PYTHON_COMPILE=PASS
+ROUTING_UNIT_TESTS=PASS 35/35
+PYTHON_SYNTAX_COMPILE=PASS
 ROUTING_SCHEMA_JSON_PARSE=PASS
+DRAFT_2020_12_PASS_ENVELOPE=PASS
+BLOCKED_ROUTE_MATRIX=PASS
+ADVERSARIAL_FORGED_PASS_PROBES=REJECTED_AS_EXPECTED
+MALFORMED_PUBLIC_INPUTS=TYPED_FAILURES
 ```
 
 Review evidence:
 
 - `docs/night-watch/reviews/NIGHT_WATCH_INDEPENDENT_REVIEW_38882b.md`;
 - `docs/night-watch/reviews/NIGHT_WATCH_CANDIDATE_REVIEW_38882b.json`;
-- `docs/night-watch/candidates/NIGHT_WATCH_REVIEW_FIX_38882b.patch`.
+- `docs/night-watch/candidates/NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.manifest.json` plus its four ordered patch parts.
 
-This review is a code-review/fix iteration and does **not** satisfy the separate remote independent acceptance gate.
+The full review-fix patch reconstructed from those parts has SHA-256:
+
+`afad43c2f4e1a1e8bf4ecddc882cb93ba34db5e868a2dbe4420adc70a389c3cd`.
+
+The external review changes to the routing regression test are canonical review/fix work outside the Night Watch self-heal attempt. They do not weaken the rule that `noemaforge/tests/**` is immutable **inside a self-heal repair run**.
+
+This review/fix iteration does **not** satisfy the separate remote independent acceptance or CodeRabbit gates.
 
 ## Promotion boundary
 
 ```text
 TARGET_HOST_GATE=PASS
 ORIGINAL_CANDIDATE_38882b=REQUEST_CHANGES
-CORRECTED_WIP_FOCUSED_VALIDATION=PASS
+CORRECTED_WIP_FOCUSED_VALIDATION=PASS_35_OF_35
+CORRECTED_WIP_ADVERSARIAL_VALIDATION=PASS
 CODE_CHECKPOINT_REMOTE_PERSISTENCE=PASS
 FULL_REPOSITORY_REGRESSION=PENDING
 REMOTE_EXACT_CANDIDATE_REVIEW=PENDING
