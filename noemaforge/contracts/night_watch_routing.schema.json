@@ -10,7 +10,11 @@
     "candidate_sha",
     "change_scope",
     "persona_id",
+    "persona_provider_candidates",
+    "persona_capabilities",
+    "persona_configured",
     "implementer_provider",
+    "review_requirements",
     "coderabbit_required",
     "selected_reviewers",
     "blockers",
@@ -21,30 +25,120 @@
     "provider_observations"
   ],
   "properties": {
-    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
-    "provenance": {"const": "UAT request findings resolution"},
-    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-    "change_scope": {"enum": ["code", "config", "infra", "markdown"]},
-    "persona_id": {"type": "string", "minLength": 1},
-    "implementer_provider": {"type": "string", "minLength": 1},
-    "coderabbit_required": {"type": "boolean"},
+    "apiVersion": {
+      "const": "noemaforge.night-watch-routing/v1"
+    },
+    "provenance": {
+      "const": "UAT request findings resolution"
+    },
+    "candidate_sha": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "change_scope": {
+      "enum": [
+        "code",
+        "config",
+        "infra",
+        "markdown"
+      ]
+    },
+    "persona_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "persona_configured": {
+      "type": "boolean"
+    },
+    "persona_capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "persona_provider_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "implementer_provider": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_requirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "require_independent_review",
+        "require_git_helper",
+        "optional_copilot",
+        "affected_prior_reviewers"
+      ],
+      "properties": {
+        "require_independent_review": {
+          "type": "boolean"
+        },
+        "require_git_helper": {
+          "type": "boolean"
+        },
+        "optional_copilot": {
+          "type": "boolean"
+        },
+        "affected_prior_reviewers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "coderabbit_required": {
+      "type": "boolean"
+    },
     "selected_reviewers": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1},
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true
     },
     "blockers": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1},
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true
     },
     "notices": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1},
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
       "uniqueItems": true
     },
-    "review_gate_pass": {"type": "boolean"},
-    "route": {"enum": ["LOCAL_REVIEW_GATE_PASS", "YIELD_BLOCKED_REVIEW_QUALITY", "LOCAL_REVIEW_CODE_BLOCK", "YIELD_WAITING_EXTERNAL_REVIEW", "YIELD_BLOCKED_ENGINE_CAPABILITY", "BLOCKED_REVIEW_GATE"]},
+    "review_gate_pass": {
+      "type": "boolean"
+    },
+    "route": {
+      "enum": [
+        "LOCAL_REVIEW_GATE_PASS",
+        "YIELD_BLOCKED_REVIEW_QUALITY",
+        "LOCAL_REVIEW_CODE_BLOCK",
+        "YIELD_WAITING_EXTERNAL_REVIEW",
+        "YIELD_BLOCKED_ENGINE_CAPABILITY",
+        "BLOCKED_REVIEW_GATE"
+      ]
+    },
     "downstream": {
       "type": "object",
       "additionalProperties": false,
@@ -55,10 +149,18 @@
         "start_gcp"
       ],
       "properties": {
-        "build_reproducer": {"type": "boolean"},
-        "call_cost_estimator": {"const": false},
-        "route_budget": {"const": false},
-        "start_gcp": {"const": false}
+        "build_reproducer": {
+          "type": "boolean"
+        },
+        "call_cost_estimator": {
+          "const": false
+        },
+        "route_budget": {
+          "const": false
+        },
+        "start_gcp": {
+          "const": false
+        }
       }
     },
     "provider_observations": {
@@ -79,30 +181,73 @@
         "vote_eligibility",
         "metadata_side_effects",
         "independence_key",
+        "capabilities",
         "review_observed",
         "bound_candidate_sha"
       ],
       "properties": {
         "provider_availability": {
-          "enum": ["available", "blocked_external", "unavailable", "unknown"]
+          "enum": [
+            "available",
+            "blocked_external",
+            "unavailable",
+            "unknown"
+          ]
         },
         "surface_readiness": {
-          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
+          "enum": [
+            "ready",
+            "interactive_only",
+            "unavailable",
+            "unverified"
+          ]
         },
         "quality_calibration": {
-          "enum": ["calibrated", "failed", "unproven", "not_required"]
+          "enum": [
+            "calibrated",
+            "failed",
+            "unproven",
+            "not_required"
+          ]
         },
-        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
+        "vote_eligibility": {
+          "enum": [
+            "eligible",
+            "ineligible"
+          ]
+        },
         "metadata_side_effects": {
-          "enum": ["none_observed", "observed", "unknown"]
+          "enum": [
+            "none_observed",
+            "observed",
+            "unknown"
+          ]
         },
-        "independence_key": {"type": "string", "minLength": 1},
-        "review_observed": {"type": "boolean"},
+        "independence_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "review_observed": {
+          "type": "boolean"
+        },
         "bound_candidate_sha": {
           "oneOf": [
-            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
-            {"type": "null"}
+            {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            },
+            {
+              "type": "null"
+            }
           ]
+        },
+        "capabilities": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
         }
       }
     }
