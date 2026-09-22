@@ -537,5 +537,122 @@ class NightWatchRoutingRuntimeTests(unittest.TestCase):
                     routing.validate_route_envelope(item)
 
 
+    def test_builders_reject_scalar_or_mapping_collections(self):
+        for value in ("abc", {"x": 1}):
+            with self.subTest(builder="provider", value=value):
+                with self.assertRaises(routing.NightWatchRoutingError):
+                    routing.make_provider_state(
+                        provider_id="x",
+                        provider_availability="available",
+                        surface_readiness="ready",
+                        quality_calibration="calibrated",
+                        metadata_side_effects="none_observed",
+                        independence_key="x",
+                        capabilities=value,
+                        review_observed=True,
+                        bound_candidate_sha=CANDIDATE,
+                    )
+            with self.subTest(builder="persona", value=value):
+                with self.assertRaises(routing.NightWatchRoutingError):
+                    routing.make_persona_state(
+                        persona_id="x",
+                        capabilities=value,
+                        provider_candidates=("claude",),
+                    )
+
+    def test_route_validator_recomputes_contextual_vote_eligibility(self):
+        envelope = routing.evaluate_review_gate(
+            candidate_sha=CANDIDATE,
+            change_scope="code",
+            persona=persona(),
+            implementer_provider="codex",
+            providers=baseline_providers(),
+        )
+        reviewer = next(
+            item for item in envelope["selected_reviewers"]
+            if item not in {"git_helper", "coderabbit"}
+        )
+        envelope["provider_observations"][reviewer]["provider_availability"] = "unavailable"
+        envelope["provider_observations"][reviewer]["vote_eligibility"] = "eligible"
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_route_envelope(envelope)
+
+    def test_route_validator_requires_policy_git_helper(self):
+        envelope = routing.evaluate_review_gate(
+            candidate_sha=CANDIDATE,
+            change_scope="code",
+            persona=persona(),
+            implementer_provider="codex",
+            providers=baseline_providers(),
+        )
+        envelope["selected_reviewers"].remove("git_helper")
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_route_envelope(envelope)
+
+    def test_route_validator_requires_policy_independent_persona_reviewer(self):
+        envelope = routing.evaluate_review_gate(
+            candidate_sha=CANDIDATE,
+            change_scope="code",
+            persona=persona(),
+            implementer_provider="codex",
+            providers=baseline_providers(),
+        )
+        independent = next(
+            item for item in envelope["selected_reviewers"]
+            if item not in {"git_helper", "coderabbit"}
+        )
+        envelope["selected_reviewers"].remove(independent)
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_route_envelope(envelope)
+
+    def test_route_validator_recomputes_markdown_coderabbit_requirement(self):
+        envelope = routing.evaluate_review_gate(
+            candidate_sha=CANDIDATE,
+            change_scope="markdown",
+            persona=persona(),
+            implementer_provider="codex",
+            providers=baseline_providers(),
+            affected_prior_reviewers=("coderabbit",),
+        )
+        envelope["coderabbit_required"] = False
+        envelope["selected_reviewers"].remove("coderabbit")
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_route_envelope(envelope)
+
+    def test_route_validator_rejects_unknown_blocker_and_route_mismatch(self):
+        envelope = routing.evaluate_review_gate(
+            candidate_sha=CANDIDATE,
+            change_scope="code",
+            persona=persona(),
+            implementer_provider="codex",
+            providers=baseline_providers(),
+        )
+        envelope["review_gate_pass"] = False
+        envelope["blockers"] = ["TOTALLY_UNKNOWN"]
+        envelope["route"] = "YIELD_BLOCKED_ENGINE_CAPABILITY"
+        envelope["downstream"]["build_reproducer"] = False
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_route_envelope(envelope)
+
+    def test_schema_carries_route_revalidation_context(self):
+        schema = json.loads(
+            (ROOT / "contracts" / "night_watch_routing.schema.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for field in (
+            "persona_configured",
+            "persona_capabilities",
+            "persona_provider_candidates",
+            "review_requirements",
+        ):
+            self.assertIn(field, schema["required"])
+        self.assertIn(
+            "capabilities",
+            schema["$defs"]["providerObservation"]["required"],
+        )
+
+
+
 if __name__ == "__main__":
     unittest.main()
