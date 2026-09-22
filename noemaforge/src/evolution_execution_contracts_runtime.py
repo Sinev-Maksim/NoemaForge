@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/evolution_execution_contracts_runtime.py
 Zone: release/package
-Version: 0.33.0
+Version: see noemaforge/src/noemaforge_version.py
 Created: 2026-07-18
 Modified: 2026-07-18
 Purpose: Validate NF-native Evolution execution contracts without launching runtime work.
