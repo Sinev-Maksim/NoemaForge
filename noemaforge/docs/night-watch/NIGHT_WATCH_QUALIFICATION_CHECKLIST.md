@@ -1,6 +1,6 @@
 # Night Watch v3.8.5 Qualification Checklist
 
-**Reconciled:** 2026-09-21  
+**Reconciled:** 2026-09-22  
 **Rule:** machine-readable evidence bound to exact release identity overrides stale manual checkbox state.
 
 ## Frozen/build qualification
@@ -26,11 +26,11 @@
 
 ## External trust boundaries
 
-- [ ] exact final frozen v3.8.5 executed on a real Windows PowerShell 5.1 target;
-- [ ] resulting real-target evidence bound to exact frozen release identity;
+- [x] exact final frozen v3.8.5 inner sealed release executed on a real Windows PowerShell 5.1 target;
+- [x] real-target evidence bound to exact frozen inner sealed-release SHA-256;
 - [ ] remote independent exact-SHA review;
 - [ ] CodeRabbit/final external quality gate where required;
 - [ ] human release GO;
 - [ ] production/tagged promotion.
 
-Until the unchecked external gates are completed, the release may be described as **frozen/build-qualified**, not as fully promoted production release.
+The frozen package is now **build-qualified and real-target-host qualified**. It is not a promoted production release until the remaining independent review / external quality / human promotion gates are completed. The target-host logs bind the executable inner sealed-release identity; they do not independently restate the outer installer-envelope SHA.
