@@ -537,8 +537,31 @@ class NightWatchRoutingRuntimeTests(unittest.TestCase):
                     routing.validate_route_envelope(item)
 
 
+
+    def test_provider_contract_rejects_non_string_enum_values_with_typed_error(self):
+        for field in (
+            "provider_availability",
+            "surface_readiness",
+            "quality_calibration",
+            "vote_eligibility",
+            "metadata_side_effects",
+        ):
+            with self.subTest(field=field):
+                state = provider("claude", capabilities=("independent_review",))
+                state[field] = []
+                with self.assertRaises(routing.NightWatchRoutingError):
+                    routing.validate_provider_state(state)
+
+    def test_public_identity_validator_rejects_scalar_reviewer_ids(self):
+        with self.assertRaises(routing.NightWatchRoutingError):
+            routing.validate_review_identity(
+                implementer_provider="codex",
+                reviewer_ids="claude",
+                providers=baseline_providers(),
+            )
+
     def test_builders_reject_scalar_or_mapping_collections(self):
-        for value in ("abc", {"x": 1}):
+        for value in ("abc", {"x": 1}, 123, None):
             with self.subTest(builder="provider", value=value):
                 with self.assertRaises(routing.NightWatchRoutingError):
                     routing.make_provider_state(
