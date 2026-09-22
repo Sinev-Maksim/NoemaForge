@@ -998,3 +998,324 @@ index 0000000..fb79965
 +            "copilot",
 +            capabilities=("code_review",),
 +            requested=True,
++            observed=False,
++            sha=None,
++            optional=True,
++        )
++        self.assertTrue(state["request_attempted"])
++        self.assertFalse(state["review_observed"])
++        self.assertEqual("ineligible", state["vote_eligibility"])
++
++    def test_metadata_side_effect_is_explicit_but_does_not_change_candidate_binding(self):
++        state = provider(
++            "coderabbit",
++            metadata="observed",
++            capabilities=("code_review",),
++        )
++        self.assertEqual("observed", state["metadata_side_effects"])
++        self.assertEqual(CANDIDATE, state["bound_candidate_sha"])
++        self.assertEqual("eligible", state["vote_eligibility"])
++
++    def test_code_config_infra_require_coderabbit(self):
++        for scope in ("code", "config", "infra"):
++            self.assertTrue(routing.coderabbit_required(scope, ()))
++
++    def test_markdown_requires_coderabbit_only_when_affected(self):
++        self.assertFalse(routing.coderabbit_required("markdown", ("claude",)))
++        self.assertTrue(routing.coderabbit_required("markdown", ("coderabbit",)))
++
++    def test_exact_candidate_mismatch_cannot_vote(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit", capabilities=("code_review",), sha=OTHER
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("STALE_REVIEW_CANDIDATE", envelope["blockers"])
++
++    def test_coderabbit_quality_failure_is_typed_blocker(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            quality="failed",
++            metadata="observed",
++            capabilities=("code_review",),
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++        self.assertEqual("YIELD_BLOCKED_REVIEW_QUALITY", envelope["route"])
++
++    def test_live_pr_review_wait_is_distinct_from_quality_failure(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            surface="unverified",
++            quality="unproven",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        # A known failed/unproven quality state is stronger than mere waiting.
++        self.assertIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++
++    def test_coderabbit_calibrated_surface_waits_for_observed_review(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            surface="ready",
++            quality="calibrated",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertIn("WAITING_FOR_LIVE_PR_REVIEW", envelope["blockers"])
++        self.assertNotIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++
++    def test_late_binding_uses_eligible_persona_provider(self):
++        providers = baseline_providers()
++        providers["claude"] = provider(
++            "claude",
++            availability="blocked_external",
++            surface="unavailable",
++            quality="unproven",
++            capabilities=("independent_review", "architecture"),
++            requested=False,
++            observed=False,
++            sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="markdown",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++            affected_prior_reviewers=("claude",),
++        )
++        self.assertTrue(envelope["review_gate_pass"])
++        self.assertIn("antigravity", envelope["selected_reviewers"])
++        self.assertNotIn("claude", envelope["selected_reviewers"])
++
++    def test_degraded_pr349_state_blocks_engine_and_quality(self):
++        providers = baseline_providers()
++        providers["claude"] = provider(
++            "claude",
++            availability="blocked_external",
++            surface="unavailable",
++            quality="unproven",
++            capabilities=("independent_review", "architecture"),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        providers["antigravity"] = provider(
++            "antigravity",
++            availability="available",
++            surface="interactive_only",
++            quality="unproven",
++            capabilities=("independent_review", "architecture"),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            quality="failed",
++            metadata="observed",
++            capabilities=("code_review",),
++        )
++        providers["copilot"] = provider(
++            "copilot",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++            optional=True,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("BLOCKED_ENGINE_CAPABILITY", envelope["blockers"])
++        self.assertIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++        self.assertIn("OPTIONAL_COPILOT_UNVERIFIED", envelope["notices"])
++        self.assertFalse(envelope["downstream"]["build_reproducer"])
++        self.assertFalse(envelope["downstream"]["call_cost_estimator"])
++        self.assertFalse(envelope["downstream"]["route_budget"])
++        self.assertFalse(envelope["downstream"]["start_gcp"])
++
++    def test_blocked_gate_short_circuits_all_downstream_work(self):
++        providers = baseline_providers()
++        providers["claude"] = provider(
++            "claude", availability="unavailable", surface="unavailable",
++            quality="unproven", capabilities=("independent_review",),
++            requested=False, observed=False, sha=None,
++        )
++        providers["antigravity"] = provider(
++            "antigravity", availability="unavailable", surface="unavailable",
++            quality="unproven", capabilities=("independent_review",),
++            requested=False, observed=False, sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="markdown",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++            affected_prior_reviewers=("claude",),
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertEqual(
++            {
++                "build_reproducer": False,
++                "call_cost_estimator": False,
++                "route_budget": False,
++                "start_gcp": False,
++            },
++            envelope["downstream"],
++        )
++
++    def test_review_gate_pass_only_releases_reproducer_stage(self):
++        providers = baseline_providers()
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertTrue(envelope["review_gate_pass"])
++        self.assertTrue(envelope["downstream"]["build_reproducer"])
++        self.assertFalse(envelope["downstream"]["call_cost_estimator"])
++        self.assertFalse(envelope["downstream"]["route_budget"])
++        self.assertFalse(envelope["downstream"]["start_gcp"])
++
++    def test_self_review_is_rejected_by_independence_key(self):
++        providers = baseline_providers()
++        providers["codex_reviewer"] = provider(
++            "codex_reviewer",
++            key=providers["codex"]["independence_key"],
++            capabilities=("independent_review",),
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="markdown",
++            persona=persona(candidates=("codex_reviewer",)),
++            implementer_provider="codex",
++            providers=providers,
++            require_git_helper=False,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("IMPLEMENTER_SELF_REVIEW_REJECTED", envelope["blockers"])
++
++    def test_duplicate_independence_key_is_rejected(self):
++        providers = baseline_providers()
++        providers["coderabbit"]["independence_key"] = providers["claude"]["independence_key"]
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(candidates=("claude",)),
++            implementer_provider="codex",
++            providers=providers,
++            require_git_helper=False,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("DUPLICATE_INDEPENDENCE_KEY_REJECTED", envelope["blockers"])
++
++    def test_strict_provider_contract_rejects_extra_fields(self):
++        state = provider("claude", capabilities=("independent_review",))
++        state["surprise"] = True
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_provider_state(state)
++
++    def test_strict_route_contract_rejects_extra_fields(self):
++        providers = baseline_providers()
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        envelope["surprise"] = True
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_vote_eligibility_cannot_be_forged(self):
++        state = provider(
++            "copilot", capabilities=("code_review",), requested=True,
++            observed=False, sha=None, optional=True
++        )
++        state["vote_eligibility"] = "eligible"
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_provider_state(state)
++
++    def test_schema_is_strict_and_carries_readiness_dimensions(self):
++        schema_path = ROOT / "contracts" / "night_watch_routing.schema.json"
++        schema = json.loads(schema_path.read_text(encoding="utf-8"))
++        self.assertFalse(schema["additionalProperties"])
++        observation = schema["$defs"]["providerObservation"]
++        self.assertFalse(observation["additionalProperties"])
++        for field in (
++            "provider_availability",
++            "surface_readiness",
++            "quality_calibration",
++            "vote_eligibility",
++            "metadata_side_effects",
++            "review_observed",
++            "bound_candidate_sha",
++        ):
++            self.assertIn(field, observation["required"])
++
++    def test_output_is_deterministic_for_same_inputs(self):
++        providers = baseline_providers()
++        kwargs = dict(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        first = routing.evaluate_review_gate(**kwargs)
++        second = routing.evaluate_review_gate(**kwargs)
++        self.assertEqual(first, second)
++        self.assertEqual(
++            json.dumps(first, sort_keys=True, separators=(",", ":")),
++            json.dumps(second, sort_keys=True, separators=(",", ":")),
++        )
++
++
++if __name__ == "__main__":
++    unittest.main()
