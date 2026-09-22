@@ -89,3 +89,16 @@ Classification: `UAT request findings resolution`
 - Added regression coverage; corrected focused routing suite: 26/26 PASS; Python compile PASS; schema JSON parse PASS.
 - Persisted corrected source directly to `night-watch`, plus original candidate, review report, machine-readable review evidence and correction patch.
 - Full repository regression, remote exact-candidate review, CodeRabbit and human release GO remain pending.
+
+
+## 2026-09-22 — adversarial extrapolation after first review fix
+
+Classification: `UAT request findings resolution`
+
+- Continued review after the first correction instead of stopping at the initial 26/26 green suite.
+- Found neighboring fail-open/strictness cases: forged contextual vote eligibility, removable required Git-helper, removable independent persona reviewer, Markdown CodeRabbit-history downgrade, unknown blocker/route combinations, and scalar/mapping collection coercion/raw TypeError leakage.
+- Extended the route envelope with persona/review-policy/provider-capability context needed for deterministic semantic revalidation.
+- Recomputed contextual vote eligibility; closed blocker/notice domains; derived route from blocker priority; enforced Git-helper, independent-persona and CodeRabbit capability requirements; normalized malformed public inputs to typed routing errors.
+- Added new regressions. Corrected routing suite now 35/35 PASS plus JSON-schema PASS and adversarial forged-PASS rejection probes.
+- Persisted the corrected source files, expanded review report, machine-readable review evidence, and exact chunked final review-fix patch on `night-watch`.
+- Full repository regression / remote exact-candidate review / CodeRabbit / human release GO remain separate pending gates.
