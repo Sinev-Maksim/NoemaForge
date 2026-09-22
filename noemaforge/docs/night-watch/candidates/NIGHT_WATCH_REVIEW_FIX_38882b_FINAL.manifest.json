@@ -1,0 +1,26 @@
+{
+  "full_sha256": "afad43c2f4e1a1e8bf4ecddc882cb93ba34db5e868a2dbe4420adc70a389c3cd",
+  "full_size": 102879,
+  "parts": [
+    {
+      "name": "NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.part-001.patch",
+      "size": 29980,
+      "sha256": "0fe53731553a663d5d83b5e12d535ecf1d4239e98703a69974cda347239c864e"
+    },
+    {
+      "name": "NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.part-002.patch",
+      "size": 29998,
+      "sha256": "f488b99a446f84dcd5445f09b368a8475cd87c18d1f94f2afb97d00e7123301a"
+    },
+    {
+      "name": "NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.part-003.patch",
+      "size": 29982,
+      "sha256": "71f72032d52e6263a5ee4ce0bfca1b5ec3e21b94c54f423f65228f30a8f6e2c6"
+    },
+    {
+      "name": "NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.part-004.patch",
+      "size": 12919,
+      "sha256": "2355158c40c16b02e3f51ccd0454db74c3e4a9cca8149d8d3de81df5425c106a"
+    }
+  ]
+}
