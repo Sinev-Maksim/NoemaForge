@@ -1,0 +1,703 @@
++    if require_independent_review:
++        reviewer, reviewer_blockers = _choose_independent_provider(
++            candidate_sha=candidate_sha,
++            implementer_provider=implementer_provider,
++            persona=persona,
++            providers=providers,
++        )
++        if reviewer:
++            _add_unique(selected, reviewer)
++        for blocker in reviewer_blockers:
++            _add_unique(blockers, blocker)
++
++    cr_required = coderabbit_required(change_scope, affected_prior_reviewers)
++    if cr_required:
++        coderabbit = providers.get("coderabbit")
++        coderabbit_capability = CODERABBIT_SCOPE_CAPABILITIES.get(
++            change_scope,
++            "code_review",
++        )
++        if coderabbit and _provider_can_vote(
++            coderabbit,
++            candidate_sha=candidate_sha,
++            capability=coderabbit_capability,
++        ):
++            _add_unique(selected, "coderabbit")
++        elif coderabbit is None:
++            _add_unique(blockers, "CODERABBIT_REQUIRED_UNAVAILABLE")
++        elif coderabbit["provider_availability"] != "available":
++            _add_unique(blockers, "CODERABBIT_REQUIRED_UNAVAILABLE")
++        elif coderabbit["quality_calibration"] in {"failed", "unproven"}:
++            _add_unique(blockers, "BLOCKED_REVIEW_QUALITY_CAPABILITY")
++        elif coderabbit["surface_readiness"] != "ready":
++            _add_unique(blockers, "CODERABBIT_REQUIRED_UNAVAILABLE")
++        elif coderabbit["review_observed"] and not _candidate_exact(coderabbit, candidate_sha):
++            _add_unique(blockers, "STALE_REVIEW_CANDIDATE")
++        elif coderabbit["quality_calibration"] in {"calibrated", "not_required"} and not coderabbit["review_observed"]:
++            _add_unique(blockers, "WAITING_FOR_LIVE_PR_REVIEW")
++        else:
++            _add_unique(blockers, "CODERABBIT_REQUIRED_UNAVAILABLE")
++    else:
++        notices.append("CODERABBIT_NOT_REQUIRED")
++
++    if optional_copilot:
++        copilot = providers.get("copilot")
++        if not copilot or not _provider_can_vote(copilot, candidate_sha=candidate_sha):
++            notices.append("OPTIONAL_COPILOT_UNVERIFIED")
++
++    identity_error = validate_review_identity(
++        implementer_provider=implementer_provider,
++        reviewer_ids=selected,
++        providers=providers,
++    )
++    if identity_error:
++        _add_unique(blockers, identity_error)
++
++    review_gate_pass = not blockers
++    if review_gate_pass:
++        route = "LOCAL_REVIEW_GATE_PASS"
++    elif "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
++        route = "YIELD_BLOCKED_REVIEW_QUALITY"
++    elif "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
++        route = "LOCAL_REVIEW_CODE_BLOCK"
++    elif (
++        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
++        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
++    ):
++        route = "YIELD_WAITING_EXTERNAL_REVIEW"
++    elif "BLOCKED_ENGINE_CAPABILITY" in blockers:
++        route = "YIELD_BLOCKED_ENGINE_CAPABILITY"
++    else:
++        route = "BLOCKED_REVIEW_GATE"
++
++    implementer_key = (
++        implementer["independence_key"] if implementer is not None else None
++    )
++
++    def observation_vote_eligibility(provider_id: str, state: Mapping[str, Any]) -> str:
++        context_eligible = (
++            state["vote_eligibility"] == "eligible"
++            and state["bound_candidate_sha"] == candidate_sha
++            and provider_id != implementer_provider
++            and implementer_key is not None
++            and state["independence_key"] != implementer_key
++        )
++        return "eligible" if context_eligible else "ineligible"
++
++    provider_observations = {
++        provider_id: {
++            "provider_availability": state["provider_availability"],
++            "surface_readiness": state["surface_readiness"],
++            "quality_calibration": state["quality_calibration"],
++            "vote_eligibility": observation_vote_eligibility(provider_id, state),
++            "metadata_side_effects": state["metadata_side_effects"],
++            "independence_key": state["independence_key"],
++            "review_observed": state["review_observed"],
++            "bound_candidate_sha": state["bound_candidate_sha"],
++        }
++        for provider_id, state in sorted(providers.items())
++    }
++
++    result = {
++        "apiVersion": API_VERSION,
++        "provenance": PROVENANCE,
++        "candidate_sha": candidate_sha,
++        "change_scope": change_scope,
++        "persona_id": persona["persona_id"],
++        "implementer_provider": implementer_provider,
++        "coderabbit_required": cr_required,
++        "selected_reviewers": sorted(selected),
++        "blockers": sorted(blockers),
++        "notices": sorted(notices),
++        "review_gate_pass": review_gate_pass,
++        "route": route,
++        "downstream": {
++            "build_reproducer": review_gate_pass,
++            "call_cost_estimator": False,
++            "route_budget": False,
++            "start_gcp": False,
++        },
++        "provider_observations": provider_observations,
++    }
++    validate_route_envelope(result)
++    return result
++
++
++def validate_route_envelope(document: Mapping[str, Any]) -> None:
++    if not isinstance(document, Mapping):
++        raise NightWatchRoutingError("route must be an object")
++    _require_exact_keys(document, ROUTE_KEYS, "route")
++    if document["apiVersion"] != API_VERSION:
++        raise NightWatchRoutingError("unexpected apiVersion")
++    if document["provenance"] != PROVENANCE:
++        raise NightWatchRoutingError("unexpected provenance")
++    _validate_sha(document["candidate_sha"], field="candidate_sha")
++    change_scope = _validate_change_scope(document["change_scope"])
++    for field in ("persona_id", "implementer_provider", "route"):
++        if not isinstance(document[field], str) or not document[field]:
++            raise NightWatchRoutingError(f"{field} must be a non-empty string")
++    if document["route"] not in ROUTES:
++        raise NightWatchRoutingError("unexpected route")
++    if not isinstance(document["coderabbit_required"], bool):
++        raise NightWatchRoutingError("coderabbit_required must be boolean")
++    selected = _validate_string_list(document["selected_reviewers"], field="selected_reviewers")
++    blockers = _validate_string_list(document["blockers"], field="blockers")
++    _validate_string_list(document["notices"], field="notices")
++
++    downstream = document["downstream"]
++    if not isinstance(downstream, Mapping):
++        raise NightWatchRoutingError("downstream must be an object")
++    _require_exact_keys(downstream, DOWNSTREAM_KEYS, "downstream")
++    for key in DOWNSTREAM_KEYS:
++        if not isinstance(downstream[key], bool):
++            raise NightWatchRoutingError(f"downstream.{key} must be boolean")
++
++    observations = document["provider_observations"]
++    if not isinstance(observations, Mapping):
++        raise NightWatchRoutingError("provider_observations must be an object")
++    for provider_id, observation in observations.items():
++        if not isinstance(provider_id, str) or not provider_id:
++            raise NightWatchRoutingError("provider observation id must be a non-empty string")
++        if not isinstance(observation, Mapping):
++            raise NightWatchRoutingError("provider observation must be an object")
++        _require_exact_keys(observation, OBSERVATION_KEYS, "provider observation")
++        if observation["provider_availability"] not in PROVIDER_AVAILABILITY:
++            raise NightWatchRoutingError("invalid observation provider_availability")
++        if observation["surface_readiness"] not in SURFACE_READINESS:
++            raise NightWatchRoutingError("invalid observation surface_readiness")
++        if observation["quality_calibration"] not in QUALITY_CALIBRATION:
++            raise NightWatchRoutingError("invalid observation quality_calibration")
++        if observation["vote_eligibility"] not in VOTE_ELIGIBILITY:
++            raise NightWatchRoutingError("invalid observation vote_eligibility")
++        if observation["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
++            raise NightWatchRoutingError("invalid observation metadata_side_effects")
++        if not isinstance(observation["independence_key"], str) or not observation["independence_key"]:
++            raise NightWatchRoutingError("observation independence_key is required")
++        if not isinstance(observation["review_observed"], bool):
++            raise NightWatchRoutingError("observation review_observed must be boolean")
++        _validate_sha(
++            observation["bound_candidate_sha"],
++            field="observation bound_candidate_sha",
++            allow_none=True,
++        )
++
++    implementer_id = document["implementer_provider"]
++    implementer_observation = observations.get(implementer_id)
++    if not isinstance(implementer_observation, Mapping):
++        raise NightWatchRoutingError("implementer observation is required")
++    implementer_key = implementer_observation["independence_key"]
++
++    expected_coderabbit = change_scope in CODE_SCOPES
++    if expected_coderabbit and document["coderabbit_required"] is not True:
++        raise NightWatchRoutingError("code/config/infra scope requires CodeRabbit")
++
++    if not isinstance(document["review_gate_pass"], bool):
++        raise NightWatchRoutingError("review_gate_pass must be boolean")
++    if document["review_gate_pass"]:
++        if blockers:
++            raise NightWatchRoutingError("passing review gate cannot carry blockers")
++        selected_keys: Set[str] = set()
++        for reviewer_id in selected:
++            if reviewer_id == implementer_id:
++                raise NightWatchRoutingError("implementer cannot be a selected reviewer")
++            observation = observations.get(reviewer_id)
++            if not isinstance(observation, Mapping):
++                raise NightWatchRoutingError("selected reviewer observation is required")
++            if observation["vote_eligibility"] != "eligible":
++                raise NightWatchRoutingError("selected reviewer must be vote eligible")
++            if observation["bound_candidate_sha"] != document["candidate_sha"]:
++                raise NightWatchRoutingError("selected reviewer must bind the exact candidate")
++            key = observation["independence_key"]
++            if key == implementer_key:
++                raise NightWatchRoutingError("selected reviewer is not independent of implementer")
++            if key in selected_keys:
++                raise NightWatchRoutingError("selected reviewers must have unique independence keys")
++            selected_keys.add(key)
++        if document["coderabbit_required"] and "coderabbit" not in selected:
++            raise NightWatchRoutingError("required CodeRabbit review is not selected")
++        if downstream["build_reproducer"] is not True:
++            raise NightWatchRoutingError("passing review gate must release reproducer")
++    else:
++        if not blockers:
++            raise NightWatchRoutingError("blocked review gate requires a typed blocker")
++        if any(downstream.values()):
++            raise NightWatchRoutingError("blocked review gate cannot enable downstream work")
++
++    if downstream["call_cost_estimator"]:
++        raise NightWatchRoutingError("cost estimation requires a proven reproducer stage")
++    if downstream["route_budget"] or downstream["start_gcp"]:
++        raise NightWatchRoutingError("budget/GCP cannot start from the review gate")
++
++    if document["review_gate_pass"] and document["route"] != "LOCAL_REVIEW_GATE_PASS":
++        raise NightWatchRoutingError("passing gate has inconsistent route")
++    if not document["review_gate_pass"] and document["route"] == "LOCAL_REVIEW_GATE_PASS":
++        raise NightWatchRoutingError("blocked gate cannot use pass route")
++
+diff -ruN '--exclude=__pycache__' a/noemaforge/tests/test_night_watch_routing_runtime.py b/noemaforge/tests/test_night_watch_routing_runtime.py
+--- a/noemaforge/tests/test_night_watch_routing_runtime.py	2026-09-22 17:42:46.990977516 +0000
++++ b/noemaforge/tests/test_night_watch_routing_runtime.py	2026-09-22 18:00:48.869887856 +0000
+@@ -443,6 +443,239 @@
+             json.dumps(second, sort_keys=True, separators=(",", ":")),
+         )
+ 
++    def test_unknown_change_scope_fails_closed(self):
++        providers = baseline_providers()
++        for scope in ("python", "CODE", "security", ""):
++            with self.subTest(scope=scope):
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.evaluate_review_gate(
++                        candidate_sha=CANDIDATE,
++                        change_scope=scope,
++                        persona=persona(),
++                        implementer_provider="codex",
++                        providers=providers,
++                    )
++
++    def test_strict_provider_contract_rejects_malformed_field_types(self):
++        mutations = {
++            "provider_id": 123,
++            "independence_key": {},
++            "capabilities": "independent_review",
++            "request_attempted": "yes",
++            "optional": "false",
++        }
++        for field, value in mutations.items():
++            with self.subTest(field=field):
++                state = provider("claude", capabilities=("independent_review",))
++                state[field] = value
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.validate_provider_state(state)
++
++    def test_strict_persona_contract_rejects_malformed_field_types(self):
++        mutations = {
++            "persona_id": 123,
++            "configured": "true",
++            "capabilities": "independent_review",
++            "provider_candidates": 123,
++        }
++        for field, value in mutations.items():
++            with self.subTest(field=field):
++                state = persona()
++                state[field] = value
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.validate_persona_state(state)
++
++    def test_persona_without_independent_review_capability_cannot_vote(self):
++        providers = baseline_providers()
++        state = routing.make_persona_state(
++            persona_id="artist",
++            capabilities=("visual_review",),
++            provider_candidates=("claude",),
++            configured=True,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="markdown",
++            persona=state,
++            implementer_provider="codex",
++            providers=providers,
++            require_git_helper=False,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("PERSONA_CAPABILITY_MISSING", envelope["blockers"])
++
++    def test_route_validator_rejects_forged_pass_semantics(self):
++        providers = baseline_providers()
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        forged = []
++
++        item = json.loads(json.dumps(envelope))
++        item["blockers"] = ["SYNTHETIC_BLOCKER"]
++        forged.append(item)
++
++        item = json.loads(json.dumps(envelope))
++        item["selected_reviewers"] = ["claude", "git_helper"]
++        forged.append(item)
++
++        item = json.loads(json.dumps(envelope))
++        item["downstream"]["build_reproducer"] = False
++        forged.append(item)
++
++        item = json.loads(json.dumps(envelope))
++        item["coderabbit_required"] = False
++        forged.append(item)
++
++        for item in forged:
++            with self.subTest(item=item):
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.validate_route_envelope(item)
++
++
++
++    def test_provider_contract_rejects_non_string_enum_values_with_typed_error(self):
++        for field in (
++            "provider_availability",
++            "surface_readiness",
++            "quality_calibration",
++            "vote_eligibility",
++            "metadata_side_effects",
++        ):
++            with self.subTest(field=field):
++                state = provider("claude", capabilities=("independent_review",))
++                state[field] = []
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.validate_provider_state(state)
++
++    def test_public_identity_validator_rejects_scalar_reviewer_ids(self):
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_review_identity(
++                implementer_provider="codex",
++                reviewer_ids="claude",
++                providers=baseline_providers(),
++            )
++
++    def test_builders_reject_scalar_or_mapping_collections(self):
++        for value in ("abc", {"x": 1}, 123, None):
++            with self.subTest(builder="provider", value=value):
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.make_provider_state(
++                        provider_id="x",
++                        provider_availability="available",
++                        surface_readiness="ready",
++                        quality_calibration="calibrated",
++                        metadata_side_effects="none_observed",
++                        independence_key="x",
++                        capabilities=value,
++                        review_observed=True,
++                        bound_candidate_sha=CANDIDATE,
++                    )
++            with self.subTest(builder="persona", value=value):
++                with self.assertRaises(routing.NightWatchRoutingError):
++                    routing.make_persona_state(
++                        persona_id="x",
++                        capabilities=value,
++                        provider_candidates=("claude",),
++                    )
++
++    def test_route_validator_recomputes_contextual_vote_eligibility(self):
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=baseline_providers(),
++        )
++        reviewer = next(
++            item for item in envelope["selected_reviewers"]
++            if item not in {"git_helper", "coderabbit"}
++        )
++        envelope["provider_observations"][reviewer]["provider_availability"] = "unavailable"
++        envelope["provider_observations"][reviewer]["vote_eligibility"] = "eligible"
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_route_validator_requires_policy_git_helper(self):
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=baseline_providers(),
++        )
++        envelope["selected_reviewers"].remove("git_helper")
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_route_validator_requires_policy_independent_persona_reviewer(self):
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=baseline_providers(),
++        )
++        independent = next(
++            item for item in envelope["selected_reviewers"]
++            if item not in {"git_helper", "coderabbit"}
++        )
++        envelope["selected_reviewers"].remove(independent)
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_route_validator_recomputes_markdown_coderabbit_requirement(self):
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="markdown",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=baseline_providers(),
++            affected_prior_reviewers=("coderabbit",),
++        )
++        envelope["coderabbit_required"] = False
++        envelope["selected_reviewers"].remove("coderabbit")
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_route_validator_rejects_unknown_blocker_and_route_mismatch(self):
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=baseline_providers(),
++        )
++        envelope["review_gate_pass"] = False
++        envelope["blockers"] = ["TOTALLY_UNKNOWN"]
++        envelope["route"] = "YIELD_BLOCKED_ENGINE_CAPABILITY"
++        envelope["downstream"]["build_reproducer"] = False
++        with self.assertRaises(routing.NightWatchRoutingError):
++            routing.validate_route_envelope(envelope)
++
++    def test_schema_carries_route_revalidation_context(self):
++        schema = json.loads(
++            (ROOT / "contracts" / "night_watch_routing.schema.json").read_text(
++                encoding="utf-8"
++            )
++        )
++        for field in (
++            "persona_configured",
++            "persona_capabilities",
++            "persona_provider_candidates",
++            "review_requirements",
++        ):
++            self.assertIn(field, schema["required"])
++        self.assertIn(
++            "capabilities",
++            schema["$defs"]["providerObservation"]["required"],
++        )
++
++
+ 
+ if __name__ == "__main__":
+     unittest.main()
+diff -ruN '--exclude=__pycache__' a/noemaforge/tests/test_night_watch_routing_runtime.py.bak2 b/noemaforge/tests/test_night_watch_routing_runtime.py.bak2
+--- a/noemaforge/tests/test_night_watch_routing_runtime.py.bak2	1970-01-01 00:00:00.000000000 +0000
++++ b/noemaforge/tests/test_night_watch_routing_runtime.py.bak2	2026-09-22 17:55:46.180645821 +0000
+@@ -0,0 +1,541 @@
++#!/usr/bin/env python3
++"""
++=== NoemaForge File Header ===
++File: noemaforge/tests/test_night_watch_routing_runtime.py
++Zone: release/package
++Version: 0.33.0
++Created: 2026-08-13
++Modified: 2026-08-13
++Purpose: Prove strict Night Watch reviewer/provider routing semantics.
++Inputs: Deterministic in-memory provider/persona fixtures only.
++Outputs: unittest assertions only.
++Side effects: None.
++Tests: direct unittest or pytest execution.
++Notes: UAT request findings resolution; covers NW-UAT-GH-031..036 semantics.
++=== End NoemaForge File Header ===
++"""
++from __future__ import annotations
++
++import json
++import os
++import sys
++import unittest
++from pathlib import Path
++from typing import Optional
++
++
++ROOT = Path(os.path.realpath(os.path.join(os.path.dirname(__file__), "..")))
++sys.path.insert(0, str(ROOT / "src"))
++
++import night_watch_routing_runtime as routing
++
++
++BASE = "a" * 40
++CANDIDATE = "8e41329f353b0161c54e47795ea45d636639dd70"
++OTHER = "b" * 40
++
++
++def provider(
++    provider_id: str,
++    *,
++    availability: str = "available",
++    surface: str = "ready",
++    quality: str = "calibrated",
++    metadata: str = "none_observed",
++    key: Optional[str] = None,
++    capabilities=(),
++    requested: bool = True,
++    observed: bool = True,
++    sha: Optional[str] = CANDIDATE,
++    optional: bool = False,
++):
++    return routing.make_provider_state(
++        provider_id=provider_id,
++        provider_availability=availability,
++        surface_readiness=surface,
++        quality_calibration=quality,
++        metadata_side_effects=metadata,
++        independence_key=key or provider_id,
++        capabilities=capabilities,
++        request_attempted=requested,
++        review_observed=observed,
++        bound_candidate_sha=sha,
++        optional=optional,
++    )
++
++
++def persona(name="architect", candidates=("claude", "antigravity")):
++    return routing.make_persona_state(
++        persona_id=name,
++        capabilities=(name, "independent_review"),
++        provider_candidates=candidates,
++        configured=True,
++    )
++
++
++def baseline_providers():
++    return {
++        "codex": provider(
++            "codex",
++            quality="not_required",
++            capabilities=("implementation",),
++        ),
++        "git_helper": provider(
++            "git_helper",
++            quality="not_required",
++            capabilities=("git_integrity",),
++        ),
++        "claude": provider(
++            "claude",
++            capabilities=("independent_review", "architecture"),
++        ),
++        "antigravity": provider(
++            "antigravity",
++            capabilities=("independent_review", "architecture"),
++        ),
++        "coderabbit": provider(
++            "coderabbit",
++            capabilities=("code_review", "config_review", "markdown_review"),
++        ),
++        "copilot": provider(
++            "copilot",
++            capabilities=("code_review",),
++            optional=True,
++        ),
++    }
++
++
++class NightWatchRoutingRuntimeTests(unittest.TestCase):
++    def test_persona_configuration_is_provider_independent(self):
++        state = persona("security", ("claude", "antigravity"))
++        self.assertTrue(state["configured"])
++        self.assertEqual(["antigravity", "claude"], state["provider_candidates"])
++
++    def test_surface_ready_without_quality_is_not_vote_eligible(self):
++        state = provider(
++            "coderabbit",
++            quality="failed",
++            capabilities=("code_review",),
++        )
++        self.assertEqual("ready", state["surface_readiness"])
++        self.assertEqual("ineligible", state["vote_eligibility"])
++
++    def test_copilot_request_attempt_is_not_review_evidence(self):
++        state = provider(
++            "copilot",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++            optional=True,
++        )
++        self.assertTrue(state["request_attempted"])
++        self.assertFalse(state["review_observed"])
++        self.assertEqual("ineligible", state["vote_eligibility"])
++
++    def test_metadata_side_effect_is_explicit_but_does_not_change_candidate_binding(self):
++        state = provider(
++            "coderabbit",
++            metadata="observed",
++            capabilities=("code_review",),
++        )
++        self.assertEqual("observed", state["metadata_side_effects"])
++        self.assertEqual(CANDIDATE, state["bound_candidate_sha"])
++        self.assertEqual("eligible", state["vote_eligibility"])
++
++    def test_code_config_infra_require_coderabbit(self):
++        for scope in ("code", "config", "infra"):
++            self.assertTrue(routing.coderabbit_required(scope, ()))
++
++    def test_markdown_requires_coderabbit_only_when_affected(self):
++        self.assertFalse(routing.coderabbit_required("markdown", ("claude",)))
++        self.assertTrue(routing.coderabbit_required("markdown", ("coderabbit",)))
++
++    def test_exact_candidate_mismatch_cannot_vote(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit", capabilities=("code_review",), sha=OTHER
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("STALE_REVIEW_CANDIDATE", envelope["blockers"])
++
++    def test_coderabbit_quality_failure_is_typed_blocker(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            quality="failed",
++            metadata="observed",
++            capabilities=("code_review",),
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        self.assertFalse(envelope["review_gate_pass"])
++        self.assertIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++        self.assertEqual("YIELD_BLOCKED_REVIEW_QUALITY", envelope["route"])
++
++    def test_live_pr_review_wait_is_distinct_from_quality_failure(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            surface="unverified",
++            quality="unproven",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
++            change_scope="code",
++            persona=persona(),
++            implementer_provider="codex",
++            providers=providers,
++        )
++        # A known failed/unproven quality state is stronger than mere waiting.
++        self.assertIn("BLOCKED_REVIEW_QUALITY_CAPABILITY", envelope["blockers"])
++
++    def test_coderabbit_calibrated_surface_waits_for_observed_review(self):
++        providers = baseline_providers()
++        providers["coderabbit"] = provider(
++            "coderabbit",
++            surface="ready",
++            quality="calibrated",
++            capabilities=("code_review",),
++            requested=True,
++            observed=False,
++            sha=None,
++        )
++        envelope = routing.evaluate_review_gate(
++            candidate_sha=CANDIDATE,
