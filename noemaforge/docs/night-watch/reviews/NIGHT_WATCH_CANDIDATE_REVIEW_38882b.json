@@ -1,0 +1,82 @@
+{
+  "apiVersion": "noemaforge.night-watch-candidate-review/v1",
+  "classification": "UAT request findings resolution",
+  "reviewedAt": "2026-09-22",
+  "canonicalBase": "a3c172f5d60113876f0c103010de411fc30b8c38",
+  "handoffSha256": "ef5ca29f1a7fb92cfca46cad2706267791788f98e99aec0a87332ebd7e55af80",
+  "packSha256": "c7033cd6234b14197e4780673360e0a81237149b28404515f2613cb4ca95a46d",
+  "handoffObjectCount": 1196,
+  "handoffRunCount": 12,
+  "originalCandidatePatchSha256": "38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020",
+  "originalFocusedRoutingTests": {
+    "passed": 21,
+    "total": 21,
+    "status": "PASS"
+  },
+  "originalReviewVerdict": "REQUEST_CHANGES",
+  "blockingFindings": [
+    {
+      "id": "NW-REV-001",
+      "title": "unknown change_scope can bypass CodeRabbit requirement",
+      "severity": "high",
+      "class": "fail_open_review_policy"
+    },
+    {
+      "id": "NW-REV-002",
+      "title": "provider/persona records allow malformed field types and untyped runtime failure",
+      "severity": "high",
+      "class": "strict_contract_failure"
+    },
+    {
+      "id": "NW-REV-003",
+      "title": "route envelope validates shape without enforcing pass/block semantic invariants",
+      "severity": "high",
+      "class": "trust_boundary_semantic_validation"
+    }
+  ],
+  "correctedWip": {
+    "normalizedReviewFixPatchSha256": "14abf5506d4e6aae0e72fccb23e7dd00aa16976a8c5fb20a9afa072e0328555d",
+    "files": {
+      "noemaforge/src/night_watch_routing_runtime.py": {
+        "sha256": "28a538e8d3b83db10600a75b8a835e0dbdf86176ce5c26e9e1271166d00ca9f7",
+        "gitBlobSha": "90c7630e46f1b88160ce1ef3bb97196df2ffbcab"
+      },
+      "noemaforge/tests/test_night_watch_routing_runtime.py": {
+        "sha256": "856c1d02fd6afa62924bfe8829ecf9515e78c9c62516dd7881f5abe7d72f7623",
+        "gitBlobSha": "c1d26ed5d0490e881547f4dcbecee9af12f4710c"
+      },
+      "noemaforge/contracts/night_watch_routing.schema.json": {
+        "sha256": "9b4999db2650a693b53681a809a53cf6352ee506d4ff85b15667ef81b95107a8",
+        "gitBlobSha": "cd023389efc67070fa2746982351196f9ed12747"
+      },
+      "noemaforge/docs/architecture/night-watch-routing-contract.md": {
+        "sha256": "b28ceb2c0cb00f23f62f9c7c996aff488aef7214011dca3430e32330354ddfa8",
+        "gitBlobSha": "9136a352929a3b5c793a85977740dd647dddd337"
+      },
+      "noemaforge/src/evolution_adapters/night_watch_readonly.py": {
+        "gitBlobSha": "e4f4745086b9c758528707c78d48443094c97fa8"
+      },
+      "noemaforge/src/evolution_execution_contracts_runtime.py": {
+        "gitBlobSha": "e87de923e7d273276f55df56d448a5a4ecc4238e"
+      }
+    },
+    "focusedValidation": {
+      "routingUnitTests": {
+        "passed": 26,
+        "total": 26,
+        "status": "PASS"
+      },
+      "pythonCompile": "PASS",
+      "schemaJsonParse": "PASS"
+    },
+    "persistence": "GITHUB_NIGHT_WATCH_BRANCH",
+    "checkpointMarker": "unstable, saved for context"
+  },
+  "externalGates": {
+    "fullRepositoryRegression": "PENDING",
+    "remoteIndependentExactCandidateReview": "PENDING",
+    "codeRabbit": "PENDING",
+    "humanReleaseGo": "NOT_GRANTED"
+  },
+  "status": "CORRECTED_WIP_FOCUSED_PASS_EXTERNAL_GATES_PENDING"
+}
