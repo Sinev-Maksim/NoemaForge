@@ -57,3 +57,20 @@ Classification: `UAT request findings resolution`
 - Bound future Night Watch integration to canonical **code** Evolution work items, bounded isolated code mutation, qualification and evidence projection.
 - Explicitly separated **model mutation/evolution** as the second Evolution branch whose architecture will be designed later.
 - Night Watch has no model-mutation authority.
+
+
+## 2026-09-22 — real Windows target-host run
+
+Classification: `UAT request findings resolution`
+
+- Real v3.8.5 Windows target-host deployment PASS.
+- Windows PowerShell `5.1.26100.9444` native AST/closure/runtime preflight PASS.
+- Exact frozen inner sealed-release SHA `16e11736e5241e310b56f84acdd3a71e1d95b9a27f3a29d9ee26f221b45e371c` confirmed by installer evidence.
+- Target-host pre-send PASS with `SKIP_COUNT=0`.
+- Self-heal implementation completed after 5 charged PRODUCT repair attempts and 3 infrastructure recovery attempts.
+- Final candidate patch SHA: `38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020`.
+- Local deterministic gates and final local co-check PASS.
+- Final acceptance remains pending because no distinct independent provider was available; Claude transport failed while Codex remained usable.
+- Live immutable-test guard rejected attempted test-path proposals and recovered through the control plane.
+- Uploaded `history.zip` is hash-consistent but stale (generated 2026-08-15) and does not contain the current v3.8.5 run/candidate.
+- Canonical evidence is persisted to GitHub; current candidate bytes still require recovery from the current handoff/run directory to satisfy the no-lost-work code checkpoint rule.
