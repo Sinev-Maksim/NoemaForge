@@ -143,6 +143,8 @@ class NightWatchRoutingError(ValueError):
 
 
 def _require_exact_keys(document: Mapping[str, Any], expected: Iterable[str], kind: str) -> None:
+    if not isinstance(document, Mapping):
+        raise NightWatchRoutingError(f"{kind} must be an object")
     actual = set(document)
     missing = sorted(set(expected) - actual)
     extra = sorted(actual - set(expected))
@@ -162,9 +164,13 @@ def _validate_sha(value: Optional[str], *, field: str, allow_none: bool = False)
 def _stable_strings(values: Iterable[str]) -> List[str]:
     if isinstance(values, (str, bytes, Mapping)):
         raise NightWatchRoutingError("string collection must be an iterable of strings, not a scalar/mapping")
+    try:
+        iterator = iter(values)
+    except TypeError as exc:
+        raise NightWatchRoutingError("string collection must be iterable") from exc
     result: List[str] = []
     seen: Set[str] = set()
-    for value in values:
+    for value in iterator:
         if not isinstance(value, str) or not value:
             raise NightWatchRoutingError("string collection contains an invalid value")
         if value not in seen:
@@ -225,13 +231,13 @@ def make_provider_state(
     """
     if not isinstance(provider_id, str) or not provider_id:
         raise NightWatchRoutingError("provider_id is required")
-    if provider_availability not in PROVIDER_AVAILABILITY:
+    if not isinstance(provider_availability, str) or provider_availability not in PROVIDER_AVAILABILITY:
         raise NightWatchRoutingError("invalid provider_availability")
-    if surface_readiness not in SURFACE_READINESS:
+    if not isinstance(surface_readiness, str) or surface_readiness not in SURFACE_READINESS:
         raise NightWatchRoutingError("invalid surface_readiness")
-    if quality_calibration not in QUALITY_CALIBRATION:
+    if not isinstance(quality_calibration, str) or quality_calibration not in QUALITY_CALIBRATION:
         raise NightWatchRoutingError("invalid quality_calibration")
-    if metadata_side_effects not in METADATA_SIDE_EFFECTS:
+    if not isinstance(metadata_side_effects, str) or metadata_side_effects not in METADATA_SIDE_EFFECTS:
         raise NightWatchRoutingError("invalid metadata_side_effects")
     if not isinstance(independence_key, str) or not independence_key:
         raise NightWatchRoutingError("independence_key is required")
@@ -281,15 +287,15 @@ def validate_provider_state(document: Mapping[str, Any]) -> None:
         raise NightWatchRoutingError("review_observed must be boolean")
     if not isinstance(document["optional"], bool):
         raise NightWatchRoutingError("optional must be boolean")
-    if document["provider_availability"] not in PROVIDER_AVAILABILITY:
+    if not isinstance(document["provider_availability"], str) or document["provider_availability"] not in PROVIDER_AVAILABILITY:
         raise NightWatchRoutingError("invalid provider_availability")
-    if document["surface_readiness"] not in SURFACE_READINESS:
+    if not isinstance(document["surface_readiness"], str) or document["surface_readiness"] not in SURFACE_READINESS:
         raise NightWatchRoutingError("invalid surface_readiness")
-    if document["quality_calibration"] not in QUALITY_CALIBRATION:
+    if not isinstance(document["quality_calibration"], str) or document["quality_calibration"] not in QUALITY_CALIBRATION:
         raise NightWatchRoutingError("invalid quality_calibration")
-    if document["vote_eligibility"] not in VOTE_ELIGIBILITY:
+    if not isinstance(document["vote_eligibility"], str) or document["vote_eligibility"] not in VOTE_ELIGIBILITY:
         raise NightWatchRoutingError("invalid vote_eligibility")
-    if document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
+    if not isinstance(document["metadata_side_effects"], str) or document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
         raise NightWatchRoutingError("invalid metadata_side_effects")
     _validate_sha(
         document["bound_candidate_sha"],
@@ -461,6 +467,18 @@ def validate_review_identity(
     reviewer_ids: Sequence[str],
     providers: Mapping[str, Mapping[str, Any]],
 ) -> Optional[str]:
+    if not isinstance(implementer_provider, str) or not implementer_provider:
+        raise NightWatchRoutingError("implementer_provider is required")
+    if isinstance(reviewer_ids, (str, bytes)):
+        raise NightWatchRoutingError("reviewer_ids must be a sequence of provider ids")
+    if not isinstance(providers, Mapping):
+        raise NightWatchRoutingError("providers must be an object")
+    for provider_id, provider in providers.items():
+        if not isinstance(provider_id, str) or not provider_id:
+            raise NightWatchRoutingError("provider mapping key must be a non-empty string")
+        validate_provider_state(provider)
+        if provider["provider_id"] != provider_id:
+            raise NightWatchRoutingError("provider mapping key must match provider_id")
     implementer = providers.get(implementer_provider)
     if implementer is None:
         return "IMPLEMENTER_UNAVAILABLE"
@@ -719,15 +737,15 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
         if not isinstance(observation, Mapping):
             raise NightWatchRoutingError("provider observation must be an object")
         _require_exact_keys(observation, OBSERVATION_KEYS, "provider observation")
-        if observation["provider_availability"] not in PROVIDER_AVAILABILITY:
+        if not isinstance(observation["provider_availability"], str) or observation["provider_availability"] not in PROVIDER_AVAILABILITY:
             raise NightWatchRoutingError("invalid observation provider_availability")
-        if observation["surface_readiness"] not in SURFACE_READINESS:
+        if not isinstance(observation["surface_readiness"], str) or observation["surface_readiness"] not in SURFACE_READINESS:
             raise NightWatchRoutingError("invalid observation surface_readiness")
-        if observation["quality_calibration"] not in QUALITY_CALIBRATION:
+        if not isinstance(observation["quality_calibration"], str) or observation["quality_calibration"] not in QUALITY_CALIBRATION:
             raise NightWatchRoutingError("invalid observation quality_calibration")
-        if observation["vote_eligibility"] not in VOTE_ELIGIBILITY:
+        if not isinstance(observation["vote_eligibility"], str) or observation["vote_eligibility"] not in VOTE_ELIGIBILITY:
             raise NightWatchRoutingError("invalid observation vote_eligibility")
-        if observation["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
+        if not isinstance(observation["metadata_side_effects"], str) or observation["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
             raise NightWatchRoutingError("invalid observation metadata_side_effects")
         if not isinstance(observation["independence_key"], str) or not observation["independence_key"]:
             raise NightWatchRoutingError("observation independence_key is required")
