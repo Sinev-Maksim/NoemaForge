@@ -1,0 +1,772 @@
+diff -ruN '--exclude=__pycache__' a/noemaforge/contracts/night_watch_routing.schema.json b/noemaforge/contracts/night_watch_routing.schema.json
+--- a/noemaforge/contracts/night_watch_routing.schema.json	2026-09-22 17:42:46.990245458 +0000
++++ b/noemaforge/contracts/night_watch_routing.schema.json	2026-09-22 17:56:59.607878260 +0000
+@@ -10,7 +10,11 @@
+     "candidate_sha",
+     "change_scope",
+     "persona_id",
++    "persona_provider_candidates",
++    "persona_capabilities",
++    "persona_configured",
+     "implementer_provider",
++    "review_requirements",
+     "coderabbit_required",
+     "selected_reviewers",
+     "blockers",
+@@ -21,30 +25,120 @@
+     "provider_observations"
+   ],
+   "properties": {
+-    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
+-    "provenance": {"const": "UAT request findings resolution"},
+-    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+-    "change_scope": {"type": "string", "minLength": 1},
+-    "persona_id": {"type": "string", "minLength": 1},
+-    "implementer_provider": {"type": "string", "minLength": 1},
+-    "coderabbit_required": {"type": "boolean"},
++    "apiVersion": {
++      "const": "noemaforge.night-watch-routing/v1"
++    },
++    "provenance": {
++      "const": "UAT request findings resolution"
++    },
++    "candidate_sha": {
++      "type": "string",
++      "pattern": "^[0-9a-f]{40}$"
++    },
++    "change_scope": {
++      "enum": [
++        "code",
++        "config",
++        "infra",
++        "markdown"
++      ]
++    },
++    "persona_id": {
++      "type": "string",
++      "minLength": 1
++    },
++    "persona_configured": {
++      "type": "boolean"
++    },
++    "persona_capabilities": {
++      "type": "array",
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
++      "uniqueItems": true
++    },
++    "persona_provider_candidates": {
++      "type": "array",
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
++      "uniqueItems": true
++    },
++    "implementer_provider": {
++      "type": "string",
++      "minLength": 1
++    },
++    "review_requirements": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "require_independent_review",
++        "require_git_helper",
++        "optional_copilot",
++        "affected_prior_reviewers"
++      ],
++      "properties": {
++        "require_independent_review": {
++          "type": "boolean"
++        },
++        "require_git_helper": {
++          "type": "boolean"
++        },
++        "optional_copilot": {
++          "type": "boolean"
++        },
++        "affected_prior_reviewers": {
++          "type": "array",
++          "items": {
++            "type": "string",
++            "minLength": 1
++          },
++          "uniqueItems": true
++        }
++      }
++    },
++    "coderabbit_required": {
++      "type": "boolean"
++    },
+     "selected_reviewers": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
+       "uniqueItems": true
+     },
+     "blockers": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
+       "uniqueItems": true
+     },
+     "notices": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
+       "uniqueItems": true
+     },
+-    "review_gate_pass": {"type": "boolean"},
+-    "route": {"type": "string", "minLength": 1},
++    "review_gate_pass": {
++      "type": "boolean"
++    },
++    "route": {
++      "enum": [
++        "LOCAL_REVIEW_GATE_PASS",
++        "YIELD_BLOCKED_REVIEW_QUALITY",
++        "LOCAL_REVIEW_CODE_BLOCK",
++        "YIELD_WAITING_EXTERNAL_REVIEW",
++        "YIELD_BLOCKED_ENGINE_CAPABILITY",
++        "BLOCKED_REVIEW_GATE"
++      ]
++    },
+     "downstream": {
+       "type": "object",
+       "additionalProperties": false,
+@@ -55,10 +149,18 @@
+         "start_gcp"
+       ],
+       "properties": {
+-        "build_reproducer": {"type": "boolean"},
+-        "call_cost_estimator": {"const": false},
+-        "route_budget": {"const": false},
+-        "start_gcp": {"const": false}
++        "build_reproducer": {
++          "type": "boolean"
++        },
++        "call_cost_estimator": {
++          "const": false
++        },
++        "route_budget": {
++          "const": false
++        },
++        "start_gcp": {
++          "const": false
++        }
+       }
+     },
+     "provider_observations": {
+@@ -79,30 +181,73 @@
+         "vote_eligibility",
+         "metadata_side_effects",
+         "independence_key",
++        "capabilities",
+         "review_observed",
+         "bound_candidate_sha"
+       ],
+       "properties": {
+         "provider_availability": {
+-          "enum": ["available", "blocked_external", "unavailable", "unknown"]
++          "enum": [
++            "available",
++            "blocked_external",
++            "unavailable",
++            "unknown"
++          ]
+         },
+         "surface_readiness": {
+-          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
++          "enum": [
++            "ready",
++            "interactive_only",
++            "unavailable",
++            "unverified"
++          ]
+         },
+         "quality_calibration": {
+-          "enum": ["calibrated", "failed", "unproven", "not_required"]
++          "enum": [
++            "calibrated",
++            "failed",
++            "unproven",
++            "not_required"
++          ]
++        },
++        "vote_eligibility": {
++          "enum": [
++            "eligible",
++            "ineligible"
++          ]
+         },
+-        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
+         "metadata_side_effects": {
+-          "enum": ["none_observed", "observed", "unknown"]
++          "enum": [
++            "none_observed",
++            "observed",
++            "unknown"
++          ]
++        },
++        "independence_key": {
++          "type": "string",
++          "minLength": 1
++        },
++        "review_observed": {
++          "type": "boolean"
+         },
+-        "independence_key": {"type": "string", "minLength": 1},
+-        "review_observed": {"type": "boolean"},
+         "bound_candidate_sha": {
+           "oneOf": [
+-            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+-            {"type": "null"}
++            {
++              "type": "string",
++              "pattern": "^[0-9a-f]{40}$"
++            },
++            {
++              "type": "null"
++            }
+           ]
++        },
++        "capabilities": {
++          "type": "array",
++          "items": {
++            "type": "string",
++            "minLength": 1
++          },
++          "uniqueItems": true
+         }
+       }
+     }
+diff -ruN '--exclude=__pycache__' a/noemaforge/contracts/night_watch_routing.schema.json.bak2 b/noemaforge/contracts/night_watch_routing.schema.json.bak2
+--- a/noemaforge/contracts/night_watch_routing.schema.json.bak2	1970-01-01 00:00:00.000000000 +0000
++++ b/noemaforge/contracts/night_watch_routing.schema.json.bak2	2026-09-22 17:55:46.178951187 +0000
+@@ -0,0 +1,110 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "noemaforge.night-watch-routing/v1",
++  "title": "NoemaForge Night Watch Review Routing Envelope",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "apiVersion",
++    "provenance",
++    "candidate_sha",
++    "change_scope",
++    "persona_id",
++    "implementer_provider",
++    "coderabbit_required",
++    "selected_reviewers",
++    "blockers",
++    "notices",
++    "review_gate_pass",
++    "route",
++    "downstream",
++    "provider_observations"
++  ],
++  "properties": {
++    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
++    "provenance": {"const": "UAT request findings resolution"},
++    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
++    "change_scope": {"enum": ["code", "config", "infra", "markdown"]},
++    "persona_id": {"type": "string", "minLength": 1},
++    "implementer_provider": {"type": "string", "minLength": 1},
++    "coderabbit_required": {"type": "boolean"},
++    "selected_reviewers": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "blockers": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "notices": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "review_gate_pass": {"type": "boolean"},
++    "route": {"enum": ["LOCAL_REVIEW_GATE_PASS", "YIELD_BLOCKED_REVIEW_QUALITY", "LOCAL_REVIEW_CODE_BLOCK", "YIELD_WAITING_EXTERNAL_REVIEW", "YIELD_BLOCKED_ENGINE_CAPABILITY", "BLOCKED_REVIEW_GATE"]},
++    "downstream": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "build_reproducer",
++        "call_cost_estimator",
++        "route_budget",
++        "start_gcp"
++      ],
++      "properties": {
++        "build_reproducer": {"type": "boolean"},
++        "call_cost_estimator": {"const": false},
++        "route_budget": {"const": false},
++        "start_gcp": {"const": false}
++      }
++    },
++    "provider_observations": {
++      "type": "object",
++      "additionalProperties": {
++        "$ref": "#/$defs/providerObservation"
++      }
++    }
++  },
++  "$defs": {
++    "providerObservation": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "provider_availability",
++        "surface_readiness",
++        "quality_calibration",
++        "vote_eligibility",
++        "metadata_side_effects",
++        "independence_key",
++        "review_observed",
++        "bound_candidate_sha"
++      ],
++      "properties": {
++        "provider_availability": {
++          "enum": ["available", "blocked_external", "unavailable", "unknown"]
++        },
++        "surface_readiness": {
++          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
++        },
++        "quality_calibration": {
++          "enum": ["calibrated", "failed", "unproven", "not_required"]
++        },
++        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
++        "metadata_side_effects": {
++          "enum": ["none_observed", "observed", "unknown"]
++        },
++        "independence_key": {"type": "string", "minLength": 1},
++        "review_observed": {"type": "boolean"},
++        "bound_candidate_sha": {
++          "oneOf": [
++            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
++            {"type": "null"}
++          ]
++        }
++      }
++    }
++  }
++}
+diff -ruN '--exclude=__pycache__' a/noemaforge/docs/architecture/night-watch-routing-contract.md b/noemaforge/docs/architecture/night-watch-routing-contract.md
+--- a/noemaforge/docs/architecture/night-watch-routing-contract.md	2026-09-22 17:42:46.990383122 +0000
++++ b/noemaforge/docs/architecture/night-watch-routing-contract.md	2026-09-22 17:57:56.934904583 +0000
+@@ -12,6 +12,8 @@
+ 
+ API: `noemaforge.night-watch-routing/v1`
+ 
++Accepted change scopes are strictly `code`, `config`, `infra`, and `markdown`. Unknown or differently cased scopes fail closed; they never downgrade CodeRabbit requirements.
++
+ This contract is additive to `noemaforge.evolution-execution/v1`; it does not
+ change the strict canonical Evolution execution documents introduced earlier.
+ 
+@@ -36,7 +38,8 @@
+ 
+ ## Persona boundary
+ 
+-A persona is configuration, not a provider and not an independent vote.
++A persona is configuration, not a provider and not an independent vote. Persona/provider documents are strict JSON-compatible records: malformed types, unknown fields, duplicate/unsorted capability lists, and invalid provider mappings fail closed with typed routing errors.
++
+ QA, Security, Architect, UX, and Editor remain configured when one or more model
+ providers are unavailable. Their provider candidates are late-bound at dispatch.
+ 
+@@ -75,6 +78,12 @@
+ - but ineligible for a semantic gate when the relevant quality calibration has
+   failed or remains unproven.
+ 
++## Self-validating route envelope
++
++The serialized route envelope carries enough deterministic context to revalidate its own review-gate semantics: persona configuration/capabilities/provider candidates, the review-policy switches, affected prior reviewers, and provider capabilities. The validator recomputes contextual vote eligibility, CodeRabbit requirement (including the Markdown-history case), required Git-helper and independent-persona presence, blocker/route consistency, and downstream release. Unknown blocker/notice codes fail closed.
++
++The envelope is still evidence, not authentication or authority: the NF caller must bind it to the trusted work item/policy/evidence lineage. But a contradictory envelope cannot become valid merely by asserting `review_gate_pass=true`.
++
+ ## Review-gate short circuit
+ 
+ A failed review gate cannot start the reproducer, cost estimator, budget route,
+diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.py b/noemaforge/src/night_watch_routing_runtime.py
+--- a/noemaforge/src/night_watch_routing_runtime.py	2026-09-22 17:42:46.990668636 +0000
++++ b/noemaforge/src/night_watch_routing_runtime.py	2026-09-22 18:00:38.381770726 +0000
+@@ -62,7 +62,11 @@
+         "candidate_sha",
+         "change_scope",
+         "persona_id",
++        "persona_configured",
++        "persona_capabilities",
++        "persona_provider_candidates",
+         "implementer_provider",
++        "review_requirements",
+         "coderabbit_required",
+         "selected_reviewers",
+         "blockers",
+@@ -73,6 +77,14 @@
+         "provider_observations",
+     }
+ )
++REVIEW_REQUIREMENT_KEYS = frozenset(
++    {
++        "require_independent_review",
++        "require_git_helper",
++        "optional_copilot",
++        "affected_prior_reviewers",
++    }
++)
+ DOWNSTREAM_KEYS = frozenset(
+     {"build_reproducer", "call_cost_estimator", "route_budget", "start_gcp"}
+ )
+@@ -84,18 +96,46 @@
+         "vote_eligibility",
+         "metadata_side_effects",
+         "independence_key",
++        "capabilities",
+         "review_observed",
+         "bound_candidate_sha",
+     }
+ )
+ 
+ CODE_SCOPES = frozenset({"code", "config", "infra"})
++CHANGE_SCOPES = frozenset({"code", "config", "infra", "markdown"})
++ROUTES = frozenset({
++    "LOCAL_REVIEW_GATE_PASS",
++    "YIELD_BLOCKED_REVIEW_QUALITY",
++    "LOCAL_REVIEW_CODE_BLOCK",
++    "YIELD_WAITING_EXTERNAL_REVIEW",
++    "YIELD_BLOCKED_ENGINE_CAPABILITY",
++    "BLOCKED_REVIEW_GATE",
++})
+ CODERABBIT_SCOPE_CAPABILITIES = {
+     "code": "code_review",
+     "config": "config_review",
+     "infra": "infra_review",
+     "markdown": "markdown_review",
+ }
++BLOCKER_CODES = frozenset(
++    {
++        "IMPLEMENTER_UNAVAILABLE",
++        "GIT_HELPER_UNAVAILABLE",
++        "PERSONA_NOT_CONFIGURED",
++        "PERSONA_CAPABILITY_MISSING",
++        "BLOCKED_ENGINE_CAPABILITY",
++        "BLOCKED_REVIEW_QUALITY_CAPABILITY",
++        "WAITING_FOR_LIVE_PR_REVIEW",
++        "WAITING_FOR_REVIEW_EVIDENCE",
++        "STALE_REVIEW_CANDIDATE",
++        "IMPLEMENTER_SELF_REVIEW_REJECTED",
++        "DUPLICATE_INDEPENDENCE_KEY_REJECTED",
++        "UNKNOWN_REVIEW_PROVIDER",
++        "CODERABBIT_REQUIRED_UNAVAILABLE",
++    }
++)
++NOTICE_CODES = frozenset({"CODERABBIT_NOT_REQUIRED", "OPTIONAL_COPILOT_UNVERIFIED"})
+ 
+ 
+ class NightWatchRoutingError(ValueError):
+@@ -103,6 +143,8 @@
+ 
+ 
+ def _require_exact_keys(document: Mapping[str, Any], expected: Iterable[str], kind: str) -> None:
++    if not isinstance(document, Mapping):
++        raise NightWatchRoutingError(f"{kind} must be an object")
+     actual = set(document)
+     missing = sorted(set(expected) - actual)
+     extra = sorted(actual - set(expected))
+@@ -120,9 +162,15 @@
+ 
+ 
+ def _stable_strings(values: Iterable[str]) -> List[str]:
++    if isinstance(values, (str, bytes, Mapping)):
++        raise NightWatchRoutingError("string collection must be an iterable of strings, not a scalar/mapping")
++    try:
++        iterator = iter(values)
++    except TypeError as exc:
++        raise NightWatchRoutingError("string collection must be iterable") from exc
+     result: List[str] = []
+     seen: Set[str] = set()
+-    for value in values:
++    for value in iterator:
+         if not isinstance(value, str) or not value:
+             raise NightWatchRoutingError("string collection contains an invalid value")
+         if value not in seen:
+@@ -131,6 +179,35 @@
+     return sorted(result)
+ 
+ 
++def _validate_string_list(value: Any, *, field: str) -> List[str]:
++    if not isinstance(value, list):
++        raise NightWatchRoutingError(f"{field} must be a JSON array")
++    stable = _stable_strings(value)
++    if value != stable:
++        raise NightWatchRoutingError(f"{field} must be sorted and duplicate-free")
++    return stable
++
++
++def _validate_change_scope(change_scope: Any) -> str:
++    if not isinstance(change_scope, str) or change_scope not in CHANGE_SCOPES:
++        raise NightWatchRoutingError(
++            f"change_scope must be one of {sorted(CHANGE_SCOPES)!r}"
++        )
++    return change_scope
++
++
++def validate_persona_state(document: Mapping[str, Any]) -> None:
++    _require_exact_keys(document, PERSONA_KEYS, "persona")
++    if not isinstance(document["persona_id"], str) or not document["persona_id"]:
++        raise NightWatchRoutingError("persona_id is required")
++    if not isinstance(document["configured"], bool):
++        raise NightWatchRoutingError("configured must be boolean")
++    _validate_string_list(document["capabilities"], field="persona capabilities")
++    _validate_string_list(
++        document["provider_candidates"], field="persona provider_candidates"
++    )
++
++
+ def make_provider_state(
+     *,
+     provider_id: str,
+@@ -154,13 +231,13 @@
+     """
+     if not isinstance(provider_id, str) or not provider_id:
+         raise NightWatchRoutingError("provider_id is required")
+-    if provider_availability not in PROVIDER_AVAILABILITY:
++    if not isinstance(provider_availability, str) or provider_availability not in PROVIDER_AVAILABILITY:
+         raise NightWatchRoutingError("invalid provider_availability")
+-    if surface_readiness not in SURFACE_READINESS:
++    if not isinstance(surface_readiness, str) or surface_readiness not in SURFACE_READINESS:
+         raise NightWatchRoutingError("invalid surface_readiness")
+-    if quality_calibration not in QUALITY_CALIBRATION:
++    if not isinstance(quality_calibration, str) or quality_calibration not in QUALITY_CALIBRATION:
+         raise NightWatchRoutingError("invalid quality_calibration")
+-    if metadata_side_effects not in METADATA_SIDE_EFFECTS:
++    if not isinstance(metadata_side_effects, str) or metadata_side_effects not in METADATA_SIDE_EFFECTS:
+         raise NightWatchRoutingError("invalid metadata_side_effects")
+     if not isinstance(independence_key, str) or not independence_key:
+         raise NightWatchRoutingError("independence_key is required")
+@@ -199,15 +276,26 @@
+ 
+ def validate_provider_state(document: Mapping[str, Any]) -> None:
+     _require_exact_keys(document, PROVIDER_KEYS, "provider")
+-    if document["provider_availability"] not in PROVIDER_AVAILABILITY:
++    if not isinstance(document["provider_id"], str) or not document["provider_id"]:
++        raise NightWatchRoutingError("provider_id is required")
++    if not isinstance(document["independence_key"], str) or not document["independence_key"]:
++        raise NightWatchRoutingError("independence_key is required")
++    _validate_string_list(document["capabilities"], field="provider capabilities")
++    if not isinstance(document["request_attempted"], bool):
++        raise NightWatchRoutingError("request_attempted must be boolean")
++    if not isinstance(document["review_observed"], bool):
++        raise NightWatchRoutingError("review_observed must be boolean")
++    if not isinstance(document["optional"], bool):
++        raise NightWatchRoutingError("optional must be boolean")
++    if not isinstance(document["provider_availability"], str) or document["provider_availability"] not in PROVIDER_AVAILABILITY:
+         raise NightWatchRoutingError("invalid provider_availability")
+-    if document["surface_readiness"] not in SURFACE_READINESS:
++    if not isinstance(document["surface_readiness"], str) or document["surface_readiness"] not in SURFACE_READINESS:
+         raise NightWatchRoutingError("invalid surface_readiness")
+-    if document["quality_calibration"] not in QUALITY_CALIBRATION:
++    if not isinstance(document["quality_calibration"], str) or document["quality_calibration"] not in QUALITY_CALIBRATION:
+         raise NightWatchRoutingError("invalid quality_calibration")
+-    if document["vote_eligibility"] not in VOTE_ELIGIBILITY:
++    if not isinstance(document["vote_eligibility"], str) or document["vote_eligibility"] not in VOTE_ELIGIBILITY:
+         raise NightWatchRoutingError("invalid vote_eligibility")
+-    if document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
++    if not isinstance(document["metadata_side_effects"], str) or document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
+         raise NightWatchRoutingError("invalid metadata_side_effects")
+     _validate_sha(
+         document["bound_candidate_sha"],
+@@ -247,17 +335,19 @@
+         "capabilities": _stable_strings(capabilities),
+         "provider_candidates": _stable_strings(provider_candidates),
+     }
+-    _require_exact_keys(result, PERSONA_KEYS, "persona")
++    validate_persona_state(result)
+     return result
+ 
+ 
+ def coderabbit_required(change_scope: str, affected_prior_reviewers: Iterable[str]) -> bool:
+-    """Apply the Night Watch CodeRabbit requirement without global exceptions."""
++    """Apply the Night Watch CodeRabbit requirement and fail closed on unknown scope."""
++    _validate_change_scope(change_scope)
++    if isinstance(affected_prior_reviewers, (str, bytes)):
++        raise NightWatchRoutingError("affected_prior_reviewers must be a collection")
++    reviewers = _stable_strings(affected_prior_reviewers)
+     if change_scope in CODE_SCOPES:
+         return True
+-    if change_scope == "markdown":
+-        return "coderabbit" in set(affected_prior_reviewers)
+-    return False
++    return "coderabbit" in set(reviewers)
+ 
+ 
+ def _candidate_exact(provider: Mapping[str, Any], candidate_sha: str) -> bool:
+@@ -305,8 +395,11 @@
+     persona: Mapping[str, Any],
+     providers: Mapping[str, Mapping[str, Any]],
+ ) -> Tuple[Optional[str], List[str]]:
+-    if not persona.get("configured"):
++    validate_persona_state(persona)
++    if not persona["configured"]:
+         return None, ["PERSONA_NOT_CONFIGURED"]
++    if "independent_review" not in persona["capabilities"]:
++        return None, ["PERSONA_CAPABILITY_MISSING"]
+ 
+     implementer = providers.get(implementer_provider)
+     implementer_key = (
+@@ -351,12 +444,41 @@
+         values.append(value)
+ 
+ 
++def _route_for_blockers(blockers: Sequence[str]) -> str:
++    if not blockers:
++        return "LOCAL_REVIEW_GATE_PASS"
++    if "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
++        return "YIELD_BLOCKED_REVIEW_QUALITY"
++    if "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
++        return "LOCAL_REVIEW_CODE_BLOCK"
++    if (
++        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
++        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
++    ):
++        return "YIELD_WAITING_EXTERNAL_REVIEW"
++    if "BLOCKED_ENGINE_CAPABILITY" in blockers:
++        return "YIELD_BLOCKED_ENGINE_CAPABILITY"
++    return "BLOCKED_REVIEW_GATE"
++
++
+ def validate_review_identity(
+     *,
+     implementer_provider: str,
+     reviewer_ids: Sequence[str],
+     providers: Mapping[str, Mapping[str, Any]],
+ ) -> Optional[str]:
++    if not isinstance(implementer_provider, str) or not implementer_provider:
++        raise NightWatchRoutingError("implementer_provider is required")
++    if isinstance(reviewer_ids, (str, bytes)):
++        raise NightWatchRoutingError("reviewer_ids must be a sequence of provider ids")
++    if not isinstance(providers, Mapping):
++        raise NightWatchRoutingError("providers must be an object")
++    for provider_id, provider in providers.items():
++        if not isinstance(provider_id, str) or not provider_id:
++            raise NightWatchRoutingError("provider mapping key must be a non-empty string")
++        validate_provider_state(provider)
++        if provider["provider_id"] != provider_id:
++            raise NightWatchRoutingError("provider mapping key must match provider_id")
+     implementer = providers.get(implementer_provider)
+     if implementer is None:
+         return "IMPLEMENTER_UNAVAILABLE"
+@@ -390,8 +512,20 @@
+ ) -> Dict[str, Any]:
+     """Evaluate only the review gate; never invoke reviewers or downstream work."""
+     _validate_sha(candidate_sha, field="candidate_sha")
+-    _require_exact_keys(persona, PERSONA_KEYS, "persona")
++    _validate_change_scope(change_scope)
++    validate_persona_state(persona)
++    if not isinstance(implementer_provider, str) or not implementer_provider:
++        raise NightWatchRoutingError("implementer_provider is required")
++    if not isinstance(providers, Mapping):
++        raise NightWatchRoutingError("providers must be an object")
++    if not isinstance(require_independent_review, bool) or not isinstance(require_git_helper, bool) or not isinstance(optional_copilot, bool):
++        raise NightWatchRoutingError("review policy switches must be booleans")
++    if isinstance(affected_prior_reviewers, (str, bytes)):
++        raise NightWatchRoutingError("affected_prior_reviewers must be a collection")
++    affected_prior_reviewers = _stable_strings(affected_prior_reviewers)
+     for provider_id, state in providers.items():
++        if not isinstance(provider_id, str) or not provider_id:
++            raise NightWatchRoutingError("provider mapping key must be a non-empty string")
+         validate_provider_state(state)
+         if state["provider_id"] != provider_id:
+             raise NightWatchRoutingError(
+@@ -471,21 +605,7 @@
+         _add_unique(blockers, identity_error)
+ 
+     review_gate_pass = not blockers
+-    if review_gate_pass:
+-        route = "LOCAL_REVIEW_GATE_PASS"
+-    elif "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
+-        route = "YIELD_BLOCKED_REVIEW_QUALITY"
+-    elif "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
+-        route = "LOCAL_REVIEW_CODE_BLOCK"
+-    elif (
+-        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
+-        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
+-    ):
+-        route = "YIELD_WAITING_EXTERNAL_REVIEW"
+-    elif "BLOCKED_ENGINE_CAPABILITY" in blockers:
+-        route = "YIELD_BLOCKED_ENGINE_CAPABILITY"
+-    else:
+-        route = "BLOCKED_REVIEW_GATE"
++    route = _route_for_blockers(blockers)
+ 
+     implementer_key = (
+         implementer["independence_key"] if implementer is not None else None
+@@ -509,6 +629,7 @@
+             "vote_eligibility": observation_vote_eligibility(provider_id, state),
+             "metadata_side_effects": state["metadata_side_effects"],
+             "independence_key": state["independence_key"],
++            "capabilities": list(state["capabilities"]),
+             "review_observed": state["review_observed"],
+             "bound_candidate_sha": state["bound_candidate_sha"],
+         }
+@@ -521,7 +642,16 @@
+         "candidate_sha": candidate_sha,
+         "change_scope": change_scope,
+         "persona_id": persona["persona_id"],
++        "persona_configured": persona["configured"],
++        "persona_capabilities": list(persona["capabilities"]),
++        "persona_provider_candidates": list(persona["provider_candidates"]),
+         "implementer_provider": implementer_provider,
++        "review_requirements": {
++            "require_independent_review": require_independent_review,
++            "require_git_helper": require_git_helper,
++            "optional_copilot": optional_copilot,
++            "affected_prior_reviewers": list(affected_prior_reviewers),
++        },
+         "coderabbit_required": cr_required,
+         "selected_reviewers": sorted(selected),
+         "blockers": sorted(blockers),
+@@ -541,13 +671,63 @@
+ 
+ 
+ def validate_route_envelope(document: Mapping[str, Any]) -> None:
++    if not isinstance(document, Mapping):
++        raise NightWatchRoutingError("route must be an object")
+     _require_exact_keys(document, ROUTE_KEYS, "route")
+     if document["apiVersion"] != API_VERSION:
+         raise NightWatchRoutingError("unexpected apiVersion")
+     if document["provenance"] != PROVENANCE:
+         raise NightWatchRoutingError("unexpected provenance")
+     _validate_sha(document["candidate_sha"], field="candidate_sha")
+-    _require_exact_keys(document["downstream"], DOWNSTREAM_KEYS, "downstream")
++    change_scope = _validate_change_scope(document["change_scope"])
++    for field in ("persona_id", "implementer_provider", "route"):
++        if not isinstance(document[field], str) or not document[field]:
++            raise NightWatchRoutingError(f"{field} must be a non-empty string")
++    if not isinstance(document["persona_configured"], bool):
++        raise NightWatchRoutingError("persona_configured must be boolean")
++    persona_capabilities = _validate_string_list(
++        document["persona_capabilities"], field="persona_capabilities"
++    )
++    persona_candidates = _validate_string_list(
++        document["persona_provider_candidates"], field="persona_provider_candidates"
++    )
++    if document["route"] not in ROUTES:
++        raise NightWatchRoutingError("unexpected route")
++    if not isinstance(document["coderabbit_required"], bool):
++        raise NightWatchRoutingError("coderabbit_required must be boolean")
++    selected = _validate_string_list(document["selected_reviewers"], field="selected_reviewers")
