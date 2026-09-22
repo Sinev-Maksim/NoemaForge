@@ -68,14 +68,62 @@ Canonical target-host evidence/status is now in GitHub, but the final candidate 
 
 To satisfy the no-lost-work rule, recover the current `NoemaForge-NightWatch-handoff.zip` (or the current run directory containing `candidate-6.patch` / final report) and checkpoint the exact candidate to `night-watch` as `unstable, saved for context`.
 
+## Candidate recovery and review
+
+The current cumulative handoff has now been recovered and integrity-verified:
+
+```text
+HANDOFF_SHA256=ef5ca29f1a7fb92cfca46cad2706267791788f98e99aec0a87332ebd7e55af80
+OBJECTS_NWPACK_SHA256=c7033cd6234b14197e4780673360e0a81237149b28404515f2613cb4ca95a46d
+CONTENT_ADDRESSED_OBJECTS=1196
+RUN_COUNT=12
+ORIGINAL_CANDIDATE_PATCH_SHA256=38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020
+```
+
+The exact original candidate patch is persisted under:
+
+`docs/night-watch/candidates/CONTINUATION_CANDIDATE_38882b.patch`.
+
+Independent adversarial code review did **not** accept the original candidate despite its green focused suite. Three blocking fail-open/strictness defects were found:
+
+1. unknown `change_scope` values could avoid the CodeRabbit-required scope policy;
+2. provider/persona records did not strictly validate field types/collection semantics and could leak raw runtime errors;
+3. serialized route envelopes could validate contradictory PASS semantics instead of recomputing trust-boundary invariants.
+
+The original candidate verdict is therefore:
+
+`REQUEST_CHANGES`
+
+A corrected WIP iteration is now persisted directly in the `night-watch` source tree. Corrections include closed scope/route enums, strict provider/persona contracts, independent-review capability enforcement, typed malformed-input rejection, and semantic route-envelope validation.
+
+Fresh focused validation of the corrected WIP:
+
+```text
+ROUTING_UNIT_TESTS=PASS 26/26
+PYTHON_COMPILE=PASS
+ROUTING_SCHEMA_JSON_PARSE=PASS
+```
+
+Review evidence:
+
+- `docs/night-watch/reviews/NIGHT_WATCH_INDEPENDENT_REVIEW_38882b.md`;
+- `docs/night-watch/reviews/NIGHT_WATCH_CANDIDATE_REVIEW_38882b.json`;
+- `docs/night-watch/candidates/NIGHT_WATCH_REVIEW_FIX_38882b.patch`.
+
+This review is a code-review/fix iteration and does **not** satisfy the separate remote independent acceptance gate.
+
 ## Promotion boundary
 
 ```text
 TARGET_HOST_GATE=PASS
-SELF_HEAL_IMPLEMENTATION=PASS
-CODE_CHECKPOINT_REMOTE_PERSISTENCE=PENDING_ARTIFACT_RECOVERY
+ORIGINAL_CANDIDATE_38882b=REQUEST_CHANGES
+CORRECTED_WIP_FOCUSED_VALIDATION=PASS
+CODE_CHECKPOINT_REMOTE_PERSISTENCE=PASS
+FULL_REPOSITORY_REGRESSION=PENDING
 REMOTE_EXACT_CANDIDATE_REVIEW=PENDING
 CODERABBIT_FINAL_GATE=PENDING
 HUMAN_RELEASE_GO=NOT_GRANTED
 RELEASE_PROMOTION=NOT_AUTHORIZED
 ```
+
+No merge/tag/deploy is authorized yet.
