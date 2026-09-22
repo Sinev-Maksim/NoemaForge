@@ -3,55 +3,104 @@
   "classification": "UAT request findings resolution",
   "reviewedAt": "2026-09-22",
   "canonicalBase": "a3c172f5d60113876f0c103010de411fc30b8c38",
-  "handoffSha256": "ef5ca29f1a7fb92cfca46cad2706267791788f98e99aec0a87332ebd7e55af80",
-  "packSha256": "c7033cd6234b14197e4780673360e0a81237149b28404515f2613cb4ca95a46d",
-  "handoffObjectCount": 1196,
-  "handoffRunCount": 12,
-  "originalCandidatePatchSha256": "38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020",
-  "originalFocusedRoutingTests": {
-    "passed": 21,
-    "total": 21,
-    "status": "PASS"
+  "handoff": {
+    "sha256": "ef5ca29f1a7fb92cfca46cad2706267791788f98e99aec0a87332ebd7e55af80",
+    "packSha256": "c7033cd6234b14197e4780673360e0a81237149b28404515f2613cb4ca95a46d",
+    "objectCount": 1196,
+    "runCount": 12,
+    "integrity": "PASS"
   },
-  "originalReviewVerdict": "REQUEST_CHANGES",
-  "blockingFindings": [
+  "originalCandidate": {
+    "patchSha256": "38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020",
+    "focusedRoutingTests": {
+      "passed": 21,
+      "total": 21,
+      "status": "PASS"
+    },
+    "verdict": "REQUEST_CHANGES"
+  },
+  "findings": [
     {
       "id": "NW-REV-001",
       "title": "unknown change_scope can bypass CodeRabbit requirement",
       "severity": "high",
-      "class": "fail_open_review_policy"
+      "class": "fail_open_review_policy",
+      "status": "FIXED_IN_WIP"
     },
     {
       "id": "NW-REV-002",
-      "title": "provider/persona records allow malformed field types and untyped runtime failure",
+      "title": "provider/persona records allow malformed field types and raw runtime failures",
       "severity": "high",
-      "class": "strict_contract_failure"
+      "class": "strict_contract_failure",
+      "status": "FIXED_IN_WIP"
     },
     {
       "id": "NW-REV-003",
-      "title": "route envelope validates shape without enforcing pass/block semantic invariants",
+      "title": "route envelope can validate contradictory PASS semantics",
       "severity": "high",
-      "class": "trust_boundary_semantic_validation"
+      "class": "trust_boundary_semantic_validation",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-004",
+      "title": "serialized vote eligibility can contradict provider readiness",
+      "severity": "high",
+      "class": "derived_state_forgery",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-005",
+      "title": "required Git-helper selection not self-validating",
+      "severity": "high",
+      "class": "policy_requirement_omission",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-006",
+      "title": "required independent persona reviewer not self-validating",
+      "severity": "high",
+      "class": "policy_requirement_omission",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-007",
+      "title": "Markdown CodeRabbit history requirement omitted from envelope context",
+      "severity": "high",
+      "class": "policy_context_omission",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-008",
+      "title": "blocker/route code domains and priority were not closed",
+      "severity": "medium",
+      "class": "typed_routing_strictness",
+      "status": "FIXED_IN_WIP"
+    },
+    {
+      "id": "NW-REV-009",
+      "title": "builder collections accept scalar/mapping inputs or leak raw TypeError",
+      "severity": "medium",
+      "class": "input_normalization_strictness",
+      "status": "FIXED_IN_WIP"
     }
   ],
   "correctedWip": {
-    "normalizedReviewFixPatchSha256": "14abf5506d4e6aae0e72fccb23e7dd00aa16976a8c5fb20a9afa072e0328555d",
-    "files": {
+    "sourceFiles": {
       "noemaforge/src/night_watch_routing_runtime.py": {
-        "sha256": "28a538e8d3b83db10600a75b8a835e0dbdf86176ce5c26e9e1271166d00ca9f7",
-        "gitBlobSha": "90c7630e46f1b88160ce1ef3bb97196df2ffbcab"
+        "sha256": "750318b30a73bdf1a7864cb6e8845415259635134ef5e43601a69f17c0e8b1c1",
+        "gitBlobSha": "8977df5fbe2a278aa1200b734a57faec2a4b3753"
       },
       "noemaforge/tests/test_night_watch_routing_runtime.py": {
-        "sha256": "856c1d02fd6afa62924bfe8829ecf9515e78c9c62516dd7881f5abe7d72f7623",
-        "gitBlobSha": "c1d26ed5d0490e881547f4dcbecee9af12f4710c"
+        "sha256": "c1698979ac19a88e19774ce44fd34aef1fdb474f29b923531c9b231676ef7a7b",
+        "gitBlobSha": "749eeefcfb8a6de91d5011a3865f74863beb97d1"
       },
       "noemaforge/contracts/night_watch_routing.schema.json": {
-        "sha256": "9b4999db2650a693b53681a809a53cf6352ee506d4ff85b15667ef81b95107a8",
-        "gitBlobSha": "cd023389efc67070fa2746982351196f9ed12747"
+        "sha256": "ffe19548498836b37f4b07e777a02ac07754b51aec41720e0e3525ce9b6fd2f7",
+        "gitBlobSha": "94256129c8dd199ae781c7f081cbd94d6dbfad08"
       },
       "noemaforge/docs/architecture/night-watch-routing-contract.md": {
-        "sha256": "b28ceb2c0cb00f23f62f9c7c996aff488aef7214011dca3430e32330354ddfa8",
-        "gitBlobSha": "9136a352929a3b5c793a85977740dd647dddd337"
+        "sha256": "fe1cf9d4307a6eabc89780322e4cf95f8a858d8a1a5243fec5da5b1245dc04b3",
+        "gitBlobSha": "35e69b55333f1987eb97c5b493e03297bac7ad07"
       },
       "noemaforge/src/evolution_adapters/night_watch_readonly.py": {
         "gitBlobSha": "e4f4745086b9c758528707c78d48443094c97fa8"
@@ -60,14 +109,24 @@
         "gitBlobSha": "e87de923e7d273276f55df56d448a5a4ecc4238e"
       }
     },
+    "finalReviewFixPatch": {
+      "sha256": "afad43c2f4e1a1e8bf4ecddc882cb93ba34db5e868a2dbe4420adc70a389c3cd",
+      "sizeBytes": 102879,
+      "storage": "chunked_in_git",
+      "manifest": "docs/night-watch/candidates/NIGHT_WATCH_REVIEW_FIX_38882b_FINAL.manifest.json"
+    },
     "focusedValidation": {
       "routingUnitTests": {
-        "passed": 26,
-        "total": 26,
+        "passed": 35,
+        "total": 35,
         "status": "PASS"
       },
-      "pythonCompile": "PASS",
-      "schemaJsonParse": "PASS"
+      "pythonSyntaxCompile": "PASS",
+      "schemaJsonParse": "PASS",
+      "draft202012SchemaPassEnvelope": "PASS",
+      "blockedRouteMatrix": "PASS",
+      "adversarialForgeryProbes": "PASS",
+      "malformedPublicInputTypedErrors": "PASS"
     },
     "persistence": "GITHUB_NIGHT_WATCH_BRANCH",
     "checkpointMarker": "unstable, saved for context"
@@ -78,5 +137,5 @@
     "codeRabbit": "PENDING",
     "humanReleaseGo": "NOT_GRANTED"
   },
-  "status": "CORRECTED_WIP_FOCUSED_PASS_EXTERNAL_GATES_PENDING"
+  "status": "CORRECTED_WIP_FOCUSED_AND_ADVERSARIAL_PASS_EXTERNAL_GATES_PENDING"
 }
