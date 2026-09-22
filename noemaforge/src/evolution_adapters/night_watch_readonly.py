@@ -3,7 +3,7 @@
 === NoemaForge File Header ===
 File: noemaforge/src/evolution_adapters/night_watch_readonly.py
 Zone: release/package
-Version: 0.33.0
+Version: see noemaforge/src/noemaforge_version.py
 Created: 2026-07-27
 Modified: 2026-07-27
 Purpose: Project untrusted night_watch/current-loop state into canonical Evolution
@@ -317,7 +317,7 @@ def artifacts(
                 limit_reached = True
                 break
             try:
-                relative = str(candidate.relative_to(root))
+                relative = candidate.relative_to(root).as_posix()
             except ValueError:
                 warnings.append(f"{candidate}:path_escape")
                 continue
