@@ -1,27 +1,374 @@
 diff -ruN '--exclude=__pycache__' a/noemaforge/contracts/night_watch_routing.schema.json b/noemaforge/contracts/night_watch_routing.schema.json
 --- a/noemaforge/contracts/night_watch_routing.schema.json	2026-09-22 17:42:46.990245458 +0000
-+++ b/noemaforge/contracts/night_watch_routing.schema.json	2026-09-22 17:43:02.346048790 +0000
-@@ -24,7 +24,7 @@
-     "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
-     "provenance": {"const": "UAT request findings resolution"},
-     "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
++++ b/noemaforge/contracts/night_watch_routing.schema.json	2026-09-22 17:56:59.607878260 +0000
+@@ -10,7 +10,11 @@
+     "candidate_sha",
+     "change_scope",
+     "persona_id",
++    "persona_provider_candidates",
++    "persona_capabilities",
++    "persona_configured",
+     "implementer_provider",
++    "review_requirements",
+     "coderabbit_required",
+     "selected_reviewers",
+     "blockers",
+@@ -21,30 +25,120 @@
+     "provider_observations"
+   ],
+   "properties": {
+-    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
+-    "provenance": {"const": "UAT request findings resolution"},
+-    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
 -    "change_scope": {"type": "string", "minLength": 1},
-+    "change_scope": {"enum": ["code", "config", "infra", "markdown"]},
-     "persona_id": {"type": "string", "minLength": 1},
-     "implementer_provider": {"type": "string", "minLength": 1},
-     "coderabbit_required": {"type": "boolean"},
-@@ -44,7 +44,7 @@
+-    "persona_id": {"type": "string", "minLength": 1},
+-    "implementer_provider": {"type": "string", "minLength": 1},
+-    "coderabbit_required": {"type": "boolean"},
++    "apiVersion": {
++      "const": "noemaforge.night-watch-routing/v1"
++    },
++    "provenance": {
++      "const": "UAT request findings resolution"
++    },
++    "candidate_sha": {
++      "type": "string",
++      "pattern": "^[0-9a-f]{40}$"
++    },
++    "change_scope": {
++      "enum": [
++        "code",
++        "config",
++        "infra",
++        "markdown"
++      ]
++    },
++    "persona_id": {
++      "type": "string",
++      "minLength": 1
++    },
++    "persona_configured": {
++      "type": "boolean"
++    },
++    "persona_capabilities": {
++      "type": "array",
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
++      "uniqueItems": true
++    },
++    "persona_provider_candidates": {
++      "type": "array",
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
++      "uniqueItems": true
++    },
++    "implementer_provider": {
++      "type": "string",
++      "minLength": 1
++    },
++    "review_requirements": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "require_independent_review",
++        "require_git_helper",
++        "optional_copilot",
++        "affected_prior_reviewers"
++      ],
++      "properties": {
++        "require_independent_review": {
++          "type": "boolean"
++        },
++        "require_git_helper": {
++          "type": "boolean"
++        },
++        "optional_copilot": {
++          "type": "boolean"
++        },
++        "affected_prior_reviewers": {
++          "type": "array",
++          "items": {
++            "type": "string",
++            "minLength": 1
++          },
++          "uniqueItems": true
++        }
++      }
++    },
++    "coderabbit_required": {
++      "type": "boolean"
++    },
+     "selected_reviewers": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
        "uniqueItems": true
      },
-     "review_gate_pass": {"type": "boolean"},
+     "blockers": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
+       "uniqueItems": true
+     },
+     "notices": {
+       "type": "array",
+-      "items": {"type": "string", "minLength": 1},
++      "items": {
++        "type": "string",
++        "minLength": 1
++      },
+       "uniqueItems": true
+     },
+-    "review_gate_pass": {"type": "boolean"},
 -    "route": {"type": "string", "minLength": 1},
-+    "route": {"enum": ["LOCAL_REVIEW_GATE_PASS", "YIELD_BLOCKED_REVIEW_QUALITY", "LOCAL_REVIEW_CODE_BLOCK", "YIELD_WAITING_EXTERNAL_REVIEW", "YIELD_BLOCKED_ENGINE_CAPABILITY", "BLOCKED_REVIEW_GATE"]},
++    "review_gate_pass": {
++      "type": "boolean"
++    },
++    "route": {
++      "enum": [
++        "LOCAL_REVIEW_GATE_PASS",
++        "YIELD_BLOCKED_REVIEW_QUALITY",
++        "LOCAL_REVIEW_CODE_BLOCK",
++        "YIELD_WAITING_EXTERNAL_REVIEW",
++        "YIELD_BLOCKED_ENGINE_CAPABILITY",
++        "BLOCKED_REVIEW_GATE"
++      ]
++    },
      "downstream": {
        "type": "object",
        "additionalProperties": false,
+@@ -55,10 +149,18 @@
+         "start_gcp"
+       ],
+       "properties": {
+-        "build_reproducer": {"type": "boolean"},
+-        "call_cost_estimator": {"const": false},
+-        "route_budget": {"const": false},
+-        "start_gcp": {"const": false}
++        "build_reproducer": {
++          "type": "boolean"
++        },
++        "call_cost_estimator": {
++          "const": false
++        },
++        "route_budget": {
++          "const": false
++        },
++        "start_gcp": {
++          "const": false
++        }
+       }
+     },
+     "provider_observations": {
+@@ -79,30 +181,73 @@
+         "vote_eligibility",
+         "metadata_side_effects",
+         "independence_key",
++        "capabilities",
+         "review_observed",
+         "bound_candidate_sha"
+       ],
+       "properties": {
+         "provider_availability": {
+-          "enum": ["available", "blocked_external", "unavailable", "unknown"]
++          "enum": [
++            "available",
++            "blocked_external",
++            "unavailable",
++            "unknown"
++          ]
+         },
+         "surface_readiness": {
+-          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
++          "enum": [
++            "ready",
++            "interactive_only",
++            "unavailable",
++            "unverified"
++          ]
+         },
+         "quality_calibration": {
+-          "enum": ["calibrated", "failed", "unproven", "not_required"]
++          "enum": [
++            "calibrated",
++            "failed",
++            "unproven",
++            "not_required"
++          ]
++        },
++        "vote_eligibility": {
++          "enum": [
++            "eligible",
++            "ineligible"
++          ]
+         },
+-        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
+         "metadata_side_effects": {
+-          "enum": ["none_observed", "observed", "unknown"]
++          "enum": [
++            "none_observed",
++            "observed",
++            "unknown"
++          ]
++        },
++        "independence_key": {
++          "type": "string",
++          "minLength": 1
++        },
++        "review_observed": {
++          "type": "boolean"
+         },
+-        "independence_key": {"type": "string", "minLength": 1},
+-        "review_observed": {"type": "boolean"},
+         "bound_candidate_sha": {
+           "oneOf": [
+-            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+-            {"type": "null"}
++            {
++              "type": "string",
++              "pattern": "^[0-9a-f]{40}$"
++            },
++            {
++              "type": "null"
++            }
+           ]
++        },
++        "capabilities": {
++          "type": "array",
++          "items": {
++            "type": "string",
++            "minLength": 1
++          },
++          "uniqueItems": true
+         }
+       }
+     }
+diff -ruN '--exclude=__pycache__' a/noemaforge/contracts/night_watch_routing.schema.json.bak2 b/noemaforge/contracts/night_watch_routing.schema.json.bak2
+--- a/noemaforge/contracts/night_watch_routing.schema.json.bak2	1970-01-01 00:00:00.000000000 +0000
++++ b/noemaforge/contracts/night_watch_routing.schema.json.bak2	2026-09-22 17:55:46.178951187 +0000
+@@ -0,0 +1,110 @@
++{
++  "$schema": "https://json-schema.org/draft/2020-12/schema",
++  "$id": "noemaforge.night-watch-routing/v1",
++  "title": "NoemaForge Night Watch Review Routing Envelope",
++  "type": "object",
++  "additionalProperties": false,
++  "required": [
++    "apiVersion",
++    "provenance",
++    "candidate_sha",
++    "change_scope",
++    "persona_id",
++    "implementer_provider",
++    "coderabbit_required",
++    "selected_reviewers",
++    "blockers",
++    "notices",
++    "review_gate_pass",
++    "route",
++    "downstream",
++    "provider_observations"
++  ],
++  "properties": {
++    "apiVersion": {"const": "noemaforge.night-watch-routing/v1"},
++    "provenance": {"const": "UAT request findings resolution"},
++    "candidate_sha": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
++    "change_scope": {"enum": ["code", "config", "infra", "markdown"]},
++    "persona_id": {"type": "string", "minLength": 1},
++    "implementer_provider": {"type": "string", "minLength": 1},
++    "coderabbit_required": {"type": "boolean"},
++    "selected_reviewers": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "blockers": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "notices": {
++      "type": "array",
++      "items": {"type": "string", "minLength": 1},
++      "uniqueItems": true
++    },
++    "review_gate_pass": {"type": "boolean"},
++    "route": {"enum": ["LOCAL_REVIEW_GATE_PASS", "YIELD_BLOCKED_REVIEW_QUALITY", "LOCAL_REVIEW_CODE_BLOCK", "YIELD_WAITING_EXTERNAL_REVIEW", "YIELD_BLOCKED_ENGINE_CAPABILITY", "BLOCKED_REVIEW_GATE"]},
++    "downstream": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "build_reproducer",
++        "call_cost_estimator",
++        "route_budget",
++        "start_gcp"
++      ],
++      "properties": {
++        "build_reproducer": {"type": "boolean"},
++        "call_cost_estimator": {"const": false},
++        "route_budget": {"const": false},
++        "start_gcp": {"const": false}
++      }
++    },
++    "provider_observations": {
++      "type": "object",
++      "additionalProperties": {
++        "$ref": "#/$defs/providerObservation"
++      }
++    }
++  },
++  "$defs": {
++    "providerObservation": {
++      "type": "object",
++      "additionalProperties": false,
++      "required": [
++        "provider_availability",
++        "surface_readiness",
++        "quality_calibration",
++        "vote_eligibility",
++        "metadata_side_effects",
++        "independence_key",
++        "review_observed",
++        "bound_candidate_sha"
++      ],
++      "properties": {
++        "provider_availability": {
++          "enum": ["available", "blocked_external", "unavailable", "unknown"]
++        },
++        "surface_readiness": {
++          "enum": ["ready", "interactive_only", "unavailable", "unverified"]
++        },
++        "quality_calibration": {
++          "enum": ["calibrated", "failed", "unproven", "not_required"]
++        },
++        "vote_eligibility": {"enum": ["eligible", "ineligible"]},
++        "metadata_side_effects": {
++          "enum": ["none_observed", "observed", "unknown"]
++        },
++        "independence_key": {"type": "string", "minLength": 1},
++        "review_observed": {"type": "boolean"},
++        "bound_candidate_sha": {
++          "oneOf": [
++            {"type": "string", "pattern": "^[0-9a-f]{40}$"},
++            {"type": "null"}
++          ]
++        }
++      }
++    }
++  }
++}
 diff -ruN '--exclude=__pycache__' a/noemaforge/docs/architecture/night-watch-routing-contract.md b/noemaforge/docs/architecture/night-watch-routing-contract.md
 --- a/noemaforge/docs/architecture/night-watch-routing-contract.md	2026-09-22 17:42:46.990383122 +0000
-+++ b/noemaforge/docs/architecture/night-watch-routing-contract.md	2026-09-22 17:41:28.229783994 +0000
++++ b/noemaforge/docs/architecture/night-watch-routing-contract.md	2026-09-22 17:57:56.934904583 +0000
 @@ -12,6 +12,8 @@
  
  API: `noemaforge.night-watch-routing/v1`
@@ -41,10 +388,57 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/docs/architecture/night-watch-rou
  QA, Security, Architect, UX, and Editor remain configured when one or more model
  providers are unavailable. Their provider candidates are late-bound at dispatch.
  
+@@ -75,6 +78,12 @@
+ - but ineligible for a semantic gate when the relevant quality calibration has
+   failed or remains unproven.
+ 
++## Self-validating route envelope
++
++The serialized route envelope carries enough deterministic context to revalidate its own review-gate semantics: persona configuration/capabilities/provider candidates, the review-policy switches, affected prior reviewers, and provider capabilities. The validator recomputes contextual vote eligibility, CodeRabbit requirement (including the Markdown-history case), required Git-helper and independent-persona presence, blocker/route consistency, and downstream release. Unknown blocker/notice codes fail closed.
++
++The envelope is still evidence, not authentication or authority: the NF caller must bind it to the trusted work item/policy/evidence lineage. But a contradictory envelope cannot become valid merely by asserting `review_gate_pass=true`.
++
+ ## Review-gate short circuit
+ 
+ A failed review gate cannot start the reproducer, cost estimator, budget route,
 diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.py b/noemaforge/src/night_watch_routing_runtime.py
 --- a/noemaforge/src/night_watch_routing_runtime.py	2026-09-22 17:42:46.990668636 +0000
-+++ b/noemaforge/src/night_watch_routing_runtime.py	2026-09-22 17:42:17.690925165 +0000
-@@ -90,6 +90,15 @@
++++ b/noemaforge/src/night_watch_routing_runtime.py	2026-09-22 18:00:38.381770726 +0000
+@@ -62,7 +62,11 @@
+         "candidate_sha",
+         "change_scope",
+         "persona_id",
++        "persona_configured",
++        "persona_capabilities",
++        "persona_provider_candidates",
+         "implementer_provider",
++        "review_requirements",
+         "coderabbit_required",
+         "selected_reviewers",
+         "blockers",
+@@ -73,6 +77,14 @@
+         "provider_observations",
+     }
+ )
++REVIEW_REQUIREMENT_KEYS = frozenset(
++    {
++        "require_independent_review",
++        "require_git_helper",
++        "optional_copilot",
++        "affected_prior_reviewers",
++    }
++)
+ DOWNSTREAM_KEYS = frozenset(
+     {"build_reproducer", "call_cost_estimator", "route_budget", "start_gcp"}
+ )
+@@ -84,18 +96,46 @@
+         "vote_eligibility",
+         "metadata_side_effects",
+         "independence_key",
++        "capabilities",
+         "review_observed",
+         "bound_candidate_sha",
+     }
  )
  
  CODE_SCOPES = frozenset({"code", "config", "infra"})
@@ -60,7 +454,57 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
  CODERABBIT_SCOPE_CAPABILITIES = {
      "code": "code_review",
      "config": "config_review",
-@@ -131,6 +140,35 @@
+     "infra": "infra_review",
+     "markdown": "markdown_review",
+ }
++BLOCKER_CODES = frozenset(
++    {
++        "IMPLEMENTER_UNAVAILABLE",
++        "GIT_HELPER_UNAVAILABLE",
++        "PERSONA_NOT_CONFIGURED",
++        "PERSONA_CAPABILITY_MISSING",
++        "BLOCKED_ENGINE_CAPABILITY",
++        "BLOCKED_REVIEW_QUALITY_CAPABILITY",
++        "WAITING_FOR_LIVE_PR_REVIEW",
++        "WAITING_FOR_REVIEW_EVIDENCE",
++        "STALE_REVIEW_CANDIDATE",
++        "IMPLEMENTER_SELF_REVIEW_REJECTED",
++        "DUPLICATE_INDEPENDENCE_KEY_REJECTED",
++        "UNKNOWN_REVIEW_PROVIDER",
++        "CODERABBIT_REQUIRED_UNAVAILABLE",
++    }
++)
++NOTICE_CODES = frozenset({"CODERABBIT_NOT_REQUIRED", "OPTIONAL_COPILOT_UNVERIFIED"})
+ 
+ 
+ class NightWatchRoutingError(ValueError):
+@@ -103,6 +143,8 @@
+ 
+ 
+ def _require_exact_keys(document: Mapping[str, Any], expected: Iterable[str], kind: str) -> None:
++    if not isinstance(document, Mapping):
++        raise NightWatchRoutingError(f"{kind} must be an object")
+     actual = set(document)
+     missing = sorted(set(expected) - actual)
+     extra = sorted(actual - set(expected))
+@@ -120,9 +162,15 @@
+ 
+ 
+ def _stable_strings(values: Iterable[str]) -> List[str]:
++    if isinstance(values, (str, bytes, Mapping)):
++        raise NightWatchRoutingError("string collection must be an iterable of strings, not a scalar/mapping")
++    try:
++        iterator = iter(values)
++    except TypeError as exc:
++        raise NightWatchRoutingError("string collection must be iterable") from exc
+     result: List[str] = []
+     seen: Set[str] = set()
+-    for value in values:
++    for value in iterator:
+         if not isinstance(value, str) or not value:
+             raise NightWatchRoutingError("string collection contains an invalid value")
+         if value not in seen:
+@@ -131,6 +179,35 @@
      return sorted(result)
  
  
@@ -96,10 +540,29 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
  def make_provider_state(
      *,
      provider_id: str,
-@@ -199,6 +237,17 @@
+@@ -154,13 +231,13 @@
+     """
+     if not isinstance(provider_id, str) or not provider_id:
+         raise NightWatchRoutingError("provider_id is required")
+-    if provider_availability not in PROVIDER_AVAILABILITY:
++    if not isinstance(provider_availability, str) or provider_availability not in PROVIDER_AVAILABILITY:
+         raise NightWatchRoutingError("invalid provider_availability")
+-    if surface_readiness not in SURFACE_READINESS:
++    if not isinstance(surface_readiness, str) or surface_readiness not in SURFACE_READINESS:
+         raise NightWatchRoutingError("invalid surface_readiness")
+-    if quality_calibration not in QUALITY_CALIBRATION:
++    if not isinstance(quality_calibration, str) or quality_calibration not in QUALITY_CALIBRATION:
+         raise NightWatchRoutingError("invalid quality_calibration")
+-    if metadata_side_effects not in METADATA_SIDE_EFFECTS:
++    if not isinstance(metadata_side_effects, str) or metadata_side_effects not in METADATA_SIDE_EFFECTS:
+         raise NightWatchRoutingError("invalid metadata_side_effects")
+     if not isinstance(independence_key, str) or not independence_key:
+         raise NightWatchRoutingError("independence_key is required")
+@@ -199,15 +276,26 @@
  
  def validate_provider_state(document: Mapping[str, Any]) -> None:
      _require_exact_keys(document, PROVIDER_KEYS, "provider")
+-    if document["provider_availability"] not in PROVIDER_AVAILABILITY:
 +    if not isinstance(document["provider_id"], str) or not document["provider_id"]:
 +        raise NightWatchRoutingError("provider_id is required")
 +    if not isinstance(document["independence_key"], str) or not document["independence_key"]:
@@ -111,10 +574,23 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
 +        raise NightWatchRoutingError("review_observed must be boolean")
 +    if not isinstance(document["optional"], bool):
 +        raise NightWatchRoutingError("optional must be boolean")
-     if document["provider_availability"] not in PROVIDER_AVAILABILITY:
++    if not isinstance(document["provider_availability"], str) or document["provider_availability"] not in PROVIDER_AVAILABILITY:
          raise NightWatchRoutingError("invalid provider_availability")
-     if document["surface_readiness"] not in SURFACE_READINESS:
-@@ -247,17 +296,19 @@
+-    if document["surface_readiness"] not in SURFACE_READINESS:
++    if not isinstance(document["surface_readiness"], str) or document["surface_readiness"] not in SURFACE_READINESS:
+         raise NightWatchRoutingError("invalid surface_readiness")
+-    if document["quality_calibration"] not in QUALITY_CALIBRATION:
++    if not isinstance(document["quality_calibration"], str) or document["quality_calibration"] not in QUALITY_CALIBRATION:
+         raise NightWatchRoutingError("invalid quality_calibration")
+-    if document["vote_eligibility"] not in VOTE_ELIGIBILITY:
++    if not isinstance(document["vote_eligibility"], str) or document["vote_eligibility"] not in VOTE_ELIGIBILITY:
+         raise NightWatchRoutingError("invalid vote_eligibility")
+-    if document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
++    if not isinstance(document["metadata_side_effects"], str) or document["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
+         raise NightWatchRoutingError("invalid metadata_side_effects")
+     _validate_sha(
+         document["bound_candidate_sha"],
+@@ -247,17 +335,19 @@
          "capabilities": _stable_strings(capabilities),
          "provider_candidates": _stable_strings(provider_candidates),
      }
@@ -139,7 +615,7 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
  
  
  def _candidate_exact(provider: Mapping[str, Any], candidate_sha: str) -> bool:
-@@ -305,8 +356,11 @@
+@@ -305,8 +395,11 @@
      persona: Mapping[str, Any],
      providers: Mapping[str, Mapping[str, Any]],
  ) -> Tuple[Optional[str], List[str]]:
@@ -152,7 +628,49 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
  
      implementer = providers.get(implementer_provider)
      implementer_key = (
-@@ -390,8 +444,20 @@
+@@ -351,12 +444,41 @@
+         values.append(value)
+ 
+ 
++def _route_for_blockers(blockers: Sequence[str]) -> str:
++    if not blockers:
++        return "LOCAL_REVIEW_GATE_PASS"
++    if "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
++        return "YIELD_BLOCKED_REVIEW_QUALITY"
++    if "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
++        return "LOCAL_REVIEW_CODE_BLOCK"
++    if (
++        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
++        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
++    ):
++        return "YIELD_WAITING_EXTERNAL_REVIEW"
++    if "BLOCKED_ENGINE_CAPABILITY" in blockers:
++        return "YIELD_BLOCKED_ENGINE_CAPABILITY"
++    return "BLOCKED_REVIEW_GATE"
++
++
+ def validate_review_identity(
+     *,
+     implementer_provider: str,
+     reviewer_ids: Sequence[str],
+     providers: Mapping[str, Mapping[str, Any]],
+ ) -> Optional[str]:
++    if not isinstance(implementer_provider, str) or not implementer_provider:
++        raise NightWatchRoutingError("implementer_provider is required")
++    if isinstance(reviewer_ids, (str, bytes)):
++        raise NightWatchRoutingError("reviewer_ids must be a sequence of provider ids")
++    if not isinstance(providers, Mapping):
++        raise NightWatchRoutingError("providers must be an object")
++    for provider_id, provider in providers.items():
++        if not isinstance(provider_id, str) or not provider_id:
++            raise NightWatchRoutingError("provider mapping key must be a non-empty string")
++        validate_provider_state(provider)
++        if provider["provider_id"] != provider_id:
++            raise NightWatchRoutingError("provider mapping key must match provider_id")
+     implementer = providers.get(implementer_provider)
+     if implementer is None:
+         return "IMPLEMENTER_UNAVAILABLE"
+@@ -390,8 +512,20 @@
  ) -> Dict[str, Any]:
      """Evaluate only the review gate; never invoke reviewers or downstream work."""
      _validate_sha(candidate_sha, field="candidate_sha")
@@ -174,7 +692,55 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
          validate_provider_state(state)
          if state["provider_id"] != provider_id:
              raise NightWatchRoutingError(
-@@ -541,13 +607,34 @@
+@@ -471,21 +605,7 @@
+         _add_unique(blockers, identity_error)
+ 
+     review_gate_pass = not blockers
+-    if review_gate_pass:
+-        route = "LOCAL_REVIEW_GATE_PASS"
+-    elif "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
+-        route = "YIELD_BLOCKED_REVIEW_QUALITY"
+-    elif "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
+-        route = "LOCAL_REVIEW_CODE_BLOCK"
+-    elif (
+-        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
+-        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
+-    ):
+-        route = "YIELD_WAITING_EXTERNAL_REVIEW"
+-    elif "BLOCKED_ENGINE_CAPABILITY" in blockers:
+-        route = "YIELD_BLOCKED_ENGINE_CAPABILITY"
+-    else:
+-        route = "BLOCKED_REVIEW_GATE"
++    route = _route_for_blockers(blockers)
+ 
+     implementer_key = (
+         implementer["independence_key"] if implementer is not None else None
+@@ -509,6 +629,7 @@
+             "vote_eligibility": observation_vote_eligibility(provider_id, state),
+             "metadata_side_effects": state["metadata_side_effects"],
+             "independence_key": state["independence_key"],
++            "capabilities": list(state["capabilities"]),
+             "review_observed": state["review_observed"],
+             "bound_candidate_sha": state["bound_candidate_sha"],
+         }
+@@ -521,7 +642,16 @@
+         "candidate_sha": candidate_sha,
+         "change_scope": change_scope,
+         "persona_id": persona["persona_id"],
++        "persona_configured": persona["configured"],
++        "persona_capabilities": list(persona["capabilities"]),
++        "persona_provider_candidates": list(persona["provider_candidates"]),
+         "implementer_provider": implementer_provider,
++        "review_requirements": {
++            "require_independent_review": require_independent_review,
++            "require_git_helper": require_git_helper,
++            "optional_copilot": optional_copilot,
++            "affected_prior_reviewers": list(affected_prior_reviewers),
++        },
+         "coderabbit_required": cr_required,
+         "selected_reviewers": sorted(selected),
+         "blockers": sorted(blockers),
+@@ -541,13 +671,63 @@
  
  
  def validate_route_envelope(document: Mapping[str, Any]) -> None:
@@ -191,13 +757,42 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
 +    for field in ("persona_id", "implementer_provider", "route"):
 +        if not isinstance(document[field], str) or not document[field]:
 +            raise NightWatchRoutingError(f"{field} must be a non-empty string")
++    if not isinstance(document["persona_configured"], bool):
++        raise NightWatchRoutingError("persona_configured must be boolean")
++    persona_capabilities = _validate_string_list(
++        document["persona_capabilities"], field="persona_capabilities"
++    )
++    persona_candidates = _validate_string_list(
++        document["persona_provider_candidates"], field="persona_provider_candidates"
++    )
 +    if document["route"] not in ROUTES:
 +        raise NightWatchRoutingError("unexpected route")
 +    if not isinstance(document["coderabbit_required"], bool):
 +        raise NightWatchRoutingError("coderabbit_required must be boolean")
 +    selected = _validate_string_list(document["selected_reviewers"], field="selected_reviewers")
 +    blockers = _validate_string_list(document["blockers"], field="blockers")
-+    _validate_string_list(document["notices"], field="notices")
++    notices = _validate_string_list(document["notices"], field="notices")
++    unknown_blockers = sorted(set(blockers) - BLOCKER_CODES)
++    unknown_notices = sorted(set(notices) - NOTICE_CODES)
++    if unknown_blockers:
++        raise NightWatchRoutingError(f"unknown blocker codes: {unknown_blockers}")
++    if unknown_notices:
++        raise NightWatchRoutingError(f"unknown notice codes: {unknown_notices}")
++
++    requirements = document["review_requirements"]
++    if not isinstance(requirements, Mapping):
++        raise NightWatchRoutingError("review_requirements must be an object")
++    _require_exact_keys(requirements, REVIEW_REQUIREMENT_KEYS, "review requirements")
++    for key in ("require_independent_review", "require_git_helper", "optional_copilot"):
++        if not isinstance(requirements[key], bool):
++            raise NightWatchRoutingError(f"review_requirements.{key} must be boolean")
++    affected_prior_reviewers = _validate_string_list(
++        requirements["affected_prior_reviewers"],
++        field="review_requirements.affected_prior_reviewers",
++    )
++    expected_coderabbit = coderabbit_required(change_scope, affected_prior_reviewers)
++    if document["coderabbit_required"] is not expected_coderabbit:
++        raise NightWatchRoutingError("coderabbit_required contradicts scope/review history")
 +
 +    downstream = document["downstream"]
 +    if not isinstance(downstream, Mapping):
@@ -210,7 +805,32 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
      observations = document["provider_observations"]
      if not isinstance(observations, Mapping):
          raise NightWatchRoutingError("provider_observations must be an object")
-@@ -576,12 +663,56 @@
+@@ -557,18 +737,19 @@
+         if not isinstance(observation, Mapping):
+             raise NightWatchRoutingError("provider observation must be an object")
+         _require_exact_keys(observation, OBSERVATION_KEYS, "provider observation")
+-        if observation["provider_availability"] not in PROVIDER_AVAILABILITY:
++        if not isinstance(observation["provider_availability"], str) or observation["provider_availability"] not in PROVIDER_AVAILABILITY:
+             raise NightWatchRoutingError("invalid observation provider_availability")
+-        if observation["surface_readiness"] not in SURFACE_READINESS:
++        if not isinstance(observation["surface_readiness"], str) or observation["surface_readiness"] not in SURFACE_READINESS:
+             raise NightWatchRoutingError("invalid observation surface_readiness")
+-        if observation["quality_calibration"] not in QUALITY_CALIBRATION:
++        if not isinstance(observation["quality_calibration"], str) or observation["quality_calibration"] not in QUALITY_CALIBRATION:
+             raise NightWatchRoutingError("invalid observation quality_calibration")
+-        if observation["vote_eligibility"] not in VOTE_ELIGIBILITY:
++        if not isinstance(observation["vote_eligibility"], str) or observation["vote_eligibility"] not in VOTE_ELIGIBILITY:
+             raise NightWatchRoutingError("invalid observation vote_eligibility")
+-        if observation["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
++        if not isinstance(observation["metadata_side_effects"], str) or observation["metadata_side_effects"] not in METADATA_SIDE_EFFECTS:
+             raise NightWatchRoutingError("invalid observation metadata_side_effects")
+         if not isinstance(observation["independence_key"], str) or not observation["independence_key"]:
+             raise NightWatchRoutingError("observation independence_key is required")
++        _validate_string_list(observation["capabilities"], field="observation capabilities")
+         if not isinstance(observation["review_observed"], bool):
+             raise NightWatchRoutingError("observation review_observed must be boolean")
+         _validate_sha(
+@@ -576,12 +757,116 @@
              field="observation bound_candidate_sha",
              allow_none=True,
          )
@@ -221,17 +841,40 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
 +        raise NightWatchRoutingError("implementer observation is required")
 +    implementer_key = implementer_observation["independence_key"]
 +
-+    expected_coderabbit = change_scope in CODE_SCOPES
-+    if expected_coderabbit and document["coderabbit_required"] is not True:
-+        raise NightWatchRoutingError("code/config/infra scope requires CodeRabbit")
++    # vote_eligibility in the serialized envelope is a contextual derived value.
++    for provider_id, observation in observations.items():
++        quality_ok = observation["quality_calibration"] in {"calibrated", "not_required"}
++        generic_eligible = (
++            observation["provider_availability"] == "available"
++            and observation["surface_readiness"] == "ready"
++            and quality_ok
++            and observation["review_observed"] is True
++            and observation["bound_candidate_sha"] is not None
++        )
++        contextual_eligible = (
++            generic_eligible
++            and observation["bound_candidate_sha"] == document["candidate_sha"]
++            and provider_id != implementer_id
++            and observation["independence_key"] != implementer_key
++        )
++        expected_vote = "eligible" if contextual_eligible else "ineligible"
++        if observation["vote_eligibility"] != expected_vote:
++            raise NightWatchRoutingError(
++                f"provider observation {provider_id!r} vote_eligibility must be {expected_vote!r}"
++            )
 +
      if not isinstance(document["review_gate_pass"], bool):
          raise NightWatchRoutingError("review_gate_pass must be boolean")
 -    if not document["review_gate_pass"]:
 -        if any(document["downstream"].values()):
++    if document["review_gate_pass"] != (not blockers):
++        raise NightWatchRoutingError("review_gate_pass must be derived from blocker emptiness")
++
++    expected_route = _route_for_blockers(blockers)
++    if document["route"] != expected_route:
++        raise NightWatchRoutingError("route contradicts blocker priority")
++
 +    if document["review_gate_pass"]:
-+        if blockers:
-+            raise NightWatchRoutingError("passing review gate cannot carry blockers")
 +        selected_keys: Set[str] = set()
 +        for reviewer_id in selected:
 +            if reviewer_id == implementer_id:
@@ -249,13 +892,39 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
 +            if key in selected_keys:
 +                raise NightWatchRoutingError("selected reviewers must have unique independence keys")
 +            selected_keys.add(key)
-+        if document["coderabbit_required"] and "coderabbit" not in selected:
-+            raise NightWatchRoutingError("required CodeRabbit review is not selected")
++
++        if requirements["require_git_helper"]:
++            git_helper = observations.get("git_helper")
++            if "git_helper" not in selected or not isinstance(git_helper, Mapping):
++                raise NightWatchRoutingError("required git_helper review is not selected")
++            if "git_integrity" not in set(git_helper["capabilities"]):
++                raise NightWatchRoutingError("selected git_helper lacks git_integrity capability")
++
++        if requirements["require_independent_review"]:
++            if document["persona_configured"] is not True:
++                raise NightWatchRoutingError("independent review requires a configured persona")
++            if "independent_review" not in set(persona_capabilities):
++                raise NightWatchRoutingError("persona lacks independent_review capability")
++            independent = [
++                reviewer_id
++                for reviewer_id in selected
++                if reviewer_id in set(persona_candidates)
++                and "independent_review" in set(observations[reviewer_id]["capabilities"])
++            ]
++            if not independent:
++                raise NightWatchRoutingError("required independent persona reviewer is not selected")
++
++        if document["coderabbit_required"]:
++            coderabbit = observations.get("coderabbit")
++            if "coderabbit" not in selected or not isinstance(coderabbit, Mapping):
++                raise NightWatchRoutingError("required CodeRabbit review is not selected")
++            required_capability = CODERABBIT_SCOPE_CAPABILITIES[change_scope]
++            if required_capability not in set(coderabbit["capabilities"]):
++                raise NightWatchRoutingError("selected CodeRabbit lacks scope review capability")
++
 +        if downstream["build_reproducer"] is not True:
 +            raise NightWatchRoutingError("passing review gate must release reproducer")
 +    else:
-+        if not blockers:
-+            raise NightWatchRoutingError("blocked review gate requires a typed blocker")
 +        if any(downstream.values()):
              raise NightWatchRoutingError("blocked review gate cannot enable downstream work")
 -    if document["downstream"]["call_cost_estimator"]:
@@ -266,111 +935,66 @@ diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.p
 +    if downstream["route_budget"] or downstream["start_gcp"]:
          raise NightWatchRoutingError("budget/GCP cannot start from the review gate")
 +
-+    if document["review_gate_pass"] and document["route"] != "LOCAL_REVIEW_GATE_PASS":
-+        raise NightWatchRoutingError("passing gate has inconsistent route")
-+    if not document["review_gate_pass"] and document["route"] == "LOCAL_REVIEW_GATE_PASS":
-+        raise NightWatchRoutingError("blocked gate cannot use pass route")
++    if document["coderabbit_required"]:
++        if "CODERABBIT_NOT_REQUIRED" in notices:
++            raise NightWatchRoutingError("required CodeRabbit cannot be marked not-required")
++    elif "CODERABBIT_NOT_REQUIRED" not in notices:
++        raise NightWatchRoutingError("non-required CodeRabbit state must be explicit")
 +
-diff -ruN '--exclude=__pycache__' a/noemaforge/tests/test_night_watch_routing_runtime.py b/noemaforge/tests/test_night_watch_routing_runtime.py
---- a/noemaforge/tests/test_night_watch_routing_runtime.py	2026-09-22 17:42:46.990977516 +0000
-+++ b/noemaforge/tests/test_night_watch_routing_runtime.py	2026-09-22 17:41:48.191441457 +0000
-@@ -443,6 +443,99 @@
-             json.dumps(second, sort_keys=True, separators=(",", ":")),
-         )
- 
-+    def test_unknown_change_scope_fails_closed(self):
-+        providers = baseline_providers()
-+        for scope in ("python", "CODE", "security", ""):
-+            with self.subTest(scope=scope):
-+                with self.assertRaises(routing.NightWatchRoutingError):
-+                    routing.evaluate_review_gate(
-+                        candidate_sha=CANDIDATE,
-+                        change_scope=scope,
-+                        persona=persona(),
-+                        implementer_provider="codex",
-+                        providers=providers,
-+                    )
++    copilot = observations.get("copilot")
++    copilot_verified = bool(
++        isinstance(copilot, Mapping) and copilot.get("vote_eligibility") == "eligible"
++    )
++    if requirements["optional_copilot"] and not copilot_verified:
++        if "OPTIONAL_COPILOT_UNVERIFIED" not in notices:
++            raise NightWatchRoutingError("unverified optional Copilot must be explicit")
++    elif "OPTIONAL_COPILOT_UNVERIFIED" in notices:
++        raise NightWatchRoutingError("unexpected optional Copilot notice")
 +
-+    def test_strict_provider_contract_rejects_malformed_field_types(self):
-+        mutations = {
-+            "provider_id": 123,
-+            "independence_key": {},
-+            "capabilities": "independent_review",
-+            "request_attempted": "yes",
-+            "optional": "false",
-+        }
-+        for field, value in mutations.items():
-+            with self.subTest(field=field):
-+                state = provider("claude", capabilities=("independent_review",))
-+                state[field] = value
-+                with self.assertRaises(routing.NightWatchRoutingError):
-+                    routing.validate_provider_state(state)
+diff -ruN '--exclude=__pycache__' a/noemaforge/src/night_watch_routing_runtime.py.bak2 b/noemaforge/src/night_watch_routing_runtime.py.bak2
+--- a/noemaforge/src/night_watch_routing_runtime.py.bak2	1970-01-01 00:00:00.000000000 +0000
++++ b/noemaforge/src/night_watch_routing_runtime.py.bak2	2026-09-22 17:55:46.177055788 +0000
+@@ -0,0 +1,718 @@
++#!/usr/bin/env python3
++"""
++=== NoemaForge File Header ===
++File: noemaforge/src/night_watch_routing_runtime.py
++Zone: release/package
++Created: 2026-08-13
++Modified: 2026-08-13
++Purpose: Evaluate Night Watch reviewer/provider readiness and review-gate routing.
++Inputs: Strict local provider/persona state and an exact candidate SHA.
++Outputs: Deterministic JSON-compatible review routing envelopes.
++Side effects: None.
++Tests: covered by immutable regression tests
++Notes: This runtime has no file-header Version field; product release identity is sourced only from noemaforge/src/noemaforge_version.py.
++=== End NoemaForge File Header ===
++"""
++from __future__ import annotations
 +
-+    def test_strict_persona_contract_rejects_malformed_field_types(self):
-+        mutations = {
-+            "persona_id": 123,
-+            "configured": "true",
-+            "capabilities": "independent_review",
-+            "provider_candidates": 123,
-+        }
-+        for field, value in mutations.items():
-+            with self.subTest(field=field):
-+                state = persona()
-+                state[field] = value
-+                with self.assertRaises(routing.NightWatchRoutingError):
-+                    routing.validate_persona_state(state)
++import re
++from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 +
-+    def test_persona_without_independent_review_capability_cannot_vote(self):
-+        providers = baseline_providers()
-+        state = routing.make_persona_state(
-+            persona_id="artist",
-+            capabilities=("visual_review",),
-+            provider_candidates=("claude",),
-+            configured=True,
-+        )
-+        envelope = routing.evaluate_review_gate(
-+            candidate_sha=CANDIDATE,
-+            change_scope="markdown",
-+            persona=state,
-+            implementer_provider="codex",
-+            providers=providers,
-+            require_git_helper=False,
-+        )
-+        self.assertFalse(envelope["review_gate_pass"])
-+        self.assertIn("PERSONA_CAPABILITY_MISSING", envelope["blockers"])
 +
-+    def test_route_validator_rejects_forged_pass_semantics(self):
-+        providers = baseline_providers()
-+        envelope = routing.evaluate_review_gate(
-+            candidate_sha=CANDIDATE,
-+            change_scope="code",
-+            persona=persona(),
-+            implementer_provider="codex",
-+            providers=providers,
-+        )
-+        forged = []
++API_VERSION = "noemaforge.night-watch-routing/v1"
++PROVENANCE = "UAT request findings resolution"
 +
-+        item = json.loads(json.dumps(envelope))
-+        item["blockers"] = ["SYNTHETIC_BLOCKER"]
-+        forged.append(item)
++SHA40 = re.compile(r"^[0-9a-f]{40}$")
 +
-+        item = json.loads(json.dumps(envelope))
-+        item["selected_reviewers"] = ["claude", "git_helper"]
-+        forged.append(item)
++PROVIDER_AVAILABILITY = frozenset(
++    {"available", "blocked_external", "unavailable", "unknown"}
++)
++SURFACE_READINESS = frozenset(
++    {"ready", "interactive_only", "unavailable", "unverified"}
++)
++QUALITY_CALIBRATION = frozenset(
++    {"calibrated", "failed", "unproven", "not_required"}
++)
++VOTE_ELIGIBILITY = frozenset({"eligible", "ineligible"})
++METADATA_SIDE_EFFECTS = frozenset({"none_observed", "observed", "unknown"})
 +
-+        item = json.loads(json.dumps(envelope))
-+        item["downstream"]["build_reproducer"] = False
-+        forged.append(item)
-+
-+        item = json.loads(json.dumps(envelope))
-+        item["coderabbit_required"] = False
-+        forged.append(item)
-+
-+        for item in forged:
-+            with self.subTest(item=item):
-+                with self.assertRaises(routing.NightWatchRoutingError):
-+                    routing.validate_route_envelope(item)
-+
- 
- if __name__ == "__main__":
-     unittest.main()
++PROVIDER_KEYS = frozenset(
++    {
++        "provider_id",
++        "provider_availability",
++        "surface_readiness",
