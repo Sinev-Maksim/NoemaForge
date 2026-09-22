@@ -74,3 +74,18 @@ Classification: `UAT request findings resolution`
 - Live immutable-test guard rejected attempted test-path proposals and recovered through the control plane.
 - Uploaded `history.zip` is hash-consistent but stale (generated 2026-08-15) and does not contain the current v3.8.5 run/candidate.
 - Canonical evidence is persisted to GitHub; current candidate bytes still require recovery from the current handoff/run directory to satisfy the no-lost-work code checkpoint rule.
+
+
+## 2026-09-22 — recovered candidate review and fail-closed correction
+
+Classification: `UAT request findings resolution`
+
+- Recovered the exact current cumulative handoff and verified all 1196 content-addressed objects.
+- Recovered/persisted exact original candidate patch SHA-256 `38882b33058de4f2ce3b16bdcbe293b8bf6c8c541090882c2a4e3b54fd59a020`.
+- Independently reran the original focused routing suite: 21/21 PASS.
+- Adversarial review nevertheless found three blocking defects: unknown scope fail-open around CodeRabbit policy, non-strict provider/persona field validation, and route-envelope semantic contradictions that could validate as PASS.
+- Original candidate verdict changed to `REQUEST_CHANGES`; its prior local green state is not treated as acceptance.
+- Implemented a corrected WIP with closed scope/route domains, strict provider/persona contracts, independent-review capability enforcement, typed malformed-input rejection, and semantic route-envelope verification.
+- Added regression coverage; corrected focused routing suite: 26/26 PASS; Python compile PASS; schema JSON parse PASS.
+- Persisted corrected source directly to `night-watch`, plus original candidate, review report, machine-readable review evidence and correction patch.
+- Full repository regression, remote exact-candidate review, CodeRabbit and human release GO remain pending.
