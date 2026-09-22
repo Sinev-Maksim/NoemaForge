@@ -62,7 +62,11 @@ ROUTE_KEYS = frozenset(
         "candidate_sha",
         "change_scope",
         "persona_id",
+        "persona_configured",
+        "persona_capabilities",
+        "persona_provider_candidates",
         "implementer_provider",
+        "review_requirements",
         "coderabbit_required",
         "selected_reviewers",
         "blockers",
@@ -71,6 +75,14 @@ ROUTE_KEYS = frozenset(
         "route",
         "downstream",
         "provider_observations",
+    }
+)
+REVIEW_REQUIREMENT_KEYS = frozenset(
+    {
+        "require_independent_review",
+        "require_git_helper",
+        "optional_copilot",
+        "affected_prior_reviewers",
     }
 )
 DOWNSTREAM_KEYS = frozenset(
@@ -84,6 +96,7 @@ OBSERVATION_KEYS = frozenset(
         "vote_eligibility",
         "metadata_side_effects",
         "independence_key",
+        "capabilities",
         "review_observed",
         "bound_candidate_sha",
     }
@@ -105,6 +118,24 @@ CODERABBIT_SCOPE_CAPABILITIES = {
     "infra": "infra_review",
     "markdown": "markdown_review",
 }
+BLOCKER_CODES = frozenset(
+    {
+        "IMPLEMENTER_UNAVAILABLE",
+        "GIT_HELPER_UNAVAILABLE",
+        "PERSONA_NOT_CONFIGURED",
+        "PERSONA_CAPABILITY_MISSING",
+        "BLOCKED_ENGINE_CAPABILITY",
+        "BLOCKED_REVIEW_QUALITY_CAPABILITY",
+        "WAITING_FOR_LIVE_PR_REVIEW",
+        "WAITING_FOR_REVIEW_EVIDENCE",
+        "STALE_REVIEW_CANDIDATE",
+        "IMPLEMENTER_SELF_REVIEW_REJECTED",
+        "DUPLICATE_INDEPENDENCE_KEY_REJECTED",
+        "UNKNOWN_REVIEW_PROVIDER",
+        "CODERABBIT_REQUIRED_UNAVAILABLE",
+    }
+)
+NOTICE_CODES = frozenset({"CODERABBIT_NOT_REQUIRED", "OPTIONAL_COPILOT_UNVERIFIED"})
 
 
 class NightWatchRoutingError(ValueError):
@@ -129,6 +160,8 @@ def _validate_sha(value: Optional[str], *, field: str, allow_none: bool = False)
 
 
 def _stable_strings(values: Iterable[str]) -> List[str]:
+    if isinstance(values, (str, bytes, Mapping)):
+        raise NightWatchRoutingError("string collection must be an iterable of strings, not a scalar/mapping")
     result: List[str] = []
     seen: Set[str] = set()
     for value in values:
@@ -405,6 +438,23 @@ def _add_unique(values: List[str], value: str) -> None:
         values.append(value)
 
 
+def _route_for_blockers(blockers: Sequence[str]) -> str:
+    if not blockers:
+        return "LOCAL_REVIEW_GATE_PASS"
+    if "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
+        return "YIELD_BLOCKED_REVIEW_QUALITY"
+    if "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
+        return "LOCAL_REVIEW_CODE_BLOCK"
+    if (
+        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
+        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
+    ):
+        return "YIELD_WAITING_EXTERNAL_REVIEW"
+    if "BLOCKED_ENGINE_CAPABILITY" in blockers:
+        return "YIELD_BLOCKED_ENGINE_CAPABILITY"
+    return "BLOCKED_REVIEW_GATE"
+
+
 def validate_review_identity(
     *,
     implementer_provider: str,
@@ -537,21 +587,7 @@ def evaluate_review_gate(
         _add_unique(blockers, identity_error)
 
     review_gate_pass = not blockers
-    if review_gate_pass:
-        route = "LOCAL_REVIEW_GATE_PASS"
-    elif "BLOCKED_REVIEW_QUALITY_CAPABILITY" in blockers:
-        route = "YIELD_BLOCKED_REVIEW_QUALITY"
-    elif "CODERABBIT_REQUIRED_UNAVAILABLE" in blockers:
-        route = "LOCAL_REVIEW_CODE_BLOCK"
-    elif (
-        "WAITING_FOR_LIVE_PR_REVIEW" in blockers
-        or "WAITING_FOR_REVIEW_EVIDENCE" in blockers
-    ):
-        route = "YIELD_WAITING_EXTERNAL_REVIEW"
-    elif "BLOCKED_ENGINE_CAPABILITY" in blockers:
-        route = "YIELD_BLOCKED_ENGINE_CAPABILITY"
-    else:
-        route = "BLOCKED_REVIEW_GATE"
+    route = _route_for_blockers(blockers)
 
     implementer_key = (
         implementer["independence_key"] if implementer is not None else None
@@ -575,6 +611,7 @@ def evaluate_review_gate(
             "vote_eligibility": observation_vote_eligibility(provider_id, state),
             "metadata_side_effects": state["metadata_side_effects"],
             "independence_key": state["independence_key"],
+            "capabilities": list(state["capabilities"]),
             "review_observed": state["review_observed"],
             "bound_candidate_sha": state["bound_candidate_sha"],
         }
@@ -587,7 +624,16 @@ def evaluate_review_gate(
         "candidate_sha": candidate_sha,
         "change_scope": change_scope,
         "persona_id": persona["persona_id"],
+        "persona_configured": persona["configured"],
+        "persona_capabilities": list(persona["capabilities"]),
+        "persona_provider_candidates": list(persona["provider_candidates"]),
         "implementer_provider": implementer_provider,
+        "review_requirements": {
+            "require_independent_review": require_independent_review,
+            "require_git_helper": require_git_helper,
+            "optional_copilot": optional_copilot,
+            "affected_prior_reviewers": list(affected_prior_reviewers),
+        },
         "coderabbit_required": cr_required,
         "selected_reviewers": sorted(selected),
         "blockers": sorted(blockers),
@@ -619,13 +665,42 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
     for field in ("persona_id", "implementer_provider", "route"):
         if not isinstance(document[field], str) or not document[field]:
             raise NightWatchRoutingError(f"{field} must be a non-empty string")
+    if not isinstance(document["persona_configured"], bool):
+        raise NightWatchRoutingError("persona_configured must be boolean")
+    persona_capabilities = _validate_string_list(
+        document["persona_capabilities"], field="persona_capabilities"
+    )
+    persona_candidates = _validate_string_list(
+        document["persona_provider_candidates"], field="persona_provider_candidates"
+    )
     if document["route"] not in ROUTES:
         raise NightWatchRoutingError("unexpected route")
     if not isinstance(document["coderabbit_required"], bool):
         raise NightWatchRoutingError("coderabbit_required must be boolean")
     selected = _validate_string_list(document["selected_reviewers"], field="selected_reviewers")
     blockers = _validate_string_list(document["blockers"], field="blockers")
-    _validate_string_list(document["notices"], field="notices")
+    notices = _validate_string_list(document["notices"], field="notices")
+    unknown_blockers = sorted(set(blockers) - BLOCKER_CODES)
+    unknown_notices = sorted(set(notices) - NOTICE_CODES)
+    if unknown_blockers:
+        raise NightWatchRoutingError(f"unknown blocker codes: {unknown_blockers}")
+    if unknown_notices:
+        raise NightWatchRoutingError(f"unknown notice codes: {unknown_notices}")
+
+    requirements = document["review_requirements"]
+    if not isinstance(requirements, Mapping):
+        raise NightWatchRoutingError("review_requirements must be an object")
+    _require_exact_keys(requirements, REVIEW_REQUIREMENT_KEYS, "review requirements")
+    for key in ("require_independent_review", "require_git_helper", "optional_copilot"):
+        if not isinstance(requirements[key], bool):
+            raise NightWatchRoutingError(f"review_requirements.{key} must be boolean")
+    affected_prior_reviewers = _validate_string_list(
+        requirements["affected_prior_reviewers"],
+        field="review_requirements.affected_prior_reviewers",
+    )
+    expected_coderabbit = coderabbit_required(change_scope, affected_prior_reviewers)
+    if document["coderabbit_required"] is not expected_coderabbit:
+        raise NightWatchRoutingError("coderabbit_required contradicts scope/review history")
 
     downstream = document["downstream"]
     if not isinstance(downstream, Mapping):
@@ -656,6 +731,7 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
             raise NightWatchRoutingError("invalid observation metadata_side_effects")
         if not isinstance(observation["independence_key"], str) or not observation["independence_key"]:
             raise NightWatchRoutingError("observation independence_key is required")
+        _validate_string_list(observation["capabilities"], field="observation capabilities")
         if not isinstance(observation["review_observed"], bool):
             raise NightWatchRoutingError("observation review_observed must be boolean")
         _validate_sha(
@@ -670,15 +746,38 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
         raise NightWatchRoutingError("implementer observation is required")
     implementer_key = implementer_observation["independence_key"]
 
-    expected_coderabbit = change_scope in CODE_SCOPES
-    if expected_coderabbit and document["coderabbit_required"] is not True:
-        raise NightWatchRoutingError("code/config/infra scope requires CodeRabbit")
+    # vote_eligibility in the serialized envelope is a contextual derived value.
+    for provider_id, observation in observations.items():
+        quality_ok = observation["quality_calibration"] in {"calibrated", "not_required"}
+        generic_eligible = (
+            observation["provider_availability"] == "available"
+            and observation["surface_readiness"] == "ready"
+            and quality_ok
+            and observation["review_observed"] is True
+            and observation["bound_candidate_sha"] is not None
+        )
+        contextual_eligible = (
+            generic_eligible
+            and observation["bound_candidate_sha"] == document["candidate_sha"]
+            and provider_id != implementer_id
+            and observation["independence_key"] != implementer_key
+        )
+        expected_vote = "eligible" if contextual_eligible else "ineligible"
+        if observation["vote_eligibility"] != expected_vote:
+            raise NightWatchRoutingError(
+                f"provider observation {provider_id!r} vote_eligibility must be {expected_vote!r}"
+            )
 
     if not isinstance(document["review_gate_pass"], bool):
         raise NightWatchRoutingError("review_gate_pass must be boolean")
+    if document["review_gate_pass"] != (not blockers):
+        raise NightWatchRoutingError("review_gate_pass must be derived from blocker emptiness")
+
+    expected_route = _route_for_blockers(blockers)
+    if document["route"] != expected_route:
+        raise NightWatchRoutingError("route contradicts blocker priority")
+
     if document["review_gate_pass"]:
-        if blockers:
-            raise NightWatchRoutingError("passing review gate cannot carry blockers")
         selected_keys: Set[str] = set()
         for reviewer_id in selected:
             if reviewer_id == implementer_id:
@@ -696,13 +795,39 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
             if key in selected_keys:
                 raise NightWatchRoutingError("selected reviewers must have unique independence keys")
             selected_keys.add(key)
-        if document["coderabbit_required"] and "coderabbit" not in selected:
-            raise NightWatchRoutingError("required CodeRabbit review is not selected")
+
+        if requirements["require_git_helper"]:
+            git_helper = observations.get("git_helper")
+            if "git_helper" not in selected or not isinstance(git_helper, Mapping):
+                raise NightWatchRoutingError("required git_helper review is not selected")
+            if "git_integrity" not in set(git_helper["capabilities"]):
+                raise NightWatchRoutingError("selected git_helper lacks git_integrity capability")
+
+        if requirements["require_independent_review"]:
+            if document["persona_configured"] is not True:
+                raise NightWatchRoutingError("independent review requires a configured persona")
+            if "independent_review" not in set(persona_capabilities):
+                raise NightWatchRoutingError("persona lacks independent_review capability")
+            independent = [
+                reviewer_id
+                for reviewer_id in selected
+                if reviewer_id in set(persona_candidates)
+                and "independent_review" in set(observations[reviewer_id]["capabilities"])
+            ]
+            if not independent:
+                raise NightWatchRoutingError("required independent persona reviewer is not selected")
+
+        if document["coderabbit_required"]:
+            coderabbit = observations.get("coderabbit")
+            if "coderabbit" not in selected or not isinstance(coderabbit, Mapping):
+                raise NightWatchRoutingError("required CodeRabbit review is not selected")
+            required_capability = CODERABBIT_SCOPE_CAPABILITIES[change_scope]
+            if required_capability not in set(coderabbit["capabilities"]):
+                raise NightWatchRoutingError("selected CodeRabbit lacks scope review capability")
+
         if downstream["build_reproducer"] is not True:
             raise NightWatchRoutingError("passing review gate must release reproducer")
     else:
-        if not blockers:
-            raise NightWatchRoutingError("blocked review gate requires a typed blocker")
         if any(downstream.values()):
             raise NightWatchRoutingError("blocked review gate cannot enable downstream work")
 
@@ -711,8 +836,19 @@ def validate_route_envelope(document: Mapping[str, Any]) -> None:
     if downstream["route_budget"] or downstream["start_gcp"]:
         raise NightWatchRoutingError("budget/GCP cannot start from the review gate")
 
-    if document["review_gate_pass"] and document["route"] != "LOCAL_REVIEW_GATE_PASS":
-        raise NightWatchRoutingError("passing gate has inconsistent route")
-    if not document["review_gate_pass"] and document["route"] == "LOCAL_REVIEW_GATE_PASS":
-        raise NightWatchRoutingError("blocked gate cannot use pass route")
+    if document["coderabbit_required"]:
+        if "CODERABBIT_NOT_REQUIRED" in notices:
+            raise NightWatchRoutingError("required CodeRabbit cannot be marked not-required")
+    elif "CODERABBIT_NOT_REQUIRED" not in notices:
+        raise NightWatchRoutingError("non-required CodeRabbit state must be explicit")
+
+    copilot = observations.get("copilot")
+    copilot_verified = bool(
+        isinstance(copilot, Mapping) and copilot.get("vote_eligibility") == "eligible"
+    )
+    if requirements["optional_copilot"] and not copilot_verified:
+        if "OPTIONAL_COPILOT_UNVERIFIED" not in notices:
+            raise NightWatchRoutingError("unverified optional Copilot must be explicit")
+    elif "OPTIONAL_COPILOT_UNVERIFIED" in notices:
+        raise NightWatchRoutingError("unexpected optional Copilot notice")
 
