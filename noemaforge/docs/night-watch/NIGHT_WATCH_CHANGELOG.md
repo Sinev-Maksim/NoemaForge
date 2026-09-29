@@ -115,3 +115,15 @@ Classification: `UAT request findings resolution`
 - Root cause was harness policy, not PRODUCT: `git apply --check --whitespace=error-all` treated two `new blank line at EOF` notices in the review-fix patch as fatal.
 - Review harness policy is corrected to verify exact patch SHA and post-apply expected file hashes, while allowing non-semantic whitespace warnings during patch application.
 - No PRODUCT verdict is inferred from that failed harness run; routing/full regression remained unexecuted.
+
+
+## 2026-09-29 — candidate-review launcher V3 transport defect
+
+Classification: `UAT request findings resolution`
+
+- The guarded V3 operator launcher failed before the internal helper started.
+- Root cause: CMD caret escaping for `2>&1 | Tee-Object` leaked literally into the PowerShell `-Command` program, causing a Windows PowerShell parser error at the redirection ampersand.
+- This is a launcher/control-plane transport defect, not a PRODUCT/candidate/review-helper failure.
+- The launcher design is simplified: user-facing CMD now invokes the helper through `powershell.exe -File`; CMD owns stdout/stderr redirection and terminal persistence.
+- Added global cross-shell rules: avoid nested inline shell escaping, require child-start canary, rotate stale result/log artifacts, and classify pre-helper parser/startup failures separately from PRODUCT.
+- Wrong-file launch protection remains mandatory for all internal executable helpers.
