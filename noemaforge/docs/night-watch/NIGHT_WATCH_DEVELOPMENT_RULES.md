@@ -171,6 +171,11 @@ Rules:
 - The user-facing window MUST remain open after PASS, FAIL, or HARNESS_ERROR until the operator explicitly acknowledges/closes it.
 - Direct-launch protection is part of package/runtime qualification. A release is incomplete if a helper can be mistaken for the supported entrypoint and silently perform work or disappear.
 - Multiple obsolete launchers with similar names are a UX defect. Superseded operator-facing launchers should be removed from the deliverable or placed outside the active operator surface.
+- Cross-shell launcher transport is itself a qualified interface. Prefer `powershell.exe -File <helper.ps1> <args>` over inline `-Command` whenever possible.
+- CMD/PowerShell metacharacters (`& | > < ^`) MUST NOT cross a launcher boundary through ad-hoc nested escaping unless that exact transport has a target-shell canary.
+- Every operator launcher must have a startup canary that proves the child helper actually started before the run is allowed to claim a harness/product status.
+- Result/log artifacts must be fresh for the current invocation. A launcher must remove or rotate stale prior result files before start so a pre-helper failure cannot be mistaken for a new result.
+- Parser/startup/transport failure before the helper startup canary is a typed launcher/control-plane failure and MUST NOT be reported as PRODUCT or candidate failure.
 
 This rule applies to all Night Watch operator-facing packages and test/review helpers, not only the release installer.
 
