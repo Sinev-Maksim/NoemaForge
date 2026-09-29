@@ -152,6 +152,28 @@ Mandatory constraints include:
 - sealed paths must be valid under case-insensitive Win32 naming rules (no forbidden/reserved components, trailing dot/space, ADS colon, or casefold collisions);
 - fault-injection physical fixtures themselves must be Win32-legal; impossible quote/newline Git records are tested in memory instead.
 
+
+
+### 8.1 User-facing executable entrypoints and wrong-launch protection
+
+Every executable file shipped to an operator MUST be classified as exactly one of:
+
+1. **user-facing entrypoint** — intentionally launched by the operator;
+2. **internal helper** — launched only by a validated parent entrypoint.
+
+Rules:
+
+- Every operator workflow has one clearly named user-facing entrypoint. Prefer `START_HERE*.cmd` / `RUN_*.cmd` names that are visually distinct from helpers.
+- Internal `.ps1`, `.py`, `.bat`, and secondary `.cmd` helpers MUST refuse direct invocation unless they receive a launcher-only invocation token or an equivalent parent-process contract.
+- If an internal helper is launched directly, it MUST display a human-readable message naming the correct file to launch, wait for operator acknowledgement, and exit without performing work.
+- User-facing launchers MUST print what they are about to run, what they will NOT mutate, and where logs/results are written.
+- A user-facing launcher MUST capture stdout/stderr from its child process, including parser/startup failures that occur before the helper can initialize its own logger.
+- The user-facing window MUST remain open after PASS, FAIL, or HARNESS_ERROR until the operator explicitly acknowledges/closes it.
+- Direct-launch protection is part of package/runtime qualification. A release is incomplete if a helper can be mistaken for the supported entrypoint and silently perform work or disappear.
+- Multiple obsolete launchers with similar names are a UX defect. Superseded operator-facing launchers should be removed from the deliverable or placed outside the active operator surface.
+
+This rule applies to all Night Watch operator-facing packages and test/review helpers, not only the release installer.
+
 ## 9. Evidence/storage/process resilience
 
 - Evidence roots are write-probed before use.
