@@ -102,3 +102,16 @@ Classification: `UAT request findings resolution`
 - Added new regressions. Corrected routing suite now 35/35 PASS plus JSON-schema PASS and adversarial forged-PASS rejection probes.
 - Persisted the corrected source files, expanded review report, machine-readable review evidence, and exact chunked final review-fix patch on `night-watch`.
 - Full repository regression / remote exact-candidate review / CodeRabbit / human release GO remain separate pending gates.
+
+
+## 2026-09-29 — executable UX guard + review harness whitespace finding
+
+Classification: `UAT request findings resolution`
+
+- Added a global operator-entrypoint rule: every executable shipped to the operator is either the single supported user-facing launcher or a guarded internal helper.
+- Internal helpers must refuse direct invocation, identify the correct launcher, wait for acknowledgement, and perform no work when started incorrectly.
+- Parent launchers must capture child stdout/stderr including parser/startup failures and remain open after terminal status.
+- The 2026-09-29 candidate-review run verified both patch SHA-256 identities and the exact canonical base, then stopped in the review harness before candidate reconstruction.
+- Root cause was harness policy, not PRODUCT: `git apply --check --whitespace=error-all` treated two `new blank line at EOF` notices in the review-fix patch as fatal.
+- Review harness policy is corrected to verify exact patch SHA and post-apply expected file hashes, while allowing non-semantic whitespace warnings during patch application.
+- No PRODUCT verdict is inferred from that failed harness run; routing/full regression remained unexecuted.
