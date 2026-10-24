@@ -144,7 +144,7 @@ def build_offline_admin_gui_server(*, package_root: Path | str) -> Any:
     store = attach_memory_json_store(server)
 
     def read_json(path: Path, default: Any) -> Any:
-        key = _display_path(Path(path))
+        key = str(Path(path))
         if key in store:
             return copy.deepcopy(store[key])
         p = Path(path)
