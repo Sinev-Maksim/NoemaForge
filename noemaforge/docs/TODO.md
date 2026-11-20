@@ -779,6 +779,8 @@ from a CDN._
   a job artifact like any other pipeline output.
 - [x] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
+  path quoting in evidence-collection helpers.
+- [x] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku — DONE: PR #335)_
   path quoting in evidence-collection helpers. _(investigated + fixed 2026-07-27: the
   `07g-model-selection-summary.json` key-scan and the hand-assembled `07k` normalized
   verdict from the 2026-06-10 UAT session (`UAT-2026-06-10-first-start-full-composite.md`)
