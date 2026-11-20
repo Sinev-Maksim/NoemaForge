@@ -3,13 +3,13 @@
 === NoemaForge File Header ===
 File: noemaforge/src/code_evolution_loop.py
 Zone: runtime/evolution
-Version: 0.32.2
+Version: 0.33.0
 Created: 2026-06-01
-Modified: 2026-06-01
+Modified: 2026-07-24
 Purpose: Autonomous code-evolution loop for NoemaForge.
          Reads TODO.md → picks next open task → analyzes code → proposes
          or applies patch → runs tests → commits → records in CHANGELOG.
-         This is the "Code-Evolution" face of the Dev Team subsystem.
+         Supports both repository-root and installed package-root layouts.
 Inputs: TODO.md, active source tree, test suite, git state.
 Outputs: Patch proposals (plan-only mode) or direct commits (apply mode,
          requires explicit --apply flag).
@@ -119,6 +119,25 @@ def make_proposal(task: Dict[str, Any], analysis: str, patches: List[Dict[str, A
     }
 
 
+def _resolve_package_root(project_root: Path) -> Path:
+    """Return the directory containing src/, tests/ and docs/.
+
+    Source checkouts pass the repository root (``<repo>/noemaforge`` is the
+    package directory), while Admin GUI and packaged installs pass that package
+    directory directly.  The former hard-coded an extra ``noemaforge`` segment
+    and silently executed zero tests from the GUI path.
+    """
+    root = project_root.resolve()
+    nested = root / "noemaforge"
+    if (nested / "src").is_dir() and (nested / "tests").is_dir():
+        return nested
+    if (root / "src").is_dir() and (root / "tests").is_dir():
+        return root
+    # Preserve the historic repository-root fallback so partially assembled
+    # test fixtures still resolve TODO/source paths predictably.
+    return nested
+
+
 # ---------------------------------------------------------------------------
 # CodeEvolutionLoop
 # ---------------------------------------------------------------------------
@@ -129,7 +148,8 @@ class CodeEvolutionLoop:
     Parameters
     ----------
     project_root :
-        Root of the NoemaForge project tree (contains VERSION, noemaforge/, etc.)
+        Repository root (contains ``noemaforge/``) or installed package root
+        (contains ``src/``, ``tests/`` and ``docs/`` directly).
     paths :
         NoemaForgePaths instance (defaults to DEFAULT_PATHS but can be
         overridden for testing).
@@ -151,15 +171,19 @@ class CodeEvolutionLoop:
         pycache_prefix: Optional[Path] = None,
         dry_run: bool = True,
     ) -> None:
-        self.project_root = Path(project_root or os.environ.get("NOEMAFORGE_ROOT", Path(__file__).resolve().parents[2]))
+        self.project_root = Path(
+            project_root
+            or os.environ.get("NOEMAFORGE_ROOT", Path(__file__).resolve().parents[2])
+        ).resolve()
+        self.package_root = _resolve_package_root(self.project_root)
         self.paths = paths or DEFAULT_PATHS
         self.python_exe = python_exe or sys.executable
         self.dry_run = dry_run
         self._state_dir = self.paths.code_evolution_state_dir
         env_pycache = os.environ.get("NOEMAFORGE_PYCACHE_PREFIX")
         self.pycache_prefix = Path(pycache_prefix or env_pycache) if (pycache_prefix or env_pycache) else self._state_dir / "pycache"
-        self._todo_path = self.project_root / "noemaforge" / "docs" / "TODO.md"
-        self._changelog_path = self.project_root / "noemaforge" / "docs" / "history" / "CHANGELOG.md"
+        self._todo_path = self.package_root / "docs" / "TODO.md"
+        self._changelog_path = self.package_root / "docs" / "history" / "CHANGELOG.md"
         self._state: Dict[str, Any] = self._load_state()
 
     # ---- state persistence ------------------------------------------------
@@ -245,7 +269,7 @@ class CodeEvolutionLoop:
                     {"must","will","from","with","that","this","when","than","into","have",
                      "should","after","before","only","under","each","both"}]
 
-        src_dir = self.project_root / "noemaforge" / "src"
+        src_dir = self.package_root / "src"
         relevant: List[str] = []
         if src_dir.exists():
             for py_file in sorted(src_dir.rglob("*.py")):
@@ -299,8 +323,8 @@ class CodeEvolutionLoop:
         Runs py_compile on all src/*.py and then a fast unittest batch.
         Does not time out longer than 120 seconds total.
         """
-        src_dir = self.project_root / "noemaforge" / "src"
-        tests_dir = self.project_root / "noemaforge" / "tests"
+        src_dir = self.package_root / "src"
+        tests_dir = self.package_root / "tests"
 
         # --- py_compile pass ---
         compile_failures: List[str] = []

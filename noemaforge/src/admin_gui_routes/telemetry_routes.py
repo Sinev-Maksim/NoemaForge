@@ -3,26 +3,25 @@
 === NoemaForge File Header ===
 File: noemaforge/src/admin_gui_routes/telemetry_routes.py
 Zone: gui/control-plane
-Version: 0.32.2
+Version: 0.33.0
 Created: 2026-06-11
-Modified: 2026-06-11
-Purpose: Admin GUI route handlers for the dashboard/telemetry/health/runtime/
-  locales/usecases/code-evolution-status/device-policy cluster. Each function
-  reproduces the original inline do_GET/do_POST branch verbatim behind the
-  shared route table — no behaviour change.
+Modified: 2026-07-24
+Purpose: Admin GUI route handlers for dashboard, telemetry, runtime controls and bounded code-evolution UAT preflight.
 Inputs: AdminGuiHandler instances; POST handlers also receive the parsed body.
 Outputs: JSON responses written via handler._send_json.
-Side effects: Delegates to handler.server.* methods (which own all side effects).
-Tests: python3 -m py_compile noemaforge/src/admin_gui_routes/telemetry_routes.py.
-Notes: Code comments are English-only; user-facing localized text belongs in docs/i18n or locale JSON files.
+Side effects: Delegates to handler.server methods or writes isolated code-evolution UAT evidence.
+Tests: noemaforge/tests/test_trusted_trigger_integration.py.
+Notes: The UAT preflight is fixed to proposal/test-only mode and cannot apply, commit or publish changes.
 === End NoemaForge File Header ===
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Dict
 
+from code_evolution_uat_preflight import run_uat_self_improvement_preflight
 
-# --- GET handlers ----------------------------------------------------------------
+
 def health(handler: Any) -> None:
     handler._send_json(handler.server.health())
 
@@ -75,13 +74,20 @@ def code_evolution_status(handler: Any) -> None:
     handler._send_json(handler.server.code_evolution_status())
 
 
-# --- POST handlers ---------------------------------------------------------------
 def code_evolution_propose(handler: Any, body: Dict[str, Any]) -> None:
     handler._send_json(handler.server.code_evolution_propose())
 
 
 def code_evolution_status_post(handler: Any, body: Dict[str, Any]) -> None:
     handler._send_json(handler.server.code_evolution_status())
+
+
+def code_evolution_uat_preflight(handler: Any, body: Dict[str, Any]) -> None:
+    result = run_uat_self_improvement_preflight(
+        project_root=handler.server.root,
+        state_dir=Path(handler.server.data_root) / "code-evolution",
+    )
+    handler._send_json(result, status=200 if result.get("ok") else 409)
 
 
 def device_policy_set(handler: Any, body: Dict[str, Any]) -> None:
@@ -124,6 +130,7 @@ def post_routes() -> Dict[str, Any]:
     return {
         "/api/code-evolution/propose": code_evolution_propose,
         "/api/code-evolution/status": code_evolution_status_post,
+        "/api/code-evolution/uat-preflight": code_evolution_uat_preflight,
         "/api/runtime/device-policy": device_policy_set,
         "/api/startup/profile": startup_profile_update,
         "/api/workflow/stop": workflow_stop,

@@ -1,0 +1,59 @@
+{
+  "apiVersion": "noemaforge.admin-gui-mutation-policy/v1",
+  "kind": "AdminGuiMutationPolicy",
+  "status": "enforced",
+  "policy": {
+    "default_post_action": "deny_unlisted",
+    "unauthenticated_exact_routes": [
+      "/api/session/owner-bootstrap"
+    ],
+    "owner_required_exact_routes": [
+      "/api/admin/message",
+      "/api/admin/ask",
+      "/api/admin/start",
+      "/api/conversation/message",
+      "/api/conversation/reset",
+      "/api/tasks/create",
+      "/api/tasks/update",
+      "/api/tasks/edit",
+      "/api/tasks/block",
+      "/api/tasks/complete",
+      "/api/tasks/prioritize",
+      "/api/persona/switch",
+      "/api/code-evolution/propose",
+      "/api/code-evolution/status",
+      "/api/code-evolution/uat-preflight",
+      "/api/runtime/device-policy",
+      "/api/startup/profile",
+      "/api/workflow/stop",
+      "/api/admin/modify-pipeline",
+      "/api/pipeline/run",
+      "/api/pipelines/start",
+      "/api/pipeline/approve",
+      "/api/pipeline/advance",
+      "/api/pipelines/draft",
+      "/api/dev-team/run",
+      "/api/dev-team/write-file",
+      "/api/dev-team/replace",
+      "/api/dev-team/set-version",
+      "/api/model-evolution/run",
+      "/api/model-selection/plan",
+      "/api/model-selection/apply",
+      "/api/model-selection/continue",
+      "/api/epoch/apply",
+      "/api/vault/reinventory",
+      "/api/session/mode",
+      "/api/shutdown"
+    ],
+    "owner_required_prefix_routes": [
+      {
+        "prefix": "/api/pipeline/run/",
+        "suffix": "/reply"
+      },
+      {
+        "prefix": "/api/jobs/",
+        "suffix": "/cancel"
+      }
+    ]
+  }
+}
