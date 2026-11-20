@@ -93,7 +93,7 @@ test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`
 a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
 touches release-gating logic across ~26 files + configs)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete — `release/0.32.2-hardening` shipped to `main` long ago and A1 moved evidence generation into CI on the merged tree (PR #88), so a branch-behind-base SHA256SUMS mismatch is no longer possible; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
@@ -203,7 +203,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
   `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
   skip-with-reason at the test layer. _(L · opus — 0.33.1)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete/duplicate of the identical item above — `release/0.32.2-hardening` shipped, superseded by A1 evidence-in-CI PR #88; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
@@ -664,7 +664,47 @@ from a CDN._
     render mostly-empty columns against current real data and isn't
     verifiable as an improvement over the existing list view without more
     realistic task volume to test against.
-- [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
+- [x] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph _(L · opus — DONE: PR #336)_
+  editor last. DONE: real data throughout. The Pipelines rail item stops
+  scroll-anchoring into the classic dock and becomes a real screen
+  (`data-screen-target="sig-screen-pipelines"`), same pattern as phase 2's
+  Settings/Personas. `signal-v2-pipelines.js` fetches `/api/pipelines/catalog`
+  (101 real pipelines, the backend's own 6 groups Core/Development/Governance/
+  Media/Model/Vault as filter chips, real id/description/stages/
+  persona_codename/pipeline_scope per card), `/api/pipelines/<id>/diagram` for
+  the pop-up stage flow and `/api/pipelines/<id>/stats` for the stats block.
+  No Mermaid library added (runtime stays dependency-free, offline-first): the
+  flow is drawn as plain SVG exactly like the classic dock's diagram modal,
+  with the endpoint's mermaid source exposed verbatim in a collapsed
+  `<details>`. `runs_passed`/`runs_failed`/`avg_duration_sec` are null in every
+  current response and are surfaced as an explicit "not yet tracked" line
+  carrying the backend's own note — not fake zeros, not a fake pass-rate chart
+  (same call phase 3 made). Run action included after investigating `app.js`:
+  it needs **zero** duplicated run logic — `startPipeline()` is a plain global
+  and `#pipeline-confirm` already lives outside `#sig-app-main`, so the button
+  returns to the Chat screen and delegates to the classic D-005 confirm flow
+  (editable request staged into the composer; nothing starts until Send).
+  Returning to Chat first is load-bearing: the staged request lands in
+  `#admin-message` *inside* the hidden `#sig-app-main`, so skipping that step
+  would have looked like a silent no-op (U-002). Fixed a phase-2 markup defect
+  found while wiring this: three stray `</div>` closers made every
+  `.sig-screen` parse as a body-level sibling outside `.sig-content`, so
+  opening Settings/Personas rendered them at y=1270 — below the 100vh shell and
+  entirely outside the viewport; all screens now render at y=84 under the
+  header. Classic `#pipeline-dock` untouched (side note: it caps its list at
+  `.slice(0,90)`, so 11 of the 101 pipelines were never visible there — the new
+  grid shows all 101). Verified live: grid + group filtering, mouse and
+  keyboard card opening, per-id diagram/stats, all three close paths with focus
+  restore, run hand-off up to the staged (unsent) request, all 3 waves
+  re-theming the screen and the SVG, phase-2 screens still working, no
+  horizontal overflow at 375px, 0 console errors. Pixel screenshots were not
+  possible in that session (browser pane not compositing) — verification is
+  DOM/behavioral against the live server, stated as such in the PR.
+- [ ] **Phase 4b -- drag-drop stage/graph editor on the Pipelines screen.** Deferred _(M · sonnet)_
+  from phase 4 per TODO's own "graph editor last" ordering. A drag-drop editor
+  already exists in the classic dock (`openPipelineEditor` in `app.js`, saving
+  through `/api/pipelines/draft` as draft-only); phase 4b is about bringing it
+  onto the Signal v2 screen, not writing a new one.
 - [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_
   **timeline (7b)** — the latter three need new endpoints (hypotheses, arena,   endpoints)_
   epoch rollback) that do not exist yet.
@@ -719,7 +759,7 @@ from a CDN._
 - [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure _(target-gated · M · sonnet for log analysis)_
   observed during the composite first-start window (plan-only oneshot; `reset-failed` was
   applied on host but is not a fix); add a regression check.
-- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
+- [x] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku — DONE: PR #334)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
 - [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — DONE: PR #327)_
@@ -737,10 +777,26 @@ from a CDN._
   `description`. One pipeline raising never stops the batch. Report is a
   JSON+Markdown pair under `<data_root>/aat_reports/<job_id>/`, delivered as
   a job artifact like any other pipeline output.
-- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
+- [x] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
   path quoting in evidence-collection helpers.
 - [x] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku — DONE: PR #335)_
+  path quoting in evidence-collection helpers. _(investigated + fixed 2026-07-27: the
+  `07g-model-selection-summary.json` key-scan and the hand-assembled `07k` normalized
+  verdict from the 2026-06-10 UAT session (`UAT-2026-06-10-first-start-full-composite.md`)
+  were ad-hoc terminal commands from that session, never committed scripts — grep for
+  `key-scan`/`normalized-verdict` across the tree hits only this TODO line. The
+  normalized-verdict extraction O-001 asks for already exists as `noemaforge first-start
+  summary --json` (`first_start_summary.py`, predates the UAT session); future UAT runs
+  should use it instead of ad-hoc key-scanning. O-002's unit-name-quoting class of bug is
+  real and was found in two committed evidence-collection helpers: `noemaforge_status.py`
+  `collect()` and `bootdoctor.py` `_detect_failed_units()` both ran `systemctl --failed
+  --no-legend` without `--plain`, so `line.split()[0]` captured the leading `●`
+  state-marker glyph instead of the unit name — `noemaforge status --json`'s
+  `failed_units` field surfaced `["●"]` and `bootdoctor` silently dropped every failed
+  unit (the glyph never ends in `.service`/`.timer`). Fixed by adding `--plain` at both
+  call sites, with regression tests.)_
+- [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
   starts the localhost dashboard) in the operator guide.
 
 ## 0.32.2 release-hardening checkpoints
@@ -908,7 +964,7 @@ from a CDN._
 
 ### P1 — PR #2 reviewability (manual action)
 
-- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.) _(obsolete — 0.32.2-era PR #2 housekeeping)_
+- [x] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. _(obsolete — PR #2 was 0.32.2-era housekeeping, long since closed/merged; ticked 2026-07-27.)_
 
 ## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
 
@@ -1021,9 +1077,10 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   `save_message()` called `append_message` twice, doubling session message
   count and halving the effective 500-message window.
 
-- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verify and tick)_
-  unbounded growth of the job index. Blocked until task-11
-  (`claude/task-11-wire-preflight`) merges to release.
+- [x] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verified 2026-07-27:
+  unbounded growth of the job index. `prune_terminal()` present at
+  `noemaforge/src/job_manager.py:293` on `release/0.33.0-dev`; `claude/jobmanager-prune-terminal`
+  confirmed an ancestor of `release/0.33.0-dev`.)_
 
 - [x] **Add idempotency integration test for `/api/model-selection/continue`**
   Done in `claude/task-15-idempotency-test` (13 tests pass). Covers:
@@ -1039,15 +1096,21 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
 
 Target-host required items:
 
-- [ ] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88; evidence generation is CI/pre-release-only per CLAUDE.md, never a manual dev-branch step; ticked 2026-07-27.)_
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
   `claude/task-19-sha256sums-premerge-check` (8 tests: 5 source-text + 3
-  functional pwsh subprocess). The check currently flags 4 files added during
-  0.32.2 hardening that are absent from SHA256SUMS and need regeneration on
-  the target host: `event_log.py`, `noemaforge_version.py`,
-  `orchestration_state.py`, `session_store.py`.
+  functional pwsh subprocess). This is a premerge *staleness detector*, not a
+  regenerator — it does not conflict with the item above, which is about the
+  manual dev-branch regeneration workflow being obsolete, not about whether
+  staleness should be flagged. The check currently flags 4 files added during
+  0.32.2 hardening that are absent from SHA256SUMS: `event_log.py`,
+  `noemaforge_version.py`, `orchestration_state.py`, `session_store.py`.
+  Per CLAUDE.md, evidence (including SHA256SUMS) is regenerated only at
+  pre-release by `publish-evidence.yml`, never manually on a dev branch or
+  the target host mid-development — this flag is expected to clear itself
+  once evidence is regenerated at actual release time, not before.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 

@@ -47,8 +47,15 @@ filesystem digging. Driven directly by the UAT defect register:
   (D-010).
 - **Runtime/ops follow-ups:** root-cause the one-off
   `llm-backends-manager` failure (R-001); liveness-oriented shipped smoke
-  (S-001); UAT helper fixes (O-001/O-002); document the no-TCP-by-default GUI
-  posture (O-003).
+  (S-001); document the no-TCP-by-default GUI posture (O-003).
+
+Fixed since this roadmap was written: O-001 (model-selection key-scan
+summary) was already satisfied by the existing `noemaforge first-start
+summary --json` normalized-verdict extraction; O-002 (UAT helper unit-name
+parsing) needed a real fix — `--plain` was missing from `systemctl --failed`
+calls in `noemaforge_status.py`/`bootdoctor.py`, so the `●` state-marker
+glyph was parsed as the unit name. See
+[DEFECT-REGISTER-0.32.2.md](uat/DEFECT-REGISTER-0.32.2.md).
 
 Already merged on the 0.33.0 line: `noema` CLI suite (start / doctor /
 release / upgrade / catalog / policy / ops-ref), presentation layer (README

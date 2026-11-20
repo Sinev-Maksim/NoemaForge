@@ -43,6 +43,15 @@ class StatefulAdminGuiRuntimeTests(unittest.TestCase):
         self.assertEqual(3, report["metrics"]["valid_source_reports"])
         self.assertEqual(6, report["metrics"]["surface_count"])
 
+    def test_offline_json_store_round_trips_native_path_key(self) -> None:
+        server = sagr.build_offline_admin_gui_server(package_root=ROOT)
+        path = server.gui_state_dir / "roundtrip.json"
+        expected = {"state": "persisted"}
+
+        server._write_json(path, expected)
+
+        self.assertEqual(expected, server._read_json(path, {}))
+
     def test_gui_state_restores_conversation_persona_tasks_jobs_telemetry_and_pipelines(self) -> None:
         fixture = sagr.build_stateful_gui_fixture(package_root=ROOT)
         gui_state = fixture["gui_state"]
