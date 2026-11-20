@@ -219,6 +219,119 @@ starting another greenfield architecture:
 Functional separation remains mandatory where independence matters: mutation and
 review, candidate and judge, privileged operation and release verdict. The roadmap
 does not preserve multi-agent conversation for its own sake.
+0.32.2 was validated end-to-end on the production target host
+(Debian 13 "Trixie", GNOME/GDM, RTX 3080 Ti) during the 2026-06-08/10 UAT
+campaign — see [`docs/uat/`](uat/README.md):
+
+| Layer | State |
+|---|---|
+| Cutover (BrainOS frozen → NoemaForge owns host) | PASS, reversible backup kept |
+| Clean install from GitHub `main` + liveness | PASS (`LIVENESS_UAT_OK`) |
+| First-start `--full_composite` real apply | PASS — epoch `00005`, runtime safety clean |
+| Display safety during heavy runs | PASS — GDM preserved by default |
+| Admin GUI / user-facing experience | **NOT production-ready** — major UI/routing defects |
+
+The runtime core is solid; everything blocking a non-engineer operator sits in
+the Admin GUI presentation/routing layer. Those findings (15 defects + 5
+tooling/runtime items) are canonically tracked in
+[`docs/uat/DEFECT-REGISTER-0.32.2.md`](uat/DEFECT-REGISTER-0.32.2.md).
+
+## 0.33.0 — admin-gui-prod-readiness-fixpack (next up)
+
+Goal: a non-engineer operator can install, start, run a pipeline and receive
+the result entirely through the Admin GUI, with no JSON reading and no
+filesystem digging. Driven directly by the UAT defect register:
+
+- **P0 — trust and feedback loop:** deterministic glossary answers for known
+  system states (D-003); pipeline confirm transfers the command into chat
+  (D-005); visible per-run progress (D-007); artifacts delivered into chat as
+  cards — the API metadata already exists (U-001/U-005); no silent no-ops —
+  every command gets a visible response (U-002).
+- **P1 — comprehension:** readable epoch/model-selection panel with tooltips
+  and non-stale plan state (D-002); distinct personas, explicit selector,
+  return-to-admin flow, pipeline greeting (U-003/D-009); iteration controls
+  that visibly attach to the next message (D-008).
+- **P2 — presentation polish:** hardware gauges (D-001), readable product
+  metrics (D-004), rendered pipeline diagrams (D-006), repeat-launch guard
+  (D-010).
+- **Runtime/ops follow-ups:** root-cause the one-off
+  `llm-backends-manager` failure (R-001); liveness-oriented shipped smoke
+  (S-001); document the no-TCP-by-default GUI posture (O-003).
+
+Fixed since this roadmap was written: O-001 (model-selection key-scan
+summary) was already satisfied by the existing `noemaforge first-start
+summary --json` normalized-verdict extraction; O-002 (UAT helper unit-name
+parsing) needed a real fix — `--plain` was missing from `systemctl --failed`
+calls in `noemaforge_status.py`/`bootdoctor.py`, so the `●` state-marker
+glyph was parsed as the unit name. See
+[DEFECT-REGISTER-0.32.2.md](uat/DEFECT-REGISTER-0.32.2.md).
+
+Already merged on the 0.33.0 line: `noema` CLI suite (start / doctor /
+release / upgrade / catalog / policy / ops-ref), presentation layer (README
+v2, security front page, scenario pack, published evidence workflow), AAT
+suite CI tier, OpenSSF Scorecard workflow, premerge-quality for 0.33.x.
+
+## 0.33.1 — full system independence
+
+NoemaForge runs identically on Linux, macOS and Windows: parity for paths,
+service/process management, sockets, exec/sandbox, display safety and the
+Admin GUI launcher (builds on the 0.32.2 `platform_paths` migration).
+**Acceptance: the AAT suite plus the full test matrix pass identically on all
+three OS families.**
+
+## 0.33.2 — hybrid LLM usage
+
+External/hosted LLMs usable alongside local models: a provider-runtime
+resolver for the top ~10 providers behind ToolProxy capability tokens and
+deny-by-default policy — local credentials, redaction-before-egress,
+cost/rate ceilings, explicit operator opt-in. Nothing leaves the machine by
+default.
+
+## 0.33.3 — agent-OS maturation (strategic, post-0.32.x)
+
+Promote NoemaForge from a set of **validation-contract runtimes** to a live,
+governed multi-agent OS. Validated against the codebase, this milestone is
+largely *maturation and enforcement* of subsystems that already exist as
+contract validators — not greenfield — organised into nine tracks. The
+task-level breakdown, with effort tiers and the existing foundation noted per
+item, is in the canonical
+[`TODO.md`](../noemaforge/docs/TODO.md#0333-strategic-roadmap-post-032x).
+
+- **Agent governance** — Admin stays the only user-facing authority; specialists
+  return results to Admin and cannot terminate conversations. Formal agent
+  lifecycle states and an explicit handoff protocol (ownership, reasoning trace,
+  confidence) on the existing task-workflow runtime and RoleFlow backlog.
+- **Multi-model consensus** — fusion (parallel independent reasoning), a judge
+  framework (answer scoring, hallucination/assumption detection) and debate mode,
+  on the role-tournament scorer and the Sense/Critic governance backlog.
+- **Context engineering** — a live context-budget manager (token accounting,
+  memory prioritization, retrieval ranking), a compression pipeline (summarization,
+  dedup, fact extraction) and context quality metrics — promoting the
+  memory-budgeted and topic-adjacent retrieval contracts.
+- **Evaluation framework** — internal SWE-bench / GAIA / AgentBench-inspired
+  benchmarks and a regression harness over routing, memory, tools and artifacts,
+  extending the AAT suite's LLM tier.
+- **Artifact-centric workflows** — every generation pipeline emits artifacts; a
+  unified artifact registry with lineage (creator, inputs, generation chain),
+  promoting the artifact-registry-table contract and the in-chat artifact cards.
+- **Sandbox & security** — per-agent sandbox execution, capability-based
+  permissions, tool allowlists and resource quotas (RAM/CPU/GPU/network), hardening
+  the existing ToolProxy capability tokens, `caps`/allowlist policy and `sandbox`
+  rlimits.
+- **Runtime intelligence** — dynamic model routing made cost-, latency- and
+  quality-aware, extending the product model-routing surface and the 0.33.2 cost
+  ceilings.
+- **Observability** — agent execution traces, workflow replay, decision auditing,
+  failure classification and a runtime dashboard, maturing the
+  trace-observability-evaluation design and the telemetry dashboard.
+- **Production readiness** — formal release process, a Stable/LTS channel, a
+  migration framework with upgrade rollback, and an automated UAT suite —
+  formalising `noema release` / `publish-evidence`, `noema upgrade` rollback and
+  the AAT / U-004 track.
+
+Sequencing: 0.33.3 follows 0.33.0–0.33.2, and several tracks (sandbox, hybrid-LLM
+routing, AAT) share foundations with earlier milestones and advance incrementally
+rather than as one big-bang release.
 
 ## Cross-cutting tracks
 

@@ -73,6 +73,16 @@ SHA256SUMS
 noemaforge-*.tar.gz
 noemaforge_*.tar.gz
 
+# Release evidence — generated only at pre-release (publish-evidence.yml),
+# never tracked on dev/release/PR branches (matches release/0.33.0-dev model).
+MANIFEST.json
+MANIFEST.json.sha256
+MANIFEST.sha256
+SHA256SUMS.sha256
+noemaforge/checksums/SHA256SUMS
+noemaforge/docs/MANIFEST.json
+noemaforge/docs/MANIFEST.json.sha256
+
 # PyYAML build artifacts (pip install local)
 PyYAML/
 PyYAML.egg-info/

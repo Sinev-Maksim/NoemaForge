@@ -69,6 +69,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from embeddings import hash_embed
 from vstore import VStore, VStoreConfig
+from platform_paths import DEFAULT_PATHS as _pp
 
 
 # === NoemaForge Autodoc Function Header ===
@@ -167,8 +168,8 @@ def load_memory_policy(epoch_dir: str) -> Dict[str, Any]:
         },
         "longterm": {
             "enabled": True,
-            "vstore_base_dir": "/var/lib/noemaforge/vstore",
-            "sqlite_path": "/var/lib/noemaforge/memory/longterm.sqlite",
+            "vstore_base_dir": str(_pp.data_root / "vstore"),
+            "sqlite_path": str(_pp.data_root / "memory" / "longterm.sqlite"),
             "layer": "memory_long",
             "embed": {"model_id": "hash256-v1", "dims": 256},
         },
@@ -577,7 +578,7 @@ class MemorySystem:
 
         sqlite_path = _safe_sqlite_path(str(cfg.get("sqlite_path") or ""))
         vstore_layer = str(cfg.get("layer") or f"memory_{name}")
-        vstore_base_dir = str(cfg.get("vstore_base_dir") or ("/dev/shm/noemaforge/vstore" if name == "session" else "/var/lib/noemaforge/vstore"))
+        vstore_base_dir = str(cfg.get("vstore_base_dir") or ("/dev/shm/noemaforge/vstore" if name == "session" else str(_pp.data_root / "vstore")))
 
         emb = cfg.get("embed") or {}
         if not isinstance(emb, dict):
@@ -589,11 +590,11 @@ class MemorySystem:
         if name == "session":
             try:
                 if not os.path.isdir("/dev/shm"):
-                    sqlite_path = "/var/lib/noemaforge/.tmp/session_memory.sqlite"
-                    vstore_base_dir = "/var/lib/noemaforge/.tmp/vstore"
+                    sqlite_path = str(_pp.data_root / ".tmp" / "session_memory.sqlite")
+                    vstore_base_dir = str(_pp.data_root / ".tmp" / "vstore")
             except Exception:
-                sqlite_path = "/var/lib/noemaforge/.tmp/session_memory.sqlite"
-                vstore_base_dir = "/var/lib/noemaforge/.tmp/vstore"
+                sqlite_path = str(_pp.data_root / ".tmp" / "session_memory.sqlite")
+                vstore_base_dir = str(_pp.data_root / ".tmp" / "vstore")
 
         return MemoryLayer(
             enabled=enabled,

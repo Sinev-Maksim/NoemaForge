@@ -108,6 +108,7 @@ from prestart import (
     prepare_plugins_for_epoch,
 )
 from epoch import current_epoch_dir
+from platform_paths import DEFAULT_PATHS as _pp
 
 # SEL/WORM
 from seclog import verify as sel_verify, seal as sel_seal, verify_anchors as sel_verify_anchors
@@ -1706,8 +1707,8 @@ def main(argv: list[str]) -> int:
     p_scrun.add_argument("--role", required=True)
     p_scrun.add_argument("--cap", default="llm", choices=["llm", "embed"])
     p_scrun.add_argument("--suite", default="smoke", choices=["smoke", "full"])
-    p_scrun.add_argument("--gateway-sock", default="/run/noemaforge/llm/gateway.sock")
-    p_scrun.add_argument("--scorecards-dir", default="/var/lib/noemaforge/model_scorecards")
+    p_scrun.add_argument("--gateway-sock", default=str(_pp.llm_gateway_socket))
+    p_scrun.add_argument("--scorecards-dir", default=str(_pp.data_root / "model_scorecards"))
     p_scrun.add_argument("--no-sel", action="store_true")
 
     # First-boot helper: compute scorecards + emit a draft pre-start plan
@@ -1720,9 +1721,9 @@ def main(argv: list[str]) -> int:
     p_mplan = m_sub.add_parser("plan")
     p_mplan.add_argument("--epoch-id", default="", help="epoch id (default: current)")
     p_mplan.add_argument("--registry", default="/var/lib/modelstore/model_registry.json")
-    p_mplan.add_argument("--scorecards-dir", default="/var/lib/noemaforge/model_scorecards")
+    p_mplan.add_argument("--scorecards-dir", default=str(_pp.data_root / "model_scorecards"))
     p_mplan.add_argument("--outbox-dir", default="/workspace/outbox/installer-plan")
-    p_mplan.add_argument("--requests-dir", default="/var/lib/noemaforge/requests/prestart")
+    p_mplan.add_argument("--requests-dir", default=str(_pp.data_root / "requests" / "prestart"))
     p_mplan.add_argument("--top-k", type=int, default=2)
 
     # Roadmap (SR/SSR -> Surgeon)
@@ -2023,12 +2024,12 @@ def main(argv: list[str]) -> int:
             min_decision = str(getattr(args, "min_decision")).strip()
         if bool(getattr(args, "include_gate", False)):
             include_gate = True
-        db_path = str((kpol.get("store") or {}).get("db_path") or "/var/lib/noemaforge/kg/kg.sqlite")
+        db_path = str((kpol.get("store") or {}).get("db_path") or str(_pp.data_root / "kg" / "kg.sqlite"))
         prep_defaults = load_prep_processing_config(str(args.contracts_root))
-        prep_db_path = str(prep_defaults.get("db_path") or "/var/lib/noemaforge/kg/prep_index.sqlite")
-        prep_artifact_root = str(prep_defaults.get("artifact_root") or "/var/lib/noemaforge/kg/prep_artifacts")
+        prep_db_path = str(prep_defaults.get("db_path") or str(_pp.data_root / "kg" / "prep_index.sqlite"))
+        prep_artifact_root = str(prep_defaults.get("artifact_root") or str(_pp.data_root / "kg" / "prep_artifacts"))
         err_cfg = (kpol.get("error_learning") or {}) if isinstance(kpol.get("error_learning"), dict) else {}
-        error_db_path = str(err_cfg.get("db_path") or "/var/lib/noemaforge/kg/error_learning.sqlite")
+        error_db_path = str(err_cfg.get("db_path") or str(_pp.data_root / "kg" / "error_learning.sqlite"))
         if str(getattr(args, "db", "") or "").strip():
             if str(args.kg_cmd).startswith("prep-"):
                 prep_db_path = str(getattr(args, "db"))
@@ -2496,7 +2497,7 @@ def _toolvault_paths_from_epoch(epoch_dir: str) -> Dict[str, str]:
             try:
                 pol = _load_yaml(p) or {}
                 tv = pol.get("tool_vault") or {}
-                root = str(tv.get("root") or "/var/lib/noemaforge/toolvault")
+                root = str(tv.get("root") or str(_pp.vault_dir))
                 return {
                     "root": root,
                     "manifests": str(tv.get("manifests_dir") or os.path.join(root, "manifests")),
@@ -2505,7 +2506,7 @@ def _toolvault_paths_from_epoch(epoch_dir: str) -> Dict[str, str]:
                 }
             except Exception:
                 continue
-    root = "/var/lib/noemaforge/toolvault"
+    root = str(_pp.vault_dir)
     return {"root": root, "manifests": os.path.join(root, "manifests"), "artifacts": os.path.join(root, "artifacts"), "installed": os.path.join(root, "installed")}
 
 

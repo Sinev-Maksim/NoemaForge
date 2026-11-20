@@ -14,9 +14,15 @@ Purpose: Plan and apply an in-place NoemaForge version upgrade by replacing inst
 Inputs: a current install root; an extracted incoming-release root; optional extra preserve globs.
 Outputs: a structured upgrade plan (replace/add/preserve/skip) and, with --apply, the actions taken.
 Side effects: read-only in plan/dry-run; copies incoming files into the install root only on --apply.
+  As a narrow, safety-gated exception (UAT request findings resolution, 0.33.0), `noema upgrade run
+  --apply` also disables a confirmed-legacy pre-NoemaForge brainos-shutdown-stop.service left over
+  from a BrainOS upgrade by removing its *.target.wants enablement symlinks -- see
+  remove_legacy_brainos_shutdown_hook(). This never touches the install/data root and never deletes
+  the legacy unit file itself (kept as a forensic artifact), so the "never deletes install-tree
+  files" invariant below is unchanged for everything this module actually plans/applies.
 Tests: python3 -m unittest noemaforge/tests/test_noema_upgrade.py
 Notes: Code comments are English-only. This module performs NO GPU/model/display actions and never
-  removes files, so it is display-safe and data-safe by construction.
+  removes install-tree files, so plan/apply is display-safe and data-safe by construction.
 === End NoemaForge File Header ===
 
 Design: NoemaForge separates the install root (code/docs — upgraded here) from the data root
@@ -180,6 +186,80 @@ def format_plan(plan: Dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+# ── Legacy BrainOS shutdown-hook cleanup (UAT request findings resolution, 0.33.0) ─────
+#
+# A host upgraded from BrainOS to NoemaForge can retain an orphaned
+# brainos-shutdown-stop.service systemd unit: not owned by any package, predates
+# NoemaForge, sources /usr/local/lib/brainos-common.sh. A stray *.target.wants symlink to
+# it makes systemd run it at BOOT (not just shutdown), where it times out after 45s -- a
+# boot-time failure log entry for a hook that only ever managed old brainos-* units and
+# sockets. It does not stop any noemaforge-* service, so it is pure dead weight. This is a
+# confirmed installation defect from before NoemaForge existed, not user/machine state in
+# the sense the module-level "never deletes" invariant protects: removal here is narrowly
+# gated on unit content (must reference the legacy brainos-common.sh helper or
+# brainos-stop) so it can never touch an unrelated file that merely shares the name. The
+# unit file itself is left on disk as an optional forensic artifact -- only its
+# *.target.wants enablement symlinks are removed, which is sufficient to stop it running
+# at boot or shutdown.
+
+DEFAULT_SYSTEMD_DIR = Path("/etc/systemd/system")
+LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME = "brainos-shutdown-stop.service"
+# Content signatures confirming a same-named unit is really the known legacy artifact.
+_LEGACY_BRAINOS_SIGNATURES = ("brainos-common.sh", "brainos-stop")
+
+
+def remove_legacy_brainos_shutdown_hook(
+    systemd_dir: Path | str = DEFAULT_SYSTEMD_DIR,
+) -> Dict[str, Any]:
+    """Disable the legacy (pre-NoemaForge) brainos-shutdown-stop.service left over from a
+    BrainOS -> NoemaForge upgrade, by removing its ``*.target.wants`` enablement symlinks.
+
+    Safety-gated: only acts when a unit file named exactly
+    ``brainos-shutdown-stop.service`` exists under *systemd_dir* AND its content contains
+    a known BrainOS signature (a sourced ``brainos-common.sh`` or a ``brainos-stop``
+    reference). A same-named file without that content is left completely untouched --
+    matching never happens on filename alone. The unit file itself is never deleted (kept
+    as a forensic artifact); only enablement symlinks under ``*.target.wants/`` pointing at
+    it are removed, across every target (multi-user, graphical, shutdown, sysinit, ...),
+    since systemd can enable a unit under several targets at once.
+
+    Idempotent: if the unit is absent, or already has no enablement symlinks, this is a
+    silent no-op -- never raises for the "nothing to do" case.
+    """
+    systemd_dir = Path(systemd_dir)
+    unit_path = systemd_dir / LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME
+    result: Dict[str, Any] = {
+        "unit_found": False,
+        "unit_confirmed_legacy": False,
+        "symlinks_removed": [],
+        "removed_count": 0,
+    }
+    if not unit_path.is_file():
+        return result
+    result["unit_found"] = True
+    try:
+        content = unit_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        # Unreadable unit file: cannot confirm the signature, so leave it strictly alone.
+        return result
+    if not any(signature in content for signature in _LEGACY_BRAINOS_SIGNATURES):
+        return result
+    result["unit_confirmed_legacy"] = True
+
+    removed: List[str] = []
+    for wants_link in sorted(systemd_dir.glob(f"*.target.wants/{LEGACY_BRAINOS_SHUTDOWN_UNIT_NAME}")):
+        try:
+            if wants_link.is_symlink() or wants_link.exists():
+                wants_link.unlink()
+                removed.append(str(wants_link))
+        except OSError:
+            # Best-effort per symlink; a lock/permission issue on one must not block others.
+            continue
+    result["symlinks_removed"] = removed
+    result["removed_count"] = len(removed)
+    return result
+
+
 # ── GitHub-native fetch (resolve + fail-safe archive download + safe extract) ──────────
 #
 # A "Fetcher" is any callable url -> bytes; the default uses urllib. Injecting it keeps the
@@ -277,13 +357,20 @@ def fetch_and_extract(archive_url: str, dest: Path, *, fetcher: Optional[Fetcher
 def run_upgrade(current_root: Path, repo: str, *, version: Optional[str] = None,
                 manifest_name: str = "release-manifest.json", apply: bool = False,
                 allow_unverified: bool = False, preserve_globs: Optional[Sequence[str]] = None,
-                fetcher: Optional[Fetcher] = None, dest: Optional[Path] = None) -> Dict[str, Any]:
+                fetcher: Optional[Fetcher] = None, dest: Optional[Path] = None,
+                cleanup_legacy_brainos: bool = True,
+                systemd_dir: Optional[Path | str] = None) -> Dict[str, Any]:
     """End-to-end in-place upgrade: fetch a GitHub release -> verify its signed manifest ->
     plan -> apply (dry-run by default).
 
     Aborts BEFORE planning/applying if the release manifest fails verification (or is absent and
     --allow-unverified was not given), so an unverified release is never installed. Display-safe:
     file operations only (no GPU/model/display); never deletes or overwrites protected state.
+
+    On a real apply (``apply=True``), also runs remove_legacy_brainos_shutdown_hook() to disable
+    any confirmed-legacy brainos-shutdown-stop.service left over from a BrainOS upgrade (pass
+    ``cleanup_legacy_brainos=False`` to skip, or ``systemd_dir`` to point at a non-default root --
+    used by tests). Dry-run and plan-only calls never touch host systemd state.
     """
     import tempfile
     current_root = Path(current_root)
@@ -315,9 +402,16 @@ def run_upgrade(current_root: Path, repo: str, *, version: Optional[str] = None,
 
     plan = plan_upgrade(current_root, Path(incoming), preserve_globs=preserve_globs)
     result = apply_plan(plan, dry_run=not apply)
+
+    legacy_brainos_cleanup: Optional[Dict[str, Any]] = None
+    if apply and cleanup_legacy_brainos:
+        legacy_brainos_cleanup = remove_legacy_brainos_shutdown_hook(
+            systemd_dir if systemd_dir is not None else DEFAULT_SYSTEMD_DIR
+        )
+
     return {"ok": True, "stage": "apply" if apply else "plan", "version": rel["version"],
             "verified": verified, "plan_summary": plan["summary"], "result": result,
-            "incoming": str(incoming)}
+            "incoming": str(incoming), "legacy_brainos_cleanup": legacy_brainos_cleanup}
 
 
 def main(argv: Optional[List[str]] = None) -> int:

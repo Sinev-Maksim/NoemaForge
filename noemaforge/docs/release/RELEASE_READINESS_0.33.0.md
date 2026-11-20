@@ -1,9 +1,10 @@
 # NoemaForge 0.33.0 — Release Readiness
 
 - **Version:** 0.33.0 (source of truth: `VERSION`)
-- **Status:** pre-release hardening — **not yet tagged**. Awaiting PR merges, then
-  human GO + target-host validation.
-- **Line:** `release/0.33.0-dev` → `main` → tag `v0.33.0`.
+- **Status:** merged to `main` (PR #138); `VERSION` = 0.33.0 on `main`. **Not yet tagged.**
+  Remaining gates: release-channel decision, target-host validation, explicit human GO,
+  then tag `v0.33.0`.
+- **Line:** `release/0.33.0-dev` → `main` (done, #138) → tag `v0.33.0` (pending GO).
 - **Process of record:** [`RELEASING.md`](RELEASING.md). Target-host gate list:
   adapt [`RELEASE_FINALIZATION_0.32.2.md`](RELEASE_FINALIZATION_0.32.2.md) to 0.33.0.
 
@@ -11,23 +12,23 @@ This document tracks what is ready and what still gates a 0.33.0 release. It is 
 checklist, not an authorization — per the hard rule, no production GitHub Release
 is published without explicit human GO **and** target-host validation evidence.
 
-## 1. Release content (PRs into `release/0.33.0-dev`)
+## 1. Release content (merged to `main` via #138)
 
-Already merged: #97 (repo-security rulesets), #98 (CodeQL fixes), #99 (admin-state
-glossary), #103 (0.33.3 roadmap), #104 (0.32.2 broad-pytest, on the 0.32.2 line).
+`release/0.33.0-dev` was merged to `main` (PR #138). On top of the 0.32.2 hardening
+baseline, 0.33.0 delivers:
 
-Open and mergeable — recommended merge order (low-risk → keystone last):
-
-1. **#110** — version promotion 0.32.2 → 0.33.0 (configs, `release.json`, CLI, audit).
-2. **#111** — 0.33.0 CHANGELOG entry.
-3. **#109** — TODO hygiene + records the validator-class follow-up.
-4. **#108** — Class A root-doc test fix (42 `*_qa.py` read loops + vacuous guard).
-5. **#107** — D2: `bin/noemaforge` integration tests via the Python entrypoint.
-6. **#105** — broad-pytest collection isolation (`conftest.py`) — keystone; makes
-   the suite run order-independent.
-
-All six are independent except the shared `Claude_stats.md` append (resolve by
-keeping all rows). After merge, `release/0.33.0-dev` → `main`.
+- **Admin GUI / operator UX fixpack** — pipeline confirm + run-progress UX, metrics and
+  artifact chat cards, dashboard glossary (D003), pipeline diagram (D006), pipeline
+  editor flows (D009/D010), epoch-panel readability, iteration controls, persona
+  selector (U003), and a no-silent-noop guarantee.
+- **Version centralization** — all active release surfaces promoted 0.32.2 → 0.33.0
+  (configs, `release.json`, CLI fallback, audit); `RUNTIME_VERSION` derived from `VERSION`.
+- **`noema` CLI surface** — `noema doctor` readiness, `noema start`, and the one-command
+  UAT runner.
+- **Security / scan hardening** — job-id path-traversal guard, DOM-XSS + subprocess
+  Semgrep fixes, SHA-pinned workflows, and the pre-release-only evidence model.
+- **Quality / CI** — order-independent broad-pytest collection (`conftest.py`), validator
+  doc-ref resolution fixes, and the portable wiki hub-index ordering regression test.
 
 ## 2. Gate status (verified on the hardened tree, Windows / CPython 3.14)
 
@@ -60,7 +61,9 @@ dev. They are generated and verified at the tag:
 
 ## 4. Human-gated — required before the GitHub Release (HARD RULE)
 
-- [ ] All six release PRs merged → `release/0.33.0-dev` → `main`.
+- [x] Release content merged → `release/0.33.0-dev` → `main` (#138); `VERSION` 0.33.0 on `main`.
+- [ ] **Release-channel decision** — root `release.json` is still `status/channel: pre-alpha`;
+  confirm the 0.33.0 channel (keep `pre-alpha`, or promote to `alpha`/`beta`) before the Release.
 - [ ] **Target-host P0 validation** on the production target (Debian 13 Trixie,
   GNOME/GDM, RTX 3080 Ti): install, services, model selection, display safety,
   Admin GUI — per the 0.32.2 finalization gate list adapted to 0.33.0.

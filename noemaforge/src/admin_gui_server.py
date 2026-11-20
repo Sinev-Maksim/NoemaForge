@@ -75,6 +75,7 @@ TRACE_COVERAGE_ADMIN_GUI_JOBS_ANCHORS = (
 
 import production_ai_contracts
 import admin_gui_routes
+import aat_allpipeline_runtime
 import model_profiles
 import selection_refresh_runtime as selection_refresh
 from i18n_runtime import localized_message, normalize_locale
@@ -3023,6 +3024,93 @@ production_ai_contracts.new_trace_id(f"job-{kind}"),
         draft = {"draft_id": draft_id, "created_at": now_iso(), "status": "draft_only", "body": normalized, "safety": "not active until Scary/Architecture/Admin approval"}
         self._write_json(out, draft)
         return {"ok": True, "version": RUNTIME_VERSION, "reply": "New pipeline draft created; it is not active until review/approval.", "draft": draft, "artifacts": [{"type": "pipeline_draft", "status": "created", "label": f"{draft_id}.json", "path": str(out), "open_command": "cat " + str(out)}]}
+
+    def _aat_pipeline_catalog(self) -> Dict[str, Any]:
+        """Raw {pipeline_id: spec} catalog for the AAT all-pipeline batch (U-004).
+
+        Deliberately reads pipelines.json/media-pipeline-catalog.json directly
+        (like pipeline_catalog_api()) rather than importing pipeline_runtime.py
+        as a library — this file only ever shells out to pipeline_runtime.py by
+        design, never imports it.
+        """
+        catalog: Dict[str, Any] = dict(self._read_json(self.root / "configs" / "pipelines.json", {}))
+        media = self._read_json(self.root / "configs" / "media-pipeline-catalog.json", {})
+        for item in media.get("pipelines", []) if isinstance(media, dict) else []:
+            if not isinstance(item, dict):
+                continue
+            pid = str(item.get("id") or "").strip()
+            if pid and pid not in catalog:
+                catalog[pid] = {
+                    "description": str(item.get("notes") or item.get("entrypoint") or "Media pipeline adapter."),
+                    "permission_mode": "plan_only",
+                }
+        return {k: v for k, v in catalog.items() if isinstance(v, dict)}
+
+    def aat_run_all_pipelines_start(self) -> Dict[str, Any]:
+        """U-004: run every catalog pipeline in safe test mode from one control.
+
+        Starts a background job (see _aat_run_all_pipelines_worker) and returns
+        immediately; the GUI polls /api/jobs (or the SSE job stream) for
+        progress, same as any other long-running job.
+        """
+        catalog = self._aat_pipeline_catalog()
+        job = self.create_job(
+            "aat_all_pipelines",
+            status="running",
+            progress={"current": 0, "total": len(catalog), "label": "starting"},
+            command="aat_run_all_pipelines",
+        )
+        job_id = str(job["job_id"])
+        thread = threading.Thread(
+            target=self._aat_run_all_pipelines_worker,
+            args=(job_id, catalog),
+            daemon=True,
+            name=f"aat-allpipeline-{job_id}",
+        )
+        thread.start()
+        return {
+            "ok": True,
+            "version": RUNTIME_VERSION,
+            "job": job,
+            "reply": f"AAT all-pipeline run started ({len(catalog)} pipelines); job {job_id}.",
+        }
+
+    def _aat_run_all_pipelines_worker(self, job_id: str, catalog: Dict[str, Any]) -> None:
+        """Background-thread body for aat_run_all_pipelines_start(). Never raises."""
+        def on_progress(current: int, total: int, pipeline_id: str) -> None:
+            manager = getattr(self, "job_manager", None)
+            if manager is not None:
+                manager.update_status(job_id, "running", progress={"current": current, "total": total, "label": pipeline_id})
+
+        def run_one(pipeline_id: str, request_text: str) -> Dict[str, Any]:
+            return self.pipeline_run(pipeline_id, request_text, allow_degraded=True)
+
+        manager = getattr(self, "job_manager", None)
+        try:
+            report = aat_allpipeline_runtime.run_all_pipelines_aat(
+                catalog=catalog,
+                run_pipeline_fn=run_one,
+                persona_fn=self._pipeline_persona,
+                on_progress=on_progress,
+            )
+            out_dir = self.data_root / "aat_reports" / job_id
+            paths = aat_allpipeline_runtime.write_aat_allpipeline_report(out_dir, report)
+            counts = report.get("counts") if isinstance(report.get("counts"), dict) else {}
+            artifacts = enrich_artifact_cards([{
+                "type": "aat_report",
+                "status": "created",
+                "label": "AAT all-pipeline report",
+                "path": paths["markdown"],
+                "open_command": "cat " + paths["markdown"],
+            }])
+            success = int(counts.get("error", 0)) == 0
+            if manager is not None:
+                manager.finish(job_id, success=success, artifacts=artifacts)
+            self.event_log.append("aat_all_pipelines_finished", {"job_id": job_id, "counts": counts, "total": report.get("total")})
+        except Exception as exc:  # the batch worker must never crash the server thread
+            if manager is not None:
+                manager.finish(job_id, success=False, artifacts=[])
+            self.event_log.append("aat_all_pipelines_failed", {"job_id": job_id, "error": str(exc)})
 
     # --- GUI intent helpers ---------------------------------------------------------
     def _explicit_control_request(self, low: str) -> bool:

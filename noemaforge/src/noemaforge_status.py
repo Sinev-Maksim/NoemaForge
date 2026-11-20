@@ -120,7 +120,7 @@ def collect(args: argparse.Namespace) -> Dict[str, Any]:
     sockets = {name: path.exists() and path.is_socket() for name, path in SOCKETS.items()}
     failed_units: List[str] = []
     if has_systemctl:
-        rc, out, _ = run_cmd(["systemctl", "--failed", "--no-legend", "--no-pager"], timeout=2.0)
+        rc, out, _ = run_cmd(["systemctl", "--failed", "--plain", "--no-legend", "--no-pager"], timeout=2.0)
         if rc == 0 and out:
             failed_units = [line.split()[0] for line in out.splitlines() if line.strip()]
 

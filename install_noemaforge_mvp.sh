@@ -129,6 +129,14 @@ normalize_opt_payload(){
     echo "[install][ERROR] /opt/noemaforge contains group-writable payload after normalization" >&2
     return 1
   }
+  if [[ ${EUID:-$(id -u)} -eq 0 ]]; then
+    local bad_owner
+    bad_owner="$(find "$opt_root" \( -not -user root -o -not -group root \) -print -quit)"
+    if [[ -n "$bad_owner" ]]; then
+      echo "[install][ERROR] /opt/noemaforge contains entries not owned by root:root after normalization: $bad_owner" >&2
+      return 1
+    fi
+  fi
   [[ "$missing" -eq 0 ]]
 }
 remove_stale_hotfix_dropins(){

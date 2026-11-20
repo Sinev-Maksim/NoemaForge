@@ -93,7 +93,7 @@ test fix in PR #108); and/or (b) update policy-config `refs` from bare `TODO.md`
 a full targeted + broad regression before merge. _(L · opus — NOT auto-fixed:
 touches release-gating logic across ~26 files + configs)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38) _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete — `release/0.32.2-hardening` shipped to `main` long ago and A1 moved evidence generation into CI on the merged tree (PR #88), so a branch-behind-base SHA256SUMS mismatch is no longer possible; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33) _(S · haiku)_
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35) _(S · haiku)_
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35) _(S · haiku)_
@@ -203,7 +203,7 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
   `.sh`/POSIX scripts (`WinError 193`). Fold into the 0.33.1 system-independence track or
   skip-with-reason at the test layer. _(L · opus — 0.33.1)_
 
-- [ ] **Update each PR branch from `release/0.32.2-hardening` before merge.** PRs are checked as the head *merged with base*, so a branch behind release produces an inconsistent merged `SHA256SUMS` and fails the manifest/checksum-evidence step — a non-code, regen-fixable failure. Merge release in (or rebase) and regenerate checksums before merge. (Codex #37/#38)
+- [x] **Update each PR branch from `release/0.32.2-hardening` before merge.** _(obsolete/duplicate of the identical item above — `release/0.32.2-hardening` shipped, superseded by A1 evidence-in-CI PR #88; ticked 2026-07-27.)_
 - [x] **Surface POSIX-rlimit unavailability in sandbox metadata.** On non-POSIX hosts `resource`/rlimits are absent and `sandbox.py` falls back to host execution; add an explicit meta flag (e.g. `rlimits_available: false`) to the sandbox run metadata so operators do not mistake the host fallback for resource-limited execution. (Codex #33)
 - [x] **Normalize `family`/`runtime` like `tags` in `composite_pair_scoring`.** They are compared raw, so `"Llama"` vs `"llama"` (case/whitespace) wrongly earns the diversity bonus; normalize (strip/lower) before comparing. (Codex #35)
 - [x] **`composite_pair_scoring._load_candidates()`: clearer validation errors** for non-object list entries instead of relying on `dict(item)` raising. (Codex #35)
@@ -216,8 +216,13 @@ First landed on `release/0.32.2-hardening` (PR #104); this is the port._
 _Forward-looking design/feature tasks for the 0.33.0 cycle; NOT in 0.32.2 scope. Design notes
 and NoemaForge mappings: [reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md](reference/HERMES_INTEGRATION_ROADMAP_0.33.0.md)._
 
-- [ ] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet)_
-- [ ] Add SkillProposal schema with SSR/QA review status. _(M · sonnet)_
+- [x] Add Hermes-style SKILL.md parser as quarantine-only import. _(M · sonnet — DONE: `skill_proposal_runtime.py` parses untrusted `SKILL.md` into a `SkillProposal` JSON record, keeps activation state `quarantined`, extracts requested tools/permissions for SSR/QA review, enforces size/section caps, and never registers or executes imported skill content.)_
+- [x] Add SkillProposal schema with SSR/QA review status. _(M · sonnet — DONE:
+  `noemaforge/contracts/skill_proposal.schema.json` requires `ssr_status` /
+  `qa_status` enums (`pending`/`ssr_review`/`approved`/`rejected`) plus a
+  `safety` block asserting `requires_ssr_review`/`requires_qa_review`;
+  `skill_proposal_runtime.py` emits both fields as `"pending"` on every parsed
+  proposal, covered by `test_skill_proposal_runtime.py`.)_
 - [ ] Add session_search SQLite FTS5 over conversations, batons, artifacts and tool events. _(L · opus)_
 - [ ] Add gateway-adapter architecture note based on single gateway process + allowlist/pairing. _(M · sonnet — design note)_
 - [ ] Add provider-runtime-resolver design doc. _(L · opus — 0.33.2 foundation design)_
@@ -561,12 +566,26 @@ release→main conflict resolution; statuses updated on restore._
   non-same-origin and active-scheme URLs. Built-in Node behavior tests execute
   both renderers with hostile payloads and verify literal text plus preserved
   controls. Remaining `insecure-innerhtml` sinks in these components: 0.
-- [ ] **Audit and fix dynamic SQL findings (15 baseline findings).** Verify each
-  raw-query construction path and parameterize or constrain active inputs.
-- [ ] **Audit and fix XML input-boundary findings (5 baseline findings).** Apply
-  hardened parsing at every untrusted or externally supplied XML boundary.
-- [ ] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
-  Prove fixed argv/environment allowlists or remove tainted command construction.
+- [x] **Audit and fix dynamic SQL findings (15 baseline findings).** DONE (#325):
+  hardened dynamic SQL construction across 7 call sites (alerts #99-179).
+  0 open `sql`/`raw-query` code-scanning alerts on `release/0.33.0-dev`
+  (verified 2026-07-26); the 15 still shown on `main` are pending propagation
+  at the next release cut, not unfixed.
+- [x] **Audit and fix XML input-boundary findings (5 baseline findings).** DONE
+  (#181): `privileged_gui_job_runner.py`, `persona_runtime.py`, `glove_agent.py`
+  parse via `defusedxml.ElementTree` with a regex entity-reference guard on the
+  stdlib fallback path (defusedxml stays an optional extra per the stdlib-only
+  runtime rule); `ci/acceptance_runner.py` no longer parses XML at all. 0 open
+  `use-defused-xml*` alerts on `release/0.33.0-dev` (verified 2026-07-26); the 5
+  still shown on `main` are pending propagation at the next release cut.
+- [x] **Audit and fix subprocess taint/allowlist findings (3 baseline findings).**
+  DONE (#324 + prior `uat_runtime.py` fix): resolved tainted-subprocess-env
+  findings in `prestart.py` (alerts #137, #139); `uat_runtime.py`'s
+  command-injection finding is fixed at the source (`pipeline_id` is
+  regex-validated to a safe token before `subprocess.run`) with a scoped inline
+  `# nosemgrep`. 0 open `subprocess`/`tainted-env` alerts on
+  `release/0.33.0-dev` (verified 2026-07-26); the 3 still shown on `main` are
+  pending propagation at the next release cut.
 
 The open counts above are Semgrep baseline findings, not confirmed
 vulnerabilities until audited. Final baseline evidence: run `27829681354`, ZIP
@@ -578,9 +597,77 @@ retained through 2026-06-26.
 
 _Actionable fixes from the 2026-06-08/10 target-host UAT campaign. Defect IDs, severity
 and acceptance criteria are canonical in `../uat/DEFECT-REGISTER-0.32.2.md`; per-run
-detail in `../uat/UAT-*.md`. Verdict driving this section: Admin GUI =
+detail in `../uat/UAT-*.md`. Original verdict driving this section: Admin GUI =
 PASS_WITH_MAJOR_UI_AND_ROUTING_DEFECTS, user-facing = PASS_WITH_MAJOR_USER_UX_AND_ROUTING_DEFECTS,
-production readiness for non-engineer operators = NOT READY._
+production readiness for non-engineer operators = NOT READY.
+2026-07-25 status: all P0/P1/P2 items below, plus U-004 (AAT all-pipeline demo
+mode, PR #327), are merged on `release/0.33.0-dev`. Target-host re-validation
+of the fixpack is still pending before the production-readiness verdict can
+be flipped._
+
+## Signal v2 admin GUI redesign (owner directive 2026-07-26 — mandatory for 0.33.0)
+
+_Design handoff: nav-rail shell, oklch color tokens, 3 experience waves
+(Operator/Guided/Play), 8 screens (Pipelines/Models/Tasks/Artifacts/Evolver/
+Epochs/Settings/Persona-gallery) + 2 detail pop-ups, replacing the current
+single-page Admin GUI. Full token/screen spec lives only in the design
+handoff bundle (not checked into the repo); phases below follow its own
+suggested implementation order. Deliberate deviation: the handoff specifies
+Instrument Sans/JetBrains Mono via Google Fonts CDN -- NoemaForge is
+offline-first (no external network required), so these fonts are declared as
+first preference in the font stack with system-font fallbacks, never fetched
+from a CDN._
+
+- [x] **Phase 1 -- tokens + shell** (rail, header, wave switcher). DONE: _(L · opus)_
+  `templates/pipeline-dashboard/signal-v2-tokens.css` (oklch palette ×3 waves,
+  typography, shape tokens; remaps existing `--bg/--panel/--line/--accent/etc.`
+  so every existing card/button re-themes with zero class/markup changes),
+  `signal-v2-shell.css` (88px nav rail, 64px header), `signal-v2-shell.js`
+  (wave switcher persisted to localStorage, rail scroll-anchor nav) — kept
+  fully separate from `style.css`/`app.js` so this phase is a two-line
+  `<link>`/`<script>` revert with zero risk to existing chat/pipeline/task
+  logic. Rail items without an implemented screen yet (Evolver, Epochs,
+  Settings) are `aria-disabled` with a "planned" title rather than a silent
+  no-op click.
+- [x] **Phase 2 -- persona gallery (7d) + Settings (7c)**. DONE: real data _(M · sonnet)_
+  throughout, nothing invented -- `signal-v2-screens.js` fetches the existing
+  `/api/persona/catalog` (23 real personas, already used by the classic
+  persona-select dropdown) for the card grid and rail avatar stack; Settings
+  is built by *relocating* (not duplicating) 8 already-wired real controls
+  (locale/persona-select/device-policy/execute+media-plan checkboxes/
+  shutdown) from the classic header, so every control keeps its exact prior
+  behavior. Design-handoff roster used 17 renamed personas (Демихов, Grace
+  Hopper, ...) that don't match this system's actual 23-persona catalog
+  (Атлас, Сигурд, Северин, ...) -- used the real catalog, not the mockup
+  names. Verified live: all 23 portraits load (caught and removed a
+  `loading="lazy"` that silently left 18/23 images unloaded even after
+  scrolling into view -- not worth the correctness risk for ~20 small SVGs),
+  screen switching and wave re-theming both verified against the new
+  screens, 0 console errors.
+- [ ] **Phase 3 -- Tasks board (5c) + Artifacts panes (5d).** Investigated _(M · sonnet -- see blockers)_
+  2026-07-26, deliberately NOT built shallow: real gaps found, not just
+  remaining effort.
+  - **Artifacts (5d):** no `/api/artifacts`-style *list* endpoint exists --
+    only single-artifact `/api/artifacts/open` and `/api/artifacts/download`
+    (confirmed via `Grep` across `admin_gui_server.py`). `app.js`'s
+    `latestArtifacts` is populated only as a side effect of conversation/job
+    history, not independently queryable. A real 3-pane browser (group list |
+    file list | preview) needs a new backend list endpoint first -- building
+    the screen without one would mean either duplicating app.js's transient
+    state (fragile, exactly the coupling phase 1/2 deliberately avoided) or
+    faking data. Blocked on that endpoint, not on frontend effort.
+  - **Tasks (5c):** `/api/tasks` does return a real `status` per task, so a
+    status-grouped board is technically buildable, but the live system
+    currently has 0 real tasks (only "expected default tasks" in a
+    placeholder state, category=SELF_IMPROVE/SECURITY/PLANNED etc. rather
+    than a clean pending/blocked/done enum) -- a 4-column Kanban board would
+    render mostly-empty columns against current real data and isn't
+    verifiable as an improvement over the existing list view without more
+    realistic task volume to test against.
+- [ ] **Phase 4 -- Pipelines card grid (5a) + pipeline pop-up (6a)**, graph editor last. _(L · opus)_
+- [ ] **Phase 5 -- Models vault (5b) + model pop-up (6b), Evolver lab (7a), Epochs** _(L · opus — needs new backend_
+  **timeline (7b)** — the latter three need new endpoints (hypotheses, arena,   endpoints)_
+  epoch rollback) that do not exist yet.
 
 ### P0 — trust and feedback loop (blocks operator use)
 
@@ -589,42 +676,42 @@ production readiness for non-engineer operators = NOT READY._
   the user's language — never hallucinate them as filenames. Done: `maybe_state_glossary`
   in `admin_runtime.py` answers 9 dashboard-state terms deterministically before the LLM
   path (`test_admin_state_glossary.py`).
-- [ ] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet)_
+- [x] **U-002** No silent no-ops: every user command produces at least one visible _(M · sonnet — DONE: PR #132)_
   response; async work shows accepted → running → status → result/failure with run id.
 - [x] **D-005** Pipeline confirm OK inserts the generated request into the chat input _(S · haiku)_
   (editable, with visible confirmation); Cancel only closes the dialog.
-- [ ] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — SSE backend already shipped)_
+- [x] **D-007** Visible pipeline run progress: per-run panel with current stage _(M · sonnet — DONE: PR #131)_
   highlighted, completed stages marked, errors with stage + short message, run id linked
   to artifacts/logs (text-only is acceptable for MVP).
-- [ ] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet)_
+- [x] **U-001/U-005** Deliver artifacts into chat: render the artifact metadata the API _(M · sonnet — DONE: PR #129)_
   already returns (`path`, `open_url`, `preview_url`, `download_url`, `open_command`) as
   result cards with open/download/copy actions; readable failure message on error.
 
 ### P1 — comprehension and persona UX
 
-- [ ] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet)_
+- [x] **D-002** Operator-readable epoch/model-selection panel: clear labels, tooltips for _(M · sonnet — DONE: PR #133)_
   state terms, full model names on hover, internally consistent progress numbers, and a
   "Latest plan" that reflects the actually applied run (no stale `normal` after a real
   `full_composite`).
-- [ ] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — persona routing + prompt design)_
+- [x] **U-003** Distinct personas with an explicit selector: observably different _(L · opus — DONE: PR #136)_
   behavior/tone/scope per persona, switch logged in chat, completion offers
   stay / return-to-Admin / switch.
-- [ ] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku)_
+- [x] **D-009** Pipeline persona greeting: every pipeline declares a default persona; on _(S · haiku — DONE: PR #128)_
   launch the chat shows the switch and the persona greets with next steps.
-- [ ] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet)_
+- [x] **D-008** Iteration controls visibly attach to the next message/job (send-button _(M · sonnet — DONE: PR #134)_
   label change + "next message runs as N-step cycle" notice + iteration progress), or are
   disabled with a warning where unsupported.
 
 ### P2 — presentation polish and guards
 
-- [ ] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku)_
+- [x] **D-001** Hardware card: RAM/Swap bars or gauges in human units (GiB, percent); raw _(S · haiku — DONE: PR #127)_
   JSON only behind Details/Debug.
-- [ ] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku)_
+- [x] **D-004** Product metrics card: grouped labeled rows (selected model, selection _(S · haiku — DONE: PR #127)_
   status, score, pass rate, JSON parse rate, quality score, avg latency, failed tasks);
   no raw JSON in the default view.
-- [ ] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — offline renderer, no CDN allowed)_
+- [x] **D-006** Render the pipeline diagram as a visual stage graph (readable fallback + _(M · sonnet — DONE: PR #135)_
   error if rendering fails; source behind debug).
-- [ ] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku)_
+- [x] **D-010** Repeat-launch guard: launching the same pipeline again within a short _(S · haiku — DONE: PR #128)_
   interval prompts start-new / continue-existing / cancel; existing runs visible.
 
 ### Runtime / ops follow-ups (0.33.x)
@@ -632,16 +719,41 @@ production readiness for non-engineer operators = NOT READY._
 - [ ] **R-001** Root-cause the one-off `noemaforge-llm-backends-manager.service` failure _(target-gated · M · sonnet for log analysis)_
   observed during the composite first-start window (plan-only oneshot; `reset-failed` was
   applied on host but is not a fix); add a regression check.
-- [ ] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku)_
+- [x] **S-001** Make the shipped ops smoke liveness-oriented: health ok + non-empty model _(S · haiku — DONE: PR #334)_
   reply = live; keep the literal-`OK` expectation as an optional strict mode so a healthy
   tiny instruct model is not reported `degraded`.
-- [ ] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — GUI tier of the AAT suite)_
+- [x] **U-004** All-pipeline AAT/demo mode (GUI tier of the AAT suite): one control runs _(L · opus — DONE: PR #327)_
   every available pipeline in safe test mode with small built-in prompts and exports a
   summary report (pipeline, case, status, artifact, error, duration, persona); failures
-  do not stop the batch by default.
-- [ ] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract _(S · haiku)_
+  do not stop the batch by default. DONE: `aat_allpipeline_runtime.py` +
+  `AdminGuiServer.aat_run_all_pipelines_start()` (job-based, `POST
+  /api/aat/run-all-pipelines`). "Safe test mode" reuses the existing
+  `permission_mode` taxonomy instead of inventing a new dry-run concept:
+  `plan_only` pipelines run end-to-end automatically, `ask_before_write`/
+  `guided_readmostly` are started and expected to stop at their own approval
+  gate (`blocked_pending_approval`, not a failure), `guided_admin`/
+  `explicit_only`/`manual_only` are excluded from the batch by design.
+  Built-in prompts are auto-derived from each pipeline's own registered
+  `description`. One pipeline raising never stops the batch. Report is a
+  JSON+Markdown pair under `<data_root>/aat_reports/<job_id>/`, delivered as
+  a job artifact like any other pipeline output.
+- [x] **O-001/O-002** UAT/ops helper polish: model-selection key-scan summary must extract
   real values (or be replaced by the normalized-verdict extraction); fix unit-name and
-  path quoting in evidence-collection helpers.
+  path quoting in evidence-collection helpers. _(investigated + fixed 2026-07-27: the
+  `07g-model-selection-summary.json` key-scan and the hand-assembled `07k` normalized
+  verdict from the 2026-06-10 UAT session (`UAT-2026-06-10-first-start-full-composite.md`)
+  were ad-hoc terminal commands from that session, never committed scripts — grep for
+  `key-scan`/`normalized-verdict` across the tree hits only this TODO line. The
+  normalized-verdict extraction O-001 asks for already exists as `noemaforge first-start
+  summary --json` (`first_start_summary.py`, predates the UAT session); future UAT runs
+  should use it instead of ad-hoc key-scanning. O-002's unit-name-quoting class of bug is
+  real and was found in two committed evidence-collection helpers: `noemaforge_status.py`
+  `collect()` and `bootdoctor.py` `_detect_failed_units()` both ran `systemctl --failed
+  --no-legend` without `--plain`, so `line.split()[0]` captured the leading `●`
+  state-marker glyph instead of the unit name — `noemaforge status --json`'s
+  `failed_units` field surfaced `["●"]` and `bootdoctor` silently dropped every failed
+  unit (the glyph never ends in `.service`/`.timer`). Fixed by adding `--plain` at both
+  call sites, with regression tests.)_
 - [ ] **O-003** Document the Admin GUI default posture (no TCP listener until the operator _(S · haiku)_
   starts the localhost dashboard) in the operator guide.
 
@@ -810,7 +922,7 @@ production readiness for non-engineer operators = NOT READY._
 
 ### P1 — PR #2 reviewability (manual action)
 
-- [ ] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. (Requires GitHub web UI or `gh` CLI — do via web.) _(obsolete — 0.32.2-era PR #2 housekeeping)_
+- [x] Add to PR #2 description: functional review base `v0.32.1-prelaunch...release/0.32.2-hardening`, list of actual 0.32.2 changed files grouped by area (runtime/helpers/docs/configs), and a summary of what a reviewer needs to check vs what is legacy/historical. _(obsolete — PR #2 was 0.32.2-era housekeeping, long since closed/merged; ticked 2026-07-27.)_
 
 ## 0.32.2 hardening — second deep analysis cycle (2026-05-30)
 
@@ -923,9 +1035,10 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
   `save_message()` called `append_message` twice, doubling session message
   count and halving the effective 500-message window.
 
-- [ ] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verify and tick)_
-  unbounded growth of the job index. Blocked until task-11
-  (`claude/task-11-wire-preflight`) merges to release.
+- [x] **Add `JobManager.prune_terminal(max_age_seconds=86400)`** to prevent _(shipped in 0.32.2 via PR #37 — verified 2026-07-27:
+  unbounded growth of the job index. `prune_terminal()` present at
+  `noemaforge/src/job_manager.py:293` on `release/0.33.0-dev`; `claude/jobmanager-prune-terminal`
+  confirmed an ancestor of `release/0.33.0-dev`.)_
 
 - [x] **Add idempotency integration test for `/api/model-selection/continue`**
   Done in `claude/task-15-idempotency-test` (13 tests pass). Covers:
@@ -941,15 +1054,21 @@ Windows-doable items derived from deep analysis of task-11/12/13/14 work:
 
 Target-host required items:
 
-- [ ] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88)_
+- [x] **SHA256SUMS regeneration** after all PR branches merge. _(obsolete — superseded by A1 evidence-in-CI, PR #88; evidence generation is CI/pre-release-only per CLAUDE.md, never a manual dev-branch step; ticked 2026-07-27.)_
 - [x] **Verify `noemaforge-premerge-check.ps1` catches SHA256SUMS staleness** —
   Added Check 9 to `noemaforge-premerge-check.ps1`: reads SHA256SUMS and
   verifies every `noemaforge/src/*.py` has an entry. Done in
   `claude/task-19-sha256sums-premerge-check` (8 tests: 5 source-text + 3
-  functional pwsh subprocess). The check currently flags 4 files added during
-  0.32.2 hardening that are absent from SHA256SUMS and need regeneration on
-  the target host: `event_log.py`, `noemaforge_version.py`,
-  `orchestration_state.py`, `session_store.py`.
+  functional pwsh subprocess). This is a premerge *staleness detector*, not a
+  regenerator — it does not conflict with the item above, which is about the
+  manual dev-branch regeneration workflow being obsolete, not about whether
+  staleness should be flagged. The check currently flags 4 files added during
+  0.32.2 hardening that are absent from SHA256SUMS: `event_log.py`,
+  `noemaforge_version.py`, `orchestration_state.py`, `session_store.py`.
+  Per CLAUDE.md, evidence (including SHA256SUMS) is regenerated only at
+  pre-release by `publish-evidence.yml`, never manually on a dev branch or
+  the target host mid-development — this flag is expected to clear itself
+  once evidence is regenerated at actual release time, not before.
 
 ## 0.32.2 hardening — completed in release/0.32.2-hardening
 

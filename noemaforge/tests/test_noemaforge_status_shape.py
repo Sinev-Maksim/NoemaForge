@@ -29,3 +29,29 @@ def test_noemaforge_status_shape(tmp_path):
     assert 'checks' in doc and doc['checks']
     assert 'next_actions' in doc and doc['next_actions']
     assert doc['health'] in {'ready', 'degraded', 'blocked'}
+
+
+def test_noemaforge_status_failed_units_skips_state_marker(tmp_path, monkeypatch):
+    # `systemctl --failed --no-legend` (without --plain) prefixes each row with
+    # the "●" state-marker glyph as its own leading column, so unqualified
+    # split()[0] parsing picks up the glyph instead of the real unit name
+    # (O-002). --plain suppresses the glyph column.
+    # Real `systemctl --failed` output; --plain suppresses the leading glyph
+    # column that `--no-legend` alone leaves in place.
+    marker_line = "● noemaforge-llm-backends-manager.service loaded failed failed Drift report"
+    plain_line = "noemaforge-llm-backends-manager.service loaded failed failed Drift report"
+
+    def fake_run_cmd(cmd, timeout=2.0):
+        if cmd[:2] == ["systemctl", "--failed"]:
+            return 0, (plain_line if "--plain" in cmd else marker_line), ""
+        return 1, "", "unused"
+
+    monkeypatch.setattr(noemaforge_status, "run_cmd", fake_run_cmd)
+    monkeypatch.setattr(noemaforge_status, "systemctl_available", lambda: True)
+    monkeypatch.setattr(noemaforge_status, "systemctl_is_active", lambda unit: "inactive")
+    monkeypatch.setattr(noemaforge_status, "systemctl_is_enabled", lambda unit: "disabled")
+    monkeypatch.setattr(noemaforge_status, "findmnt", lambda path: False)
+
+    args = type('Args', (), {'share': str(tmp_path / 'missing-share'), 'dataset': str(tmp_path / 'missing-dataset'), 'json': True, 'strict': False})()
+    doc = noemaforge_status.collect(args)
+    assert doc['failed_units'] == ["noemaforge-llm-backends-manager.service"]

@@ -6,6 +6,7 @@
 # Callers: noemaforge smoke, sudo noemaforge smoke, noemaforge runtime-safety smoke-main.
 # Safety: Read-only network calls over local Unix sockets; does not start/stop services.
 # Notes: 0.28.12 uses per-run temp files to avoid stale /tmp ownership false-negatives.
+#        0.33.0 uses liveness-oriented health: non-empty model reply = live (optional --strict-ok for exact "OK" match).
 # === End NoemaForge File Header ===
 set -euo pipefail
 
@@ -15,11 +16,13 @@ TIMEOUT="${NOEMAFORGE_SMOKE_TIMEOUT:-90}"
 JSON_ONLY="0"
 DEBUG="0"
 ALLOW_GATEWAY_ONLY="0"
+STRICT_OK="0"
 PROFILE="${NOEMAFORGE_SMOKE_PROFILE:-}"
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --json) JSON_ONLY="1"; shift ;;
     --debug) DEBUG="1"; shift ;;
+    --strict-ok) STRICT_OK="1"; shift ;;
     --profile)
       [[ $# -ge 2 && -n "$2" ]] || { echo "[noemaforge-smoke][ERROR] --profile requires a value" >&2; exit 2; }
       PROFILE="$2"
@@ -46,17 +49,21 @@ while [[ $# -gt 0 ]]; do
     -h|--help|help)
       cat <<'EOH'
 Usage:
-  noemaforge smoke [--json] [--debug] [--profile runtime_only] [--gateway-only-ok]
+  noemaforge smoke [--json] [--debug] [--profile runtime_only] [--gateway-only-ok] [--strict-ok]
 
 Checks:
   - backend /health over /run/noemaforge/llm/backends/main.sock
-  - backend chat completion
+  - backend chat completion (default: non-empty reply = live; --strict-ok: exact "OK" = live)
   - gateway /health over /run/noemaforge/llm/gateway.sock
-  - gateway chat completion
+  - gateway chat completion (default: non-empty reply = live; --strict-ok: exact "OK" = live)
 
 Notes:
   --profile runtime_only validates the gateway-only runtime profile and treats the
   intentionally absent main backend as skipped_expected_runtime_only.
+
+  --strict-ok requires an exact literal "OK" response from model chat completions;
+  by default, any non-empty reply is accepted as liveness indication (suitable for
+  tiny instruct models that may reply OK. or OK! or other natural variations).
 EOH
       exit 0 ;;
     *) echo "[noemaforge-smoke][ERROR] unknown option: $1" >&2; exit 2 ;;
@@ -109,7 +116,11 @@ if [[ -S "$BACKEND_SOCK" ]]; then
       -H 'Content-Type: application/json' \
       -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$TMPDIR/backend-chat.json" 2>"$TMPDIR/backend-chat.err"; then
     backend_response="$(json_get_content "$TMPDIR/backend-chat.json")"
-    [[ "$backend_response" == "OK" ]] && result_backend_chat="ok" || result_backend_chat="non_ok_response"
+    if [[ "$STRICT_OK" == "1" ]]; then
+      [[ "$backend_response" == "OK" ]] && result_backend_chat="ok" || result_backend_chat="non_ok_response"
+    else
+      [[ -n "$backend_response" ]] && result_backend_chat="ok" || result_backend_chat="non_ok_response"
+    fi
   else
     backend_chat_err="$(cat "$TMPDIR/backend-chat.err" 2>/dev/null || true)"
   fi
@@ -139,7 +150,11 @@ if [[ -S "$GATEWAY_SOCK" ]]; then
       -H 'Content-Type: application/json' \
       -d '{"model":"main","messages":[{"role":"user","content":"Return exactly: OK"}],"max_tokens":8,"temperature":0}' >"$TMPDIR/gateway-chat.json" 2>"$TMPDIR/gateway-chat.err"; then
     gateway_response="$(json_get_content "$TMPDIR/gateway-chat.json")"
-    [[ "$gateway_response" == "OK" ]] && result_gateway_chat="ok" || result_gateway_chat="non_ok_response"
+    if [[ "$STRICT_OK" == "1" ]]; then
+      [[ "$gateway_response" == "OK" ]] && result_gateway_chat="ok" || result_gateway_chat="non_ok_response"
+    else
+      [[ -n "$gateway_response" ]] && result_gateway_chat="ok" || result_gateway_chat="non_ok_response"
+    fi
   else
     gateway_chat_err="$(cat "$TMPDIR/gateway-chat.err" 2>/dev/null || true)"
   fi

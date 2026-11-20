@@ -129,7 +129,11 @@ def _read_static_asset(assets_dir: str, request_path: str) -> tuple[str, bytes]:
 
     assets_real = os.path.realpath(assets_dir)
     full_real = os.path.realpath(os.path.join(assets_real, path))
-    if not (full_real == assets_real or full_real.startswith(assets_real + os.sep)):
+    try:
+        contained = os.path.commonpath([assets_real, full_real]) == assets_real
+    except ValueError:
+        contained = False
+    if not contained:
         raise PermissionError("bad path")
     if not os.path.isfile(full_real):
         raise FileNotFoundError(path)

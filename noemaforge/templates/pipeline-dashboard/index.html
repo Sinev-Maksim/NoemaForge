@@ -22,9 +22,41 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
   <link rel="stylesheet" href="observer-cards.css" />
   <link rel="stylesheet" href="pipeline-editor.css" />
   <link rel="stylesheet" href="artifact-affordances.css" />
+  <!-- Signal v2 tokens/shell load last so their body/color-variable rules win
+       the cascade over the equal-specificity rules above (see signal-v2-shell.js
+       header comment for why these files stay separate from style.css/app.js). -->
+  <link rel="stylesheet" href="signal-v2-tokens.css" />
+  <link rel="stylesheet" href="signal-v2-shell.css" />
+  <link rel="stylesheet" href="signal-v2-screens.css" />
 </head>
 <body>
-  <main class="app" aria-label="NoemaForge Admin Chat">
+  <div class="sig-shell">
+    <nav class="sig-rail" aria-label="Primary navigation">
+      <div class="sig-rail-logo" aria-hidden="true">N</div>
+      <div class="sig-rail-nav" id="sig-rail-nav">
+        <button type="button" class="sig-rail-item active" data-rail-target="chat-log" data-rail-label="Chat"><span class="sig-rail-icon" aria-hidden="true">&#128172;</span>Chat</button>
+        <button type="button" class="sig-rail-item" data-rail-target="pipeline-dock" data-rail-label="Pipelines"><span class="sig-rail-icon" aria-hidden="true">&#9878;</span>Pipelines</button>
+        <button type="button" class="sig-rail-item" data-rail-target="epoch-title" data-rail-label="Models"><span class="sig-rail-icon" aria-hidden="true">&#9670;</span>Models</button>
+        <button type="button" class="sig-rail-item" data-rail-target="tasks" data-rail-label="Tasks"><span class="sig-rail-icon" aria-hidden="true">&#9745;</span>Tasks</button>
+        <button type="button" class="sig-rail-item" data-rail-target="artifacts" data-rail-label="Artifacts"><span class="sig-rail-icon" aria-hidden="true">&#9638;</span>Artifacts</button>
+        <button type="button" class="sig-rail-item" aria-disabled="true" title="Evolver: planned, not yet implemented" data-rail-label="Evolver"><span class="sig-rail-icon" aria-hidden="true">&#10142;</span>Evolver</button>
+        <button type="button" class="sig-rail-item" aria-disabled="true" title="Epochs timeline: planned, not yet implemented" data-rail-label="Epochs"><span class="sig-rail-icon" aria-hidden="true">&#9689;</span>Epochs</button>
+        <button type="button" class="sig-rail-item" data-screen-target="sig-screen-settings" data-rail-label="Settings"><span class="sig-rail-icon" aria-hidden="true">&#9881;</span>Settings</button>
+      </div>
+      <div class="sig-rail-personas" id="sig-rail-personas" role="button" tabindex="0" aria-label="Persona roster" title="Persona roster"></div>
+    </nav>
+    <div class="sig-main">
+      <header class="sig-header">
+        <h1 class="sig-header-title" id="sig-screen-title">Chat</h1>
+        <div class="sig-wave-switch" id="sig-wave-switch" role="group" aria-label="Experience wave">
+          <button type="button" data-wave-value="operator" class="active" aria-pressed="true">Operator</button>
+          <button type="button" data-wave-value="guided" aria-pressed="false">Guided</button>
+          <button type="button" data-wave-value="play" aria-pressed="false">Play</button>
+        </div>
+        <div class="sig-header-controls"></div>
+      </header>
+      <div class="sig-content">
+  <main class="app" id="sig-app-main" aria-label="NoemaForge Admin Chat">
     <header class="topbar card">
       <img id="persona-portrait" class="portrait" src="/ui/personas/portraits/operator.admin_administrator_gen0.svg" alt="NoemaForge persona portrait" />
       <div class="title-block">
@@ -139,6 +171,53 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
       </aside>
     </section>
   </main>
+      </div>
+    </div>
+  </div>
+
+  <section id="sig-screen-personas" class="sig-screen hidden" aria-label="Persona roster">
+    <div class="sig-screen-head">
+      <p class="sig-eyebrow">Persona roster</p>
+      <p class="sig-screen-note muted">Loaded from <code>/api/persona/catalog</code> -- the same catalog that drives the persona selector above.</p>
+    </div>
+    <div id="sig-persona-grid" class="sig-persona-grid" aria-live="polite"><p class="muted">Loading personas&hellip;</p></div>
+  </section>
+
+  <section id="sig-screen-settings" class="sig-screen hidden" aria-label="Settings">
+    <div class="sig-screen-head">
+      <p class="sig-eyebrow">Settings</p>
+      <p class="sig-screen-note muted">Live controls relocated from the classic header -- same elements, same IDs, same behavior.</p>
+    </div>
+    <div class="sig-settings-groups" id="sig-settings-groups">
+      <div class="sig-settings-group">
+        <h2>General</h2>
+        <div class="sig-settings-row" id="sig-settings-locale-row"></div>
+      </div>
+      <div class="sig-settings-group">
+        <h2>Persona</h2>
+        <div class="sig-settings-row" id="sig-settings-persona-row"></div>
+      </div>
+      <div class="sig-settings-group">
+        <h2>Session behavior</h2>
+        <div class="sig-settings-row" id="sig-settings-session-row"></div>
+      </div>
+      <div class="sig-settings-group">
+        <h2>Device</h2>
+        <div class="sig-settings-row" id="sig-settings-device-row"></div>
+      </div>
+      <div class="sig-settings-group">
+        <h2>Safety</h2>
+        <p class="sig-settings-static">Plan-then-approve: every pipeline stage requiring a real change is proposed first and applied only after explicit approval. Privileged/<code>sudo</code> commands are always presented copy-only -- this GUI never executes them for you.</p>
+      </div>
+      <div class="sig-settings-group">
+        <h2>Shutdown</h2>
+        <div class="sig-settings-row" id="sig-settings-shutdown-row"></div>
+      </div>
+    </div>
+  </section>
+      </div>
+    </div>
+  </div>
 
   <div id="context-menu" class="context-menu hidden"></div>
   <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modal-close" class="ghost small">×</button><h2 id="modal-title">Details</h2><div id="modal-body" class="modal-body"></div></div></div>
@@ -159,6 +238,8 @@ Tests: open http://127.0.0.1:8765/ and verify /api/gui/state hydration.
     </div>
   </div>
   <script src="app.js"></script>
+  <script src="signal-v2-shell.js"></script>
+  <script src="signal-v2-screens.js"></script>
 </body>
 </html>
 

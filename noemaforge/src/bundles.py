@@ -77,6 +77,8 @@ try:
 except Exception:  # pragma: no cover
     append_event = None  # type: ignore
 
+from platform_paths import DEFAULT_PATHS as _pp
+
 
 # === NoemaForge Autodoc Function Header ===
 # Function: _nowz()
@@ -184,10 +186,10 @@ def load_bundle_policy(law_epoch_dir: str) -> Dict[str, Any]:
             "enabled": True,
             "installer": {"prestart_only": True, "require_lock": True, "allowed_manifest_kinds": ["ToolPlugin", "AptRepoBundle"]},
             "tool_vault": {
-                "root": "/var/lib/noemaforge/toolvault",
-                "manifests_dir": "/var/lib/noemaforge/toolvault/manifests",
-                "artifacts_dir": "/var/lib/noemaforge/toolvault/artifacts",
-                "installed_dir": "/var/lib/noemaforge/toolvault/installed",
+                "root": str(_pp.vault_dir),
+                "manifests_dir": str(_pp.vault_dir / "manifests"),
+                "artifacts_dir": str(_pp.vault_dir / "artifacts"),
+                "installed_dir": str(_pp.vault_dir / "installed"),
             },
         },
     )
@@ -286,7 +288,7 @@ def _inventory_path(bundle_policy: Dict[str, Any]) -> str:
     if inv:
         return inv
     tv = (bundle_policy.get("tool_vault") or {})
-    root = str(tv.get("root") or "/var/lib/noemaforge/toolvault")
+    root = str(tv.get("root") or str(_pp.vault_dir))
     return os.path.join(root, "installed", "_inventory.json")
 
 
@@ -491,7 +493,7 @@ def _prepare_aptrepo_bundle(
     actor: Dict[str, Any],
 ) -> Tuple[bool, str, Optional[str]]:
     tv = (bundle_policy.get("tool_vault") or {})
-    root = str(tv.get("root") or "/var/lib/noemaforge/toolvault")
+    root = str(tv.get("root") or str(_pp.vault_dir))
     out_dir = os.path.join(root, "aptrepo", lock.bundle_id, lock.artifact_sha256)
     active_link = os.path.join(root, "aptrepo", "_active")
     stamp = os.path.join(out_dir, ".prepared")
