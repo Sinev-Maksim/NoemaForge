@@ -51,6 +51,7 @@ Example: fix(admin-gui): clear input box after message send
 
 Night Watch context maintenance (owner directive 2026-11-23)
 
+- In ChatGPT Project «ОС_ИИ», treat repository-root NW_CONTEXT.md as the **cross-chat Night Watch context keeper**. At the start of every relevant new project chat, load the latest GitHub file (while PR #355 is draft: codex/task-nw-context-20261123), or explicitly marked stale Project snapshot. GitHub/repository instructions do not automatically install ChatGPT Project Instructions, and Project file snapshots are not automatically synced with GitHub.
 - Read repository-root NW_CONTEXT.md when working on Night Watch, NWEV, or NF evolution integrations.
 - After each user request, check whether Night Watch decisions, evidence, exact SHAs, run/gate statuses, risks, or next actions need an NW_CONTEXT.md update. Do not create empty commits.
 - Record dated, source-grounded deltas without secrets or private logs. Preserve PENDING/BLOCKED as such; summary context never substitutes for canonical architecture, source evidence, review, or target acceptance.
