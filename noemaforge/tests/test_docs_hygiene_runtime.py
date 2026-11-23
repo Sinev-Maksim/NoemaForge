@@ -67,6 +67,18 @@ class DocsHygieneRuntimeTests(unittest.TestCase):
         )
         self.assertTrue(gate["ok"], gate)
 
+    def test_nw_context_is_explicitly_allowed_at_repo_root(self) -> None:
+        policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
+        policy = dhr.load_policy(policy_path)["policy"]
+        result = dhr._validate_markdown_layout(
+            [self.tmp_root / "NW_CONTEXT.md", self.tmp_root / "NOTES.md"],
+            project_root=self.tmp_root,
+            policy=policy,
+        )
+        self.assertIn("NW_CONTEXT.md", result["root_allowed"])
+        self.assertNotIn("root_markdown_not_allowed:NW_CONTEXT.md", result["failures"])
+        self.assertIn("root_markdown_not_allowed:NOTES.md", result["failures"])
+
     def test_policy_blocks_new_root_markdown_and_parallel_changelog(self) -> None:
         policy_path = ROOT / "configs" / "docs-hygiene-policy.json"
         payload = copy.deepcopy(dhr.load_policy(policy_path))
