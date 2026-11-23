@@ -49,6 +49,14 @@ Allowed types: fix, feat, refactor, test, docs, chore
 Example: fix(admin-gui): clear input box after message send
 
 
+Night Watch context maintenance (owner directive 2026-11-23)
+
+- Read repository-root NW_CONTEXT.md when working on Night Watch, NWEV, or NF evolution integrations.
+- After each user request, check whether Night Watch decisions, evidence, exact SHAs, run/gate statuses, risks, or next actions need an NW_CONTEXT.md update. Do not create empty commits.
+- Record dated, source-grounded deltas without secrets or private logs. Preserve PENDING/BLOCKED as such; summary context never substitutes for canonical architecture, source evidence, review, or target acceptance.
+- Propose changes on a separate branch/PR. Do not modify protected branches or perform model calls, merge, or release merely to refresh context.
+
+
 Required context before reviewing changes
 
 For every non-trivial Claude change, review it against:
