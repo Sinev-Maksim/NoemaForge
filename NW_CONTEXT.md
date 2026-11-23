@@ -251,6 +251,7 @@ Read-only contract/review probe `NWEV21_INFRA01_Probe.py` (v0.1) подгото�
 
 | Дата | Изменение | Evidence / решение |
 |---|---|---|
+| 2026-11-23 | NWCTX-SMOKE-20261123-01: STAGE_1_WRITE — проверка записи и восстановления контекста между чатами. | Testing GitHub update + read-back on context branch; сохраняются все BLOCKED/PENDING; Project-снимок не синхронизируется автоматически. |
 | 2026-11-23 | Уточнено назначение: межчатовый хранитель контекста ChatGPT Project «ОС_ИИ», а не только GitHub-файл. Добавлен протокол start-of-chat/end-of-turn, Source of Truth, Project Instructions и контроль drift снимков. | Прямое решение пользователя; Project-файл пока не прикреплён, поэтому автоматическая доступность в новых чатах НЕ подтверждена. |
 | 2026-11-23 | Инициализирован единый `NW_CONTEXT.md`. Сведены Native NW, NF contracts, DEV-001..011, v2 NO-GO, NWEV21 run и INFRA-01. | Пользователь явно потребовал вести файл; исходники и выводы перечислены выше. |
 
